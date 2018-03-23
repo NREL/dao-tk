@@ -1,0 +1,23 @@
+VPATH=../src
+
+CXX = g++
+CFLAGS = -g -D__UNIX__ -fPIC -Wall -O3
+LDFLAGS = -std=c++11 -lm -lstdc++ 
+CXXFLAGS= -std=c++11 $(CFLAGS)
+
+CFLAGS += -D__64BIT__
+TARGET = degradation_model.so
+
+
+OBJECTS = \
+	structures.o\
+	degradation_api.o
+
+
+$(TARGET) : $(OBJECTS)
+	$(CXX) -shared -o $@ $^ $(LDFLAGS)
+
+
+clean:
+	rm -rf $(TARGET) $(OBJECTS)
+

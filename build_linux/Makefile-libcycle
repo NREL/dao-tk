@@ -1,0 +1,25 @@
+VPATH=../src
+
+CXX = g++
+CFLAGS = -g -D__UNIX__ -fPIC -Wall
+LDFLAGS = -std=c++11 -lm -lstdc++ 
+CXXFLAGS= -std=c++11 $(CFLAGS)
+
+CFLAGS += -D__64BIT__
+TARGET = cycle_avail_model.so
+
+
+OBJECTS = \
+	lib_util.o\
+	well512.o\
+	component.o\
+	plant.o
+
+
+$(TARGET) : $(OBJECTS)
+	$(CXX) -shared -o $@ $^ $(LDFLAGS)
+
+
+clean:
+	rm -rf $(TARGET) $(OBJECTS)
+

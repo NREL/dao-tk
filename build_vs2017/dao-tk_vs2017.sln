@@ -1,0 +1,66 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2002
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dao-tk_vs2017", "dao-tk_vs2017.vcxproj", "{3D8323EB-CC53-489E-8E51-EB6E24659D99}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8D63D947-972B-4E5A-8684-C96C5570ED83} = {8D63D947-972B-4E5A-8684-C96C5570ED83}
+		{C273DFFB-F8E1-4B59-885F-B1B4097FD8F6} = {C273DFFB-F8E1-4B59-885F-B1B4097FD8F6}
+		{03C32DFE-081B-4DA8-8944-776BA8EE0A10} = {03C32DFE-081B-4DA8-8944-776BA8EE0A10}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libcycle", "libcycle.vcxproj", "{8D63D947-972B-4E5A-8684-C96C5570ED83}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "liboptical", "liboptical.vcxproj", "{C273DFFB-F8E1-4B59-885F-B1B4097FD8F6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libsolar", "libsolar.vcxproj", "{03C32DFE-081B-4DA8-8944-776BA8EE0A10}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3D8323EB-CC53-489E-8E51-EB6E24659D99}.Debug|x64.ActiveCfg = Debug|x64
+		{3D8323EB-CC53-489E-8E51-EB6E24659D99}.Debug|x64.Build.0 = Debug|x64
+		{3D8323EB-CC53-489E-8E51-EB6E24659D99}.Debug|x86.ActiveCfg = Debug|Win32
+		{3D8323EB-CC53-489E-8E51-EB6E24659D99}.Debug|x86.Build.0 = Debug|Win32
+		{3D8323EB-CC53-489E-8E51-EB6E24659D99}.Release|x64.ActiveCfg = Release|x64
+		{3D8323EB-CC53-489E-8E51-EB6E24659D99}.Release|x64.Build.0 = Release|x64
+		{3D8323EB-CC53-489E-8E51-EB6E24659D99}.Release|x86.ActiveCfg = Release|Win32
+		{3D8323EB-CC53-489E-8E51-EB6E24659D99}.Release|x86.Build.0 = Release|Win32
+		{8D63D947-972B-4E5A-8684-C96C5570ED83}.Debug|x64.ActiveCfg = Debug|x64
+		{8D63D947-972B-4E5A-8684-C96C5570ED83}.Debug|x64.Build.0 = Debug|x64
+		{8D63D947-972B-4E5A-8684-C96C5570ED83}.Debug|x86.ActiveCfg = Debug|Win32
+		{8D63D947-972B-4E5A-8684-C96C5570ED83}.Debug|x86.Build.0 = Debug|Win32
+		{8D63D947-972B-4E5A-8684-C96C5570ED83}.Release|x64.ActiveCfg = Release|x64
+		{8D63D947-972B-4E5A-8684-C96C5570ED83}.Release|x64.Build.0 = Release|x64
+		{8D63D947-972B-4E5A-8684-C96C5570ED83}.Release|x86.ActiveCfg = Release|Win32
+		{8D63D947-972B-4E5A-8684-C96C5570ED83}.Release|x86.Build.0 = Release|Win32
+		{C273DFFB-F8E1-4B59-885F-B1B4097FD8F6}.Debug|x64.ActiveCfg = Debug|x64
+		{C273DFFB-F8E1-4B59-885F-B1B4097FD8F6}.Debug|x64.Build.0 = Debug|x64
+		{C273DFFB-F8E1-4B59-885F-B1B4097FD8F6}.Debug|x86.ActiveCfg = Debug|Win32
+		{C273DFFB-F8E1-4B59-885F-B1B4097FD8F6}.Debug|x86.Build.0 = Debug|Win32
+		{C273DFFB-F8E1-4B59-885F-B1B4097FD8F6}.Release|x64.ActiveCfg = Release|x64
+		{C273DFFB-F8E1-4B59-885F-B1B4097FD8F6}.Release|x64.Build.0 = Release|x64
+		{C273DFFB-F8E1-4B59-885F-B1B4097FD8F6}.Release|x86.ActiveCfg = Release|Win32
+		{C273DFFB-F8E1-4B59-885F-B1B4097FD8F6}.Release|x86.Build.0 = Release|Win32
+		{03C32DFE-081B-4DA8-8944-776BA8EE0A10}.Debug|x64.ActiveCfg = Debug|x64
+		{03C32DFE-081B-4DA8-8944-776BA8EE0A10}.Debug|x64.Build.0 = Debug|x64
+		{03C32DFE-081B-4DA8-8944-776BA8EE0A10}.Debug|x86.ActiveCfg = Debug|Win32
+		{03C32DFE-081B-4DA8-8944-776BA8EE0A10}.Debug|x86.Build.0 = Debug|Win32
+		{03C32DFE-081B-4DA8-8944-776BA8EE0A10}.Release|x64.ActiveCfg = Release|x64
+		{03C32DFE-081B-4DA8-8944-776BA8EE0A10}.Release|x64.Build.0 = Release|x64
+		{03C32DFE-081B-4DA8-8944-776BA8EE0A10}.Release|x86.ActiveCfg = Release|Win32
+		{03C32DFE-081B-4DA8-8944-776BA8EE0A10}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0677AA69-124B-4793-851A-7AE7A77680D3}
+	EndGlobalSection
+EndGlobal
