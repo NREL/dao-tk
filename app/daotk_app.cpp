@@ -23,6 +23,7 @@
 #include "scripting.h"
 #include "dataview.h"
 #include "scriptview.h"
+#include "logview.h"
 #include "daotk_app.h"
 
 int version_major = 0;
@@ -58,56 +59,48 @@ public:
 };
 
 
+IMPLEMENT_APP(MyApp)
 
-static wxArrayString g_appArgs;
-class MyApp : public wxApp
+static wxArrayString g_appArgs;			//any arguments after the applicaton open
+void MyApp::OnFatalException()
 {
-public:
-	virtual void OnFatalException()
-	{
 #ifdef __WXMSW__
-		wxMSWHandleApplicationFatalException();
+	wxMSWHandleApplicationFatalException();
 #endif
-	}
+}
 
-	virtual bool OnInit()
-	{
+bool MyApp::OnInit()
+{
 
-		bool is64 = (sizeof(void*) == 8);
+	bool is64 = (sizeof(void*) == 8);
 
 #ifdef __WXMSW__
-		wxMSWSetupExceptionHandler("DAOToolkit",
-			wxString::Format("%d.%d.%d (%d bit)", version_major, version_minor, version_micro, is64 ? 64 : 32),
-			"mike.wagner@nrel.gov");
+	wxMSWSetupExceptionHandler("DAOToolkit",
+		wxString::Format("%d.%d.%d (%d bit)", version_major, version_minor, version_micro, is64 ? 64 : 32),
+		"mike.wagner@nrel.gov");
 #endif
 
-		wxEasyCurl::Initialize();
+	wxEasyCurl::Initialize();
 
-		for (int i = 0; i<argc; i++)
-			g_appArgs.Add(argv[i]);
+	for (int i = 0; i<argc; i++)
+		g_appArgs.Add(argv[i]);
 
-		wxInitAllImageHandlers();
+	wxInitAllImageHandlers();
 
-		wxMetroTheme::SetTheme(new CustomThemeProvider);
-		wxLKScriptWindow::SetFactory(new DAOTKScriptWindowFactory);
+	wxMetroTheme::SetTheme(new CustomThemeProvider);
 
-		MainWindow *mw = new MainWindow;
-		mw->Show();
-		//if (g_appArgs.size() > 1)
-			//mw->LoadProject(g_appArgs[1]);
+	MainWindow *mw = new MainWindow;
+	mw->Show();
+	if (g_appArgs.size() > 1)
+		mw->LoadScript(g_appArgs[1]);
 
-		return true;
-	}
+	return true;
+}
 
-	virtual int OnExit()
-	{
-		return wxApp::OnExit();
-	}
-};
-
-#ifndef ST_CONSOLE_APP
-IMPLEMENT_APP(MyApp);
-#endif
+int MyApp::OnExit()
+{
+	return wxApp::OnExit();
+}
 
 enum {
 	ID_MAIN_MENU = wxID_HIGHEST + 123, ID_TABS,
@@ -174,6 +167,9 @@ MainWindow::MainWindow()
 	m_DataViewForm = new DataView(m_notebook);
 	m_notebook->AddPage(m_DataViewForm, "Data");
 
+	m_tabList->Append("Log");
+	m_LogViewForm = new LogView(m_notebook);
+	m_notebook->AddPage(m_LogViewForm, "Log");
 
 	UpdateFrameTitle();
 }
@@ -193,21 +189,29 @@ MainWindow &MainWindow::Instance()
 	return *g_mainWindow;
 }
 
+void MainWindow::Log(const wxString &text, bool wnl)
+{
+	m_LogViewForm->Log(text, wnl);
+}
+
+void MainWindow::ClearLog()
+{
+	m_LogViewForm->ClearLog();
+}
+
+bool MainWindow::LoadScript(const wxString &file)
+{
+	return m_ScriptViewForm->Load(file);
+}
 
 void MainWindow::OnClose(wxCloseEvent &evt)
 {
-	if (!DAOTKScriptWindow::CloseAll())
+	Raise();
+	if (!m_ScriptViewForm->CloseDoc())
 	{
 		evt.Veto();
 		return;
 	}
-
-	Raise();
-	//if (!CloseProject())
-	//{
-	//	evt.Veto();
-	//	return;
-	//}
 
 	// destroy the window
 #ifndef DAO_CONSOLE_APP
@@ -223,14 +227,14 @@ void MainWindow::Save()
 		return;
 	}
 
-	//if (!SaveProject(m_fileName))
-		//wxMessageBox("Error writing project to disk:\n\n" + m_fileName, "Notice", wxOK, this);
+	if (!m_ScriptViewForm->Save())
+		wxMessageBox("Error writing project to disk:\n\n" + m_fileName, "Notice", wxOK, this);
 }
 
 void MainWindow::SaveAs()
 {
-	wxFileDialog dlg(this, "Save SolTrace input file as", wxPathOnly(m_fileName),
-		m_fileName, "SolTrace Project File (*.stinput)|*.stinput",
+	wxFileDialog dlg(this, "Save DAO-Tk script file as", wxPathOnly(m_fileName),
+		m_fileName, "DAO-Tk Project File (*.dtk)|*.dtk",
 		wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (dlg.ShowModal() == wxID_OK)
 	{
@@ -246,7 +250,7 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
 	{
 	case wxID_NEW:
 	case wxID_CLOSE:
-		//CloseProject();
+		m_ScriptViewForm->CloseDoc();
 		break;
 	case wxID_SAVEAS:
 		SaveAs();
@@ -256,15 +260,9 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
 		break;
 	case wxID_OPEN:
 	{
-		//if (!CloseProject()) return;
-		//wxFileDialog dlg(this, "Open SolTrace input file", wxEmptyString, wxEmptyString, "SolTrace Input Files (*.stinput)|*.stinput", wxFD_OPEN);
-		//if (dlg.ShowModal() == wxID_OK)
-		//	if (!LoadProject(dlg.GetPath(), false))
-		//		wxMessageBox("Error loading input file:\n\n"
-		//			+ dlg.GetPath() + "\n\n" /*+ m_project.GetLastError()*/, "Notice", wxOK, this);
+		m_ScriptViewForm->Open();
+		break;
 	}
-	break;
-
 	case ID_MAIN_MENU:
 	{
 		wxPoint p = m_mainMenuButton->ClientToScreen(wxPoint(0, m_mainMenuButton->GetClientSize().y));
@@ -292,6 +290,7 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
 void MainWindow::OnCaseTabChange(wxCommandEvent &evt)
 {
 	m_notebook->SetSelection(evt.GetSelection());
+	m_LogViewForm->Log(evt.GetString().ToStdString(), true );
 }
 
 

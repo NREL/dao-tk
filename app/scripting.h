@@ -4,28 +4,8 @@
 #include <wex/lkscript.h>
 
 
-class DAOTKScriptWindowFactory : public wxLKScriptWindowFactory
-{
-public:
-	DAOTKScriptWindowFactory();
-	virtual ~DAOTKScriptWindowFactory();
-	virtual wxLKScriptWindow *Create();
-};
-
-
-class DAOTKScriptWindow : public wxLKScriptWindow
-{
-public:
-	DAOTKScriptWindow(wxWindow *parent, int id = wxID_ANY);
-
-protected:
-	virtual void OnScriptStarted();
-	virtual void OnScriptStopped();
-	virtual void OnHelp();
-
-};
-
-
+extern void _test(lk::invoke_t &cxt);
+extern void _power_cycle(lk::invoke_t &cxt);
 
 
 #endif

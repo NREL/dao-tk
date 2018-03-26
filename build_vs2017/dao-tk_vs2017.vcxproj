@@ -24,12 +24,14 @@
   <ItemGroup>
     <ClCompile Include="..\app\daotk_app.cpp" />
     <ClCompile Include="..\app\dataview.cpp" />
+    <ClCompile Include="..\app\logview.cpp" />
     <ClCompile Include="..\app\scripting.cpp" />
     <ClCompile Include="..\app\scriptview.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\app\daotk_app.h" />
     <ClInclude Include="..\app\dataview.h" />
+    <ClInclude Include="..\app\logview.h" />
     <ClInclude Include="..\app\scripting.h" />
     <ClInclude Include="..\app\scriptview.h" />
   </ItemGroup>
