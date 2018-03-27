@@ -96,8 +96,6 @@ void optical_degradation::simulate(std::string *results_file_name, std::string *
 	std::vector< int > repr(m_settings.n_hr_sim);
 	std::vector< double > repr_cum(m_settings.n_hr_sim);
 
-	int update_per = (int)(m_settings.n_hr_sim / 20.);
-
 	//random generators
 	double soil_scalar = 100.;
 	double degr_scalar = 1000.;
@@ -111,7 +109,7 @@ void optical_degradation::simulate(std::string *results_file_name, std::string *
 
 	//initialize where each crew starts in the field
 	int inc = (int)((float)n_helio_s / (float)crews.size());
-	for (int c = 0; c<crews.size(); c++)
+	for (size_t c = 0; c<crews.size(); c++)
 		crews.at(c).current_heliostat = c * inc;
 	int n_replacements_cumu = 0;
 
@@ -236,7 +234,7 @@ void optical_degradation::simulate(std::string *results_file_name, std::string *
 		//log averages
 		double refl_ave = 0.;
 		double soil_ave = 0.;
-		for (int i = 0; i<helios.size(); i++)
+		for (size_t i = 0; i<helios.size(); i++)
 		{
 			refl_ave += helios.at(i).refl_base;
 			soil_ave += helios.at(i).soil_loss;
@@ -250,9 +248,8 @@ void optical_degradation::simulate(std::string *results_file_name, std::string *
 
 
 	//fill in the return data
-	double hours_worked = 0.;
 	int replacements_made = 0;
-	for (int s = 0; s < crews.size(); s++)
+	for (size_t s = 0; s < crews.size(); s++)
 	{
 		//hours_worked += crews.at(s).hours_worked;
 		replacements_made += crews.at(s).replacements_made;
@@ -285,7 +282,7 @@ void optical_degradation::simulate(std::string *results_file_name, std::string *
 
 		//summary
 		ofs << "\nrepairs by crew,";
-		for (int s = 0; s<crews.size(); s++)
+		for (size_t s = 0; s<crews.size(); s++)
 			ofs << "," << crews.at(s).replacements_made*problem_scale;
 		ofs << "\n";
 
@@ -310,9 +307,9 @@ void optical_degradation::simulate(std::string *results_file_name, std::string *
 		ofs.clear();
 
 		//headers
-		for (int i = 0; i<helios.size(); i++)
+		for (size_t i = 0; i<helios.size(); i++)
 			ofs << "degr_" << i << ",";
-		for (int i = 0; i<helios.size(); i++)
+		for (size_t i = 0; i<helios.size(); i++)
 			ofs << "soil_" << i << (i<helios.size() - 1 ? "," : "\n");
 
 		for (int t = 0; t<m_settings.n_hr_sim; t += 24 * 7)

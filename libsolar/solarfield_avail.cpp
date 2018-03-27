@@ -83,7 +83,7 @@ void solarfield_availability::simulate(std::string *results_file_name)
 
 		//generate failure times for all new fails
 		std::vector<double> times;
-		for (int i = 0; i<new_fails.size(); i++)
+		for (size_t i = 0; i<new_fails.size(); i++)
 		{
 			double ft = std::fmax(m_settings.rep_min, std::fmin(chi2_2p2(rand), m_settings.rep_max))*problem_scale;
 			times.push_back(ft);
@@ -95,7 +95,7 @@ void solarfield_availability::simulate(std::string *results_file_name)
 			std::cout << t / float(m_settings.n_hr_sim)*100. << " %\n";
 
 		//Add the failure time to the heliostats
-		for (int i = 0; i<new_fails.size(); i++)
+		for (size_t i = 0; i<new_fails.size(); i++)
 		{
 			solarfield_heliostat *h = new_fails.at(i);
 
@@ -109,7 +109,7 @@ void solarfield_availability::simulate(std::string *results_file_name)
 
 			//assign this heliostat to a staff member
 			staff_last_assigned += 1;
-			if (staff_last_assigned == staff.size())
+			if (staff_last_assigned == (int)staff.size())
 				staff_last_assigned = 0;
 
 			staff[staff_last_assigned].queue.push_back(h);
@@ -118,18 +118,18 @@ void solarfield_availability::simulate(std::string *results_file_name)
 		int how = (t / (24 * 7.) - t / (24 * 7)) * 24 * 7;  //hour of the week
 		if (how == 0)  //reset for new week
 		{
-			for (int j = 0; j<staff.size(); j++)
+			for (size_t j = 0; j<staff.size(); j++)
 				staff.at(j).hours_this_week = 0;
 		}
 
 		if (hod == 0)
 		{
-			for (int j = 0; j<staff.size(); j++)
+			for (size_t j = 0; j<staff.size(); j++)
 				staff.at(j).hours_today = 0.;
 		}
 
 		//handle repairs
-		for (int i = 0; i<staff.size(); i++)
+		for (size_t i = 0; i<staff.size(); i++)
 		{
 			solarfield_staff *s = &staff.at(i);
 
@@ -141,12 +141,12 @@ void solarfield_availability::simulate(std::string *results_file_name)
 				{
 					//try to take jobs from other staff if possible
 					std::vector<int> sco;
-					for (int j = 0; j<staff.size(); j++)
+					for (size_t j = 0; j<staff.size(); j++)
 						sco.push_back(j);  //integer array of length (staff)
 
 					std::random_shuffle(sco.begin(), sco.end());    //randomly shuffle the array
 
-					for (int si = 0; si<sco.size(); si++)   //Hi Jim - who I randomly bumped into...
+					for (size_t si = 0; si<sco.size(); si++)   //Hi Jim - who I randomly bumped into...
 					{
 						if (&staff[si] == s)
 							continue;
@@ -193,7 +193,7 @@ void solarfield_availability::simulate(std::string *results_file_name)
 			}
 			//track the total queue length remaining for this staff
 			double ql = 0.;
-			for (int hi = 0; hi<s->queue.size(); hi++)
+			for (size_t hi = 0; hi<s->queue.size(); hi++)
 				ql += s->queue.at(hi)->repair_remain;
 
 			s->queue_length.push_back(ql);
@@ -204,7 +204,7 @@ void solarfield_availability::simulate(std::string *results_file_name)
 	//fill in the return data
 	double hours_worked = 0.;
 	int repairs_made = 0;
-	for (int s = 0; s < staff.size(); s++)
+	for (size_t s = 0; s < staff.size(); s++)
 	{
 		hours_worked += staff.at(s).hours_worked;
 		repairs_made += staff.at(s).repairs_made*problem_scale;
@@ -230,22 +230,22 @@ void solarfield_availability::simulate(std::string *results_file_name)
 
 		//header
 		ofs << "hour,avail";
-		for (int s = 0; s<staff.size(); s++)
+		for (size_t s = 0; s<staff.size(); s++)
 			ofs << ",staff_" << s;
 		ofs << "\n";
 
 		//summary
 		ofs << "hrs_worked,";
-		for (int s = 0; s<staff.size(); s++)
+		for (size_t s = 0; s<staff.size(); s++)
 			ofs << "," << staff.at(s).hours_worked;
 		ofs << "\nrepairs,";
-		for (int s = 0; s<staff.size(); s++)
+		for (size_t s = 0; s<staff.size(); s++)
 			ofs << "," << staff.at(s).repairs_made*problem_scale;
 		ofs << "\n";
 
 		//header
 		ofs << "hour,avail";
-		for (int s = 0; s<staff.size(); s++)
+		for (size_t s = 0; s<staff.size(); s++)
 			ofs << ",staff_" << s;
 		ofs << "\n";
 
@@ -253,7 +253,7 @@ void solarfield_availability::simulate(std::string *results_file_name)
 		for (int t = 0; t<m_settings.n_hr_sim; t++)
 		{
 			ofs << t << "," << avail.at(t);
-			for (int s = 0; s<staff.size(); s++)
+			for (size_t s = 0; s<staff.size(); s++)
 				ofs << "," << staff.at(s).queue_length.at(t);
 			ofs << "\n";
 		}
