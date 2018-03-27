@@ -19,7 +19,7 @@
                 "${workspaceRoot}/libsolar",
                 "${workspaceRoot}/liboptical",
                 "${workspaceRoot}/libcycle",
-                "${workspaceRoot}/libcluster,"
+                "${workspaceRoot}/libcluster",
                 "${workspaceRoot}/app"
 
             ],
