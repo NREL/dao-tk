@@ -1,4 +1,4 @@
-#include "structures.h"
+#include "solarfield_structures.h"
 #include "solarfield_avail.h"
 #include <iostream>
 #include <fstream>

@@ -1,4 +1,4 @@
-#include "structures.h"
+#include "optical_structures.h"
 #include "optical_degr.h"
 #include <iostream>
 #include <fstream>

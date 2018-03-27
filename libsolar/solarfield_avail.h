@@ -1,7 +1,7 @@
 #ifndef _SOLARFIELD_AVAIL
 #define _SOLARFIELD_AVAIL
 
-#include "structures.h"
+#include "solarfield_structures.h"
 
 class solarfield_availability
 {

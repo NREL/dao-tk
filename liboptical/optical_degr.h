@@ -1,4 +1,4 @@
-#include "structures.h"
+#include "optical_structures.h"
 
 #ifndef _OPTICAL_DEGR
 #define _OPTICAL_DEGR

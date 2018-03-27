@@ -20,11 +20,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\libsolar\solarfield_avail.cpp" />
-    <ClCompile Include="..\libsolar\structures.cpp" />
+    <ClCompile Include="..\libsolar\solarfield_structures.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\libsolar\solarfield_avail.h" />
-    <ClInclude Include="..\libsolar\structures.h" />
+    <ClInclude Include="..\libsolar\solarfield_structures.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{03C32DFE-081B-4DA8-8944-776BA8EE0A10}</ProjectGuid>

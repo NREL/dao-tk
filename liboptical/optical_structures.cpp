@@ -1,4 +1,4 @@
-#include "structures.h"
+#include "optical_structures.h"
 
 #include <random>
 #include <iostream>
