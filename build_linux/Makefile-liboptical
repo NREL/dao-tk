@@ -1,22 +1,18 @@
-VPATH=../src
+VPATH=../liboptical
 
 CXX = g++
-CFLAGS = -g -D__UNIX__ -fPIC -Wall -O3
-LDFLAGS = -std=c++11 -lm -lstdc++ 
-CXXFLAGS= -std=c++11 $(CFLAGS)
-
-CFLAGS += -D__64BIT__
-TARGET = degradation_model.so
+CFLAGS = -g -D__64BIT__ -fPIC -Wall -O3
+CXXFLAGS= -std=c++0x $(CFLAGS)
 
 
 OBJECTS = \
-	structures.o\
-	degradation_api.o
+	optical_structures.o\
+	optical_degr.o
 
+TARGET = liboptical.a
 
 $(TARGET) : $(OBJECTS)
-	$(CXX) -shared -o $@ $^ $(LDFLAGS)
-
+	ar rs $(TARGET) $(OBJECTS)
 
 clean:
 	rm -rf $(TARGET) $(OBJECTS)

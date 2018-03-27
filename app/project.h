@@ -26,7 +26,7 @@ public:
 		return  std::to_string(val);
 	};
 	
-	bool variable<T>::set_limits(const T& vmin, const T& vmax)
+	bool set_limits(const T& vmin, const T& vmax)
 	{
 		if (vmin >= vmax)
 			return false;
@@ -42,7 +42,7 @@ public:
 		name = vname;
 	};
 
-	void variable<T>::set(const T &v, const T &vmin, const T &vmax, std::string &vname)
+	void set(const T &v, const T &vmin, const T &vmax, std::string &vname)
 	{
 		val = v;
 		set_limits(vmin, vmax);

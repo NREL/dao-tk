@@ -72,7 +72,7 @@ void MyApp::OnFatalException()
 bool MyApp::OnInit()
 {
 
-	bool is64 = (sizeof(void*) == 8);
+	//bool is64 = (sizeof(void*) == 8);
 
 #ifdef __WXMSW__
 	wxMSWSetupExceptionHandler("DAOToolkit",
