@@ -40,15 +40,18 @@ void ClearOutput()
 	MainWindow::Instance().ClearLog();
 }
 
+//----------------------------------------------------------------
 static lk::fcall_t *daotk_functions()
 {
 	static lk::fcall_t st[] = {
 		_test,
 		_power_cycle,
+		_simulate_optical,
 		0 };
 
 	return (lk::fcall_t*)st;
 }
+//----------------------------------------------------------------
 
 
 enum { ID_CODEEDITOR = wxID_HIGHEST + 1, ID_RUN, ID_HELP };

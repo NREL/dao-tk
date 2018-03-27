@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-struct settings
+struct opt_settings
 {
     int n_helio;
 
@@ -21,9 +21,11 @@ struct settings
     double degr_accel_per_year;
 
     int n_hr_sim;
+
+	int seed;
 }; 
 
-struct Heliostat
+struct opt_heliostat
 {
     double refl_base;
     double soil_loss;
@@ -33,25 +35,24 @@ struct Heliostat
     double *soil_history;
     double *refl_history;
 
-    Heliostat();
-    ~Heliostat();
+	opt_heliostat();
+    ~opt_heliostat();
 };
 
-struct Crew
+struct opt_crew
 {
 
     int current_heliostat;
     double carryover_wash_time;
 
     int replacements_made;
-    //double hours_worked;
     double hours_this_week;
     double hours_today;
 
-    Crew();
+	opt_crew();
 }; 
 
-struct Results
+struct opt_results
 {
     
     float *soil_schedule;
@@ -63,14 +64,15 @@ struct Results
 
     int n_replacements;
 
-    Results(){
+	opt_results()
+	{
         //null pointers
         soil_schedule = 0;
         degr_schedule = 0;
         repl_schedule = 0;
         repl_total = 0;
     };
-    ~Results()
+    ~opt_results()
     {
         if( soil_schedule != 0 )
         {
@@ -82,6 +84,5 @@ struct Results
     };
 };
 
-extern void simulate(settings &s, Results &R,  int seed, std::string *results_file_name = 0, std::string *trace_file_name = 0);
 
 #endif

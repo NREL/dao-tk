@@ -5,23 +5,22 @@
 
 class optical_degradation
 {
+	bool m_sim_available;
 
 public:
-	void* create_context();
+	optical_degradation();
 
-	void run(void* context, 
-		int n_hours_sim, int n_wash_crews, int n_heliostat,  
-		float degr_per_hour, float degr_accel_per_year, float degr_replace_limit, 
-		float soil_per_hour, float wash_units_per_hour, 
-		float max_hoursperweek_crew, float max_hoursperday_crew, 
-		int seed);
+	opt_settings m_settings;
+	opt_results m_results;
 
-	float* get_soiling_schedule(void* context, int *length);
-	float* get_degradation_schedule(void* context, int *length);
-	float* get_replacement_schedule(void* context, int *length);
-	float* get_replacement_totals(void* context, int *length);
+	void simulate(std::string *results_file_name = 0, std::string *trace_file_name = 0);
 
-	int get_number_repairs(void* context);
+	float* get_soiling_schedule(int *length);
+	float* get_degradation_schedule(int *length);
+	float* get_replacement_schedule(int *length);
+	float* get_replacement_totals(int *length);
+
+	int get_number_repairs();
 };
 
 
