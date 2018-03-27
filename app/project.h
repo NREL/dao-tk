@@ -3,17 +3,16 @@
 
 #include <string>
 #include <vector>
+
 #include <lk/env.h>
+#include <ssc/sscapi.h>
+#include "../liboptical/optical_degr.h"
+#include "../libsolar/solarfield_avail.h"
 
 
 /* 
 A class containing the aspects of the current project
 */
-
-//declared classes
-class solarfield_availability;
-class optical_degradation;
-
 
 template<typename T> class variable
 {
@@ -83,25 +82,30 @@ struct parameters
 //main class
 class Project
 {
-	solarfield_availability *m_solarfield_availability;
-	optical_degradation *m_optical_degradation;
+	solarfield_availability m_solarfield_availability;
+	optical_degradation m_optical_degradation;
 
+	void hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
+	void initialize_ssc_project(ssc_data_t &cxt);
 
 public:
-	// Project();
-	// ~Project(){};
 
 	variables m_variables;
 	parameters m_parameters;
 
-
-	int test();
-
 	//objective function methods
+	int D(ssc_data_t &cxt, lk::varhash_t &vars);
+	int M(ssc_data_t &cxt, lk::varhash_t &vars);
+	int O(ssc_data_t &cxt, lk::varhash_t &vars);
+	int S(ssc_data_t &cxt, lk::varhash_t &vars);
+	int E(ssc_data_t &cxt, lk::varhash_t &vars);
+	int F(ssc_data_t &cxt, lk::varhash_t &vars);
+	int Z(ssc_data_t &cxt, lk::varhash_t &vars);
+
+	
 
 	// double calc_real_dollars(double value, bool is_revenue=false, bool is_labor=false);
 	// def setup_clusters(self, Nclusters, Ndays = 2, Nprev = 1, Nnext = 1, user_weights = None, user_divisions = None):
-	// def D(self, variables):
 	// def M(self, variables, design):
 	// def O(self, variables, design):
 	// def S(self, design, variables, sf_avail=None, sf_soil=None, sf_degr=None, sample_weeks=None, Nclusters = None, cluster_inputs = None, pv_production = None):

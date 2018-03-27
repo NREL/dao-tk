@@ -201,6 +201,9 @@ MainWindow &MainWindow::Instance()
 void MainWindow::Log(const wxString &text, bool wnl)
 {
 	m_LogViewForm->Log(text, wnl);
+	wxString ltext(text);
+	ltext.Truncate(150);
+	m_statusLabel->SetLabel(ltext);
 }
 
 void MainWindow::ClearLog()
@@ -299,7 +302,6 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
 void MainWindow::OnCaseTabChange(wxCommandEvent &evt)
 {
 	m_notebook->SetSelection(evt.GetSelection());
-	m_LogViewForm->Log(evt.GetString().ToStdString(), true );
 }
 
 
