@@ -1,10 +1,10 @@
-#ifndef _STRUCTURES_ 
-#define _STRUCTURES_
+#ifndef _SF_STRUCTURES_ 
+#define _SF_STRUCTURES_
 
 #include <vector>
 #include <string>
 
-struct settings
+struct solarfield_settings
 {
     int mf;
     double rep_min;
@@ -17,20 +17,20 @@ struct settings
     int seed;
 }; 
 
-struct Heliostat
+struct solarfield_heliostat
 {
     bool operating;
     double repair_remain;
     int number_failure;
 
-    Heliostat();
+	solarfield_heliostat();
 };
 
-struct Staff
+struct solarfield_staff
 {
 
     //list of heliostats
-    std::vector< Heliostat * > queue;
+    std::vector< solarfield_heliostat * > queue;
     //list of queue length over time
     std::vector< double > queue_length;
 
@@ -39,10 +39,10 @@ struct Staff
     double hours_this_week;
     double hours_today;
 
-    Staff();
+	solarfield_staff();
 }; 
 
-struct Results
+struct solarfield_results
 {
     float *avail_schedule;
     int n_avail_schedule;
@@ -50,16 +50,15 @@ struct Results
     float n_repairs;
     float staff_utilization;
 
-    Results(){
+	solarfield_results(){
         avail_schedule = 0;
     };
-    ~Results()
+    ~solarfield_results()
     {
         if( avail_schedule != 0 )
             delete [] avail_schedule;
     };
 };
 
-extern void simulate(settings &s, Results &R,  std::string *results_file_name = 0);
 
 #endif

@@ -7,6 +7,8 @@
 
 #include "../liboptical/optical_degr.h"
 #include "../liboptical/optical_structures.h"
+#include "../libsolar/solarfield_avail.h"
+#include "../libsolar/solarfield_structures.h"
 
 
 void _test(lk::invoke_t &cxt)
@@ -79,11 +81,63 @@ void _simulate_optical(lk::invoke_t &cxt)
 	if (h->find("rng_seed") != h->end())
 		OD.m_settings.seed = h->at("rng_seed")->as_integer();
 
-	//std::string resfile = "results.csv";
-	//std::string tracefile = "trace.csv";
-	OD.simulate(); // , &resfile, &tracefile);
+	OD.simulate();
 
-	//process and return results
+	return;
+
+}
+
+void _simulate_solarfield(lk::invoke_t &cxt)
+{
+	LK_DOC("simulate_solarfield", "Simulate the solar field availability over time due to heliostat failures. "
+		"Table keys include: "
+		"mean_time_to_failure, n_helio_actual, n_helio_simulated, n_om_staff, n_hr_sim, rng_seed, repair_min_downtime, "
+		"rep_max_downtime, staff_productive_hr_week."
+		, "(table:inputs):table");
+
+	solarfield_availability SA;
+
+	lk::varhash_t *H = cxt.arg(0).hash();
+
+
+
+	SA.m_settings.mf = 12000;
+	if (H->find("mean_time_to_failure") != H->end())
+		SA.m_settings.mf = H->at("mean_time_to_failure")->as_integer();
+
+	SA.m_settings.n_helio = 9264;
+	if (H->find("n_helio_actual") != H->end())
+		SA.m_settings.n_helio = H->at("n_helio_actual")->as_integer();
+
+	SA.m_settings.n_helio_sim = 1000;
+	if (H->find("n_helio_simulated") != H->end())
+		SA.m_settings.n_helio_sim = H->at("n_helio_simulated")->as_integer();
+
+	SA.m_settings.n_om_staff = 5;
+	if (H->find("n_om_staff") != H->end())
+		SA.m_settings.n_om_staff = H->at("n_om_staff")->as_integer();
+
+	SA.m_settings.n_hr_sim = 105120;
+	if (H->find("n_hr_sim") != H->end())
+		SA.m_settings.n_hr_sim = H->at("n_hr_sim")->as_integer();
+
+	SA.m_settings.seed = 123;
+	if (H->find("rng_seed") != H->end())
+		SA.m_settings.seed = H->at("rng_seed")->as_integer();
+
+	SA.m_settings.rep_min = 1; //[hr]
+	if (H->find("repair_min_downtime") != H->end())
+		SA.m_settings.rep_min = H->at("repair_min_downtime")->as_number();
+
+	SA.m_settings.rep_max = 100; //[hr]
+	if (H->find("rep_max_downtime") != H->end())
+		SA.m_settings.rep_max = H->at("rep_max_downtime")->as_number();
+
+	SA.m_settings.hr_prod = 35;
+	if (H->find("staff_productive_hr_week") != H->end())
+		SA.m_settings.hr_prod = H->at("staff_productive_hr_week")->as_number();
+	
+	SA.simulate();
 
 	return;
 

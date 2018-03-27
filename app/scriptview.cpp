@@ -47,6 +47,7 @@ static lk::fcall_t *daotk_functions()
 		_test,
 		_power_cycle,
 		_simulate_optical,
+		_simulate_solarfield,
 		0 };
 
 	return (lk::fcall_t*)st;
