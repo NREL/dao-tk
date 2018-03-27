@@ -147,9 +147,18 @@ MainWindow::MainWindow()
 
 	m_notebook = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
 
+	m_statusLabel = new wxStaticText(this, wxID_ANY, "Status");
+	m_progressBar = new wxGauge( this, wxID_ANY, 100 );
+	
+	wxBoxSizer *sz_stat = new wxBoxSizer( wxHORIZONTAL );
+	sz_stat->Add( m_progressBar, 1, wxALL|wxEXPAND, 3 );
+	sz_stat->Add( m_statusLabel, 5, wxALL|wxEXPAND, 3 );
+
 	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(tools, 0, wxALL | wxEXPAND, 0);
 	sizer->Add(m_notebook, 1, wxALL | wxEXPAND, 0);
+	sizer->Add(sz_stat, 0, wxALL|wxEXPAND, 0 );
+
 	SetSizer(sizer);
 
 	std::vector<wxAcceleratorEntry> entries;
@@ -307,3 +316,12 @@ void MainWindow::UpdateFrameTitle()
 		SetTitle(title);
 }
 
+void MainWindow::SetProgress( int percent, const wxString & )
+{
+	m_progressBar->SetValue( percent );
+}
+
+bool MainWindow::UpdateIsStopFlagSet()
+{
+	return m_ScriptViewForm->GetEditor()->IsStopFlagSet();
+}

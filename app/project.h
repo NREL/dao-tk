@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vector>
+#include <lk/env.h>
+
 
 /* 
 A class containing the aspects of the current project
@@ -86,11 +88,26 @@ class Project
 
 
 public:
-	Project();
-	~Project();
+	// Project();
+	// ~Project(){};
 
 	variables m_variables;
 	parameters m_parameters;
+
+
+	int test();
+
+	//objective function methods
+
+	// double calc_real_dollars(double value, bool is_revenue=false, bool is_labor=false);
+	// def setup_clusters(self, Nclusters, Ndays = 2, Nprev = 1, Nnext = 1, user_weights = None, user_divisions = None):
+	// def D(self, variables):
+	// def M(self, variables, design):
+	// def O(self, variables, design):
+	// def S(self, design, variables, sf_avail=None, sf_soil=None, sf_degr=None, sample_weeks=None, Nclusters = None, cluster_inputs = None, pv_production = None):
+	// def E(self, variables):
+	// def F(self, variables, S, om_cost): #total_installed_cost, generation, pricing_mult):
+	// def Z(self, variables, **kwargs):
 
 };
 

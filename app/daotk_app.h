@@ -32,6 +32,9 @@ public:
 	virtual ~MainWindow();
 	static MainWindow &Instance();
 	void UpdateFrameTitle();
+	
+	bool UpdateIsStopFlagSet();
+	void SetProgress( int percent, const wxString &msg = wxEmptyString );
 
 	void ClearLog();
 	void Log(const wxString &, bool wnl = true);
@@ -54,6 +57,9 @@ private:
 	ScriptView *m_ScriptViewForm;
 	DataView *m_DataViewForm;
 	LogView *m_LogViewForm;
+
+	wxStaticText *m_statusLabel;
+	wxGauge *m_progressBar;
 
 	wxString m_fileName;
 
