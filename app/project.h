@@ -14,13 +14,21 @@
 A class containing the aspects of the current project
 */
 
-template<typename T> class variable
+enum DATATYPE { TYPE_NUMBER, TYPE_STRING, TYPE_VECTOR, TYPE_MATRIX };
+
+class var_base
+{
+public:
+	std::string name;
+	unsigned int type;
+};
+
+template<typename T> class variable : public var_base
 {
 public:
 	T val;
 	T minval;
 	T maxval;
-	std::string name;
 
 	std::string as_string()
 	{
@@ -65,12 +73,18 @@ struct variables
 	variable<int> om_staff;
 	variable<int> n_wash_crews;
 	variable<int> N_panels;
+
+	std::vector<var_base*> _members = { &h_tower, &rec_height,&D_rec, &design_eff, &dni_des, &P_ref, 
+		&solarm, &tshours, &degr_replace_limit, &om_staff, &n_wash_crews, &N_panels};
 };
 
 template<typename T> class parameter
 {
+	
 	T val;
-	std::string name;
+	std::string ssc_name;
+	unsigned int type;
+	bool is_calculated;
 };
 
 struct parameters
