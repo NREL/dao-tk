@@ -60,8 +60,21 @@ public:
 	};
 };
 
-struct variables
+struct variables_base 
 {
+	virtual std::vector<var_base*>* GetMemberPointer()=0;
+};
+
+struct variables : public variables_base
+{
+private:
+	//list all members here
+	std::vector<var_base*> _members = { 
+		&h_tower, &rec_height, &D_rec, &design_eff, 
+		&dni_des, &P_ref, &solarm, &tshours, 
+		&degr_replace_limit, &om_staff, &n_wash_crews, &N_panels};
+
+public:
 	variable<double> h_tower;
 	variable<double> rec_height;
 	variable<double> D_rec;
@@ -75,15 +88,9 @@ struct variables
 	variable<int> n_wash_crews;
 	variable<int> N_panels;
 
-
-	//list all members here
-	std::vector<var_base*> _members = { 
-		&h_tower, &rec_height, &D_rec, &design_eff, 
-		&dni_des, &P_ref, &solarm, &tshours, 
-		&degr_replace_limit, &om_staff, &n_wash_crews, &N_panels};
-		
 	variables();
 
+	std::vector<var_base*> *GetMemberPointer(){return &_members;}
 };
 
 template<typename T> class parameter
