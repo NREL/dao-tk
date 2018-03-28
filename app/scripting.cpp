@@ -118,6 +118,9 @@ void _test(lk::invoke_t &cxt)
 	// MainWindow::Instance().Log()
 	MainWindow &mw = MainWindow::Instance();
 
+	Project P;
+	P.initialize_ssc_project();
+
 	
 	mw.Log( wxString::Format( "SSC version = %d\n", ssc_version() ) );
 	mw.Log( wxString::Format( "SSC build information = %s\n", ssc_build_info() ) );

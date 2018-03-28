@@ -82,16 +82,25 @@ struct parameters
 //main class
 class Project
 {
+	ssc_data_t m_ssc_simdata;
+	ssc_data_t m_ssc_findata;
+	ssc_data_t m_ssc_condata;
+	
+
 	solarfield_availability m_solarfield_availability;
 	optical_degradation m_optical_degradation;
 
-	void hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
-	void initialize_ssc_project(ssc_data_t &cxt);
 
 public:
-
 	variables m_variables;
 	parameters m_parameters;
+
+	Project();
+	~Project();
+
+	void hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
+	void initialize_ssc_project();
+	void update_sscdata_from_current();
 
 	//objective function methods
 	int D(ssc_data_t &cxt, lk::varhash_t &vars);
