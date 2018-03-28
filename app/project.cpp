@@ -1,4 +1,28 @@
 #include "project.h"
+#include <limits>
+
+variables::variables()
+{
+	/* 
+	Initialize members
+	*/
+	double dnan = std::numeric_limits<double>::quiet_NaN();
+	double dmax = -std::numeric_limits<double>::infinity();
+	double dmin = -dmax;
+	
+	h_tower.set(dnan, dmin, dmax, "h_tower", DATATYPE::TYPE_NUMBER);
+	rec_height.set(dnan, dmin, dmax, "rec_height", DATATYPE::TYPE_NUMBER);
+	D_rec.set(dnan, dmin, dmax, "D_rec", DATATYPE::TYPE_NUMBER);
+	design_eff.set(dnan, dmin, dmax, "design_eff", DATATYPE::TYPE_NUMBER);
+	dni_des.set(dnan, dmin, dmax, "dni_des", DATATYPE::TYPE_NUMBER);
+	P_ref.set(dnan, dmin, dmax, "P_ref", DATATYPE::TYPE_NUMBER);
+	solarm.set(dnan, dmin, dmax, "solarm", DATATYPE::TYPE_NUMBER);
+	tshours.set(dnan, dmin, dmax, "tshours", DATATYPE::TYPE_NUMBER);
+	degr_replace_limit.set(dnan, dmin, dmax, "degr_replace_limit", DATATYPE::TYPE_NUMBER);
+	om_staff.set(-1, -999, 999, "om_staff", DATATYPE::TYPE_NUMBER);
+	n_wash_crews.set(-1, -999, 999, "n_wash_crews", DATATYPE::TYPE_NUMBER);
+	N_panels.set(-1, -999, 999, "N_panels", DATATYPE::TYPE_NUMBER);
+};
 
 Project::Project()
 {
@@ -96,8 +120,63 @@ void Project::hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars)
 
 void Project::update_sscdata_from_current()
 {
-	//make sure the ssc data objects are in sync with the variable and parameter project settings
+	/* 
+	make sure the ssc data objects are in sync with the variable and parameter project settings
+	*/
 
+	//variables first
+	for( std::vector< var_base *>::iterator it = m_variables._members.begin(); it != m_variables._members.end(); it++ )
+	{
+		switch((*it)->type)
+		{
+			case DATATYPE::TYPE_INT:
+			{
+				variable< int > *v = static_cast< variable< int >* >( *it );
+				ssc_data_set_number(m_ssc_simdata, v->name.c_str(), v->val);
+				break;
+			}
+			case DATATYPE::TYPE_NUMBER:
+			{
+				variable< double > *v = static_cast< variable< double >* >( *it );
+				ssc_data_set_number(m_ssc_simdata, v->name.c_str(), v->val);
+				break;
+			}
+			case DATATYPE::TYPE_MATRIX:
+			{
+				variable< std::vector< std::vector< double > > > *v = static_cast< variable< std::vector< std::vector< double > > >* >( *it );
+				int nr = (int)v->val.size();
+				int nc = (int)v->val.front().size();
+
+				ssc_number_t *p_vals = new ssc_number_t[nr*nc];
+				for(int i=0; i<nr; i++)
+					for(int j=0; j<nc; j++)
+						p_vals[i*nc + j] = v->val.at(i).at(j);
+
+				ssc_data_set_matrix(m_ssc_simdata, v->name.c_str(), p_vals, nr, nc);
+				break;
+			}
+			case DATATYPE::TYPE_STRING:
+			{
+				variable< std::string > *v = static_cast< variable< std::string >* >( *it );
+				ssc_data_set_string(m_ssc_simdata, v->name.c_str(), v->val.c_str());
+				break;
+			}
+			case DATATYPE::TYPE_VECTOR:
+			{
+				variable< std::vector< double > > *v = static_cast< variable< std::vector< double > >* >( *it );
+				int nr = (int)v->val.size();
+
+				ssc_number_t *p_vals = new ssc_number_t[nr];
+				for(int i=0; i<nr; i++)
+						p_vals[i] = v->val.at(i);
+
+				ssc_data_set_array(m_ssc_simdata, v->name.c_str(), p_vals, nr);
+				break;
+			}
+			default:
+			break;
+		}
+	}
 
 
 }
@@ -351,7 +430,7 @@ void Project::initialize_ssc_project()
 	ssc_data_set_array(m_ssc_simdata, "dispatch_series", p_dispatch_series, 1 );
 	ssc_data_set_number(m_ssc_simdata, "sf_adjust:constant", 0 );
 	ssc_number_t p_sf_adjustperiods[1] = { 0 };
-	ssc_data_set_array(m_ssc_simdata, "sf_adjust:periods", p_dispatch_series, 1 );
+	ssc_data_set_array(m_ssc_simdata, "sf_adjust:periods", p_sf_adjustperiods, 1 );
 	ssc_number_t p_sf_adjusthourly[8760];
 	for (size_t ii = 0; ii < 8760; ii++)
 		p_sf_adjusthourly[ii] = 0.;

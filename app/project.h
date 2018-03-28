@@ -14,7 +14,7 @@
 A class containing the aspects of the current project
 */
 
-enum DATATYPE { TYPE_NUMBER, TYPE_STRING, TYPE_VECTOR, TYPE_MATRIX };
+enum DATATYPE { TYPE_INT, TYPE_NUMBER, TYPE_STRING, TYPE_VECTOR, TYPE_MATRIX };
 
 class var_base
 {
@@ -51,11 +51,12 @@ public:
 		name = vname;
 	};
 
-	void set(const T &v, const T &vmin, const T &vmax, std::string &vname)
+	void set(const T &v, const T &vmin, const T &vmax, std::string vname, const unsigned int datatype)
 	{
 		val = v;
 		set_limits(vmin, vmax);
 		set_name(vname);
+		type = datatype;
 	};
 };
 
@@ -74,8 +75,15 @@ struct variables
 	variable<int> n_wash_crews;
 	variable<int> N_panels;
 
-	std::vector<var_base*> _members = { &h_tower, &rec_height,&D_rec, &design_eff, &dni_des, &P_ref, 
-		&solarm, &tshours, &degr_replace_limit, &om_staff, &n_wash_crews, &N_panels};
+
+	//list all members here
+	std::vector<var_base*> _members = { 
+		&h_tower, &rec_height, &D_rec, &design_eff, 
+		&dni_des, &P_ref, &solarm, &tshours, 
+		&degr_replace_limit, &om_staff, &n_wash_crews, &N_panels};
+		
+	variables();
+
 };
 
 template<typename T> class parameter
