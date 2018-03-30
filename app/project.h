@@ -16,20 +16,20 @@ A class containing the aspects of the current project
 
 enum DATATYPE { TYPE_INT, TYPE_NUMBER, TYPE_STRING, TYPE_VECTOR, TYPE_MATRIX };
 
-class var_base
+class data_base
 {
 public:
 	std::string name;
 	unsigned int type;
 };
 
-template<typename T> class var_unit : public var_base
+template<typename T> class data_unit : public data_base
 {
 public:
 	T val;
 };
 
-template<typename T> class variable : public var_unit<T>
+template<typename T> class variable : public data_unit<T>
 {
 public:
 	//T val;
@@ -68,14 +68,14 @@ public:
 
 struct variables_base 
 {
-	virtual std::vector<var_base*>* GetMemberPointer()=0;
+	virtual std::vector<data_base*>* GetMemberPointer()=0;
 };
 
 struct variables : public variables_base
 {
 private:
 	//list all members here
-	std::vector<var_base*> _members = { 
+	std::vector<data_base*> _members = { 
 		&h_tower, &rec_height, &D_rec, &design_eff, 
 		&dni_des, &P_ref, &solarm, &tshours, 
 		&degr_replace_limit, &om_staff, &n_wash_crews, &N_panels};
@@ -96,7 +96,7 @@ public:
 
 	variables();
 
-	std::vector<var_base*> *GetMemberPointer(){return &_members;}
+	std::vector<data_base*> *GetMemberPointer(){return &_members;}
 };
 
 template<typename T> class parameter

@@ -125,7 +125,7 @@ void Project::update_sscdata_from_current()
 	*/
 
 	//variables first
-	for( std::vector< var_base *>::iterator it = m_variables.GetMemberPointer()->begin(); it != m_variables.GetMemberPointer()->end(); it++ )
+	for( std::vector< data_base *>::iterator it = m_variables.GetMemberPointer()->begin(); it != m_variables.GetMemberPointer()->end(); it++ )
 	{
 		switch((*it)->type)
 		{
