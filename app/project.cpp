@@ -188,30 +188,39 @@ void Project::update_sscdata_from_current()
 	make sure the ssc data objects are in sync with the variable and parameter project settings
 	*/
 
+	//collect variables and parameters into single iterable object
+	std::vector< data_base* > varpar;
+	for (size_t i = 0; i < m_variables.GetMemberPointer()->size(); i++)
+		varpar.push_back(m_variables.GetMemberPointer()->at(i));
+	for (size_t i = 0; i < m_parameters.GetMemberPointer()->size(); i++)
+		varpar.push_back(m_parameters.GetMemberPointer()->at(i));
+
 	//variables first
-	for( std::vector< data_base *>::iterator it = m_variables.GetMemberPointer()->begin(); it != m_variables.GetMemberPointer()->end(); it++ )
+	for( std::vector< data_base *>::iterator it = varpar.begin(); it != varpar.end(); it++ )
 	{
 		switch((*it)->type)
 		{
 			case DATATYPE::TYPE_BOOL:
 			{
-				
+				data_unit< bool > *v = static_cast< data_unit< bool >* >(*it);
+				ssc_data_set_number(m_ssc_simdata, v->name.c_str(), v->val ? 1. : 0.);
+				break;
 			}
 			case DATATYPE::TYPE_INT:
 			{
-				variable< int > *v = static_cast< variable< int >* >( *it );
+				data_unit< int > *v = static_cast< data_unit< int >* >( *it );
 				ssc_data_set_number(m_ssc_simdata, v->name.c_str(), v->val);
 				break;
 			}
 			case DATATYPE::TYPE_NUMBER:
 			{
-				variable< double > *v = static_cast< variable< double >* >( *it );
+				data_unit< double > *v = static_cast< data_unit< double >* >( *it );
 				ssc_data_set_number(m_ssc_simdata, v->name.c_str(), v->val);
 				break;
 			}
 			case DATATYPE::TYPE_MATRIX:
 			{
-				variable< std::vector< std::vector< double > > > *v = static_cast< variable< std::vector< std::vector< double > > >* >( *it );
+				data_unit< std::vector< std::vector< double > > > *v = static_cast< data_unit< std::vector< std::vector< double > > >* >( *it );
 				int nr = (int)v->val.size();
 				int nc = (int)v->val.front().size();
 
@@ -225,13 +234,13 @@ void Project::update_sscdata_from_current()
 			}
 			case DATATYPE::TYPE_STRING:
 			{
-				variable< std::string > *v = static_cast< variable< std::string >* >( *it );
+				data_unit< std::string > *v = static_cast< data_unit< std::string >* >( *it );
 				ssc_data_set_string(m_ssc_simdata, v->name.c_str(), v->val.c_str());
 				break;
 			}
 			case DATATYPE::TYPE_VECTOR:
 			{
-				variable< std::vector< double > > *v = static_cast< variable< std::vector< double > >* >( *it );
+				data_unit< std::vector< double > > *v = static_cast< data_unit< std::vector< double > >* >( *it );
 				int nr = (int)v->val.size();
 
 				ssc_number_t *p_vals = new ssc_number_t[nr];
