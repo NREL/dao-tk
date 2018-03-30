@@ -211,6 +211,8 @@ public:
 	void hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
 	void initialize_ssc_project();
 	void update_sscdata_from_current();
+	void update_calculated_system_values();
+	void update_calculated_values_post_layout();
 
 	//objective function methods
 	int D(ssc_data_t &cxt, lk::varhash_t &vars);

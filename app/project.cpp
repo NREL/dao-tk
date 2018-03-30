@@ -259,9 +259,83 @@ void Project::update_sscdata_from_current()
 }
 
 
+void Project::update_calculated_system_values()
+{
+	//"""
+	//	Inputs that you can specify in Dict :
+	//------------------------------------------------------------ -
+	//	D_rec
+	//	design_eff
+	//	dni_des
+	//	gross_net_conversion_factor
+	//	N_panels
+	//	P_ref
+	//	solarm
+	//	tshours
+	//	helio_optical_error_mrad
+
+	//	Values that are set by this algorithm:
+	//------------------------------------------------------------ -
+	//	dni_des_calc
+	//	n_flux_x(if less than 12)
+	//	nameplate
+	//	q_design
+	//	q_pb_design
+	//	Q_rec_des
+	//	rec_aspect
+	//	field_model_type
+	//	system_capacity
+	//	tower_technology
+	//	tshours_sf
+	//	helio_optical_error
+
+	//	"""    
+
+	////net power(only used as an input to system costs compute module)
+	//D["nameplate"] = D["P_ref"] * D["gross_net_conversion_factor"]  //MWe
+	ssc_number_t gross_net_conversion_factor;
+	ssc_data_get_number(m_ssc_simdata, "gross_net_conversion_factor", &gross_net_conversion_factor);
+	ssc_number_t nameplate = m_variables.P_ref.val * gross_net_conversion_factor;
+	ssc_data_set_number(m_ssc_simdata, "nameplate", nameplate);
+	//
+	//D["system_capacity"] = D["nameplate"] * 1000.
+	ssc_data_set_number(m_ssc_findata, "system_capacity", nameplate*1000.);
+
+	//// q_pb_design(informational, not used as a compute module input for mspt)
+	//D["q_pb_design"] = float(D["P_ref"]) / float(D["design_eff"])
+
+	//// Q_rec_des(only used as in input to solarpilot compute module)
+	//D["Q_rec_des"] = D["solarm"] * D["q_pb_design"]
+	//D["q_design"] = D["Q_rec_des"]
+	
+	//// tshours_sf(informational, not used as a compute module input)
+	//D["tshours_sf"] = D["tshours"] / D["solarm"]
+
+	////receiver aspect ratio(only used as in input to solarpilot compute module)
+	//D["rec_aspect"] = float(D["rec_height"]) / float(D["D_rec"]);
+	ssc_data_set_number(m_ssc_simdata, "rec_aspect", m_variables.rec_height.val / m_variables.D_rec.val);
+
+	////always set to MSPT
+	//D["tower_technology"] = 0
+	ssc_data_set_number(m_ssc_simdata, "tower_technology", 0.);
+
+	////Flux grid resolution limited by number of panels(only used as in input to solarpilot compute module)
+	//D["n_flux_x"] = max(12, D["N_panels"])
+	ssc_data_set_number(m_ssc_simdata, "n_flux_x", m_variables.N_panels.val > 12 ? m_variables.N_panels.val : 12);
+
+	//D["field_model_type"] = 2  // 0 = design field and tower / receiver geometry 1 = design field 2 = user field, calculate performance 3 = user performance maps vs solar position
+	ssc_data_set_number(m_ssc_simdata, "field_model_type", 2);
+
+	//D["helio_optical_error"] = D["helio_optical_error_mrad"] / 1000.  // only used as in input to solarpilot compute module
+	//ssc_data_set_number(m_ssc_simdata, "helio_optical_error", )
 
 
+}
 
+void Project::update_calculated_values_post_layout()
+{
+
+}
 
 
 
