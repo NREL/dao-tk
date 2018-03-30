@@ -24,6 +24,70 @@ variables::variables()
 	N_panels.set(-1, -999, 999, "N_panels", DATATYPE::TYPE_NUMBER);
 };
 
+parameters::parameters()
+{
+	/* 
+	Initialize members
+	*/
+
+	print_messages.set( true, "print_messages", DATATYPE::TYPE_BOOL, false );
+	check_max_flux.set( true, "check_max_flux", DATATYPE::TYPE_BOOL, false );
+	is_optimize.set( false, "is_optimize", DATATYPE::TYPE_BOOL, false );
+	is_dispatch.set( false, "is_dispatch", DATATYPE::TYPE_BOOL, false );
+	is_ampl_engine.set( false, "is_ampl_engine", DATATYPE::TYPE_BOOL, false );
+	is_stochastic_disp.set( false, "is_stochastic_disp", DATATYPE::TYPE_BOOL, false );
+
+	ampl_data_dir.set( "", "ampl_data_dir", DATATYPE::TYPE_STRING, false );
+	solar_resource_file.set( "", "solar_resource_file", DATATYPE::TYPE_STRING, false );
+
+	disp_steps_per_hour.set( 1, "disp_steps_per_hour", DATATYPE::TYPE_INT, false );
+	avail_seed.set( 123, "avail_seed", DATATYPE::TYPE_INT, false );
+	plant_lifetime.set( 30, "plant_lifetime", DATATYPE::TYPE_INT, false );
+	finance_period.set( 25, "finance_period", DATATYPE::TYPE_INT, false );
+	ppa_multiplier_model.set( 1, "ppa_multiplier_model", DATATYPE::TYPE_INT, false );
+
+	rec_ref_cost.set( 1.03e+008, "rec_ref_cost", DATATYPE::TYPE_NUMBER, false );
+	rec_ref_area.set( 1571., "rec_ref_area", DATATYPE::TYPE_NUMBER, false );
+	tes_spec_cost.set( 24., "tes_spec_cost", DATATYPE::TYPE_NUMBER, false );
+	tower_fixed_cost.set( 3.e6, "tower_fixed_cost", DATATYPE::TYPE_NUMBER, false );
+	tower_exp.set( 0.0113, "tower_exp", DATATYPE::TYPE_NUMBER, false );
+	heliostat_spec_cost.set( 145., "heliostat_spec_cost", DATATYPE::TYPE_NUMBER, false );
+	site_spec_cost.set( 16., "site_spec_cost", DATATYPE::TYPE_NUMBER, false );
+	land_spec_cost.set( 10000, "land_spec_cost", DATATYPE::TYPE_NUMBER, false );
+	c_cps0.set( 0., "c_cps0", DATATYPE::TYPE_NUMBER, false );
+	c_cps1.set( 1440., "c_cps1", DATATYPE::TYPE_NUMBER, false );
+	om_staff_cost.set( 75, "om_staff_cost", DATATYPE::TYPE_NUMBER, false );
+	wash_crew_cost.set( 65. + 10. + 25, "wash_crew_cost", DATATYPE::TYPE_NUMBER, false );
+	heliostat_refurbish_cost.set( 144. * 25 + 90 * 4., "heliostat_refurbish_cost", DATATYPE::TYPE_NUMBER, false );
+	helio_mtf.set( 12000, "helio_mtf", DATATYPE::TYPE_NUMBER, false );
+	heliostat_repair_cost.set( 300, "heliostat_repair_cost", DATATYPE::TYPE_NUMBER, false );
+	om_staff_max_hours_week.set( 35, "om_staff_max_hours_week", DATATYPE::TYPE_NUMBER, false );
+	n_heliostats_sim.set( 1000, "n_heliostats_sim", DATATYPE::TYPE_NUMBER, false );
+	wash_units_per_hour.set( 45., "wash_units_per_hour", DATATYPE::TYPE_NUMBER, false );
+	wash_crew_max_hours_week.set( 70., "wash_crew_max_hours_week", DATATYPE::TYPE_NUMBER, false );
+	degr_per_hour.set( 1.e-7, "degr_per_hour", DATATYPE::TYPE_NUMBER, false );
+	degr_accel_per_year.set( 0.125, "degr_accel_per_year", DATATYPE::TYPE_NUMBER, false );
+	degr_seed.set( 123, "degr_seed", DATATYPE::TYPE_NUMBER, false );
+	soil_per_hour.set( 6.e-4, "soil_per_hour", DATATYPE::TYPE_NUMBER, false );
+	adjust_constant.set( 4, "adjust:constant", DATATYPE::TYPE_NUMBER, false );
+	helio_reflectance.set( 0.95, "helio_reflectance", DATATYPE::TYPE_NUMBER, false );
+	disp_rsu_cost.set( 950., "disp_rsu_cost", DATATYPE::TYPE_NUMBER, false );
+	disp_csu_cost.set( 10000., "disp_csu_cost", DATATYPE::TYPE_NUMBER, false );
+	disp_pen_delta_w.set( 0.1, "disp_pen_delta_w", DATATYPE::TYPE_NUMBER, false );
+	rec_su_delay.set( 0.2, "rec_su_delay", DATATYPE::TYPE_NUMBER, false );
+	rec_qf_delay.set( 0.25, "rec_qf_delay", DATATYPE::TYPE_NUMBER, false );
+	startup_time.set( 0.5, "startup_time", DATATYPE::TYPE_NUMBER, false );
+	startup_frac.set( 0.5, "startup_frac", DATATYPE::TYPE_NUMBER, false );
+	v_wind_max.set( 15., "v_wind_max", DATATYPE::TYPE_NUMBER, false );
+
+	std::vector< double > pval = { 0., 7., 200., 12000. };
+	c_ces.set( pval, "c_ces", DATATYPE::TYPE_NUMBER, false );
+
+	std::vector< double > pvalts(8760, 1.);
+	dispatch_factors_ts.set( pvalts, "dispatch_factors_ts", DATATYPE::TYPE_NUMBER, false );
+
+}
+
 Project::Project()
 {
 	m_ssc_simdata = 0;
@@ -129,6 +193,10 @@ void Project::update_sscdata_from_current()
 	{
 		switch((*it)->type)
 		{
+			case DATATYPE::TYPE_BOOL:
+			{
+				
+			}
 			case DATATYPE::TYPE_INT:
 			{
 				variable< int > *v = static_cast< variable< int >* >( *it );
