@@ -60,7 +60,7 @@ public:
 	{
 		this->val = v;
 		set_limits(vmin, vmax);
-		set_name(vname);
+		this->set_name(vname);
 		this->type = datatype;
 	};
 };
@@ -106,7 +106,7 @@ public:
 	void set(const T &v, std::string vname, const unsigned int datatype, bool calculated=false)
 	{
 		this->val = v;
-		set_name(vname);
+		this->set_name(vname);
 		this->type = datatype;
 		is_calculated = calculated;
 	};
