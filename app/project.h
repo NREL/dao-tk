@@ -23,16 +23,22 @@ public:
 	unsigned int type;
 };
 
-template<typename T> class variable : public var_base
+template<typename T> class var_unit : public var_base
 {
 public:
 	T val;
+};
+
+template<typename T> class variable : public var_unit<T>
+{
+public:
+	//T val;
 	T minval;
 	T maxval;
 
 	std::string as_string()
 	{
-		return  std::to_string(val);
+		return  std::to_string(this->val);
 	};
 	
 	bool set_limits(const T& vmin, const T& vmax)
@@ -48,15 +54,15 @@ public:
 	
 	void set_name(const std::string &vname)
 	{
-		name = vname;
+		this->name = vname;
 	};
 
 	void set(const T &v, const T &vmin, const T &vmax, std::string vname, const unsigned int datatype)
 	{
-		val = v;
+		this->val = v;
 		set_limits(vmin, vmax);
 		set_name(vname);
-		type = datatype;
+		this->type = datatype;
 	};
 };
 
