@@ -1206,3 +1206,48 @@ bool Project::D()
 
 	return true;
 }
+
+bool Project::M()
+{
+	/*
+	The heliostat field availability problem
+
+	Returns a dict with keys :
+	avail_steady            Steady - state availability
+	n_repairs               Total number of repairs made per year
+	staff_utilization       Fractional staff utilization factor(1. = all staff always working)
+	heliostat_repair_cost   Total cost of heliostat repairs($ lifetime)
+	heliostat_repair_cost_y1 Total "" in first year($ / year)
+	*/
+
+	m_solarfield_availability.m_settings.mf = m_parameters.helio_mtf.val;
+	m_solarfield_availability.m_settings.rep_min = 1.;
+	m_solarfield_availability.m_settings.rep_max = 100.;
+	m_solarfield_availability.m_settings.n_helio = m_design_outputs.number_heliostats.val;
+	m_solarfield_availability.m_settings.n_om_staff = m_variables.om_staff.val;
+	m_solarfield_availability.m_settings.hr_prod = m_parameters.om_staff_max_hours_week.val;
+	m_solarfield_availability.m_settings.n_hr_sim = 8760 * 12;
+	m_solarfield_availability.m_settings.seed = m_parameters.avail_seed.val;
+	m_solarfield_availability.m_settings.n_helio_sim = 1000;
+
+	//error if trying to simulate with no heliostats
+	if (m_design_outputs.number_heliostats.val <= 1)
+	{
+		message_handler("Error: Empty layout in field availability simulation.");
+		return false;
+	}
+
+	m_solarfield_availability.simulate();
+
+	//Calculate staff cost and repair cost
+	double ann_fact = 8760. / (double)m_solarfield_availability.m_settings.n_hr_sim;
+
+	m_solarfield_availability.m_results.n_repairs *= ann_fact;	//annual repairs
+	m_solarfield_availability.m_results.heliostat_repair_cost_y1 = m_solarfield_availability.m_results.n_repairs * m_parameters.heliostat_repair_cost.val;
+	
+	//lifetime costs
+	//treat heliostat repair costs as consuming reserve equipment paid for at the project outset
+	m_solarfield_availability.m_results.heliostat_repair_cost = calc_real_dollars(m_solarfield_availability.m_results.heliostat_repair_cost_y1);
+
+	return true;
+}

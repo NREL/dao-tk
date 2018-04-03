@@ -130,8 +130,10 @@ void _test(lk::invoke_t &cxt)
 	P.m_parameters.solar_resource_file.val = "C:/Users/mwagner/Documents/NREL/projects/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv";
 
 	P.D();
+	P.M();
 
 	mw.Log(wxString::Format("Total field area: %.2f", P.m_design_outputs.area_sf.val));
+	mw.Log(wxString::Format("Number of repairs: %d", (int)P.m_solarfield_availability.m_results.n_repairs));
 
 	return;
 

@@ -50,6 +50,9 @@ struct solarfield_results
     float n_repairs;
     float staff_utilization;
 
+	float heliostat_repair_cost_y1;
+	float heliostat_repair_cost;
+
 	solarfield_results(){
         avail_schedule = 0;
     };

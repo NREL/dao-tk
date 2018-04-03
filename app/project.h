@@ -238,8 +238,6 @@ class Project
 	ssc_data_t m_ssc_data;
 	
 
-	solarfield_availability m_solarfield_availability;
-	optical_degradation m_optical_degradation;
 
 	void hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
 	void initialize_ssc_project();
@@ -256,13 +254,16 @@ public:
 	parameters m_parameters;
 	design_outputs m_design_outputs;
 
+	solarfield_availability m_solarfield_availability;
+	optical_degradation m_optical_degradation;
+
 	Project();
 	~Project();
 
 
 	//objective function methods
 	bool D();
-	int M();
+	bool M();
 	int O();
 	int S();
 	int E();
