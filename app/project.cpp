@@ -1277,7 +1277,7 @@ bool Project::O()
 	m_optical_degradation.m_settings.hours_per_day = 10.;
 	m_optical_degradation.m_settings.seed = m_parameters.degr_seed.val;
 
-	m_optical_degradation.simulate();
+	m_optical_degradation.simulate(sim_progress_handler);
 
 	double ann_fact = 8760. / (double)m_optical_degradation.m_settings.n_hr_sim;
 	

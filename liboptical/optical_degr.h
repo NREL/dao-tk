@@ -13,7 +13,7 @@ public:
 	opt_settings m_settings;
 	opt_results m_results;
 
-	void simulate(std::string *results_file_name = 0, std::string *trace_file_name = 0);
+	void simulate(bool(*callback)(float prg, const char *msg)=0, std::string *results_file_name = 0, std::string *trace_file_name = 0);
 
 	float* get_soiling_schedule(int *length);
 	float* get_degradation_schedule(int *length);

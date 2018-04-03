@@ -91,7 +91,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 		}
 
 		//update?
-		if (t / float(update_per) == t / update_per)
+		if (t / float(update_per) == t / update_per && callback != 0)
 		{
 			if(! callback((float)t / (float)m_settings.n_hr_sim, "Simulating solarfield availability") )
 				return;

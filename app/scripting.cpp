@@ -138,14 +138,15 @@ void _test(lk::invoke_t &cxt)
 
 	P.D();
 	P.M();
-	//P.O();
+	P.O();
 
 	mw.Log(wxString::Format("Total field area: %.2f", P.m_design_outputs.area_sf.val));
 	mw.Log(wxString::Format("Number of repairs: %d", (int)P.m_solarfield_availability.m_results.n_repairs));
-	//mw.Log(wxString::Format("Number of mirror replacements: %d", (int)P.m_optical_degradation.m_results.n_replacements));
-	//mw.Log(wxString::Format("Average soiling: %.2f", P.m_optical_degradation.m_results.avg_soil));
-	//mw.Log(wxString::Format("Average degradation: %.2f", P.m_optical_degradation.m_results.avg_degr));
+	mw.Log(wxString::Format("Number of mirror replacements: %d", (int)P.m_optical_degradation.m_results.n_replacements));
+	mw.Log(wxString::Format("Average soiling: %.2f", P.m_optical_degradation.m_results.avg_soil));
+	mw.Log(wxString::Format("Average degradation: %.2f", P.m_optical_degradation.m_results.avg_degr));
 
+	mw.SetProgress(0.);
 
 	return;
 

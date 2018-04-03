@@ -46,7 +46,7 @@ float* optical_degradation::get_replacement_totals(int *length)
 
 //------------------------------------------
 
-void optical_degradation::simulate(std::string *results_file_name, std::string *trace_file_name)
+void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), std::string *results_file_name, std::string *trace_file_name)
 {
 	//validation
 	if (m_settings.n_helio < 1)
@@ -54,8 +54,6 @@ void optical_degradation::simulate(std::string *results_file_name, std::string *
 		std::cout << "**** Invalid simulation parameter: ****\nNumber of heliostats is " << m_settings.n_helio << "\n";
 		return;
 	}
-
-
 
 	//scale the problem
 	int n_helio_s;
@@ -118,8 +116,11 @@ void optical_degradation::simulate(std::string *results_file_name, std::string *
 	for (int t = 0; t<m_settings.n_hr_sim; t++)
 	{
 
-		if (t % (int)(m_settings.n_hr_sim / 20.) == 0)
-			std::cout << ((float)t / (float)m_settings.n_hr_sim)*100. << "% Complete\n";
+		if (t % (int)(m_settings.n_hr_sim / 50.) == 0 && callback != 0)
+		{
+			if (!callback((float)t / (float)m_settings.n_hr_sim, "Simulating heliostat field reflectivity"))
+				return;
+		}
 
 		for (std::vector<opt_heliostat>::iterator h = helios.begin(); h != helios.end(); h++)
 		{
