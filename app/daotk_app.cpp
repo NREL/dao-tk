@@ -318,9 +318,10 @@ void MainWindow::UpdateFrameTitle()
 		SetTitle(title);
 }
 
-void MainWindow::SetProgress( int percent, const wxString & )
+void MainWindow::SetProgress( int percent, const wxString &msg )
 {
 	m_progressBar->SetValue( percent );
+	m_statusLabel->SetLabel(msg);
 }
 
 bool MainWindow::UpdateIsStopFlagSet()

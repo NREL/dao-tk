@@ -18,7 +18,7 @@ public:
 
 	void get_summary_results(int* n_repairs, float* staff_utilization);
 	
-	void simulate(std::string *results_file_name = 0);
+	void simulate(bool (*callback)(float prg, const char *msg)=0, std::string *results_file_name = 0);
 
 };
 

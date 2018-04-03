@@ -29,7 +29,7 @@ void solarfield_availability::get_summary_results(int* n_repairs, float* staff_u
     return;
 }
 
-void solarfield_availability::simulate(std::string *results_file_name)
+void solarfield_availability::simulate(bool(*callback)(float prg, const char *msg), std::string *results_file_name)
 {
 
 	//set up problem scaling
@@ -48,7 +48,7 @@ void solarfield_availability::simulate(std::string *results_file_name)
 
 	double outage_time = 0.;
 
-	int update_per = (int)(m_settings.n_hr_sim / 20.);
+	int update_per = (int)(m_settings.n_hr_sim / 50.);
 
 	//random generators
 	std::default_random_engine rand(m_settings.seed);
@@ -92,7 +92,10 @@ void solarfield_availability::simulate(std::string *results_file_name)
 
 		//update?
 		if (t / float(update_per) == t / update_per)
-			std::cout << t / float(m_settings.n_hr_sim)*100. << " %\n";
+		{
+			if(! callback((float)t / (float)m_settings.n_hr_sim, "Simulating solarfield availability") )
+				return;
+		}
 
 		//Add the failure time to the heliostats
 		for (size_t i = 0; i<new_fails.size(); i++)

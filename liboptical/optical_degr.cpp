@@ -44,11 +44,6 @@ float* optical_degradation::get_replacement_totals(int *length)
 	return m_results.repl_total;
 }
 
-int optical_degradation::get_number_repairs()
-{
-	return m_results.n_replacements;
-}
-
 //------------------------------------------
 
 void optical_degradation::simulate(std::string *results_file_name, std::string *trace_file_name)
@@ -262,13 +257,26 @@ void optical_degradation::simulate(std::string *results_file_name, std::string *
 	m_results.repl_schedule = new float[m_settings.n_hr_sim];
 	m_results.repl_total = new float[m_settings.n_hr_sim];
 
+	m_results.avg_degr = 0.;
+	m_results.avg_soil = 0.;
+
 	for (int i = 0; i<m_settings.n_hr_sim; i++)
 	{
-		m_results.soil_schedule[i] = soil.at(i);
-		m_results.degr_schedule[i] = degr.at(i);
+		float s = soil.at(i);
+		float d = degr.at(i);
+
+		m_results.soil_schedule[i] = s;
+		m_results.degr_schedule[i] = d;
 		m_results.repl_schedule[i] = repr.at(i);
 		m_results.repl_total[i] = repr_cum.at(i);
+
+		m_results.avg_degr += d;
+		m_results.avg_soil += s;
 	}
+
+	m_results.avg_degr /= (float)m_settings.n_hr_sim;
+	m_results.avg_soil /= (float)m_settings.n_hr_sim;
+
 	m_results.n_schedule = m_settings.n_hr_sim;
 
 	//if a file name is provided, write to that file

@@ -62,7 +62,13 @@ struct opt_results
 
     int n_schedule;
 
-    int n_replacements;
+    float n_replacements;
+
+	float heliostat_refurbish_cost;
+	float heliostat_refurbish_cost_y1;
+
+	float avg_soil;
+	float avg_degr;
 
 	opt_results()
 	{

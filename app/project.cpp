@@ -580,7 +580,7 @@ bool Project::run_design()
 
 	//Run design to get field layout
 	ssc_module_t mod_solarpilot = ssc_module_create("solarpilot");
-	ssc_module_exec_with_handler(mod_solarpilot, m_ssc_data, sim_progress_handler, 0);
+	ssc_module_exec_with_handler(mod_solarpilot, m_ssc_data, ssc_progress_handler, 0);
 	
 	//Collect calculated data
 	update_object_from_sscdata(m_design_outputs);
@@ -1207,6 +1207,7 @@ bool Project::D()
 	return true;
 }
 
+
 bool Project::M()
 {
 	/*
@@ -1237,7 +1238,7 @@ bool Project::M()
 		return false;
 	}
 
-	m_solarfield_availability.simulate();
+	m_solarfield_availability.simulate(sim_progress_handler);
 
 	//Calculate staff cost and repair cost
 	double ann_fact = 8760. / (double)m_solarfield_availability.m_settings.n_hr_sim;
@@ -1248,6 +1249,45 @@ bool Project::M()
 	//lifetime costs
 	//treat heliostat repair costs as consuming reserve equipment paid for at the project outset
 	m_solarfield_availability.m_results.heliostat_repair_cost = calc_real_dollars(m_solarfield_availability.m_results.heliostat_repair_cost_y1);
+
+	return true;
+}
+
+bool Project::O()
+{
+	/*
+	The heliostat field soiling and degradation problem
+
+	Returns a dict with keys :
+	soil_steady             Steady - state availability
+	n_repairs               Total number of repairs made
+	heliostat_refurbish_cost  Cost to refurbish heliostats($ lifetime)
+	heliostat_refurbish_cost_y1  Cost "" in year 1 ($ / year)
+	*/
+
+	m_optical_degradation.m_settings.n_hr_sim = 25 * 8760;
+	m_optical_degradation.m_settings.n_wash_crews = m_variables.n_wash_crews.val;
+	m_optical_degradation.m_settings.n_helio = m_design_outputs.number_heliostats.val;
+	m_optical_degradation.m_settings.degr_loss_per_hr = m_parameters.degr_per_hour.val;
+	m_optical_degradation.m_settings.degr_accel_per_year = m_parameters.degr_accel_per_year.val;
+	m_optical_degradation.m_settings.replacement_threshold = m_variables.degr_replace_limit.val;
+	m_optical_degradation.m_settings.soil_loss_per_hr = m_parameters.soil_per_hour.val;
+	m_optical_degradation.m_settings.wash_units_per_hour = m_parameters.wash_units_per_hour.val;
+	m_optical_degradation.m_settings.hours_per_week = m_parameters.wash_crew_max_hours_week.val;
+	m_optical_degradation.m_settings.hours_per_day = 10.;
+	m_optical_degradation.m_settings.seed = m_parameters.degr_seed.val;
+
+	m_optical_degradation.simulate();
+
+	double ann_fact = 8760. / (double)m_optical_degradation.m_settings.n_hr_sim;
+	
+	m_optical_degradation.m_results.heliostat_refurbish_cost_y1 =
+		m_optical_degradation.m_results.n_replacements * m_parameters.heliostat_refurbish_cost.val;
+	
+	//Annualize
+	m_optical_degradation.m_results.n_replacements *= ann_fact;
+	
+	m_optical_degradation.m_results.heliostat_refurbish_cost = calc_real_dollars( m_optical_degradation.m_results.heliostat_refurbish_cost_y1 ) * ann_fact;
 
 	return true;
 }

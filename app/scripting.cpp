@@ -71,7 +71,7 @@ int set_matrix(ssc_data_t p_data, const char *name, const char* fn, int nr, int 
 	return 1;
 }
 
-ssc_bool_t sim_progress_handler( ssc_module_t , ssc_handler_t , int action, float f0, float f1, const char *s0, const char *, void * )
+ssc_bool_t ssc_progress_handler( ssc_module_t , ssc_handler_t , int action, float f0, float f1, const char *s0, const char *, void * )
 {
 	if (action == SSC_LOG)
 	{
@@ -104,6 +104,13 @@ void message_handler(const char *msg)
 	MainWindow::Instance().Log(msg);
 }
 
+bool sim_progress_handler(float progress, const char *msg)
+{
+	MainWindow::Instance().SetProgress((int)(progress*100.), msg);
+	wxGetApp().Yield(true);
+	return !MainWindow::Instance().UpdateIsStopFlagSet();
+}
+
 
 void _test(lk::invoke_t &cxt)
 {
@@ -131,9 +138,14 @@ void _test(lk::invoke_t &cxt)
 
 	P.D();
 	P.M();
+	//P.O();
 
 	mw.Log(wxString::Format("Total field area: %.2f", P.m_design_outputs.area_sf.val));
 	mw.Log(wxString::Format("Number of repairs: %d", (int)P.m_solarfield_availability.m_results.n_repairs));
+	//mw.Log(wxString::Format("Number of mirror replacements: %d", (int)P.m_optical_degradation.m_results.n_replacements));
+	//mw.Log(wxString::Format("Average soiling: %.2f", P.m_optical_degradation.m_results.avg_soil));
+	//mw.Log(wxString::Format("Average degradation: %.2f", P.m_optical_degradation.m_results.avg_degr));
+
 
 	return;
 
@@ -397,7 +409,7 @@ void _test(lk::invoke_t &cxt)
 	//	ssc_data_free(data); 
 	//	return; 
 	//}
-	//if (ssc_module_exec_with_handler(module, data, sim_progress_handler, 0) == 0)
+	//if (ssc_module_exec_with_handler(module, data, ssc_progress_handler, 0) == 0)
 	//{
 	//	mw.Log( wxString::Format( "error during simulation." ) ); 
 	//	ssc_module_free(module); 

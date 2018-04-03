@@ -20,7 +20,6 @@ public:
 	float* get_replacement_schedule(int *length);
 	float* get_replacement_totals(int *length);
 
-	int get_number_repairs();
 };
 
 

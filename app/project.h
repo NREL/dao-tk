@@ -14,7 +14,8 @@
 A class containing the aspects of the current project
 */
 
-extern ssc_bool_t sim_progress_handler(ssc_module_t, ssc_handler_t, int action, float f0, float f1, const char *s0, const char *, void *);
+extern ssc_bool_t ssc_progress_handler(ssc_module_t, ssc_handler_t, int action, float f0, float f1, const char *s0, const char *, void *);
+extern bool sim_progress_handler(float progress, const char *msg);
 extern void message_handler(const char *msg);
 
 enum DATATYPE { TYPE_INT, TYPE_NUMBER, TYPE_BOOL, TYPE_STRING, TYPE_VECTOR, TYPE_MATRIX };
@@ -264,7 +265,7 @@ public:
 	//objective function methods
 	bool D();
 	bool M();
-	int O();
+	bool O();
 	int S();
 	int E();
 	int F();
