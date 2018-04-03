@@ -3,6 +3,7 @@
 
 #include <wex/lkscript.h>
 
+//extern ssc_bool_t my_handler(ssc_module_t, ssc_handler_t, int action, float f0, float f1, const char *s0, const char *, void *);
 
 extern void _test(lk::invoke_t &cxt);
 extern void _power_cycle(lk::invoke_t &cxt);

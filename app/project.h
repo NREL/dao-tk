@@ -14,6 +14,8 @@
 A class containing the aspects of the current project
 */
 
+extern ssc_bool_t my_handler(ssc_module_t, ssc_handler_t, int action, float f0, float f1, const char *s0, const char *, void *);
+
 enum DATATYPE { TYPE_INT, TYPE_NUMBER, TYPE_BOOL, TYPE_STRING, TYPE_VECTOR, TYPE_MATRIX };
 
 class data_base
@@ -189,39 +191,80 @@ public:
 
 };
 
+struct design_outputs : public datas_base
+{
+private:
+	std::vector<data_base*> _members = {
+		&opteff_table, &flux_table, &heliostat_positions, &number_heliostats, &area_sf, &base_land_area, &land_area, 
+		&h_tower_opt, &rec_height_opt, &rec_aspect_opt, &cost_rec_tot, &cost_sf_tot, &cost_tower_tot, &cost_land_tot, 
+		&cost_site_tot, &flux_max_observed, &cost_sf_real, &cost_land_real
+	};
+
+public:
+
+	//-----------------------------------------------------------------------
+	parameter< int > number_heliostats;
+	parameter< double > area_sf;
+	parameter< double > base_land_area;
+	parameter< double > land_area;
+	parameter< double > h_tower_opt;
+	parameter< double > rec_height_opt;
+	parameter< double > rec_aspect_opt;
+	parameter< double > cost_rec_tot;
+	parameter< double > cost_sf_tot;
+	parameter< double > cost_sf_real;
+	parameter< double > cost_tower_tot;
+	parameter< double > cost_land_tot;
+	parameter< double > cost_land_real;
+	parameter< double > cost_site_tot;
+	parameter< double > flux_max_observed;
+	parameter< std::vector< std::vector< double > > > opteff_table;
+	parameter< std::vector< std::vector< double > > > flux_table;
+	parameter< std::vector< std::vector< double > > > heliostat_positions;
+	//-----------------------------------------------------------------------
+
+	design_outputs();
+
+	std::vector<data_base*> *GetMemberPointer() { return &_members; }
+
+};
+
 //main class
 class Project
 {
-	ssc_data_t m_ssc_simdata;
-	ssc_data_t m_ssc_findata;
-	ssc_data_t m_ssc_condata;
+	ssc_data_t m_ssc_data;
 	
 
 	solarfield_availability m_solarfield_availability;
 	optical_degradation m_optical_degradation;
 
+	void hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
+	void initialize_ssc_project();
+	void update_sscdata_from_object(datas_base &obj);
+	void update_object_from_sscdata(datas_base &obj);
+	void sscdata_localdata_map(datas_base &obj, bool set_ssc_from_local);  //set ssc data from obj (set_ssc_from_local=true), or set local from ssc (false)
+	void update_calculated_system_values();
+	void update_calculated_values_post_layout();
+	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
+	void run_design();
 
 public:
 	variables m_variables;
 	parameters m_parameters;
+	design_outputs m_design_outputs;
 
 	Project();
 	~Project();
 
-	void hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
-	void initialize_ssc_project();
-	void update_sscdata_from_current();
-	void update_calculated_system_values();
-	void update_calculated_values_post_layout();
 
 	//objective function methods
-	int D(ssc_data_t &cxt, lk::varhash_t &vars);
-	int M(ssc_data_t &cxt, lk::varhash_t &vars);
-	int O(ssc_data_t &cxt, lk::varhash_t &vars);
-	int S(ssc_data_t &cxt, lk::varhash_t &vars);
-	int E(ssc_data_t &cxt, lk::varhash_t &vars);
-	int F(ssc_data_t &cxt, lk::varhash_t &vars);
-	int Z(ssc_data_t &cxt, lk::varhash_t &vars);
+	int D();
+	int M();
+	int O();
+	int S();
+	int E();
+	int F();
+	int Z();
 
 	
 
