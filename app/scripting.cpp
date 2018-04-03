@@ -71,7 +71,7 @@ int set_matrix(ssc_data_t p_data, const char *name, const char* fn, int nr, int 
 	return 1;
 }
 
-ssc_bool_t my_handler( ssc_module_t , ssc_handler_t , int action, float f0, float f1, const char *s0, const char *, void * )
+ssc_bool_t sim_progress_handler( ssc_module_t , ssc_handler_t , int action, float f0, float f1, const char *s0, const char *, void * )
 {
 	if (action == SSC_LOG)
 	{
@@ -95,19 +95,14 @@ ssc_bool_t my_handler( ssc_module_t , ssc_handler_t , int action, float f0, floa
 		wxGetApp().Yield(true);
 		return !MainWindow::Instance().UpdateIsStopFlagSet();
 	}
-/*
-	else if (action == SSC_EXECUTE)
-	{
-		// run the executable, pipe the output, and return output to p_mod
-		// **TODO**
-		default_sync_proc exe( p_handler );
-		return exe.spawn( s0, s1 ) == 0;
-	}
-*/
 	else
 		return 0;
 }
 
+void message_handler(const char *msg)
+{
+	MainWindow::Instance().Log(msg);
+}
 
 
 void _test(lk::invoke_t &cxt)
@@ -400,7 +395,7 @@ void _test(lk::invoke_t &cxt)
 	//	ssc_data_free(data); 
 	//	return; 
 	//}
-	//if (ssc_module_exec_with_handler(module, data, my_handler, 0) == 0)
+	//if (ssc_module_exec_with_handler(module, data, sim_progress_handler, 0) == 0)
 	//{
 	//	mw.Log( wxString::Format( "error during simulation." ) ); 
 	//	ssc_module_free(module); 

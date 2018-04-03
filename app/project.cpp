@@ -1,4 +1,5 @@
 #include "project.h"
+#include <wx/wx.h>
 #include <limits>
 
 variables::variables()
@@ -79,7 +80,8 @@ parameters::parameters()
 	startup_time.set( 0.5, "startup_time", DATATYPE::TYPE_NUMBER, false );
 	startup_frac.set( 0.5, "startup_frac", DATATYPE::TYPE_NUMBER, false );
 	v_wind_max.set( 15., "v_wind_max", DATATYPE::TYPE_NUMBER, false );
-
+	flux_max.set(1000., "flux_max", DATATYPE::TYPE_NUMBER, false);
+	
 	std::vector< double > pval = { 0., 7., 200., 12000. };
 	c_ces.set( pval, "c_ces", DATATYPE::TYPE_NUMBER, false );
 
@@ -545,121 +547,70 @@ void Project::update_calculated_values_post_layout()
 
 }
 
-void Project::run_design()
+bool Project::run_design()
 {
 
-	//"""
-	//run only the design
-	//
-	//usr_vars is a dict containing name : value pairs.The name must be a valid
-	//ssc variable from vartab.py, and corresponding value must match the var
-	//type given in the same file.
-	//"""    
-	//Vt = copy.deepcopy(V)
-	//
-	//ssc = api.PySSC()
-	//dat = ssc.data_create()
-	//try :
-	//prm = usr_vars['print_messages']
-	//except KeyError :
-	//prm = True
-	//ssc.module_exec_set_print(1 if prm else 0)  #0 = no, 1 = yes(print progress updates)
-	ssc_module_exec_set_print(m_parameters.print_messages.val);
-	//
-	//#*************************************************************************
-	//#   change any defaults
-	//#*************************************************************************
-	//Vt.update(usr_vars)
-	//Vt['calc_fluxmaps'] = True
+	/*
+	run only the design
+	
+	usr_vars is a dict containing name : value pairs.The name must be a valid
+	ssc variable from vartab.py, and corresponding value must match the var
+	type given in the same file.
+	*/
+	
+	ssc_module_exec_set_print(m_parameters.print_messages.val); //0 = no, 1 = yes(print progress updates)
+	
+	//change any defaults
 	ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 1.);
-	//
-	//#Run design to get field layout
-	//D = Dict
-	//
+	
 	//#Check to make sure the weather file exists
-	//if not os.path.exists(D['solar_resource_file']) :
-	//raise Exception("\nThe specified Weather file could not be found. Aborting design.\n")
-	//
-	//D['flux_max'] = 1000.
-	ssc_data_set_number(m_ssc_data, "flux_max", 1000.);
-	//if 'check_max_flux' not in D :
-	//D['check_max_flux'] = True
-	//
-	//
-	//update_calculated_system_values(ssc_api, ssc_data, Dict)
+	FILE *fp = fopen(m_parameters.solar_resource_file.val.c_str(), "r");
+	if (fp == NULL)
+	{
+		message_handler(wxString::Format("The solar resource file could not be located (Design module). The specified path is:\n%s", m_parameters.solar_resource_file.val.c_str()));
+		return false;;
+	}
+	fclose(fp);
+
 	update_calculated_system_values();
-	//
-	//Dict['heliostat_positions_in'] = [[]]
 	ssc_data_set_matrix(m_ssc_data, "heliostat_positions_in", (ssc_number_t*)0, 0, 0);
-	//set_ssc_data_from_dict(ssc_api, ssc_data, Dict)
+	
 	update_sscdata_from_object(m_variables);
 	update_sscdata_from_object(m_parameters);
 
-	//sp = ssc_api.module_create("solarpilot")
+	//Run design to get field layout
 	ssc_module_t mod_solarpilot = ssc_module_create("solarpilot");
-	//ssc_api.module_exec(sp, ssc_data)
-	ssc_module_exec_with_handler(mod_solarpilot, m_ssc_data, my_handler, 0);
-	//
-	//#Collect calculated data
-	//D['opteff_table'] = ssc_api.data_get_matrix(ssc_data, "opteff_table")
-	//D['flux_table'] = ssc_api.data_get_matrix(ssc_data, "flux_table")
-	//D['heliostat_positions'] = ssc_api.data_get_matrix(ssc_data, "heliostat_positions")
-	//D['number_heliostats'] = ssc_api.data_get_number(ssc_data, "number_heliostats")
-	//D['area_sf'] = ssc_api.data_get_number(ssc_data, "area_sf")
-	//D['base_land_area'] = ssc_api.data_get_number(ssc_data, "base_land_area")
-	//D['land_area'] = ssc_api.data_get_number(ssc_data, "land_area")
-	//D['h_tower_opt'] = ssc_api.data_get_number(ssc_data, "h_tower_opt")
-	//D['rec_height_opt'] = ssc_api.data_get_number(ssc_data, "rec_height_opt")
-	//D['rec_aspect_opt'] = ssc_api.data_get_number(ssc_data, "rec_aspect_opt")
-	//D['cost_rec_tot'] = ssc_api.data_get_number(ssc_data, "cost_rec_tot")
-	//D['cost_sf_tot'] = ssc_api.data_get_number(ssc_data, "cost_sf_tot")
-	//D['cost_tower_tot'] = ssc_api.data_get_number(ssc_data, "cost_tower_tot")
-	//D['cost_land_tot'] = ssc_api.data_get_number(ssc_data, "cost_land_tot")
-	//D['cost_site_tot'] = ssc_api.data_get_number(ssc_data, "cost_site_tot")
-	//D['flux_max_observed'] = ssc_api.data_get_number(ssc_data, "flux_max_observed")
+	ssc_module_exec_with_handler(mod_solarpilot, m_ssc_data, sim_progress_handler, 0);
+	
+	//Collect calculated data
 	update_object_from_sscdata(m_design_outputs);
-	//
-	//D['calc_fluxmaps'] = 0
+	
 	ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 0.);
-	//
-	//#update values
-	//D['helio_positions'] = D['heliostat_positions']
+	
+	//update values
 	{
 		int nr, nc;
 		ssc_number_t *p_hel = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
 		ssc_data_set_matrix(m_ssc_data, "helio_positions", p_hel, nr, nc);
 	}
-	//D['A_sf'] = D['area_sf']
 	ssc_number_t val;
 	ssc_data_get_number(m_ssc_data, "area_sf", &val);
 	ssc_data_set_number(m_ssc_data, "A_sf", val);
-	//D['land_area_base'] = D['base_land_area']
+
+	//a successful layout will have solar field area
+	if (val < 0.1 || val == std::numeric_limits<double>::quiet_NaN())
+		return false;
+	
 	ssc_data_get_number(m_ssc_data, "base_land_area", &val);
 	ssc_data_set_number(m_ssc_data, "land_area_base", val);
-	//
-	//if D['print_messages']:
-	//print "Finished layout with " + str(D['number_heliostats']) + " heliostats in layout"
-	//
-	//
-	//update_calculated_values_post_layout(ssc_api, ssc_data, Dict)
+	
 	update_calculated_values_post_layout();
-	//D['field_model_type'] = 2  # use this layout
+	// use this layout
 	ssc_data_set_number(m_ssc_data, "field_model_type", 2.);
-	//
-	//set_ssc_data_from_dict(ssc_api, ssc_data, Dict)
-	//
-	//ssc_api.module_free(sp)
+	
 	ssc_module_free(mod_solarpilot);
-	//
-	//#check whether all items required in the design have been provided
-	//dkeys = ['opteff_table', 'flux_table', 'heliostat_positions', 'number_heliostats',
-	//'area_sf', 'base_land_area', 'land_area', 'cost_rec_tot', 'cost_sf_tot',
-	//'cost_tower_tot', 'cost_land_tot', 'cost_site_tot', 'flux_max_observed']
-	//R = {}
-	//for k in dkeys :
-	//R[k] = Vt[k]
-	//return R
-	return;
+	
+	return true;
 }
 
 
@@ -1240,17 +1191,18 @@ double Project::calc_real_dollars(const double &dollars, bool is_revenue, bool i
 }
 
 
-int Project::D()
+bool Project::D()
 {
 	/*
 	Run design
 	*/
-	run_design();
+	if( ! run_design() )
+		return false;
 
 	//Land cost
 	m_design_outputs.cost_land_real.val = calc_real_dollars( m_parameters.land_spec_cost.val * m_design_outputs.land_area.val ); 
 	//solar field cost
 	m_design_outputs.cost_sf_real.val = calc_real_dollars( (m_parameters.heliostat_spec_cost.val + m_parameters.site_spec_cost.val)*m_design_outputs.area_sf.val );
 
-	return 1;
+	return true;
 }

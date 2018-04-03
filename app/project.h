@@ -14,7 +14,8 @@
 A class containing the aspects of the current project
 */
 
-extern ssc_bool_t my_handler(ssc_module_t, ssc_handler_t, int action, float f0, float f1, const char *s0, const char *, void *);
+extern ssc_bool_t sim_progress_handler(ssc_module_t, ssc_handler_t, int action, float f0, float f1, const char *s0, const char *, void *);
+extern void message_handler(const char *msg);
 
 enum DATATYPE { TYPE_INT, TYPE_NUMBER, TYPE_BOOL, TYPE_STRING, TYPE_VECTOR, TYPE_MATRIX };
 
@@ -125,7 +126,8 @@ private:
 		&heliostat_refurbish_cost, &helio_mtf, &heliostat_repair_cost, &om_staff_max_hours_week, &n_heliostats_sim, 
 		&wash_units_per_hour, &wash_crew_max_hours_week, &degr_per_hour, &degr_accel_per_year, &degr_seed, 
 		&soil_per_hour, &adjust_constant, &helio_reflectance, &finance_period, &disp_rsu_cost, &disp_csu_cost, 
-		&disp_pen_delta_w, &rec_su_delay, &rec_qf_delay, &startup_time, &startup_frac, &v_wind_max, &c_ces, &dispatch_factors_ts
+		&disp_pen_delta_w, &rec_su_delay, &rec_qf_delay, &startup_time, &startup_frac, &v_wind_max, &c_ces, 
+		&dispatch_factors_ts, &flux_max
 	};
 
 public:
@@ -180,6 +182,7 @@ public:
 	parameter< double > startup_time;
 	parameter< double > startup_frac;
 	parameter< double > v_wind_max;
+	parameter< double > flux_max;
 
 	parameter< std::vector< double > > c_ces;
 	parameter< std::vector< double > > dispatch_factors_ts;
@@ -246,7 +249,7 @@ class Project
 	void update_calculated_system_values();
 	void update_calculated_values_post_layout();
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
-	void run_design();
+	bool run_design();
 
 public:
 	variables m_variables;
@@ -258,7 +261,7 @@ public:
 
 
 	//objective function methods
-	int D();
+	bool D();
 	int M();
 	int O();
 	int S();
@@ -268,7 +271,6 @@ public:
 
 	
 
-	// double calc_real_dollars(double value, bool is_revenue=false, bool is_labor=false);
 	// def setup_clusters(self, Nclusters, Ndays = 2, Nprev = 1, Nnext = 1, user_weights = None, user_divisions = None):
 	// def M(self, variables, design):
 	// def O(self, variables, design):
