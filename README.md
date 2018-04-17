@@ -1,4 +1,4 @@
-# Design, Analysis, and Optimization Toolkit (DAO-Tk)
+# Design, Analysis, and Operations Toolkit (DAO-Tk)
 
 This project develops a toolkit for the design, analysis, and optimization of concentrating solar power 
 (CSP) systems, including optimization of both physical design variables and operations and maintenance 
