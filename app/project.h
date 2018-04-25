@@ -266,7 +266,7 @@ public:
 	bool D();
 	bool M();
 	bool O();
-	int S();
+	bool S(float *sf_avail = 0, float *sf_soil = 0, float *sf_degr = 0);
 	int E();
 	int F();
 	int Z();

@@ -111,6 +111,14 @@ bool sim_progress_handler(float progress, const char *msg)
 	return !MainWindow::Instance().UpdateIsStopFlagSet();
 }
 
+void _var(lk::invoke_t &cxt)
+{
+	LK_DOC2("var", "Sets or gets a variable value.",
+		"Set a variable value.", "(string:name, variant:value):none",
+		"Get a variable value", "(string:name):variant");
+
+
+}
 
 void _test(lk::invoke_t &cxt)
 {

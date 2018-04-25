@@ -1291,3 +1291,12 @@ bool Project::O()
 
 	return true;
 }
+
+bool Project::S(float *sf_avail, float *sf_soil, float *sf_degr)
+{
+	/* 
+	
+	*/
+
+	return true;
+}
