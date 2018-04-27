@@ -183,9 +183,10 @@ void _test(lk::invoke_t &cxt)
 
 void _power_cycle(lk::invoke_t &cxt)
 {
-	LK_DOC("power_cycle_avail", "Simulate a power cycle failure series.", "(void):null");
+	LK_DOC("power_cycle_avail", "Simulate a power cycle failure series.", "(vector:dispatch, int:nsim):table");
 
 	//do something
+	
 }
 
 void _simulate_optical(lk::invoke_t &cxt)

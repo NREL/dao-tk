@@ -158,10 +158,10 @@ optical_outputs::optical_outputs()
 	avg_soil.set(nan, "avg_soil", DATATYPE::TYPE_NUMBER, true );
 	avg_degr.set(nan, "avg_degr", DATATYPE::TYPE_NUMBER, true );
 
-	soil_schedule.set(empty_vec, "> soil_schedule", DATATYPE::TYPE_VECTOR, true );
-	degr_schedule.set(empty_vec, "> degr_schedule", DATATYPE::TYPE_VECTOR, true );
-	repl_schedule.set(empty_vec, "> repl_schedule", DATATYPE::TYPE_VECTOR, true );
-	repl_total.set(empty_vec, "> repl_total", DATATYPE::TYPE_VECTOR, true );
+	soil_schedule.set(empty_vec, "soil_schedule", DATATYPE::TYPE_VECTOR, true );
+	degr_schedule.set(empty_vec, "degr_schedule", DATATYPE::TYPE_VECTOR, true );
+	repl_schedule.set(empty_vec, "repl_schedule", DATATYPE::TYPE_VECTOR, true );
+	repl_total.set(empty_vec, "repl_total", DATATYPE::TYPE_VECTOR, true );
 
 	_construct_member_map();
 }
