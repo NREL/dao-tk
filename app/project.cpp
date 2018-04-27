@@ -23,6 +23,8 @@ variables::variables()
 	om_staff.set(-1, -999, 999, "om_staff", DATATYPE::TYPE_NUMBER);
 	n_wash_crews.set(-1, -999, 999, "n_wash_crews", DATATYPE::TYPE_NUMBER);
 	N_panels.set(-1, -999, 999, "N_panels", DATATYPE::TYPE_NUMBER);
+
+	_construct_member_map();
 };
 
 parameters::parameters()
@@ -87,6 +89,8 @@ parameters::parameters()
 
 	std::vector< double > pvalts(8760, 1.);
 	dispatch_factors_ts.set( pvalts, "dispatch_factors_ts", DATATYPE::TYPE_NUMBER, false );
+	
+	_construct_member_map();
 
 }
 
@@ -117,6 +121,49 @@ design_outputs::design_outputs()
 	opteff_table.set(empty_mat, "opteff_table", DATATYPE::TYPE_MATRIX, true);
 	flux_table.set(empty_mat, "flux_table", DATATYPE::TYPE_MATRIX, true);
 	heliostat_positions.set(empty_mat, "heliostat_positions", DATATYPE::TYPE_MATRIX, true);
+
+	_construct_member_map();
+}
+
+solarfield_outputs::solarfield_outputs()
+{
+	/* 
+	Set up output members
+	*/
+
+	double nan = std::numeric_limits<double>::quiet_NaN();
+	n_repairs.set(nan, "n_repairs", DATATYPE::TYPE_NUMBER, true);
+	staff_utilization.set(nan, "staff_utilization", DATATYPE::TYPE_NUMBER, true);
+	heliostat_repair_cost_y1.set(nan, "heliostat_repair_cost_y1", DATATYPE::TYPE_NUMBER, true);
+	heliostat_repair_cost.set(nan, "heliostat_repair_cost", DATATYPE::TYPE_NUMBER, true);
+
+	std::vector< double > empty_vec;
+	avail_schedule.set(empty_vec, "avail_schedule", DATATYPE::TYPE_VECTOR, true);
+
+	_construct_member_map();
+}
+
+optical_outputs::optical_outputs()
+{
+	/* 
+	Set up output members
+	*/
+
+	double nan = std::numeric_limits<double>::quiet_NaN();
+	std::vector< double > empty_vec;
+	
+	n_replacements.set(nan, "n_replacements", DATATYPE::TYPE_NUMBER, true );
+	heliostat_refurbish_cost.set(nan, "heliostat_refurbish_cost", DATATYPE::TYPE_NUMBER, true );
+	heliostat_refurbish_cost_y1.set(nan, "heliostat_refurbish_cost_y1", DATATYPE::TYPE_NUMBER, true );
+	avg_soil.set(nan, "avg_soil", DATATYPE::TYPE_NUMBER, true );
+	avg_degr.set(nan, "avg_degr", DATATYPE::TYPE_NUMBER, true );
+
+	soil_schedule.set(empty_vec, "> soil_schedule", DATATYPE::TYPE_VECTOR, true );
+	degr_schedule.set(empty_vec, "> degr_schedule", DATATYPE::TYPE_VECTOR, true );
+	repl_schedule.set(empty_vec, "> repl_schedule", DATATYPE::TYPE_VECTOR, true );
+	repl_total.set(empty_vec, "> repl_total", DATATYPE::TYPE_VECTOR, true );
+
+	_construct_member_map();
 }
 
 Project::Project()
@@ -1221,15 +1268,17 @@ bool Project::M()
 	heliostat_repair_cost_y1 Total "" in first year($ / year)
 	*/
 
-	m_solarfield_availability.m_settings.mf = m_parameters.helio_mtf.val;
-	m_solarfield_availability.m_settings.rep_min = 1.;
-	m_solarfield_availability.m_settings.rep_max = 100.;
-	m_solarfield_availability.m_settings.n_helio = m_design_outputs.number_heliostats.val;
-	m_solarfield_availability.m_settings.n_om_staff = m_variables.om_staff.val;
-	m_solarfield_availability.m_settings.hr_prod = m_parameters.om_staff_max_hours_week.val;
-	m_solarfield_availability.m_settings.n_hr_sim = 8760 * 12;
-	m_solarfield_availability.m_settings.seed = m_parameters.avail_seed.val;
-	m_solarfield_availability.m_settings.n_helio_sim = 1000;
+	solarfield_availability sfa;
+
+	sfa.m_settings.mf = m_parameters.helio_mtf.val;
+	sfa.m_settings.rep_min = 1.;
+	sfa.m_settings.rep_max = 100.;
+	sfa.m_settings.n_helio = m_design_outputs.number_heliostats.val;
+	sfa.m_settings.n_om_staff = m_variables.om_staff.val;
+	sfa.m_settings.hr_prod = m_parameters.om_staff_max_hours_week.val;
+	sfa.m_settings.n_hr_sim = 8760 * 12;
+	sfa.m_settings.seed = m_parameters.avail_seed.val;
+	sfa.m_settings.n_helio_sim = 1000;
 
 	//error if trying to simulate with no heliostats
 	if (m_design_outputs.number_heliostats.val <= 1)
@@ -1238,17 +1287,17 @@ bool Project::M()
 		return false;
 	}
 
-	m_solarfield_availability.simulate(sim_progress_handler);
+	sfa.simulate(sim_progress_handler);
 
 	//Calculate staff cost and repair cost
-	double ann_fact = 8760. / (double)m_solarfield_availability.m_settings.n_hr_sim;
+	double ann_fact = 8760. / (double)sfa.m_settings.n_hr_sim;
 
-	m_solarfield_availability.m_results.n_repairs *= ann_fact;	//annual repairs
-	m_solarfield_availability.m_results.heliostat_repair_cost_y1 = m_solarfield_availability.m_results.n_repairs * m_parameters.heliostat_repair_cost.val;
+	sfa.m_results.n_repairs *= ann_fact;	//annual repairs
+	sfa.m_results.heliostat_repair_cost_y1 = sfa.m_results.n_repairs * m_parameters.heliostat_repair_cost.val;
 	
 	//lifetime costs
 	//treat heliostat repair costs as consuming reserve equipment paid for at the project outset
-	m_solarfield_availability.m_results.heliostat_repair_cost = calc_real_dollars(m_solarfield_availability.m_results.heliostat_repair_cost_y1);
+	sfa.m_results.heliostat_repair_cost = calc_real_dollars(sfa.m_results.heliostat_repair_cost_y1);
 
 	return true;
 }
@@ -1264,30 +1313,31 @@ bool Project::O()
 	heliostat_refurbish_cost  Cost to refurbish heliostats($ lifetime)
 	heliostat_refurbish_cost_y1  Cost "" in year 1 ($ / year)
 	*/
+	optical_degradation od;
 
-	m_optical_degradation.m_settings.n_hr_sim = 25 * 8760;
-	m_optical_degradation.m_settings.n_wash_crews = m_variables.n_wash_crews.val;
-	m_optical_degradation.m_settings.n_helio = m_design_outputs.number_heliostats.val;
-	m_optical_degradation.m_settings.degr_loss_per_hr = m_parameters.degr_per_hour.val;
-	m_optical_degradation.m_settings.degr_accel_per_year = m_parameters.degr_accel_per_year.val;
-	m_optical_degradation.m_settings.replacement_threshold = m_variables.degr_replace_limit.val;
-	m_optical_degradation.m_settings.soil_loss_per_hr = m_parameters.soil_per_hour.val;
-	m_optical_degradation.m_settings.wash_units_per_hour = m_parameters.wash_units_per_hour.val;
-	m_optical_degradation.m_settings.hours_per_week = m_parameters.wash_crew_max_hours_week.val;
-	m_optical_degradation.m_settings.hours_per_day = 10.;
-	m_optical_degradation.m_settings.seed = m_parameters.degr_seed.val;
+	od.m_settings.n_hr_sim = 25 * 8760;
+	od.m_settings.n_wash_crews = m_variables.n_wash_crews.val;
+	od.m_settings.n_helio = m_design_outputs.number_heliostats.val;
+	od.m_settings.degr_loss_per_hr = m_parameters.degr_per_hour.val;
+	od.m_settings.degr_accel_per_year = m_parameters.degr_accel_per_year.val;
+	od.m_settings.replacement_threshold = m_variables.degr_replace_limit.val;
+	od.m_settings.soil_loss_per_hr = m_parameters.soil_per_hour.val;
+	od.m_settings.wash_units_per_hour = m_parameters.wash_units_per_hour.val;
+	od.m_settings.hours_per_week = m_parameters.wash_crew_max_hours_week.val;
+	od.m_settings.hours_per_day = 10.;
+	od.m_settings.seed = m_parameters.degr_seed.val;
 
-	m_optical_degradation.simulate(sim_progress_handler);
+	od.simulate(sim_progress_handler);
 
-	double ann_fact = 8760. / (double)m_optical_degradation.m_settings.n_hr_sim;
+	double ann_fact = 8760. / (double)od.m_settings.n_hr_sim;
 	
-	m_optical_degradation.m_results.heliostat_refurbish_cost_y1 =
-		m_optical_degradation.m_results.n_replacements * m_parameters.heliostat_refurbish_cost.val;
+	od.m_results.heliostat_refurbish_cost_y1 =
+		od.m_results.n_replacements * m_parameters.heliostat_refurbish_cost.val;
 	
 	//Annualize
-	m_optical_degradation.m_results.n_replacements *= ann_fact;
+	od.m_results.n_replacements *= ann_fact;
 	
-	m_optical_degradation.m_results.heliostat_refurbish_cost = calc_real_dollars( m_optical_degradation.m_results.heliostat_refurbish_cost_y1 ) * ann_fact;
+	od.m_results.heliostat_refurbish_cost = calc_real_dollars( od.m_results.heliostat_refurbish_cost_y1 ) * ann_fact;
 
 	return true;
 }

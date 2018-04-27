@@ -71,7 +71,29 @@ public:
 
 struct datas_base 
 {
+protected:
+	std::unordered_map< std::string, data_base* > _member_map;
+
+	void _construct_member_map()
+	{
+		_member_map.clear();
+
+		std::vector<data_base*> *members = this->GetMemberPointer();
+		for (std::vector<data_base*>::iterator it = members->begin(); it != members->end(); it++)
+			_member_map[(*it)->name] = (*it);
+	};
+
+public:
 	virtual std::vector<data_base*>* GetMemberPointer()=0;
+	data_base *find(const char *name)
+	{
+		std::unordered_map<std::string, data_base*>::iterator itfind = this->_member_map.find(name);
+		
+		if (itfind != this->_member_map.end())
+			return itfind->second;
+		else
+			return 0;
+	};
 };
 
 struct variables : public datas_base
@@ -233,6 +255,59 @@ public:
 
 };
 
+struct solarfield_outputs : public datas_base
+{
+private:
+	std::vector<data_base*> _members = {&n_repairs, &staff_utilization, &heliostat_repair_cost_y1, &heliostat_repair_cost, &avail_schedule};
+
+public:
+	parameter< double > n_repairs;
+	parameter< double > staff_utilization;
+	parameter< double> heliostat_repair_cost_y1;
+	parameter< double> heliostat_repair_cost;
+	parameter< std::vector< double > > avail_schedule;
+
+	solarfield_outputs();
+
+	std::vector<data_base*> *GetMemberPointer() { return &_members; }
+};
+
+struct optical_outputs : public datas_base
+{
+private:
+	std::vector<data_base*> _members = { &n_replacements, &heliostat_refurbish_cost, &heliostat_refurbish_cost_y1, &avg_soil, 
+		&avg_degr, &soil_schedule, &degr_schedule, &repl_schedule, &repl_total };
+
+public:
+	parameter< double > n_replacements;
+	parameter< double > heliostat_refurbish_cost;
+	parameter< double > heliostat_refurbish_cost_y1;
+	parameter< double > avg_soil;
+	parameter< double > avg_degr;
+
+	parameter< std::vector< double > > soil_schedule;
+	parameter< std::vector< double > > degr_schedule;
+	parameter< std::vector< double > > repl_schedule;
+	parameter< std::vector< double > > repl_total;
+
+	optical_outputs();
+
+	std::vector<data_base*> *GetMemberPointer() { return &_members; }
+
+};
+
+struct cycle_outputs : public datas_base
+{
+private:
+	std::vector<data_base*> _members = {};
+
+public:
+
+	cycle_outputs() {};
+
+	std::vector<data_base*> *GetMemberPointer() { return &_members; }
+};
+
 //main class
 class Project
 {
@@ -254,13 +329,12 @@ public:
 	variables m_variables;
 	parameters m_parameters;
 	design_outputs m_design_outputs;
-
-	solarfield_availability m_solarfield_availability;
-	optical_degradation m_optical_degradation;
+	solarfield_outputs m_solarfield_outputs;
+	optical_outputs m_optical_outputs;
+	cycle_outputs m_cycle_outputs;
 
 	Project();
 	~Project();
-
 
 	//objective function methods
 	bool D();

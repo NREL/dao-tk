@@ -198,6 +198,11 @@ MainWindow &MainWindow::Instance()
 	return *g_mainWindow;
 }
 
+Project *MainWindow::Project()
+{
+	return &m_project;
+}
+
 void MainWindow::Log(const wxString &text, bool wnl)
 {
 	m_LogViewForm->Log(text, wnl);

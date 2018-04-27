@@ -2,6 +2,7 @@
 #define __dao_h
 
 #include <wx/frame.h>
+#include "project.h"
 
 //#define ST_CONSOLE_APP      //define this if we want to compile as a console application (no gui)
 
@@ -27,11 +28,30 @@ DECLARE_APP(MyApp)
 
 class MainWindow : public wxFrame
 {
+private:
+	wxMetroButton * m_mainMenuButton;
+	wxMetroTabList *m_tabList;
+	wxSimplebook *m_notebook;
+
+	ScriptView *m_ScriptViewForm;
+	DataView *m_DataViewForm;
+	LogView *m_LogViewForm;
+
+	wxStaticText *m_statusLabel;
+	wxGauge *m_progressBar;
+
+	wxString m_fileName;
+
+	Project m_project;
+
+	DECLARE_EVENT_TABLE();
+
 public:
 	MainWindow();
 	virtual ~MainWindow();
 	static MainWindow &Instance();
 	void UpdateFrameTitle();
+	Project *Project();
 	
 	bool UpdateIsStopFlagSet();
 	void SetProgress( int percent, const wxString &msg = wxEmptyString );
@@ -49,21 +69,6 @@ protected:
 	void OnCommand(wxCommandEvent &);
 	void OnCaseTabChange(wxCommandEvent &);
 
-private:
-	wxMetroButton * m_mainMenuButton;
-	wxMetroTabList *m_tabList;
-	wxSimplebook *m_notebook;
-
-	ScriptView *m_ScriptViewForm;
-	DataView *m_DataViewForm;
-	LogView *m_LogViewForm;
-
-	wxStaticText *m_statusLabel;
-	wxGauge *m_progressBar;
-
-	wxString m_fileName;
-
-	DECLARE_EVENT_TABLE();
 };
 
 
