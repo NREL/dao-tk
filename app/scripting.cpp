@@ -121,20 +121,18 @@ void _var(lk::invoke_t &cxt)
 
 	//collect the item name
 	std::string namearg = cxt.arg(0).as_string();
+	data_base* dat = project->GetVarPtr(namearg.c_str());
 
 	//is this a set or get operation?
 	if (cxt.arg_count() > 1)
 	{
 		//set
 
-		//is this in variables?
-
-		//if( project->m_variables.find(namearg.c_str()) )
-		
 	}
 	else
 	{
 		//get
+
 	}
 
 

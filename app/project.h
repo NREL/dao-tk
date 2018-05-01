@@ -313,13 +313,14 @@ class Project
 {
 	ssc_data_t m_ssc_data;
 	
-
+	unordered_map<std::string, data_base*> _merged_data;
 
 	void hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
 	void initialize_ssc_project();
 	void update_sscdata_from_object(datas_base &obj);
 	void update_object_from_sscdata(datas_base &obj);
-	void sscdata_localdata_map(datas_base &obj, bool set_ssc_from_local);  //set ssc data from obj (set_ssc_from_local=true), or set local from ssc (false)
+	void sscdata_localdata(data_base *obj, bool set_ssc_from_local);       //set ssc data from obj (set_ssc_from_local=true), or set local from ssc (false)
+	void sscdata_localdata_map(datas_base &objs, bool set_ssc_from_local);  //set ssc data from list (set_ssc_from_local=true), or set local from ssc (false)
 	void update_calculated_system_values();
 	void update_calculated_values_post_layout();
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
@@ -345,7 +346,7 @@ public:
 	int F();
 	int Z();
 
-	
+	data_base *GetVarPtr(const char *name);
 
 	// def setup_clusters(self, Nclusters, Ndays = 2, Nprev = 1, Nnext = 1, user_weights = None, user_divisions = None):
 	// def M(self, variables, design):

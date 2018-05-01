@@ -170,12 +170,38 @@ Project::Project()
 {
 	m_ssc_data = 0;
 	initialize_ssc_project();
+
+	//construct the merged data map
+	std::vector<datas_base*> struct_pointers = { &m_variables, &m_parameters, &m_design_outputs,
+		&m_solarfield_outputs, &m_optical_outputs, &m_cycle_outputs };
+
+	_merged_data.clear();
+
+	for (size_t i = 0; i < struct_pointers.size(); i++)
+	{
+		for (std::vector< data_base*>::iterator it = struct_pointers.at(i)->GetMemberPointer()->begin();
+			it != struct_pointers.at(i)->GetMemberPointer()->end(); it++)
+		{
+			_merged_data[(*it)->name] = *it;
+		}
+	}
+
 }
 
 Project::~Project()
 {
 	if (m_ssc_data)
 		ssc_data_free(m_ssc_data);
+}
+
+data_base *Project::GetVarPtr(const char *name)
+{
+	unordered_map<std::string, data_base*>::iterator itfind = _merged_data.find(name);
+
+	if (itfind != _merged_data.end())
+		return itfind->second;
+	else
+		return 0;
 }
 
 void Project::hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars)
@@ -262,124 +288,132 @@ void Project::update_object_from_sscdata(datas_base &obj)
 	sscdata_localdata_map(obj, false);
 }
 
-void Project::sscdata_localdata_map(datas_base &obj, bool set_ssc_from_local)  //set ssc data from obj (set_ssc_from_local=true), or set local from ssc (false)
+void Project::sscdata_localdata(data_base *obj, bool set_ssc_from_local)
 {
-	std::vector< data_base* > *members = obj.GetMemberPointer();
+	//set ssc data from obj (set_ssc_from_local=true), or set local from ssc (false)
+	//if this is a 'get', make sure the data is allocated in the ssc object
+	if (!set_ssc_from_local)
+		if (ssc_data_query(m_ssc_data, obj->name.c_str()) == SSC_INVALID)
+			return;
+
+	//handle the get/set operation by data type
+	switch (obj->type)
+	{
+	case DATATYPE::TYPE_BOOL:
+	{
+		data_unit< bool > *v = static_cast< data_unit< bool >* >(obj);
+		if (set_ssc_from_local)
+			ssc_data_set_number(m_ssc_data, v->name.c_str(), v->val ? 1. : 0.);
+		else
+		{
+			ssc_number_t tval;
+			ssc_data_get_number(m_ssc_data, v->name.c_str(), &tval);
+			v->val = tval == 1.;
+		}
+
+		break;
+	}
+	case DATATYPE::TYPE_INT:
+	{
+		data_unit< int > *v = static_cast< data_unit< int >* >(obj);
+		if (set_ssc_from_local)
+			ssc_data_set_number(m_ssc_data, v->name.c_str(), v->val);
+		else
+		{
+			ssc_number_t tval;
+			ssc_data_get_number(m_ssc_data, v->name.c_str(), &tval);
+			v->val = (int)(tval + 1.e-3);
+		}
+
+		break;
+	}
+	case DATATYPE::TYPE_NUMBER:
+	{
+		data_unit< double > *v = static_cast< data_unit< double >* >(obj);
+		if (set_ssc_from_local)
+			ssc_data_set_number(m_ssc_data, v->name.c_str(), v->val);
+		else
+		{
+			ssc_number_t tval;
+			ssc_data_get_number(m_ssc_data, v->name.c_str(), &tval);
+			v->val = (double)tval;
+		}
+		break;
+	}
+	case DATATYPE::TYPE_MATRIX:
+	{
+		data_unit< std::vector< std::vector< double > > > *v = static_cast< data_unit< std::vector< std::vector< double > > >* >(obj);
+
+		if (set_ssc_from_local)
+		{
+			int nr = (int)v->val.size();
+			int nc = (int)v->val.front().size();
+
+			ssc_number_t *p_vals = new ssc_number_t[nr*nc];
+			for (int i = 0; i<nr; i++)
+				for (int j = 0; j<nc; j++)
+					p_vals[i*nc + j] = v->val.at(i).at(j);
+
+			ssc_data_set_matrix(m_ssc_data, v->name.c_str(), p_vals, nr, nc);
+		}
+		else
+		{
+			int nr, nc;
+			ssc_number_t *p_vals = ssc_data_get_matrix(m_ssc_data, v->name.c_str(), &nr, &nc);
+			v->val.resize(nr, std::vector<double>(nc));
+			for (int i = 0; i < nr; i++)
+				for (int j = 0; j < nc; j++)
+					v->val.at(i).at(j) = p_vals[i*nc + j];
+		}
+		break;
+	}
+	case DATATYPE::TYPE_STRING:
+	{
+		data_unit< std::string > *v = static_cast< data_unit< std::string >* >(obj);
+		if (set_ssc_from_local)
+			ssc_data_set_string(m_ssc_data, v->name.c_str(), v->val.c_str());
+		else
+			v->val = ssc_data_get_string(m_ssc_data, v->name.c_str());
+
+		break;
+	}
+	case DATATYPE::TYPE_VECTOR:
+	{
+		data_unit< std::vector< double > > *v = static_cast< data_unit< std::vector< double > >* >(obj);
+
+		if (set_ssc_from_local)
+		{
+			int nr = (int)v->val.size();
+			ssc_number_t *p_vals = new ssc_number_t[nr];
+			for (int i = 0; i<nr; i++)
+				p_vals[i] = v->val.at(i);
+
+			ssc_data_set_array(m_ssc_data, v->name.c_str(), p_vals, nr);
+		}
+		else
+		{
+			int nr;
+			ssc_number_t *p_vals = ssc_data_get_array(m_ssc_data, v->name.c_str(), &nr);
+			v->val.resize(nr);
+			for (int i = 0; i < nr; i++)
+				v->val.at(i) = p_vals[i];
+		}
+		break;
+	}
+	default:
+		break;
+	}
+}
+
+
+void Project::sscdata_localdata_map(datas_base &objs, bool set_ssc_from_local)  
+{
+	//set ssc data from list (set_ssc_from_local=true), or set local from ssc (false)
+	std::vector< data_base* > *members = objs.GetMemberPointer();
 
 	for (std::vector< data_base *>::iterator it = members->begin(); it != members->end(); it++)
 	{
-		//if this is a 'get', make sure the data is allocated in the ssc object
-		if (!set_ssc_from_local)
-			if (ssc_data_query(m_ssc_data, (*it)->name.c_str()) == SSC_INVALID)
-				continue;
-
-		//handle the get/set operation by data type
-		switch ((*it)->type)
-		{
-		case DATATYPE::TYPE_BOOL:
-		{
-			data_unit< bool > *v = static_cast< data_unit< bool >* >(*it);
-			if (set_ssc_from_local)
-				ssc_data_set_number(m_ssc_data, v->name.c_str(), v->val ? 1. : 0.);
-			else
-			{
-				ssc_number_t tval;
-				ssc_data_get_number(m_ssc_data, v->name.c_str(), &tval);
-				v->val = tval == 1.;
-			}
-
-			break;
-		}
-		case DATATYPE::TYPE_INT:
-		{
-			data_unit< int > *v = static_cast< data_unit< int >* >(*it);
-			if( set_ssc_from_local )
-				ssc_data_set_number(m_ssc_data, v->name.c_str(), v->val);
-			else
-			{
-				ssc_number_t tval;
-				ssc_data_get_number(m_ssc_data, v->name.c_str(), &tval);
-				v->val = (int)(tval + 1.e-3);
-			}
-
-			break;
-		}
-		case DATATYPE::TYPE_NUMBER:
-		{
-			data_unit< double > *v = static_cast< data_unit< double >* >(*it);
-			if (set_ssc_from_local)
-				ssc_data_set_number(m_ssc_data, v->name.c_str(), v->val);
-			else
-			{
-				ssc_number_t tval;
-				ssc_data_get_number(m_ssc_data, v->name.c_str(), &tval);
-				v->val = (double)tval;
-			}
-			break;
-		}
-		case DATATYPE::TYPE_MATRIX:
-		{
-			data_unit< std::vector< std::vector< double > > > *v = static_cast< data_unit< std::vector< std::vector< double > > >* >(*it);
-
-			if (set_ssc_from_local)
-			{
-				int nr = (int)v->val.size();
-				int nc = (int)v->val.front().size();
-
-				ssc_number_t *p_vals = new ssc_number_t[nr*nc];
-				for (int i = 0; i<nr; i++)
-					for (int j = 0; j<nc; j++)
-						p_vals[i*nc + j] = v->val.at(i).at(j);
-
-				ssc_data_set_matrix(m_ssc_data, v->name.c_str(), p_vals, nr, nc);
-			}
-			else
-			{
-				int nr, nc;
-				ssc_number_t *p_vals = ssc_data_get_matrix(m_ssc_data, v->name.c_str(), &nr, &nc);
-				v->val.resize(nr, std::vector<double>(nc));
-				for (int i = 0; i < nr; i++)
-					for (int j = 0; j < nc; j++)
-						v->val.at(i).at(j) = p_vals[i*nc + j];
-			}
-			break;
-		}
-		case DATATYPE::TYPE_STRING:
-		{
-			data_unit< std::string > *v = static_cast< data_unit< std::string >* >(*it);
-			if( set_ssc_from_local )
-				ssc_data_set_string(m_ssc_data, v->name.c_str(), v->val.c_str());
-			else
-				v->val = ssc_data_get_string(m_ssc_data, v->name.c_str());
-			
-			break;
-		}
-		case DATATYPE::TYPE_VECTOR:
-		{
-			data_unit< std::vector< double > > *v = static_cast< data_unit< std::vector< double > >* >(*it);
-			
-			if (set_ssc_from_local)
-			{
-				int nr = (int)v->val.size();
-				ssc_number_t *p_vals = new ssc_number_t[nr];
-				for (int i = 0; i<nr; i++)
-					p_vals[i] = v->val.at(i);
-
-				ssc_data_set_array(m_ssc_data, v->name.c_str(), p_vals, nr);
-			}
-			else
-			{
-				int nr;
-				ssc_number_t *p_vals = ssc_data_get_array(m_ssc_data, v->name.c_str(), &nr);
-				v->val.resize(nr);
-				for (int i = 0; i < nr; i++)
-					v->val.at(i) = p_vals[i];
-			}
-			break;
-		}
-		default:
-			break;
-		}
+		sscdata_localdata(*it, set_ssc_from_local);
 	}
 }
 
