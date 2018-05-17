@@ -194,6 +194,18 @@ Project::~Project()
 		ssc_data_free(m_ssc_data);
 }
 
+void Project::SetData(data_base *obj)
+{
+	//pass-through function - set. SSC value assigned from obj->val
+	sscdata_localdata(obj, true);
+}
+
+void Project::GetData(data_base *obj)
+{
+	//pass-through function - get. Value assigned to obj->val from SSC value.
+	sscdata_localdata(obj, false);
+}
+
 data_base *Project::GetVarPtr(const char *name)
 {
 	unordered_map<std::string, data_base*>::iterator itfind = _merged_data.find(name);
@@ -204,7 +216,7 @@ data_base *Project::GetVarPtr(const char *name)
 		return 0;
 }
 
-void Project::hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars)
+void Project::lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars)
 {
     for( lk::varhash_t::iterator v = vars.begin(); v != vars.end(); v++ )
     {

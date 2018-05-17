@@ -126,15 +126,15 @@ void _var(lk::invoke_t &cxt)
 	//is this a set or get operation?
 	if (cxt.arg_count() > 1)
 	{
-		//set
+		//do we need to go from LK -> data_base -> ssc ? What should the relationship be?
 
+		//lk -> ssc -> data_base? that's a lot of data conversion. Why? 
+
+		//could the data_base be derived from lk::vardata_t?
+
+		
 	}
-	else
-	{
-		//get
-
-	}
-
+	
 
 }
 

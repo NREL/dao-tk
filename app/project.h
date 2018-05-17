@@ -315,7 +315,8 @@ class Project
 	
 	unordered_map<std::string, data_base*> _merged_data;
 
-	void hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
+	void lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
+	void lk_var_to_data(lk::vardata_t &var, data_base &data);
 	void initialize_ssc_project();
 	void update_sscdata_from_object(datas_base &obj);
 	void update_object_from_sscdata(datas_base &obj);
@@ -336,6 +337,10 @@ public:
 
 	Project();
 	~Project();
+
+	//data access
+	void SetData(data_base *obj);
+	void GetData(data_base *obj);
 
 	//objective function methods
 	bool D();
