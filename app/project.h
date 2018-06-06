@@ -9,6 +9,7 @@
 #include "../liboptical/optical_degr.h"
 #include "../libsolar/solarfield_avail.h"
 
+#include "../libcluster/clustersim.h"
 
 /* 
 A class containing the aspects of the current project
@@ -308,7 +309,33 @@ public:
 	std::vector<data_base*> *GetMemberPointer() { return &_members; }
 };
 
-//main class
+
+
+
+struct project_cluster_inputs
+{
+	int ncluster;
+	int nsim;
+	int nprev;
+	int alg;
+	bool hard_partitions;
+	bool is_run_continuous;
+	bool is_run_full;
+
+	project_cluster_inputs()
+	{
+		ncluster = nsim = nprev = alg = -1;
+		hard_partitions = true;
+		is_run_continuous = false;
+		is_run_full = false;
+	}
+
+};
+
+
+
+
+//main clas
 class Project
 {
 	ssc_data_t m_ssc_data;
@@ -325,6 +352,7 @@ class Project
 	void update_calculated_values_post_layout();
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
 	bool run_design();
+
 
 public:
 	variables m_variables;
@@ -346,6 +374,11 @@ public:
 	int F();
 	int Z();
 
+
+	void setup_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail, s_metric_outputs &metric_results, s_cluster_outputs &cluster_results);
+	bool sim_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail);
+
+
 	data_base *GetVarPtr(const char *name);
 
 	// def setup_clusters(self, Nclusters, Ndays = 2, Nprev = 1, Nnext = 1, user_weights = None, user_divisions = None):
@@ -357,8 +390,6 @@ public:
 	// def Z(self, variables, **kwargs):
 
 };
-
-
 
 
 

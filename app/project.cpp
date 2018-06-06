@@ -2,6 +2,7 @@
 #include <wx/wx.h>
 #include <limits>
 
+
 variables::variables()
 {
 	/* 
@@ -20,9 +21,9 @@ variables::variables()
 	solarm.set(dnan, dmin, dmax, "solarm", DATATYPE::TYPE_NUMBER);
 	tshours.set(dnan, dmin, dmax, "tshours", DATATYPE::TYPE_NUMBER);
 	degr_replace_limit.set(dnan, dmin, dmax, "degr_replace_limit", DATATYPE::TYPE_NUMBER);
-	om_staff.set(-1, -999, 999, "om_staff", DATATYPE::TYPE_NUMBER);
-	n_wash_crews.set(-1, -999, 999, "n_wash_crews", DATATYPE::TYPE_NUMBER);
-	N_panels.set(-1, -999, 999, "N_panels", DATATYPE::TYPE_NUMBER);
+	om_staff.set(-1, -999, 999, "om_staff", DATATYPE::TYPE_INT);
+	n_wash_crews.set(-1, -999, 999, "n_wash_crews", DATATYPE::TYPE_INT);
+	N_panels.set(-1, -999, 999, "N_panels", DATATYPE::TYPE_INT);
 
 	_construct_member_map();
 };
@@ -88,7 +89,7 @@ parameters::parameters()
 	c_ces.set( pval, "c_ces", DATATYPE::TYPE_NUMBER, false );
 
 	std::vector< double > pvalts(8760, 1.);
-	dispatch_factors_ts.set( pvalts, "dispatch_factors_ts", DATATYPE::TYPE_NUMBER, false );
+	dispatch_factors_ts.set( pvalts, "dispatch_factors_ts", DATATYPE::TYPE_VECTOR, false );
 	
 	_construct_member_map();
 
@@ -460,7 +461,7 @@ void Project::update_calculated_system_values()
 	ssc_data_set_number(m_ssc_data, "system_capacity", nameplate*1000.);
 
 	//// q_pb_design(informational, not used as a compute module input for mspt)
-	ssc_number_t q_pb_design = m_variables.P_ref.val * m_variables.design_eff.val;
+	ssc_number_t q_pb_design = m_variables.P_ref.val / m_variables.design_eff.val;
 	//D["q_pb_design"] = float(D["P_ref"]) / float(D["design_eff"])
 	ssc_data_set_number(m_ssc_data, "q_pb_design", q_pb_design);
 
@@ -926,13 +927,30 @@ void Project::initialize_ssc_project()
 		6, 6, 6, 6, 6, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 
 		6, 6, 6, 6, 6, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5 
 	};
+	ssc_number_t p_weekend_schedule[288] =
+	{
+		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5
+	};
 	ssc_data_set_matrix(m_ssc_data, "weekday_schedule", p_weekday_schedule, 12, 24 );
-	ssc_data_set_matrix(m_ssc_data, "weekend_schedule", p_weekday_schedule, 12, 24 );
+	ssc_data_set_matrix(m_ssc_data, "weekend_schedule", p_weekend_schedule, 12, 24 );
+	ssc_data_set_matrix(m_ssc_data, "dispatch_sched_weekday", p_weekday_schedule, 12, 24);
+	ssc_data_set_matrix(m_ssc_data, "dispatch_sched_weekend", p_weekend_schedule, 12, 24);
 	ssc_number_t p_dispatch_series[1] = { 0 };
 	ssc_data_set_array(m_ssc_data, "dispatch_series", p_dispatch_series, 1 );
 	ssc_data_set_number(m_ssc_data, "sf_adjust:constant", 0 );
 	ssc_number_t p_sf_adjustperiods[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "sf_adjust:periods", p_sf_adjustperiods, 1 );
+	ssc_data_set_matrix(m_ssc_data, "sf_adjust:periods", p_sf_adjustperiods, 1, 1 );
 	ssc_number_t p_sf_adjusthourly[8760];
 	for (size_t ii = 0; ii < 8760; ii++)
 		p_sf_adjusthourly[ii] = 0.;
@@ -1384,3 +1402,380 @@ bool Project::S(float *sf_avail, float *sf_soil, float *sf_degr)
 
 	return true;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void Project::setup_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail, s_metric_outputs &metric_results, s_cluster_outputs &cluster_results)
+{
+
+	//--- Set default inputs for all parameters
+	clustering_metrics metrics;
+	cluster_alg cluster;
+	metrics.set_default_inputs();
+	cluster.set_default_inputs();
+
+	//--- Set weather / price / solar field availability inputs
+	metrics.inputs.weather_files.clear();
+	std::string weatherfile = m_parameters.solar_resource_file.val;
+	metrics.inputs.weather_files.push_back(weatherfile);
+	metrics.inputs.is_price_files = false;
+	metrics.inputs.prices = m_parameters.dispatch_factors_ts.val;
+	metrics.inputs.sfavail = sfavail;
+	metrics.inputs.stowlimit = m_parameters.v_wind_max.val;
+
+
+	//--- Update user-specified inputs if defined
+	if (user_inputs.nsim >-1)
+		metrics.inputs.nsimdays = user_inputs.nsim;
+
+	if (user_inputs.ncluster >-1)
+		cluster.inputs.ncluster = user_inputs.ncluster;
+
+	if (user_inputs.alg >-1)
+		cluster.inputs.alg = user_inputs.alg;
+
+	if (!user_inputs.hard_partitions)
+		cluster.inputs.hard_partitions = user_inputs.hard_partitions;
+
+
+	//--- Calculate metrics and create clusters
+	metrics.calc_metrics();
+	metric_results = metrics.results;
+
+	cluster.create_clusters(metrics.results.data);
+	cluster_results = cluster.results;
+
+
+	return;
+}
+
+
+bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail)
+{
+
+	int nr, nc;
+
+	//--- Set time step size from weather file
+	int nrec = 0;
+	FILE *fp = fopen(m_parameters.solar_resource_file.val.c_str(), "r");
+	char *line;
+	char buffer[1024];
+	while ((line = fgets(buffer, sizeof(buffer), fp)) != NULL)
+		nrec += 1;
+	fclose(fp);
+	nrec -= 3;
+	int wf_steps_per_hour = nrec / 8760;
+	int nperday = wf_steps_per_hour * 24;
+
+
+
+
+	//--- Set solar field availability
+	nr = (int)sfavail.size();
+	ssc_number_t *p_sf = new ssc_number_t[nr];
+	for (int i = 0; i<nr; i++)
+		p_sf[i] = 100.*(1. - sfavail.at(i));
+	ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sf, nr);
+
+	//--- Set ssc parameters
+	ssc_number_t val, nhel, helio_height, helio_width, dens_mirror;
+	ssc_data_set_number(m_ssc_data, "flux_max", 1000.0);
+	ssc_data_set_number(m_ssc_data, "field_model_type", 3);
+	ssc_data_set_number(m_ssc_data, "is_ampl_engine", m_parameters.is_ampl_engine.val);
+	if (m_parameters.is_ampl_engine.val)
+		ssc_data_set_string(m_ssc_data, "ampl_data_dir", m_parameters.ampl_data_dir.val.c_str());
+
+	ssc_data_get_number(m_ssc_data, "helio_height", &helio_height);
+	ssc_data_get_number(m_ssc_data, "helio_width", &helio_width);
+	ssc_data_get_number(m_ssc_data, "dens_mirror", &dens_mirror);
+	ssc_data_get_number(m_ssc_data, "number_heliostats", &nhel);
+	ssc_data_set_number(m_ssc_data, "A_sf_in", helio_height*helio_width*dens_mirror*nhel);
+	ssc_data_set_number(m_ssc_data, "n_hel", nhel);
+
+	ssc_data_get_number(m_ssc_data, "base_land_area", &val);
+	ssc_data_set_number(m_ssc_data, "land_area_base", val);
+
+	ssc_number_t *p_fluxmap = ssc_data_get_matrix(m_ssc_data, "flux_table", &nr, &nc);
+	ssc_data_set_matrix(m_ssc_data, "flux_maps", p_fluxmap, nr, nc);
+
+	ssc_number_t *p_opt = ssc_data_get_matrix(m_ssc_data, "opteff_table", &nr, &nc);
+	ssc_number_t *p_fluxpos = new ssc_number_t[nr * 2];
+	for (int r = 0; r < nr; r++)
+	{
+		p_opt[r*nc] += 180;
+		p_fluxpos[r * 2] = p_opt[r*nc];
+		p_fluxpos[r * 2 + 1] = p_opt[r*nc + 1];
+	}
+	ssc_data_set_matrix(m_ssc_data, "eta_map", p_opt, nr, nc);
+	ssc_data_set_matrix(m_ssc_data, "flux_positions", p_fluxpos, nr, 2);
+
+
+	ssc_module_exec_set_print(m_parameters.print_messages.val); 
+	ssc_module_t mod_mspt = ssc_module_create("tcsmolten_salt");
+
+
+
+
+	//--- Initialize results
+	double annual_generation, revenue_units, total_installed_cost, system_capacity;
+	int n_hourly_keys = 2;
+	std::string hourly_keys[] = { "gen",  "Q_thermal" };
+	unordered_map < std::string, std::vector<double>> collect_ssc_data, full_data;
+	for (int i = 0; i < n_hourly_keys; i++)
+	{
+		std::string key = hourly_keys[i];
+		collect_ssc_data[key].assign(nrec, 0.0);
+		full_data[key].assign(nrec, 0.0);
+	}
+
+
+
+
+	//--- Run full simulation
+	if (user_inputs.is_run_full)
+	{
+		ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0);
+
+		for (int i = 0; i < n_hourly_keys; i++)
+		{
+			std::string key = hourly_keys[i];
+			ssc_number_t *p_data = ssc_data_get_array(m_ssc_data, key.c_str(), &nr);
+			for (int r = 0; r < nr; r++)
+				full_data[key].at(r) = p_data[r];
+		}
+
+	}
+	
+	//--- Run simulations of only cluster exemplars
+	else
+	{
+
+		//--- Set default inputs for all clustering parameters
+		s_metric_outputs metric_results;
+		cluster_sim csim;
+		csim.set_default_inputs();
+		csim.inputs.days.nnext = int(m_parameters.is_dispatch.val);
+
+		//--- Update with user-defined inputs if defined
+		csim.inputs.is_run_continuous = user_inputs.is_run_continuous;
+		if (user_inputs.nsim > -1)
+			csim.inputs.days.ncount = user_inputs.nsim;
+
+		if (user_inputs.nprev > -1)
+			csim.inputs.days.nprev = user_inputs.nprev;
+
+
+		//--- Set up clusters
+		setup_clusters(user_inputs, sfavail, metric_results, csim.inputs.cluster_results);
+		csim.assign_first_last(metric_results);
+		int ncl = csim.inputs.cluster_results.ncluster;
+
+
+		//--- Calculate cluster-average solar-field availability
+		matrix<double> avg_sfavail;
+		if (csim.inputs.is_clusteravg_sfavail)
+		{
+			matrix<double> count;
+			if (sfavail.size() == nrec)
+				csim.cluster_avg_from_timeseries(sfavail, avg_sfavail, count);
+			else
+				csim.inputs.is_clusteravg_sfavail = false;
+		}
+
+		//--- Set up arrays of combined simulation groupings
+		int ng = ncl;
+		if (csim.inputs.is_combine_consecutive)
+		{
+			csim.combine_consecutive_exemplars();
+			ng = (int)csim.inputs.combined.n.size();
+		}
+		else
+		{
+			csim.inputs.combined.n.assign(ng, 1);
+			csim.inputs.combined.start = csim.inputs.cluster_results.exemplars;
+		}
+
+
+
+
+
+		//--- Option 1: Run full annual continuous simulation but skip calculation on non-exemplar days.  TES hot charge state will be reset to the same value at beginning of each exemplar time block
+		if (csim.inputs.is_run_continuous)
+		{
+
+			// Select simulation days and set cluster average solar-field availability
+			std::vector<bool> select_days = csim.set_all_sim_days();
+			std::vector<double> sfavail_sim = sfavail;
+			if (csim.inputs.is_clusteravg_sfavail)  
+				csim.overwrite_with_cluster_avg_values(sfavail_sim, avg_sfavail, true);
+
+
+			// Set initial charge state
+			double tes_charge = csim.inputs.initial_hot_charge;
+			if (csim.inputs.is_initial_charge_heuristic)
+			{
+				double avg_prev_dni = 0.0;
+				for (int g = 0; g < ng; g++)
+				{
+					int exemplar = csim.inputs.combined.start.at(g);						
+					int d = std::max(csim.firstday(exemplar)-csim.inputs.days.nprev-1, 0);	// Day before first simulated day
+					avg_prev_dni += metric_results.daily_dni.at(d, 0) / (double)ng;
+				}
+				tes_charge = csim.initial_charge_heuristic(avg_prev_dni, m_variables.solarm.val);
+			}
+
+
+			// Update ssc inputs
+			ssc_data_set_number(m_ssc_data, "csp.pt.tes.init_hot_htf_percent", tes_charge);
+
+			nr = (int)sfavail_sim.size();
+			ssc_number_t *p_sfavail = new ssc_number_t[nr];
+			for (int i = 0; i < nr; i++)
+				p_sfavail[i] = 100.*(1. - sfavail_sim.at(i));
+			ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sfavail, nr);
+			delete[] p_sfavail;
+
+			nr = (int)select_days.size();
+			ssc_number_t *p_vals = new ssc_number_t[nr];
+			for (int i = 0; i < nr; i++)
+				p_vals[i] = select_days.at(i);
+			ssc_data_set_array(m_ssc_data, "select_simulation_days", p_vals, nr);
+			delete[] p_vals;
+
+
+			// Run simulation and collect results
+			ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0);
+			for (int i = 0; i < n_hourly_keys; i++)
+			{
+				std::string key = hourly_keys[i];
+				ssc_number_t *p_data = ssc_data_get_array(m_ssc_data, key.c_str(), &nr);
+				for (int r = 0; r < nr; r++)
+					collect_ssc_data[key].at(r) = p_data[r];
+			}
+
+		}
+
+
+
+
+
+		//--- Option 2: Run simulation of each cluster exemplar independently in discrete limited time-duration simulations
+		else
+		{
+			for (int g = 0; g < ng; g++)
+			{
+				int ncount = csim.inputs.combined.n.at(g) * csim.inputs.days.ncount;	  // Number of days counting toward results in this group
+				int nsim_nom = ncount + csim.inputs.days.nprev + csim.inputs.days.nnext;  // Nominal total number of days simulated in this group
+
+				int exemplar = csim.inputs.combined.start.at(g);	// First cluster exemplar in this combined group
+
+				int d1 = csim.firstday(exemplar);					// First day to be counted in group g
+				int d0 = csim.firstsimday(exemplar);				// First day to be simulated in group g
+
+				int nprev = d1 - d0;									// Actual number of previous days simulated
+				int nsim = ncount + nprev + csim.inputs.days.nnext;		// Actual number of total days simulated
+
+				double tstart = d0 * 24 * 3600;
+				double tend = std::min((d0 + nsim)*24. * 3600, 8760.*3600.);
+
+
+				// Update solar field hourly availability to reflect cluster-average values for this exemplar simulation
+				std::vector<double> sfavail_sim = sfavail;
+				if (csim.inputs.is_clusteravg_sfavail)
+				{
+					std::vector<double> current_sfavail = csim.compute_combined_clusteravg(g, avg_sfavail);  // Cluster average solar field availability for combined group g
+					for (int h = 0; h < nperday*nsim_nom; h++)
+					{
+						int p = (d1 - csim.inputs.days.nprev) * nperday + h;
+						if (p > 0 && p < 365 * nperday)
+							sfavail_sim.at(p) = current_sfavail.at(h);
+					}
+				}
+
+				// Set initial storage charge state
+				double tes_charge = csim.inputs.initial_hot_charge;
+				if (csim.inputs.is_initial_charge_heuristic)
+				{
+					int d = std::max((d1 - csim.inputs.days.nprev - 1), 0);  // Day before first simulated day
+					double prev_dni = metric_results.daily_dni.at(d, 0);
+					tes_charge = csim.initial_charge_heuristic(prev_dni, m_variables.solarm.val);
+				}
+
+
+				// Update inputs: 
+				ssc_data_set_number(m_ssc_data, "time_start", tstart);
+				ssc_data_set_number(m_ssc_data, "time_stop", tend);
+				ssc_data_set_number(m_ssc_data, "vacuum_arrays", 1);
+				ssc_data_set_number(m_ssc_data, "time_steps_per_hour", wf_steps_per_hour);
+				ssc_data_set_number(m_ssc_data, "csp.pt.tes.init_hot_htf_percent", tes_charge);
+
+				nr = (int)sfavail_sim.size();
+				ssc_number_t *p_vals = new ssc_number_t[nr];
+				for (int i = 0; i < nr; i++)
+					p_vals[i] = 100.*(1. - sfavail_sim.at(i));
+				ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_vals, nr);
+				delete[] p_vals;
+
+				// Run simulation and collect results
+				ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0);
+
+				int doy_full = d1;
+				int doy_sim = nprev;
+				for (int i = 0; i < n_hourly_keys; i++)
+				{
+					std::string key = hourly_keys[i];
+					ssc_number_t *p_data = ssc_data_get_array(m_ssc_data, key.c_str(), &nr);
+					for (int h = 0; h < nperday*ncount; h++)
+						collect_ssc_data[key].at(doy_full*nperday + h) = p_data[doy_sim*nperday + h];
+				}
+
+			}
+		}
+
+
+		//--- Compute full annual array from array containing simulated values at cluster-exemplar time blocks
+		for (int k = 0; k < n_hourly_keys; k++)
+		{
+			std::string key = hourly_keys[k];
+			csim.compute_annual_array_from_clusters(collect_ssc_data[key], full_data[key]);
+		}
+
+
+		//message_handler(wxString::Format("Cluster wcss = %.4f", csim.inputs.cluster_results.wcss));
+		//message_handler(wxString::Format("Cluster wcss based on exemplar location = %.4f", csim.inputs.cluster_results.wcss_to_exemplars));
+		//message_handler("Cluster exemplars,  weights:");
+		//for (int i = 0; i < csim.inputs.cluster_results.ncluster; i++)
+		//	message_handler(wxString::Format("%d, %.6f", csim.inputs.cluster_results.exemplars.at(i), csim.inputs.cluster_results.weights.at(i)));
+
+	}
+
+	ssc_module_free(mod_mspt);
+
+	//--- Sum annual generation and revenue
+	annual_generation = 0.0;
+	revenue_units = 0.0;
+	for (int i = 0; i < full_data["gen"].size(); i++)
+	{
+		annual_generation += full_data["gen"].at(i) / (double)wf_steps_per_hour;
+		revenue_units += full_data["gen"].at(i) * m_parameters.dispatch_factors_ts.val.at(i) / (double)wf_steps_per_hour;
+	}
+	message_handler(wxString::Format("Annual generation (GWhe) = %.4f",annual_generation / 1.e6));
+	message_handler(wxString::Format("Annual revenue (GWhe) = %.4f", revenue_units / 1.e6));
+
+
+	return true;
+}
+
+

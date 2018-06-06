@@ -49,6 +49,7 @@ static lk::fcall_t *daotk_functions()
 		_simulate_optical,
 		_simulate_solarfield,
 		_var,
+		_test_clusters,
 		0 };
 
 	return (lk::fcall_t*)st;
