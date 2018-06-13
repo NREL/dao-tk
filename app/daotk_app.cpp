@@ -200,7 +200,7 @@ MainWindow &MainWindow::Instance()
 
 Project *MainWindow::Project()
 {
-	return &m_project;
+    return &m_project;
 }
 
 void MainWindow::Log(const wxString &text, bool wnl)
