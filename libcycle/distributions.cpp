@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <string>
+#include <sstream>
 
 //##################################################################################
 
@@ -56,6 +57,7 @@ double ExponentialDist::GetVariate(WELLFiveTwelve &gen)
 	double unif = gen.getVariate();
 	return -1.0 * (log(1. - unif) / GetAlpha()) + GetBeta();
 }
+
 
 //##################################################################################
 
@@ -121,7 +123,7 @@ double GammaDist::GetVariate(WELLFiveTwelve &gen)
 	}
 
 	// For alpha greater than 1 and less than 2.5 //////////////////////
-	if (GetAlpha() > 1 && GetAlpha() < 2.5)
+	else if (GetAlpha() > 1 && GetAlpha() < 2.5)
 	{
 		double a = GetAlpha() - 1;
 		double b = (GetAlpha() - 1 / (6 * GetAlpha())) / a;
@@ -147,7 +149,7 @@ double GammaDist::GetVariate(WELLFiveTwelve &gen)
 	}
 
 	// For large alpha      //////////////////////
-	if (GetAlpha() > 2.5)
+	else if (GetAlpha() > 2.5)
 	{
 		double a = GetAlpha() - 1;
 		double b = (GetAlpha() - 1 / (6 * GetAlpha())) / a;
@@ -157,6 +159,7 @@ double GammaDist::GetVariate(WELLFiveTwelve &gen)
 
 		while (!success) {
 			Z = -1;
+			Y = 0;
 			while (!(Z > 0 && Z < 1)) {
 				iterations++;
 				X = gen.getVariate();
@@ -178,6 +181,71 @@ double GammaDist::GetVariate(WELLFiveTwelve &gen)
 
 	return 0.0;
 }
+
+//##################################################################################
+
+BoundedJohnsonDist ::BoundedJohnsonDist () {}
+
+BoundedJohnsonDist ::BoundedJohnsonDist (double gamma, double delta, double xi, double lambda, 
+		std::string type) : Distribution::Distribution(0, 0, type)
+{
+	m_gamma = gamma;
+	m_delta = delta;
+	m_xi = xi;
+	m_lambda = lambda;
+}
+
+bool BoundedJohnsonDist ::IsBinary()
+{
+	return false;
+}
+
+double BoundedJohnsonDist ::RationalApproximation(double u)
+{
+	// Abramowitz and Stegun formula 26.2.23.
+	// The absolute value of the error should be less than 4.5 e-4.
+	double c[] = { 2.515517, 0.802853, 0.010328 };
+	double d[] = { 1.432788, 0.189269, 0.001308 };
+	return u - ((c[2] * u + c[1])*u + c[0]) /
+		(((d[2]*u + d[1])*u + d[0])*u + 1.0);
+}
+
+
+double BoundedJohnsonDist::NormalCDFInverse(double p)
+{
+	if (p <= 0.0 || p >= 1.0)
+	{
+		std::stringstream os;
+		os << "Invalid input argument (" << p
+			<< "); must be larger than 0 but less than 1.";
+		throw std::invalid_argument(os.str());
+	}
+	if (p < 0.5)
+	{
+		// F^-1(p) = - G^-1(p)
+		return -RationalApproximation(sqrt(-2.0*log(p)));
+	}
+	else
+	{
+		// F^-1(p) = G^-1(1-p)
+		return RationalApproximation(sqrt(-2.0*log(1 - p)));
+	}
+}
+
+double BoundedJohnsonDist::GetInverseCDF(double u)
+{
+	double z = NormalCDFInverse(u);
+	double e = (z - m_gamma) / m_delta;
+	return m_lambda * ( exp(e) / (1 + exp(e)) ) + m_xi;
+}
+
+double BoundedJohnsonDist ::GetVariate(WELLFiveTwelve &gen)
+{
+	double unif = gen.getVariate();
+	return GetInverseCDF(unif);
+}
+
+//##################################################################################
 
 BetaDist::BetaDist() {}
 

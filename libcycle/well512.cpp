@@ -16,7 +16,8 @@ March 30, 2017
 WELL512a random number generator
 
 This is an implementation of the WELL512a RNG created by L'Ecuyer and 
-Matsumoto, originally programmed in C.
+Matsumoto, originally programmed in C.  The states were taken from 
+the SSJ library in Java.
 
 converted from python back to c++ : mike wagner
 */

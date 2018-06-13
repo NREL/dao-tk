@@ -3,10 +3,31 @@
 #include <algorithm>
 #include <iostream>
 
+void CSPPlant::InitializeCyclingDists()
+{
+	m_hs_dist = BoundedJohnsonDist(-0.59472, 0.348199, 0, 0.000102, "BoundedJohnson");
+	m_ws_dist = BoundedJohnsonDist(-0.42154, 0.404542, 0, 0.000166, "BoundedJohnson");
+	m_cs_dist = BoundedJohnsonDist(1.076964, 0.503553, 0.0000767, 0.000278, "BoundedJohnson");
+}
 
 void CSPPlant::AssignGenerator( WELLFiveTwelve *gen )
 {
     m_gen = gen;
+}
+
+void CSPPlant::GeneratePlantCyclingPenalties()
+{
+	/*
+	Generates perfectly correlated cycling penalties
+	for hot, warm, and cold starts.  A single percentile
+	is used for all three distributions to prevent the 
+	simulation model from penalizing hot starts more than
+	cold starts.
+	*/
+	double unif = m_gen->getVariate();
+	m_hot_start_penalty = m_hs_dist.GetInverseCDF(unif);
+	m_warm_start_penalty = m_ws_dist.GetInverseCDF(unif);
+	m_cold_start_penalty = m_cs_dist.GetInverseCDF(unif);
 }
 
 void CSPPlant::SetSimulationParameters( int read_periods, int num_periods, double epsilon, bool print_output)
@@ -26,7 +47,7 @@ void CSPPlant::SetCondenserEfficienciesCold(std::vector<double> eff_cold)
 	int num_streams = 0;
 	for (size_t i = 0; i < m_components.size(); i++)
 	{
-		if (m_components.at(i).GetType() == "CondenserAirstream")
+		if (m_components.at(i).GetType() == "CondenserTrain")
 			num_streams++;
 	}
 	if (eff_cold.size() != num_streams + 1)
@@ -43,7 +64,7 @@ void CSPPlant::SetCondenserEfficienciesHot(std::vector<double> eff_hot)
 	int num_streams = 0;
 	for (size_t i = 0; i < m_components.size(); i++)
 	{
-		if (m_components.at(i).GetType() == "CondenserAirstream")
+		if (m_components.at(i).GetType() == "CondenserTrain")
 			num_streams++;
 	}
 	if (eff_hot.size() != num_streams+1)
@@ -140,7 +161,7 @@ bool CSPPlant::AirstreamOnline()
 	is false, as the plant can't operate with no airstreams.)
 	*/
 	for (size_t i = 0; i<m_components.size(); i++)
-		if (m_components.at(i).GetType() == "CondenserAirstream" && m_components.at(i).IsOperational())
+		if (m_components.at(i).GetType() == "CondenserTrain" && m_components.at(i).IsOperational())
 		{
 			return true;
 		}
@@ -206,14 +227,31 @@ std::unordered_map< std::string, failure_event > CSPPlant::GetFailureEvents()
 	return m_failure_events;
 }
 
+double CSPPlant::GetHotStartPenalty()
+{
+	return m_hot_start_penalty;
+}
+
+double CSPPlant::GetWarmStartPenalty()
+{
+	return m_warm_start_penalty;
+}
+
+double CSPPlant::GetColdStartPenalty()
+{
+	return m_cold_start_penalty;
+}
+
+
 void CSPPlant::AddComponent( std::string name, std::string type, //std::string dist_type, double failure_alpha, double failure_beta, 
 		double repair_rate, double repair_cooldown_time,
-        double hot_start_penalty, double warm_start_penalty, 
-		double cold_start_penalty, double availability_reduction,
-		double repair_cost)
+        double availability_reduction,
+		double repair_cost,
+		std::string repair_mode
+)
 {
     m_components.push_back( Component(name, type, //dist_type, failure_alpha, failure_beta, 
-		repair_rate, repair_cooldown_time, hot_start_penalty, warm_start_penalty, cold_start_penalty, &m_failure_events, availability_reduction, repair_cost) );
+		repair_rate, repair_cooldown_time, &m_failure_events, availability_reduction, repair_cost, repair_mode) );
 }
 
 void CSPPlant::AddFailureType(std::string component, std::string id, std::string failure_mode,
@@ -266,7 +304,7 @@ void CSPPlant::CreateComponentsFromFile(std::string component_data)
             util::to_double( entry.at(j+2), &dat.at(j) );
         //                                  name	  component_type  dist_type failure_alpha failure_beta repair_rate repair_cooldown_time hot_start_penalty warm_start_penalty cold_start_penalty
         m_components.push_back( Component( entry.at(0), entry.at(1), //entry.at(2), dat.at(0),   dat.at(1),  
-			dat.at(2),  dat.at(3),           dat.at(4),         dat.at(5),         dat.at(6), &m_failure_events ) );
+			dat.at(2),  dat.at(3),          &m_failure_events ) );
         
     }
     
@@ -344,7 +382,7 @@ int CSPPlant::NumberOfAirstreamsOnline()
 	*/
 	int num_streams = 0;
 	for (size_t i = 0; i<m_components.size(); i++)
-		if (m_components.at(i).GetType() == "CondenserAirstream" && m_components.at(i).IsOperational())
+		if (m_components.at(i).GetType() == "CondenserTrain" && m_components.at(i).IsOperational())
 		{
 			num_streams++;
 		}
@@ -384,9 +422,16 @@ void CSPPlant::TestForComponentFailures(double ramp_mult, int t, std::string sta
 	/*
 	Determines whether a component is to fail, based on current dispatch.
 	*/
+	double hazard_increase = 0.;
+	if (start == "HotStart")
+		hazard_increase = m_hot_start_penalty;
+	else if (start == "WarmStart")
+		hazard_increase = m_warm_start_penalty;
+	else if (start == "ColdStart")
+		hazard_increase = m_cold_start_penalty;
 	for (size_t i = 0; i < m_components.size(); i++)
 		m_components.at(i).TestForFailure(
-			m_steplength, ramp_mult, *m_gen, t - m_read_periods, start, mode
+			m_steplength, ramp_mult, *m_gen, t - m_read_periods, hazard_increase, mode
 		);
 }
 
@@ -431,7 +476,7 @@ void CSPPlant::PlantMaintenanceShutdown(int t, bool record)
 
 }
 
-void CSPPlant::AdvanceDowntime()
+void CSPPlant::AdvanceDowntime(std::string mode)
 {
 
     /*
@@ -442,7 +487,7 @@ void CSPPlant::AdvanceDowntime()
 	for (size_t i = 0; i < m_components.size(); i++)
 	{
 		if (!m_components.at(i).IsOperational())
-			m_components.at(i).AdvanceDowntime(m_steplength);
+			m_components.at(i).AdvanceDowntime(m_steplength, mode);
 	}
 
 }
@@ -489,15 +534,24 @@ void CSPPlant::OperateComponents(double ramp_mult, int t, std::string start, std
     
 	*/
     //print t - m_read_periods
+	double hazard_increase = 0.;
+	if (start == "HotStart")
+		hazard_increase = m_hot_start_penalty;
+	else if (start == "WarmStart")
+		hazard_increase = m_warm_start_penalty;
+	else if (start == "ColdStart")
+		hazard_increase = m_cold_start_penalty;
     bool read_only = (t < m_read_periods);
 	for (size_t i = 0; i < m_components.size(); i++) 
 	{
 		if (m_components.at(i).IsOperational())
 			m_components.at(i).Operate(
-				m_steplength, ramp_mult, *m_gen, read_only, t - m_read_periods, start, mode
+				m_steplength, ramp_mult, *m_gen, read_only, t - m_read_periods, hazard_increase, mode
 			);
-		else
-			m_components.at(i).AdvanceDowntime(m_steplength);
+		else if (mode == "OFF" || mode == "SF" || mode == "SS" || mode == "SO")
+		{
+			m_components.at(i).AdvanceDowntime(m_steplength, mode);
+		}
 	}
 }
 
@@ -716,7 +770,7 @@ void CSPPlant::Operate(double power_out, int t, std::string start, std::string m
 		m_downtime += m_steplength;
 		m_time_in_standby = 0.0;
 		m_time_online = 0.0;
-		AdvanceDowntime();
+		AdvanceDowntime("OFF");
 		return;
 	}
 	else if (mode == "SS") //standby - start
