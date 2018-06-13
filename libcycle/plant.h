@@ -41,12 +41,20 @@ class CSPPlant
 	double m_condenser_temp_threshold;
 	std::vector<double> m_condenser_efficiencies_cold;
 	std::vector<double> m_condenser_efficiencies_hot;
+	double m_hot_start_penalty;
+	double m_warm_start_penalty;
+	double m_cold_start_penalty;
+	BoundedJohnsonDist m_hs_dist;
+	BoundedJohnsonDist m_ws_dist;
+	BoundedJohnsonDist m_cs_dist;
+
 	
 
 public:
     std::vector< std::string > output_log;
-
+	void InitializeCyclingDists();
     void AssignGenerator( WELLFiveTwelve *gen );
+	void GeneratePlantCyclingPenalties();
     void SetSimulationParameters( int read_periods, int num_periods, double epsilon, bool print_output);
 	void SetCondenserEfficienciesCold(std::vector<double> eff_cold);
 	void SetCondenserEfficienciesHot(std::vector<double> eff_hot);
@@ -64,12 +72,14 @@ public:
 	double GetTimeOnline();
 	double GetRampThreshold();
 	double GetSteplength();
+	double GetHotStartPenalty();
+	double GetWarmStartPenalty();
+	double GetColdStartPenalty();
 	std::unordered_map< std::string, failure_event > GetFailureEvents();
     void AddComponent( std::string name, std::string type, //std::string dist_type, double failure_alpha, double failure_beta, 
 		double repair_rate, double repair_cooldown_time, 
-        double hot_start_penalty, double warm_start_penalty, 
-		double cold_start_penalty, double availability_reduction = 1.0, 
-		double repair_cost = 0.);
+        double availability_reduction = 1.0, 
+		double repair_cost = 0., std::string repair_mode = "D");
 	void AddFailureType(std::string component, std::string id, std::string failure_mode,
 		std::string dist_type, double alpha, double beta);
     void CreateComponentsFromFile(std::string component_data);
@@ -89,7 +99,7 @@ public:
 	void TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode);
 	bool AllComponentsOperational();
     void PlantMaintenanceShutdown(int t, bool record);
-    void AdvanceDowntime();
+    void AdvanceDowntime(std::string mode);
     double GetRampMult(double power_out);
     void OperateComponents(double ramp_mult, int t, std::string start, std::string mode);
     void ResetHazardRates();

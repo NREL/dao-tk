@@ -57,12 +57,9 @@ class Component
     double m_repair_cost;
     std::string m_name;
     std::string m_type;
-    double m_hot_start_penalty;
-    double m_warm_start_penalty;
-    double m_cold_start_penalty;
 	double m_availability_reduction;
 	double m_cooldown_time;
-
+	std::string m_repair_mode; // "A"=Anytime; "S"=standby or downtime; "D"=downtime only
     ComponentStatus m_status;
 
     std::unordered_map< std::string, failure_event > *m_parent_failure_events;
@@ -75,8 +72,9 @@ public:
 
     Component(std::string name, std::string type, //std::string dist_type, double failure_alpha, double failure_beta, 
 		double repair_rate, double repair_cooldown_time,
-		double hot_start_penalty, double warm_start_penalty, double cold_start_penalty,
-		std::unordered_map< std::string, failure_event > *failure_events, double availability_reduction = 1.0, double repair_cost = 0.0
+		std::unordered_map< std::string, failure_event > *failure_events, 
+		double availability_reduction = 1.0, double repair_cost = 0.0,
+		std::string repair_mode = "D"
 		);
 
     void ReadStatus( ComponentStatus &status );
@@ -111,29 +109,25 @@ public:
 	double GetDowntimeRemaining();
         
     void SetDowntimeRemaining(double time);
-
-	double GetHotStartPenalty();
-
-	double GetWarmStartPenalty();
-
-	double GetColdStartPenalty();
         
     double HoursToFailure(double ramp_mult, std::string mode);
 
 	void TestForBinaryFailure(std::string mode, int t, WELLFiveTwelve &gen);
 	
 	void TestForFailure(double time, double ramp_mult, WELLFiveTwelve &gen, 
-		int t, std::string start, std::string mode);
+		int t, double hazard_increase, std::string mode);
          
     void Operate(double time, double ramp_mult, WELLFiveTwelve &gen, 
-		bool read_only, int t, std::string start, std::string mode);
+		bool read_only, int t, double hazard_increase, std::string mode);
         
     void ReadFailure(double downtime, double life_remaining,
 		int fail_idx, bool reset_hazard);
                 
     void GenerateFailure(WELLFiveTwelve &gen, int t, int j); 
+
+	bool CanBeRepaired(std::string mode);
         
-    void AdvanceDowntime(double time);
+    void AdvanceDowntime(double time, std::string mode);
 
 	std::vector<double> GetLifetimesAndProbs();
 

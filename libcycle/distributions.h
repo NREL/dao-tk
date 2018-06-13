@@ -59,6 +59,30 @@ public:
 	//using Distribution::GetType;
 };
 
+//##################################################################################
+/*
+this is an object that performs inverse CDF's of the bounded Johnson
+distribution, using an algorithm for the normal inverse CDF and translation for
+the normal.
+*/
+
+class BoundedJohnsonDist  : public Distribution
+{
+	double m_gamma;
+	double m_delta;
+	double m_xi;
+	double m_lambda;
+public:
+	BoundedJohnsonDist ();
+	BoundedJohnsonDist (double gamma, double delta, double xi, double lambda, std::string type);
+	bool IsBinary() override;
+	double RationalApproximation(double u);
+	double NormalCDFInverse(double p);
+	double GetInverseCDF(double u);
+	double GetVariate(WELLFiveTwelve &gen) override;
+	//using Distribution::GetType;
+};
+
 
 //##################################################################################
 /*

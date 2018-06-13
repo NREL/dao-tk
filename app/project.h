@@ -19,294 +19,265 @@ extern ssc_bool_t ssc_progress_handler(ssc_module_t, ssc_handler_t, int action, 
 extern bool sim_progress_handler(float progress, const char *msg);
 extern void message_handler(const char *msg);
 
-enum DATATYPE { TYPE_INT, TYPE_NUMBER, TYPE_BOOL, TYPE_STRING, TYPE_VECTOR, TYPE_MATRIX };
-
-class data_base
+class data_base : public lk::vardata_t
 {
 public:
 	std::string name;
-	unsigned int type;
-	
-	virtual void set_name(const std::string &vname)
-	{
-		name = vname;
-	};
+    unsigned char type;   //type defined in lk::vardata_t {NUMBER, STRING, VECTOR, HASH}
+
+    void assign_vector(float *_vec, int nval)
+    {
+        this->empty_vector();
+        this->vec()->resize(nval);
+        for (int i = 0; i < nval; i++)
+            this->vec()->at(i).assign(_vec[i]);
+    }
 };
 
-template<typename T> class data_unit : public data_base
+class variable : public data_base
 {
-public:
-	T val;
-};
+protected:
+    void _set_base(double vmin, double vmax, std::string vname, const unsigned char datatype)
+    {
+		set_limits(vmin, vmax);
+        this->name = vname;
+		this->type = datatype;
+    };
 
-template<typename T> class variable : public data_unit<T>
-{
 public:
-	T minval;
-	T maxval;
+    lk::vardata_t minval;
+    lk::vardata_t maxval;
+    lk::vardata_t defaultval;
 
-	std::string as_string()
-	{
-		return  std::to_string(this->val);
-	};
-	
-	bool set_limits(const T& vmin, const T& vmax)
+	bool set_limits(double vmin, double vmax)
 	{
 		if (vmin >= vmax)
 			return false;
 
-		minval = vmin;
-		maxval = vmax;
-
+        minval.assign(vmin);
+		maxval.assign(vmax);
 		return true;
 	};
 	
-	void set(const T &v, const T &vmin, const T &vmax, std::string vname, const unsigned int datatype)
+	void set(double _defaultval, double _vmin, double _vmax, std::string _vname, const unsigned char _datatype)
 	{
-		this->val = v;
-		set_limits(vmin, vmax);
-		this->set_name(vname);
-		this->type = datatype;
+        this->defaultval.assign(_defaultval); 
+        this->assign(_defaultval);
+        _set_base(_vmin, _vmax, _vname, _datatype);
 	};
+    
+    void set(int _defaultval, double _vmin, double _vmax, std::string _vname, const unsigned char _datatype)
+    {
+        this->defaultval.assign(_defaultval);
+        this->assign(_defaultval);
+        _set_base(_vmin, _vmax, _vname, _datatype);
+    };
+
 };
 
-struct datas_base 
+struct variables : public lk::varhash_t
 {
-protected:
-	std::unordered_map< std::string, data_base* > _member_map;
-
-	void _construct_member_map()
-	{
-		_member_map.clear();
-
-		std::vector<data_base*> *members = this->GetMemberPointer();
-		for (std::vector<data_base*>::iterator it = members->begin(); it != members->end(); it++)
-			_member_map[(*it)->name] = (*it);
-	};
-
-public:
-	virtual std::vector<data_base*>* GetMemberPointer()=0;
-	data_base *find(const char *name)
-	{
-		std::unordered_map<std::string, data_base*>::iterator itfind = this->_member_map.find(name);
-		
-		if (itfind != this->_member_map.end())
-			return itfind->second;
-		else
-			return 0;
-	};
-};
-
-struct variables : public datas_base
-{
-private:
-	//list all members here
-	std::vector<data_base*> _members = { 
-		&h_tower, &rec_height, &D_rec, &design_eff, 
-		&dni_des, &P_ref, &solarm, &tshours, 
-		&degr_replace_limit, &om_staff, &n_wash_crews, &N_panels};
-
-public:
-	variable<double> h_tower;
-	variable<double> rec_height;
-	variable<double> D_rec;
-	variable<double> design_eff;
-	variable<double> dni_des;
-	variable<double> P_ref;
-	variable<double> solarm;
-	variable<double> tshours;
-	variable<double> degr_replace_limit;
-	variable<int> om_staff;
-	variable<int> n_wash_crews;
-	variable<int> N_panels;
+	variable h_tower;
+	variable rec_height;
+	variable D_rec;
+	variable design_eff;
+	variable dni_des;
+	variable P_ref;
+	variable solarm;
+	variable tshours;
+	variable degr_replace_limit;
+	variable om_staff;
+	variable n_wash_crews;
+	variable N_panels;
 
 	variables();
-
-	std::vector<data_base*> *GetMemberPointer(){return &_members;}
 };
 
-template<typename T> class parameter : public data_unit<T>
+class parameter : public data_base
 {
+protected:
+    void _set_base(std::string vname, const unsigned int datatype, bool calculated)
+    {
+        this->name = vname;
+        this->type = datatype;
+        is_calculated = calculated;
+    };
+
 public:
 	bool is_calculated;
-	
-	void set(const T &v, std::string vname, const unsigned int datatype, bool calculated=false)
+	//double
+	void set(double v, std::string vname, const unsigned int datatype, bool calculated=false)
 	{
-		this->val = v;
-		this->set_name(vname);
-		this->type = datatype;
-		is_calculated = calculated;
+		this->assign(v);
+        _set_base(vname, datatype, calculated);
 	};
+    //int
+    void set(int v, std::string vname, const unsigned int datatype, bool calculated = false)
+    {
+        this->assign(v);
+        _set_base(vname, datatype, calculated);
+    };
+    //boolean
+    void set(bool v, std::string vname, const unsigned int datatype, bool calculated = false)
+    {
+        this->assign(v);
+        _set_base(vname, datatype, calculated);
+    };
+    //string
+    void set(std::string v, std::string vname, const unsigned int datatype, bool calculated = false)
+    {
+        this->assign(v);
+        _set_base(vname, datatype, calculated);
+    };
+    //vector-double
+    void set(std::vector<double> &v, std::string vname, const unsigned int datatype, bool calculated = false)
+    {
+        this->empty_vector();
+        this->vec()->resize(v.size());
+        for (size_t i = 0; i < v.size(); i++)
+            this->vec()->at(i).assign(v.at(i));
+
+        _set_base(vname, datatype, calculated);
+    };
+    //matrix-double
+    void set(std::vector< std::vector< double > > &v, std::string vname, const unsigned int datatype, bool calculated = false)
+    {
+        this->empty_vector();
+        this->vec()->resize(v.size());
+        for (size_t i = 0; i < v.size(); i++)
+            for (size_t j = 0; j < v.at(i).size(); j++)
+            {
+                this->vec()->at(i).empty_vector();
+                this->vec()->at(i).resize(v.at(i).size());
+                this->vec()->at(i).assign(v.at(i).at(j));
+            }
+        _set_base(vname, datatype, calculated);
+    };
+
 };
 
-struct parameters : public datas_base
+struct parameters : public lk::varhash_t
 {
-private:
-	std::vector<data_base*> _members = { 
-		&print_messages, &check_max_flux, &is_optimize, &is_dispatch, &is_ampl_engine, &is_stochastic_disp, 
-		&ampl_data_dir, &solar_resource_file, &disp_steps_per_hour, &avail_seed, &plant_lifetime, 
-		&ppa_multiplier_model, &rec_ref_cost, &rec_ref_area, &tes_spec_cost, &tower_fixed_cost, &tower_exp, 
-		&heliostat_spec_cost, &site_spec_cost, &land_spec_cost, &c_cps0, &c_cps1, &om_staff_cost, &wash_crew_cost, 
-		&heliostat_refurbish_cost, &helio_mtf, &heliostat_repair_cost, &om_staff_max_hours_week, &n_heliostats_sim, 
-		&wash_units_per_hour, &wash_crew_max_hours_week, &degr_per_hour, &degr_accel_per_year, &degr_seed, 
-		&soil_per_hour, &adjust_constant, &helio_reflectance, &finance_period, &disp_rsu_cost, &disp_csu_cost, 
-		&disp_pen_delta_w, &rec_su_delay, &rec_qf_delay, &startup_time, &startup_frac, &v_wind_max, &c_ces, 
-		&dispatch_factors_ts, &flux_max
-	};
-
-public:
-
 	//-----------------------------------------------------------------------
-	parameter< bool > print_messages;
-	parameter< bool > check_max_flux;
-	parameter< bool > is_optimize;
-	parameter< bool > is_dispatch;
-	parameter< bool > is_ampl_engine;
-	parameter< bool > is_stochastic_disp;
-
-	parameter< std::string> ampl_data_dir;
-	parameter< std::string> solar_resource_file;
-
-	parameter< int > disp_steps_per_hour;
-	parameter< int > avail_seed;
-	parameter< int > plant_lifetime;
-	parameter< int > finance_period;
-	parameter< int > ppa_multiplier_model;
-
-	parameter< double > rec_ref_cost;
-	parameter< double > rec_ref_area;
-	parameter< double > tes_spec_cost;
-	parameter< double > tower_fixed_cost;
-	parameter< double > tower_exp;
-	parameter< double > heliostat_spec_cost;
-	parameter< double > site_spec_cost;
-	parameter< double > land_spec_cost;
-	parameter< double > c_cps0;
-	parameter< double > c_cps1;
-	parameter< double > om_staff_cost;
-	parameter< double > wash_crew_cost;
-	parameter< double > heliostat_refurbish_cost;
-	parameter< double > helio_mtf;
-	parameter< double > heliostat_repair_cost;
-	parameter< double > om_staff_max_hours_week;
-	parameter< double > n_heliostats_sim;
-	parameter< double > wash_units_per_hour;
-	parameter< double > wash_crew_max_hours_week;
-	parameter< double > degr_per_hour;
-	parameter< double > degr_accel_per_year;
-	parameter< double > degr_seed;
-	parameter< double > soil_per_hour;
-	parameter< double > adjust_constant;
-	parameter< double > helio_reflectance;
-	parameter< double > disp_rsu_cost;
-	parameter< double > disp_csu_cost;
-	parameter< double > disp_pen_delta_w;
-	parameter< double > rec_su_delay;
-	parameter< double > rec_qf_delay;
-	parameter< double > startup_time;
-	parameter< double > startup_frac;
-	parameter< double > v_wind_max;
-	parameter< double > flux_max;
-
-	parameter< std::vector< double > > c_ces;
-	parameter< std::vector< double > > dispatch_factors_ts;
+	//bools
+    parameter print_messages;
+	parameter check_max_flux;
+	parameter is_optimize;
+	parameter is_dispatch;
+	parameter is_ampl_engine;
+	parameter is_stochastic_disp;
+    //strings
+	parameter ampl_data_dir;
+	parameter solar_resource_file;
+    //ints
+	parameter disp_steps_per_hour;
+	parameter avail_seed;
+	parameter plant_lifetime;
+	parameter finance_period;
+	parameter ppa_multiplier_model;
+    //doubles
+	parameter rec_ref_cost;
+	parameter rec_ref_area;
+	parameter tes_spec_cost;
+	parameter tower_fixed_cost;
+	parameter tower_exp;
+	parameter heliostat_spec_cost;
+	parameter site_spec_cost;
+	parameter land_spec_cost;
+	parameter c_cps0;
+	parameter c_cps1;
+	parameter om_staff_cost;
+	parameter wash_crew_cost;
+	parameter heliostat_refurbish_cost;
+	parameter helio_mtf;
+	parameter heliostat_repair_cost;
+	parameter om_staff_max_hours_week;
+	parameter n_heliostats_sim;
+	parameter wash_units_per_hour;
+	parameter wash_crew_max_hours_week;
+	parameter degr_per_hour;
+	parameter degr_accel_per_year;
+	parameter degr_seed;
+	parameter soil_per_hour;
+	parameter adjust_constant;
+	parameter helio_reflectance;
+	parameter disp_rsu_cost;
+	parameter disp_csu_cost;
+	parameter disp_pen_delta_w;
+	parameter rec_su_delay;
+	parameter rec_qf_delay;
+	parameter startup_time;
+	parameter startup_frac;
+	parameter v_wind_max;
+	parameter flux_max;
+    //vector-doubles
+	parameter c_ces;
+	parameter dispatch_factors_ts;
 	//-----------------------------------------------------------------------
 
 	parameters();
 
-	std::vector<data_base*> *GetMemberPointer() { return &_members; }
-
 };
 
-struct design_outputs : public datas_base
+struct design_outputs : public lk::varhash_t
 {
-private:
-	std::vector<data_base*> _members = {
-		&opteff_table, &flux_table, &heliostat_positions, &number_heliostats, &area_sf, &base_land_area, &land_area, 
-		&h_tower_opt, &rec_height_opt, &rec_aspect_opt, &cost_rec_tot, &cost_sf_tot, &cost_tower_tot, &cost_land_tot, 
-		&cost_site_tot, &flux_max_observed, &cost_sf_real, &cost_land_real
-	};
-
-public:
-
 	//-----------------------------------------------------------------------
-	parameter< int > number_heliostats;
-	parameter< double > area_sf;
-	parameter< double > base_land_area;
-	parameter< double > land_area;
-	parameter< double > h_tower_opt;
-	parameter< double > rec_height_opt;
-	parameter< double > rec_aspect_opt;
-	parameter< double > cost_rec_tot;
-	parameter< double > cost_sf_tot;
-	parameter< double > cost_sf_real;
-	parameter< double > cost_tower_tot;
-	parameter< double > cost_land_tot;
-	parameter< double > cost_land_real;
-	parameter< double > cost_site_tot;
-	parameter< double > flux_max_observed;
-	parameter< std::vector< std::vector< double > > > opteff_table;
-	parameter< std::vector< std::vector< double > > > flux_table;
-	parameter< std::vector< std::vector< double > > > heliostat_positions;
+	parameter number_heliostats;
+	parameter area_sf;
+	parameter base_land_area;
+	parameter land_area;
+	parameter h_tower_opt;
+	parameter rec_height_opt;
+	parameter rec_aspect_opt;
+	parameter cost_rec_tot;
+	parameter cost_sf_tot;
+	parameter cost_sf_real;
+	parameter cost_tower_tot;
+	parameter cost_land_tot;
+	parameter cost_land_real;
+	parameter cost_site_tot;
+	parameter flux_max_observed;
+	parameter opteff_table;
+	parameter flux_table;
+	parameter heliostat_positions;
 	//-----------------------------------------------------------------------
 
 	design_outputs();
 
-	std::vector<data_base*> *GetMemberPointer() { return &_members; }
-
 };
 
-struct solarfield_outputs : public datas_base
+struct solarfield_outputs : public lk::varhash_t
 {
-private:
-	std::vector<data_base*> _members = {&n_repairs, &staff_utilization, &heliostat_repair_cost_y1, &heliostat_repair_cost, &avail_schedule};
-
-public:
-	parameter< double > n_repairs;
-	parameter< double > staff_utilization;
-	parameter< double> heliostat_repair_cost_y1;
-	parameter< double> heliostat_repair_cost;
-	parameter< std::vector< double > > avail_schedule;
+	parameter n_repairs;
+	parameter staff_utilization;
+	parameter heliostat_repair_cost_y1;
+	parameter heliostat_repair_cost;
+	parameter avail_schedule;
 
 	solarfield_outputs();
 
-	std::vector<data_base*> *GetMemberPointer() { return &_members; }
 };
 
-struct optical_outputs : public datas_base
+struct optical_outputs : public lk::varhash_t
 {
-private:
-	std::vector<data_base*> _members = { &n_replacements, &heliostat_refurbish_cost, &heliostat_refurbish_cost_y1, &avg_soil, 
-		&avg_degr, &soil_schedule, &degr_schedule, &repl_schedule, &repl_total };
+	parameter n_replacements;
+	parameter heliostat_refurbish_cost;
+	parameter heliostat_refurbish_cost_y1;
+	parameter avg_soil;
+	parameter avg_degr;
 
-public:
-	parameter< double > n_replacements;
-	parameter< double > heliostat_refurbish_cost;
-	parameter< double > heliostat_refurbish_cost_y1;
-	parameter< double > avg_soil;
-	parameter< double > avg_degr;
-
-	parameter< std::vector< double > > soil_schedule;
-	parameter< std::vector< double > > degr_schedule;
-	parameter< std::vector< double > > repl_schedule;
-	parameter< std::vector< double > > repl_total;
+	parameter soil_schedule;
+	parameter degr_schedule;
+	parameter repl_schedule;
+	parameter repl_total;
 
 	optical_outputs();
 
-	std::vector<data_base*> *GetMemberPointer() { return &_members; }
-
 };
 
-struct cycle_outputs : public datas_base
+struct cycle_outputs : public lk::varhash_t
 {
-private:
-	std::vector<data_base*> _members = {};
-
-public:
-
 	cycle_outputs() {};
-
-	std::vector<data_base*> *GetMemberPointer() { return &_members; }
 };
 
 
@@ -340,14 +311,16 @@ class Project
 {
 	ssc_data_t m_ssc_data;
 	
-	unordered_map<std::string, data_base*> _merged_data;
+	lk::varhash_t _merged_data;
 
-	void hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
+	void lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
+    void ssc_to_lk_hash(ssc_data_t &cxt, lk::varhash_t &vars);
+    //void lk_var_to_data(lk::vardata_t &var, data_base &data);
 	void initialize_ssc_project();
-	void update_sscdata_from_object(datas_base &obj);
-	void update_object_from_sscdata(datas_base &obj);
-	void sscdata_localdata(data_base *obj, bool set_ssc_from_local);       //set ssc data from obj (set_ssc_from_local=true), or set local from ssc (false)
-	void sscdata_localdata_map(datas_base &objs, bool set_ssc_from_local);  //set ssc data from list (set_ssc_from_local=true), or set local from ssc (false)
+	//void update_sscdata_from_object(datas_base &obj);
+	//void update_object_from_sscdata(datas_base &obj);
+	//void sscdata_localdata(data_base *obj, bool set_ssc_from_local);       //set ssc data from obj (set_ssc_from_local=true), or set local from ssc (false)
+	//void sscdata_localdata_map(datas_base &objs, bool set_ssc_from_local);  //set ssc data from list (set_ssc_from_local=true), or set local from ssc (false)
 	void update_calculated_system_values();
 	void update_calculated_values_post_layout();
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
@@ -364,6 +337,10 @@ public:
 
 	Project();
 	~Project();
+
+	//data access
+	//void SetData(data_base *obj);
+	//void GetData(data_base *obj);
 
 	//objective function methods
 	bool D();

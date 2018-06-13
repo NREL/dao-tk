@@ -12,20 +12,32 @@ variables::variables()
 	double dmax = -std::numeric_limits<double>::infinity();
 	double dmin = -dmax;
 	
-	h_tower.set(dnan, dmin, dmax, "h_tower", DATATYPE::TYPE_NUMBER);
-	rec_height.set(dnan, dmin, dmax, "rec_height", DATATYPE::TYPE_NUMBER);
-	D_rec.set(dnan, dmin, dmax, "D_rec", DATATYPE::TYPE_NUMBER);
-	design_eff.set(dnan, dmin, dmax, "design_eff", DATATYPE::TYPE_NUMBER);
-	dni_des.set(dnan, dmin, dmax, "dni_des", DATATYPE::TYPE_NUMBER);
-	P_ref.set(dnan, dmin, dmax, "P_ref", DATATYPE::TYPE_NUMBER);
-	solarm.set(dnan, dmin, dmax, "solarm", DATATYPE::TYPE_NUMBER);
-	tshours.set(dnan, dmin, dmax, "tshours", DATATYPE::TYPE_NUMBER);
-	degr_replace_limit.set(dnan, dmin, dmax, "degr_replace_limit", DATATYPE::TYPE_NUMBER);
-	om_staff.set(-1, -999, 999, "om_staff", DATATYPE::TYPE_INT);
-	n_wash_crews.set(-1, -999, 999, "n_wash_crews", DATATYPE::TYPE_INT);
-	N_panels.set(-1, -999, 999, "N_panels", DATATYPE::TYPE_INT);
+    h_tower.set(dnan, dmin, dmax, "h_tower", lk::vardata_t::NUMBER);
+	rec_height.set(dnan, dmin, dmax, "rec_height", lk::vardata_t::NUMBER);
+	D_rec.set(dnan, dmin, dmax, "D_rec", lk::vardata_t::NUMBER);
+	design_eff.set(dnan, dmin, dmax, "design_eff", lk::vardata_t::NUMBER);
+	dni_des.set(dnan, dmin, dmax, "dni_des", lk::vardata_t::NUMBER);
+	P_ref.set(dnan, dmin, dmax, "P_ref", lk::vardata_t::NUMBER);
+	solarm.set(dnan, dmin, dmax, "solarm", lk::vardata_t::NUMBER);
+	tshours.set(dnan, dmin, dmax, "tshours", lk::vardata_t::NUMBER);
+	degr_replace_limit.set(dnan, dmin, dmax, "degr_replace_limit", lk::vardata_t::NUMBER);
+	om_staff.set(-1, -999, 999, "om_staff", lk::vardata_t::NUMBER);
+	n_wash_crews.set(-1, -999, 999, "n_wash_crews", lk::vardata_t::NUMBER);
+	N_panels.set(-1, -999, 999, "N_panels", lk::vardata_t::NUMBER);
 
-	_construct_member_map();
+    (*this)["h_tower"] = &h_tower;
+    (*this)["rec_height"] = &rec_height;
+    (*this)["D_rec"] = &D_rec;
+    (*this)["design_eff"] = &design_eff;
+    (*this)["dni_des"] = &dni_des;
+    (*this)["P_ref"] = &P_ref;
+    (*this)["solarm"] = &solarm;
+    (*this)["tshours"] = &tshours;
+    (*this)["degr_replace_limit"] = &degr_replace_limit;
+    (*this)["om_staff"] = &om_staff;
+    (*this)["n_wash_crews"] = &n_wash_crews;
+    (*this)["N_panels"] = &N_panels;
+
 };
 
 parameters::parameters()
@@ -34,64 +46,112 @@ parameters::parameters()
 	Initialize members
 	*/
 
-	print_messages.set( true, "print_messages", DATATYPE::TYPE_BOOL, false );
-	check_max_flux.set( true, "check_max_flux", DATATYPE::TYPE_BOOL, false );
-	is_optimize.set( false, "is_optimize", DATATYPE::TYPE_BOOL, false );
-	is_dispatch.set( false, "is_dispatch", DATATYPE::TYPE_BOOL, false );
-	is_ampl_engine.set( false, "is_ampl_engine", DATATYPE::TYPE_BOOL, false );
-	is_stochastic_disp.set( false, "is_stochastic_disp", DATATYPE::TYPE_BOOL, false );
+	print_messages.set( true, "print_messages", lk::vardata_t::NUMBER, false );
+	check_max_flux.set( true, "check_max_flux", lk::vardata_t::NUMBER, false );
+	is_optimize.set( false, "is_optimize", lk::vardata_t::NUMBER, false );
+	is_dispatch.set( false, "is_dispatch", lk::vardata_t::NUMBER, false );
+	is_ampl_engine.set( false, "is_ampl_engine", lk::vardata_t::NUMBER, false );
+	is_stochastic_disp.set( false, "is_stochastic_disp", lk::vardata_t::NUMBER, false );
 
-	ampl_data_dir.set( "", "ampl_data_dir", DATATYPE::TYPE_STRING, false );
-	solar_resource_file.set( "", "solar_resource_file", DATATYPE::TYPE_STRING, false );
+	ampl_data_dir.set( "", "ampl_data_dir", lk::vardata_t::STRING, false );
+	solar_resource_file.set( "", "solar_resource_file", lk::vardata_t::STRING, false );
 
-	disp_steps_per_hour.set( 1, "disp_steps_per_hour", DATATYPE::TYPE_INT, false );
-	avail_seed.set( 123, "avail_seed", DATATYPE::TYPE_INT, false );
-	plant_lifetime.set( 30, "plant_lifetime", DATATYPE::TYPE_INT, false );
-	finance_period.set( 25, "finance_period", DATATYPE::TYPE_INT, false );
-	ppa_multiplier_model.set( 1, "ppa_multiplier_model", DATATYPE::TYPE_INT, false );
+	disp_steps_per_hour.set( 1, "disp_steps_per_hour", lk::vardata_t::NUMBER, false );
+	avail_seed.set( 123, "avail_seed", lk::vardata_t::NUMBER, false );
+	plant_lifetime.set( 30, "plant_lifetime", lk::vardata_t::NUMBER, false );
+	finance_period.set( 25, "finance_period", lk::vardata_t::NUMBER, false );
+	ppa_multiplier_model.set( 1, "ppa_multiplier_model", lk::vardata_t::NUMBER, false );
 
-	rec_ref_cost.set( 1.03e+008, "rec_ref_cost", DATATYPE::TYPE_NUMBER, false );
-	rec_ref_area.set( 1571., "rec_ref_area", DATATYPE::TYPE_NUMBER, false );
-	tes_spec_cost.set( 24., "tes_spec_cost", DATATYPE::TYPE_NUMBER, false );
-	tower_fixed_cost.set( 3.e6, "tower_fixed_cost", DATATYPE::TYPE_NUMBER, false );
-	tower_exp.set( 0.0113, "tower_exp", DATATYPE::TYPE_NUMBER, false );
-	heliostat_spec_cost.set( 145., "heliostat_spec_cost", DATATYPE::TYPE_NUMBER, false );
-	site_spec_cost.set( 16., "site_spec_cost", DATATYPE::TYPE_NUMBER, false );
-	land_spec_cost.set( 10000, "land_spec_cost", DATATYPE::TYPE_NUMBER, false );
-	c_cps0.set( 0., "c_cps0", DATATYPE::TYPE_NUMBER, false );
-	c_cps1.set( 1440., "c_cps1", DATATYPE::TYPE_NUMBER, false );
-	om_staff_cost.set( 75, "om_staff_cost", DATATYPE::TYPE_NUMBER, false );
-	wash_crew_cost.set( 65. + 10. + 25, "wash_crew_cost", DATATYPE::TYPE_NUMBER, false );
-	heliostat_refurbish_cost.set( 144. * 25 + 90 * 4., "heliostat_refurbish_cost", DATATYPE::TYPE_NUMBER, false );
-	helio_mtf.set( 12000, "helio_mtf", DATATYPE::TYPE_NUMBER, false );
-	heliostat_repair_cost.set( 300, "heliostat_repair_cost", DATATYPE::TYPE_NUMBER, false );
-	om_staff_max_hours_week.set( 35, "om_staff_max_hours_week", DATATYPE::TYPE_NUMBER, false );
-	n_heliostats_sim.set( 1000, "n_heliostats_sim", DATATYPE::TYPE_NUMBER, false );
-	wash_units_per_hour.set( 45., "wash_units_per_hour", DATATYPE::TYPE_NUMBER, false );
-	wash_crew_max_hours_week.set( 70., "wash_crew_max_hours_week", DATATYPE::TYPE_NUMBER, false );
-	degr_per_hour.set( 1.e-7, "degr_per_hour", DATATYPE::TYPE_NUMBER, false );
-	degr_accel_per_year.set( 0.125, "degr_accel_per_year", DATATYPE::TYPE_NUMBER, false );
-	degr_seed.set( 123, "degr_seed", DATATYPE::TYPE_NUMBER, false );
-	soil_per_hour.set( 6.e-4, "soil_per_hour", DATATYPE::TYPE_NUMBER, false );
-	adjust_constant.set( 4, "adjust:constant", DATATYPE::TYPE_NUMBER, false );
-	helio_reflectance.set( 0.95, "helio_reflectance", DATATYPE::TYPE_NUMBER, false );
-	disp_rsu_cost.set( 950., "disp_rsu_cost", DATATYPE::TYPE_NUMBER, false );
-	disp_csu_cost.set( 10000., "disp_csu_cost", DATATYPE::TYPE_NUMBER, false );
-	disp_pen_delta_w.set( 0.1, "disp_pen_delta_w", DATATYPE::TYPE_NUMBER, false );
-	rec_su_delay.set( 0.2, "rec_su_delay", DATATYPE::TYPE_NUMBER, false );
-	rec_qf_delay.set( 0.25, "rec_qf_delay", DATATYPE::TYPE_NUMBER, false );
-	startup_time.set( 0.5, "startup_time", DATATYPE::TYPE_NUMBER, false );
-	startup_frac.set( 0.5, "startup_frac", DATATYPE::TYPE_NUMBER, false );
-	v_wind_max.set( 15., "v_wind_max", DATATYPE::TYPE_NUMBER, false );
-	flux_max.set(1000., "flux_max", DATATYPE::TYPE_NUMBER, false);
+	rec_ref_cost.set( 1.03e+008, "rec_ref_cost", lk::vardata_t::NUMBER, false );
+	rec_ref_area.set( 1571., "rec_ref_area", lk::vardata_t::NUMBER, false );
+	tes_spec_cost.set( 24., "tes_spec_cost", lk::vardata_t::NUMBER, false );
+	tower_fixed_cost.set( 3.e6, "tower_fixed_cost", lk::vardata_t::NUMBER, false );
+	tower_exp.set( 0.0113, "tower_exp", lk::vardata_t::NUMBER, false );
+	heliostat_spec_cost.set( 145., "heliostat_spec_cost", lk::vardata_t::NUMBER, false );
+	site_spec_cost.set( 16., "site_spec_cost", lk::vardata_t::NUMBER, false );
+	land_spec_cost.set( 10000, "land_spec_cost", lk::vardata_t::NUMBER, false );
+	c_cps0.set( 0., "c_cps0", lk::vardata_t::NUMBER, false );
+	c_cps1.set( 1440., "c_cps1", lk::vardata_t::NUMBER, false );
+	om_staff_cost.set( 75, "om_staff_cost", lk::vardata_t::NUMBER, false );
+	wash_crew_cost.set( 65. + 10. + 25, "wash_crew_cost", lk::vardata_t::NUMBER, false );
+	heliostat_refurbish_cost.set( 144. * 25 + 90 * 4., "heliostat_refurbish_cost", lk::vardata_t::NUMBER, false );
+	helio_mtf.set( 12000, "helio_mtf", lk::vardata_t::NUMBER, false );
+	heliostat_repair_cost.set( 300, "heliostat_repair_cost", lk::vardata_t::NUMBER, false );
+	om_staff_max_hours_week.set( 35, "om_staff_max_hours_week", lk::vardata_t::NUMBER, false );
+	n_heliostats_sim.set( 1000, "n_heliostats_sim", lk::vardata_t::NUMBER, false );
+	wash_units_per_hour.set( 45., "wash_units_per_hour", lk::vardata_t::NUMBER, false );
+	wash_crew_max_hours_week.set( 70., "wash_crew_max_hours_week", lk::vardata_t::NUMBER, false );
+	degr_per_hour.set( 1.e-7, "degr_per_hour", lk::vardata_t::NUMBER, false );
+	degr_accel_per_year.set( 0.125, "degr_accel_per_year", lk::vardata_t::NUMBER, false );
+	degr_seed.set( 123, "degr_seed", lk::vardata_t::NUMBER, false );
+	soil_per_hour.set( 6.e-4, "soil_per_hour", lk::vardata_t::NUMBER, false );
+	adjust_constant.set( 4, "adjust:constant", lk::vardata_t::NUMBER, false );
+	helio_reflectance.set( 0.95, "helio_reflectance", lk::vardata_t::NUMBER, false );
+	disp_rsu_cost.set( 950., "disp_rsu_cost", lk::vardata_t::NUMBER, false );
+	disp_csu_cost.set( 10000., "disp_csu_cost", lk::vardata_t::NUMBER, false );
+	disp_pen_delta_w.set( 0.1, "disp_pen_delta_w", lk::vardata_t::NUMBER, false );
+	rec_su_delay.set( 0.2, "rec_su_delay", lk::vardata_t::NUMBER, false );
+	rec_qf_delay.set( 0.25, "rec_qf_delay", lk::vardata_t::NUMBER, false );
+	startup_time.set( 0.5, "startup_time", lk::vardata_t::NUMBER, false );
+	startup_frac.set( 0.5, "startup_frac", lk::vardata_t::NUMBER, false );
+	v_wind_max.set( 15., "v_wind_max", lk::vardata_t::NUMBER, false );
+	flux_max.set(1000., "flux_max", lk::vardata_t::NUMBER, false);
 	
 	std::vector< double > pval = { 0., 7., 200., 12000. };
-	c_ces.set( pval, "c_ces", DATATYPE::TYPE_NUMBER, false );
+	c_ces.set( pval, "c_ces", lk::vardata_t::VECTOR, false );
 
 	std::vector< double > pvalts(8760, 1.);
-	dispatch_factors_ts.set( pvalts, "dispatch_factors_ts", DATATYPE::TYPE_VECTOR, false );
+	dispatch_factors_ts.set( pvalts, "dispatch_factors_ts", lk::vardata_t::VECTOR, false );
 	
-	_construct_member_map();
+    (*this)["print_messages"] = &print_messages;
+    (*this)["check_max_flux"] = &check_max_flux;
+    (*this)["is_optimize"] = &is_optimize;
+    (*this)["is_dispatch"] = &is_dispatch;
+    (*this)["is_ampl_engine"] = &is_ampl_engine;
+    (*this)["is_stochastic_disp"] = &is_stochastic_disp;
+    (*this)["ampl_data_dir"] = &ampl_data_dir;
+    (*this)["solar_resource_file"] = &solar_resource_file;
+    (*this)["disp_steps_per_hour"] = &disp_steps_per_hour;
+    (*this)["avail_seed"] = &avail_seed;
+    (*this)["plant_lifetime"] = &plant_lifetime;
+    (*this)["finance_period"] = &finance_period;
+    (*this)["ppa_multiplier_model"] = &ppa_multiplier_model;
+    (*this)["rec_ref_cost"] = &rec_ref_cost;
+    (*this)["rec_ref_area"] = &rec_ref_area;
+    (*this)["tes_spec_cost"] = &tes_spec_cost;
+    (*this)["tower_fixed_cost"] = &tower_fixed_cost;
+    (*this)["tower_exp"] = &tower_exp;
+    (*this)["heliostat_spec_cost"] = &heliostat_spec_cost;
+    (*this)["site_spec_cost"] = &site_spec_cost;
+    (*this)["land_spec_cost"] = &land_spec_cost;
+    (*this)["c_cps0"] = &c_cps0;
+    (*this)["c_cps1"] = &c_cps1;
+    (*this)["om_staff_cost"] = &om_staff_cost;
+    (*this)["wash_crew_cost"] = &wash_crew_cost;
+    (*this)["heliostat_refurbish_cost"] = &heliostat_refurbish_cost;
+    (*this)["helio_mtf"] = &helio_mtf;
+    (*this)["heliostat_repair_cost"] = &heliostat_repair_cost;
+    (*this)["om_staff_max_hours_week"] = &om_staff_max_hours_week;
+    (*this)["n_heliostats_sim"] = &n_heliostats_sim;
+    (*this)["wash_units_per_hour"] = &wash_units_per_hour;
+    (*this)["wash_crew_max_hours_week"] = &wash_crew_max_hours_week;
+    (*this)["degr_per_hour"] = &degr_per_hour;
+    (*this)["degr_accel_per_year"] = &degr_accel_per_year;
+    (*this)["degr_seed"] = &degr_seed;
+    (*this)["soil_per_hour"] = &soil_per_hour;
+    (*this)["adjust_constant"] = &adjust_constant;
+    (*this)["helio_reflectance"] = &helio_reflectance;
+    (*this)["disp_rsu_cost"] = &disp_rsu_cost;
+    (*this)["disp_csu_cost"] = &disp_csu_cost;
+    (*this)["disp_pen_delta_w"] = &disp_pen_delta_w;
+    (*this)["rec_su_delay"] = &rec_su_delay;
+    (*this)["rec_qf_delay"] = &rec_qf_delay;
+    (*this)["startup_time"] = &startup_time;
+    (*this)["startup_frac"] = &startup_frac;
+    (*this)["v_wind_max"] = &v_wind_max;
+    (*this)["flux_max"] = &flux_max;
+    (*this)["c_ces"] = &c_ces;
+    (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
 
 }
 
@@ -102,28 +162,46 @@ design_outputs::design_outputs()
 	*/
 
 	double nan = std::numeric_limits<double>::quiet_NaN();
-	number_heliostats.set(-1, "number_heliostats", DATATYPE::TYPE_INT, true);
-	area_sf.set(nan, "area_sf", DATATYPE::TYPE_NUMBER, true);
-	base_land_area.set(nan, "base_land_area", DATATYPE::TYPE_NUMBER, true);
-	land_area.set(nan, "land_area", DATATYPE::TYPE_NUMBER, true);
-	h_tower_opt.set(nan, "h_tower_opt", DATATYPE::TYPE_NUMBER, true);
-	rec_height_opt.set(nan, "rec_height_opt", DATATYPE::TYPE_NUMBER, true);
-	rec_aspect_opt.set(nan, "rec_aspect_opt", DATATYPE::TYPE_NUMBER, true);
-	cost_rec_tot.set(nan, "cost_rec_tot", DATATYPE::TYPE_NUMBER, true);
-	cost_sf_tot.set(nan, "cost_sf_tot", DATATYPE::TYPE_NUMBER, true);
-	cost_sf_real.set(nan, "", DATATYPE::TYPE_NUMBER, true);
-	cost_tower_tot.set(nan, "cost_tower_tot", DATATYPE::TYPE_NUMBER, true);
-	cost_land_tot.set(nan, "cost_land_tot", DATATYPE::TYPE_NUMBER, true);
-	cost_land_real.set(nan, "", DATATYPE::TYPE_NUMBER, true);
-	cost_site_tot.set(nan, "cost_site_tot", DATATYPE::TYPE_NUMBER, true);
-	flux_max_observed.set(nan, "flux_max_observed", DATATYPE::TYPE_NUMBER, true);
+	number_heliostats.set(-1, "number_heliostats", lk::vardata_t::NUMBER, true);
+	area_sf.set(nan, "area_sf", lk::vardata_t::NUMBER, true);
+	base_land_area.set(nan, "base_land_area", lk::vardata_t::NUMBER, true);
+	land_area.set(nan, "land_area", lk::vardata_t::NUMBER, true);
+	h_tower_opt.set(nan, "h_tower_opt", lk::vardata_t::NUMBER, true);
+	rec_height_opt.set(nan, "rec_height_opt", lk::vardata_t::NUMBER, true);
+	rec_aspect_opt.set(nan, "rec_aspect_opt", lk::vardata_t::NUMBER, true);
+	cost_rec_tot.set(nan, "cost_rec_tot", lk::vardata_t::NUMBER, true);
+	cost_sf_tot.set(nan, "cost_sf_tot", lk::vardata_t::NUMBER, true);
+	cost_sf_real.set(nan, "", lk::vardata_t::NUMBER, true);
+	cost_tower_tot.set(nan, "cost_tower_tot", lk::vardata_t::NUMBER, true);
+	cost_land_tot.set(nan, "cost_land_tot", lk::vardata_t::NUMBER, true);
+	cost_land_real.set(nan, "", lk::vardata_t::NUMBER, true);
+	cost_site_tot.set(nan, "cost_site_tot", lk::vardata_t::NUMBER, true);
+	flux_max_observed.set(nan, "flux_max_observed", lk::vardata_t::NUMBER, true);
 
 	std::vector< std::vector< double > > empty_mat;
-	opteff_table.set(empty_mat, "opteff_table", DATATYPE::TYPE_MATRIX, true);
-	flux_table.set(empty_mat, "flux_table", DATATYPE::TYPE_MATRIX, true);
-	heliostat_positions.set(empty_mat, "heliostat_positions", DATATYPE::TYPE_MATRIX, true);
+	opteff_table.set(empty_mat, "opteff_table", lk::vardata_t::VECTOR, true);
+	flux_table.set(empty_mat, "flux_table", lk::vardata_t::VECTOR, true);
+	heliostat_positions.set(empty_mat, "heliostat_positions", lk::vardata_t::VECTOR, true);
 
-	_construct_member_map();
+    (*this)["number_heliostats"] = &number_heliostats;
+    (*this)["area_sf"] = &area_sf;
+    (*this)["base_land_area"] = &base_land_area;
+    (*this)["land_area"] = &land_area;
+    (*this)["h_tower_opt"] = &h_tower_opt;
+    (*this)["rec_height_opt"] = &rec_height_opt;
+    (*this)["rec_aspect_opt"] = &rec_aspect_opt;
+    (*this)["cost_rec_tot"] = &cost_rec_tot;
+    (*this)["cost_sf_tot"] = &cost_sf_tot;
+    (*this)["cost_sf_real"] = &cost_sf_real;
+    (*this)["cost_tower_tot"] = &cost_tower_tot;
+    (*this)["cost_land_tot"] = &cost_land_tot;
+    (*this)["cost_land_real"] = &cost_land_real;
+    (*this)["cost_site_tot"] = &cost_site_tot;
+    (*this)["flux_max_observed"] = &flux_max_observed;
+    (*this)["opteff_table"] = &opteff_table;
+    (*this)["flux_table"] = &flux_table;
+    (*this)["heliostat_positions"] = &heliostat_positions;
+
 }
 
 solarfield_outputs::solarfield_outputs()
@@ -133,15 +211,20 @@ solarfield_outputs::solarfield_outputs()
 	*/
 
 	double nan = std::numeric_limits<double>::quiet_NaN();
-	n_repairs.set(nan, "n_repairs", DATATYPE::TYPE_NUMBER, true);
-	staff_utilization.set(nan, "staff_utilization", DATATYPE::TYPE_NUMBER, true);
-	heliostat_repair_cost_y1.set(nan, "heliostat_repair_cost_y1", DATATYPE::TYPE_NUMBER, true);
-	heliostat_repair_cost.set(nan, "heliostat_repair_cost", DATATYPE::TYPE_NUMBER, true);
+	n_repairs.set(nan, "n_repairs", lk::vardata_t::NUMBER, true);
+	staff_utilization.set(nan, "staff_utilization", lk::vardata_t::NUMBER, true);
+	heliostat_repair_cost_y1.set(nan, "heliostat_repair_cost_y1", lk::vardata_t::NUMBER, true);
+	heliostat_repair_cost.set(nan, "heliostat_repair_cost", lk::vardata_t::NUMBER, true);
 
 	std::vector< double > empty_vec;
-	avail_schedule.set(empty_vec, "avail_schedule", DATATYPE::TYPE_VECTOR, true);
+	avail_schedule.set(empty_vec, "avail_schedule", lk::vardata_t::VECTOR, true);
 
-	_construct_member_map();
+    (*this)["n_repairs"] = &n_repairs;
+    (*this)["staff_utilization"] = &staff_utilization;
+    (*this)["heliostat_repair_cost_y1"] = &heliostat_repair_cost_y1;
+    (*this)["heliostat_repair_cost"] = &heliostat_repair_cost;
+    (*this)["avail_schedule"] = &avail_schedule;
+
 }
 
 optical_outputs::optical_outputs()
@@ -153,18 +236,28 @@ optical_outputs::optical_outputs()
 	double nan = std::numeric_limits<double>::quiet_NaN();
 	std::vector< double > empty_vec;
 	
-	n_replacements.set(nan, "n_replacements", DATATYPE::TYPE_NUMBER, true );
-	heliostat_refurbish_cost.set(nan, "heliostat_refurbish_cost", DATATYPE::TYPE_NUMBER, true );
-	heliostat_refurbish_cost_y1.set(nan, "heliostat_refurbish_cost_y1", DATATYPE::TYPE_NUMBER, true );
-	avg_soil.set(nan, "avg_soil", DATATYPE::TYPE_NUMBER, true );
-	avg_degr.set(nan, "avg_degr", DATATYPE::TYPE_NUMBER, true );
+	n_replacements.set(nan, "n_replacements", lk::vardata_t::NUMBER, true );
+	heliostat_refurbish_cost.set(nan, "heliostat_refurbish_cost", lk::vardata_t::NUMBER, true );
+	heliostat_refurbish_cost_y1.set(nan, "heliostat_refurbish_cost_y1", lk::vardata_t::NUMBER, true );
+	avg_soil.set(nan, "avg_soil", lk::vardata_t::NUMBER, true );
+	avg_degr.set(nan, "avg_degr", lk::vardata_t::NUMBER, true );
 
-	soil_schedule.set(empty_vec, "soil_schedule", DATATYPE::TYPE_VECTOR, true );
-	degr_schedule.set(empty_vec, "degr_schedule", DATATYPE::TYPE_VECTOR, true );
-	repl_schedule.set(empty_vec, "repl_schedule", DATATYPE::TYPE_VECTOR, true );
-	repl_total.set(empty_vec, "repl_total", DATATYPE::TYPE_VECTOR, true );
+	soil_schedule.set(empty_vec, "soil_schedule", lk::vardata_t::VECTOR, true );
+	degr_schedule.set(empty_vec, "degr_schedule", lk::vardata_t::VECTOR, true );
+	repl_schedule.set(empty_vec, "repl_schedule", lk::vardata_t::VECTOR, true );
+	repl_total.set(empty_vec, "repl_total", lk::vardata_t::VECTOR, true );
 
-	_construct_member_map();
+    (*this)["n_replacements"] = &n_replacements;
+    (*this)["heliostat_refurbish_cost"] = &heliostat_refurbish_cost;
+    (*this)["heliostat_refurbish_cost_y1"] = &heliostat_refurbish_cost_y1;
+    (*this)["avg_soil"] = &avg_soil;
+    (*this)["avg_degr"] = &avg_degr;
+
+    (*this)["soil_schedule"] = &soil_schedule;
+    (*this)["degr_schedule"] = &degr_schedule;
+    (*this)["repl_schedule"] = &repl_schedule;
+    (*this)["repl_total"] = &repl_total;
+
 }
 
 Project::Project()
@@ -173,17 +266,18 @@ Project::Project()
 	initialize_ssc_project();
 
 	//construct the merged data map
-	std::vector<datas_base*> struct_pointers = { &m_variables, &m_parameters, &m_design_outputs,
+	std::vector<lk::varhash_t*> struct_pointers = { &m_variables, &m_parameters, &m_design_outputs,
 		&m_solarfield_outputs, &m_optical_outputs, &m_cycle_outputs };
 
 	_merged_data.clear();
 
 	for (size_t i = 0; i < struct_pointers.size(); i++)
 	{
-		for (std::vector< data_base*>::iterator it = struct_pointers.at(i)->GetMemberPointer()->begin();
-			it != struct_pointers.at(i)->GetMemberPointer()->end(); it++)
+        lk::varhash_t *this_varhash = struct_pointers.at(i);
+
+        for (lk::varhash_t::iterator it = this_varhash->begin(); it != this_varhash->end(); it++)
 		{
-			_merged_data[(*it)->name] = *it;
+            _merged_data[(*it).first] = it->second;
 		}
 	}
 
@@ -195,17 +289,83 @@ Project::~Project()
 		ssc_data_free(m_ssc_data);
 }
 
+//void Project::SetData(data_base *obj)
+//{
+//	//pass-through function - set. SSC value assigned from obj->val
+//	sscdata_localdata(obj, true);
+//}
+//
+//void Project::GetData(data_base *obj)
+//{
+//	//pass-through function - get. Value assigned to obj->val from SSC value.
+//	sscdata_localdata(obj, false);
+//}
+
 data_base *Project::GetVarPtr(const char *name)
 {
-	unordered_map<std::string, data_base*>::iterator itfind = _merged_data.find(name);
+
+	lk::varhash_t::iterator itfind = _merged_data.find(name);
 
 	if (itfind != _merged_data.end())
-		return itfind->second;
+		return (data_base*)itfind->second;
 	else
 		return 0;
 }
 
-void Project::hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars)
+void Project::ssc_to_lk_hash(ssc_data_t &cxt, lk::varhash_t &vars)
+{
+    for( lk::varhash_t::iterator v = vars.begin(); v != vars.end(); v++ )
+    {
+        unsigned char c = v->second->type();
+        int datatype = ssc_data_query(cxt, v->first.c_str());
+
+        switch (datatype)
+        {
+        case SSC_NUMBER:
+            ssc_number_t value;
+            ssc_data_get_number(cxt, v->first.c_str(), &value);
+            v->second->assign(value);
+            break;
+        case SSC_STRING:
+            v->second->assign( ssc_data_get_string(cxt, v->first.c_str()) );
+            break;
+        case SSC_ARRAY:
+        {
+            int nv;
+            ssc_number_t *arr = ssc_data_get_array(cxt, v->first.c_str(), &nv);
+            v->second->vec()->resize(nv);
+            for (int i = 0; i < nv; i++)
+                v->second->vec()->at(i).assign( arr[i] );
+
+            break;
+        }
+        case SSC_MATRIX:
+        {
+            
+            int nr, nc;
+            ssc_number_t *arr = ssc_data_get_matrix(cxt, v->first.c_str(), &nr, &nc);
+
+            v->second->empty_vector();
+            v->second->vec()->resize(nr);
+
+            for (int i = 0; i < nr; i++)
+            {
+                v->second->vec()->at(i).empty_vector();
+                std::vector<lk::vardata_t> *vpi = v->second->vec()->at(i).vec();
+                vpi->resize(nc);
+
+                for (int j = 0; j < nc; j++)
+                    vpi->at(j).assign(arr[i*nc + j]);
+            }
+            
+        }
+        default:
+            break;
+        }
+    }
+}
+
+void Project::lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars)
 {
     for( lk::varhash_t::iterator v = vars.begin(); v != vars.end(); v++ )
     {
@@ -278,146 +438,6 @@ void Project::hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars)
     }
 }
 
-
-void Project::update_sscdata_from_object(datas_base &obj)
-{
-	sscdata_localdata_map(obj, true);
-}
-
-void Project::update_object_from_sscdata(datas_base &obj)
-{
-	sscdata_localdata_map(obj, false);
-}
-
-void Project::sscdata_localdata(data_base *obj, bool set_ssc_from_local)
-{
-	//set ssc data from obj (set_ssc_from_local=true), or set local from ssc (false)
-	//if this is a 'get', make sure the data is allocated in the ssc object
-	if (!set_ssc_from_local)
-		if (ssc_data_query(m_ssc_data, obj->name.c_str()) == SSC_INVALID)
-			return;
-
-	//handle the get/set operation by data type
-	switch (obj->type)
-	{
-	case DATATYPE::TYPE_BOOL:
-	{
-		data_unit< bool > *v = static_cast< data_unit< bool >* >(obj);
-		if (set_ssc_from_local)
-			ssc_data_set_number(m_ssc_data, v->name.c_str(), v->val ? 1. : 0.);
-		else
-		{
-			ssc_number_t tval;
-			ssc_data_get_number(m_ssc_data, v->name.c_str(), &tval);
-			v->val = tval == 1.;
-		}
-
-		break;
-	}
-	case DATATYPE::TYPE_INT:
-	{
-		data_unit< int > *v = static_cast< data_unit< int >* >(obj);
-		if (set_ssc_from_local)
-			ssc_data_set_number(m_ssc_data, v->name.c_str(), v->val);
-		else
-		{
-			ssc_number_t tval;
-			ssc_data_get_number(m_ssc_data, v->name.c_str(), &tval);
-			v->val = (int)(tval + 1.e-3);
-		}
-
-		break;
-	}
-	case DATATYPE::TYPE_NUMBER:
-	{
-		data_unit< double > *v = static_cast< data_unit< double >* >(obj);
-		if (set_ssc_from_local)
-			ssc_data_set_number(m_ssc_data, v->name.c_str(), v->val);
-		else
-		{
-			ssc_number_t tval;
-			ssc_data_get_number(m_ssc_data, v->name.c_str(), &tval);
-			v->val = (double)tval;
-		}
-		break;
-	}
-	case DATATYPE::TYPE_MATRIX:
-	{
-		data_unit< std::vector< std::vector< double > > > *v = static_cast< data_unit< std::vector< std::vector< double > > >* >(obj);
-
-		if (set_ssc_from_local)
-		{
-			int nr = (int)v->val.size();
-			int nc = (int)v->val.front().size();
-
-			ssc_number_t *p_vals = new ssc_number_t[nr*nc];
-			for (int i = 0; i<nr; i++)
-				for (int j = 0; j<nc; j++)
-					p_vals[i*nc + j] = v->val.at(i).at(j);
-
-			ssc_data_set_matrix(m_ssc_data, v->name.c_str(), p_vals, nr, nc);
-		}
-		else
-		{
-			int nr, nc;
-			ssc_number_t *p_vals = ssc_data_get_matrix(m_ssc_data, v->name.c_str(), &nr, &nc);
-			v->val.resize(nr, std::vector<double>(nc));
-			for (int i = 0; i < nr; i++)
-				for (int j = 0; j < nc; j++)
-					v->val.at(i).at(j) = p_vals[i*nc + j];
-		}
-		break;
-	}
-	case DATATYPE::TYPE_STRING:
-	{
-		data_unit< std::string > *v = static_cast< data_unit< std::string >* >(obj);
-		if (set_ssc_from_local)
-			ssc_data_set_string(m_ssc_data, v->name.c_str(), v->val.c_str());
-		else
-			v->val = ssc_data_get_string(m_ssc_data, v->name.c_str());
-
-		break;
-	}
-	case DATATYPE::TYPE_VECTOR:
-	{
-		data_unit< std::vector< double > > *v = static_cast< data_unit< std::vector< double > >* >(obj);
-
-		if (set_ssc_from_local)
-		{
-			int nr = (int)v->val.size();
-			ssc_number_t *p_vals = new ssc_number_t[nr];
-			for (int i = 0; i<nr; i++)
-				p_vals[i] = v->val.at(i);
-
-			ssc_data_set_array(m_ssc_data, v->name.c_str(), p_vals, nr);
-		}
-		else
-		{
-			int nr;
-			ssc_number_t *p_vals = ssc_data_get_array(m_ssc_data, v->name.c_str(), &nr);
-			v->val.resize(nr);
-			for (int i = 0; i < nr; i++)
-				v->val.at(i) = p_vals[i];
-		}
-		break;
-	}
-	default:
-		break;
-	}
-}
-
-
-void Project::sscdata_localdata_map(datas_base &objs, bool set_ssc_from_local)  
-{
-	//set ssc data from list (set_ssc_from_local=true), or set local from ssc (false)
-	std::vector< data_base* > *members = objs.GetMemberPointer();
-
-	for (std::vector< data_base *>::iterator it = members->begin(); it != members->end(); it++)
-	{
-		sscdata_localdata(*it, set_ssc_from_local);
-	}
-}
-
 void Project::update_calculated_system_values()
 {
 	//"""
@@ -454,29 +474,29 @@ void Project::update_calculated_system_values()
 	//D["nameplate"] = D["P_ref"] * D["gross_net_conversion_factor"]  //MWe
 	ssc_number_t gross_net_conversion_factor;
 	ssc_data_get_number(m_ssc_data, "gross_net_conversion_factor", &gross_net_conversion_factor);
-	ssc_number_t nameplate = m_variables.P_ref.val * gross_net_conversion_factor;
+	ssc_number_t nameplate = m_variables.P_ref.as_number() * gross_net_conversion_factor;
 	ssc_data_set_number(m_ssc_data, "nameplate", nameplate);
 	//
 	//D["system_capacity"] = D["nameplate"] * 1000.
 	ssc_data_set_number(m_ssc_data, "system_capacity", nameplate*1000.);
 
 	//// q_pb_design(informational, not used as a compute module input for mspt)
-	ssc_number_t q_pb_design = m_variables.P_ref.val / m_variables.design_eff.val;
+	ssc_number_t q_pb_design = m_variables.P_ref.as_number() * m_variables.design_eff.as_number();
 	//D["q_pb_design"] = float(D["P_ref"]) / float(D["design_eff"])
 	ssc_data_set_number(m_ssc_data, "q_pb_design", q_pb_design);
 
 	//// Q_rec_des(only used as in input to solarpilot compute module)
 	//D["Q_rec_des"] = D["solarm"] * D["q_pb_design"]
-	ssc_data_set_number(m_ssc_data, "Q_rec_des", m_variables.solarm.val * q_pb_design);
+	ssc_data_set_number(m_ssc_data, "Q_rec_des", m_variables.solarm.as_number() * q_pb_design);
 	//D["q_design"] = D["Q_rec_des"]
-	ssc_data_set_number(m_ssc_data, "q_design", m_variables.solarm.val * q_pb_design);
+	ssc_data_set_number(m_ssc_data, "q_design", m_variables.solarm.as_number() * q_pb_design);
 	
 	//// tshours_sf(informational, not used as a compute module input)
 	//D["tshours_sf"] = D["tshours"] / D["solarm"]
 
 	////receiver aspect ratio(only used as in input to solarpilot compute module)
 	//D["rec_aspect"] = float(D["rec_height"]) / float(D["D_rec"]);
-	ssc_data_set_number(m_ssc_data, "rec_aspect", m_variables.rec_height.val / m_variables.D_rec.val);
+	ssc_data_set_number(m_ssc_data, "rec_aspect", m_variables.rec_height.as_number() / m_variables.D_rec.as_number());
 
 	////always set to MSPT
 	//D["tower_technology"] = 0
@@ -484,7 +504,7 @@ void Project::update_calculated_system_values()
 
 	////Flux grid resolution limited by number of panels(only used as in input to solarpilot compute module)
 	//D["n_flux_x"] = max(12, D["N_panels"])
-	ssc_data_set_number(m_ssc_data, "n_flux_x", m_variables.N_panels.val > 12 ? m_variables.N_panels.val : 12);
+	ssc_data_set_number(m_ssc_data, "n_flux_x", m_variables.N_panels.as_number() > 12 ? m_variables.N_panels.as_number() : 12);
 
 	//D["field_model_type"] = 2  // 0 = design field and tower / receiver geometry 1 = design field 2 = user field, calculate performance 3 = user performance maps vs solar position
 	ssc_data_set_number(m_ssc_data, "field_model_type", 2);
@@ -640,16 +660,17 @@ bool Project::run_design()
 	type given in the same file.
 	*/
 	
-	ssc_module_exec_set_print(m_parameters.print_messages.val); //0 = no, 1 = yes(print progress updates)
+	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean()); //0 = no, 1 = yes(print progress updates)
 	
 	//change any defaults
 	ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 1.);
 	
 	//#Check to make sure the weather file exists
-	FILE *fp = fopen(m_parameters.solar_resource_file.val.c_str(), "r");
+	FILE *fp = fopen(m_parameters.solar_resource_file.as_string().c_str(), "r");
 	if (fp == NULL)
 	{
-		message_handler(wxString::Format("The solar resource file could not be located (Design module). The specified path is:\n%s", m_parameters.solar_resource_file.val.c_str()));
+		message_handler(wxString::Format("The solar resource file could not be located (Design module). The specified path is:\n%s", 
+            m_parameters.solar_resource_file.as_string().c_str()));
 		return false;;
 	}
 	fclose(fp);
@@ -657,15 +678,18 @@ bool Project::run_design()
 	update_calculated_system_values();
 	ssc_data_set_matrix(m_ssc_data, "heliostat_positions_in", (ssc_number_t*)0, 0, 0);
 	
-	update_sscdata_from_object(m_variables);
-	update_sscdata_from_object(m_parameters);
+    lk_hash_to_ssc(m_ssc_data, m_variables);
+    lk_hash_to_ssc(m_ssc_data, m_parameters);
+
+	//update_sscdata_from_object(m_variables);
+	//update_sscdata_from_object(m_parameters);
 
 	//Run design to get field layout
 	ssc_module_t mod_solarpilot = ssc_module_create("solarpilot");
 	ssc_module_exec_with_handler(mod_solarpilot, m_ssc_data, ssc_progress_handler, 0);
 	
 	//Collect calculated data
-	update_object_from_sscdata(m_design_outputs);
+    ssc_to_lk_hash(m_ssc_data, m_design_outputs);
 	
 	ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 0.);
 	
@@ -1246,7 +1270,7 @@ double Project::calc_real_dollars(const double &dollars, bool is_revenue, bool i
 		double c = 0.;
 		double cy = dollars;
 
-		for (int i = 0; i < m_parameters.plant_lifetime.val; i++)
+		for (int i = 0; i < m_parameters.plant_lifetime.as_integer(); i++)
 		{
 			cy *= r;
 			c += cy;
@@ -1256,11 +1280,11 @@ double Project::calc_real_dollars(const double &dollars, bool is_revenue, bool i
 	}
 	else if (is_labor)
 	{
-		return dollars * m_parameters.plant_lifetime.val;
+		return dollars * m_parameters.plant_lifetime.as_integer();
 	}
 	else
 	{
-		int analysis_period = m_parameters.finance_period.val;
+		int analysis_period = m_parameters.finance_period.as_integer();
 
 		ssc_number_t debt_percent;
 		ssc_data_get_number(m_ssc_data, "debt_percent", &debt_percent);
@@ -1299,9 +1323,9 @@ bool Project::D()
 		return false;
 
 	//Land cost
-	m_design_outputs.cost_land_real.val = calc_real_dollars( m_parameters.land_spec_cost.val * m_design_outputs.land_area.val ); 
+	m_design_outputs.cost_land_real.assign( calc_real_dollars( m_parameters.land_spec_cost.as_number() * m_design_outputs.land_area.as_number() ) ); 
 	//solar field cost
-	m_design_outputs.cost_sf_real.val = calc_real_dollars( (m_parameters.heliostat_spec_cost.val + m_parameters.site_spec_cost.val)*m_design_outputs.area_sf.val );
+	m_design_outputs.cost_sf_real.assign( calc_real_dollars( (m_parameters.heliostat_spec_cost.as_number() + m_parameters.site_spec_cost.as_number())*m_design_outputs.area_sf.as_number() ) );
 
 	return true;
 }
@@ -1322,18 +1346,18 @@ bool Project::M()
 
 	solarfield_availability sfa;
 
-	sfa.m_settings.mf = m_parameters.helio_mtf.val;
+	sfa.m_settings.mf = m_parameters.helio_mtf.as_number();
 	sfa.m_settings.rep_min = 1.;
 	sfa.m_settings.rep_max = 100.;
-	sfa.m_settings.n_helio = m_design_outputs.number_heliostats.val;
-	sfa.m_settings.n_om_staff = m_variables.om_staff.val;
-	sfa.m_settings.hr_prod = m_parameters.om_staff_max_hours_week.val;
+	sfa.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
+	sfa.m_settings.n_om_staff = m_variables.om_staff.as_integer();
+	sfa.m_settings.hr_prod = m_parameters.om_staff_max_hours_week.as_number();
 	sfa.m_settings.n_hr_sim = 8760 * 12;
-	sfa.m_settings.seed = m_parameters.avail_seed.val;
+	sfa.m_settings.seed = m_parameters.avail_seed.as_integer();
 	sfa.m_settings.n_helio_sim = 1000;
 
 	//error if trying to simulate with no heliostats
-	if (m_design_outputs.number_heliostats.val <= 1)
+	if (m_design_outputs.number_heliostats.as_integer() <= 1)
 	{
 		message_handler("Error: Empty layout in field availability simulation.");
 		return false;
@@ -1345,11 +1369,18 @@ bool Project::M()
 	double ann_fact = 8760. / (double)sfa.m_settings.n_hr_sim;
 
 	sfa.m_results.n_repairs *= ann_fact;	//annual repairs
-	sfa.m_results.heliostat_repair_cost_y1 = sfa.m_results.n_repairs * m_parameters.heliostat_repair_cost.val;
+	sfa.m_results.heliostat_repair_cost_y1 = sfa.m_results.n_repairs * m_parameters.heliostat_repair_cost.as_number();
 	
 	//lifetime costs
 	//treat heliostat repair costs as consuming reserve equipment paid for at the project outset
 	sfa.m_results.heliostat_repair_cost = calc_real_dollars(sfa.m_results.heliostat_repair_cost_y1);
+
+    //assign outputs to project structure
+    m_solarfield_outputs.n_repairs.assign( sfa.m_results.n_repairs );
+    m_solarfield_outputs.staff_utilization.assign( sfa.m_results.staff_utilization );
+    m_solarfield_outputs.heliostat_repair_cost_y1.assign( sfa.m_results.heliostat_repair_cost_y1 );
+    m_solarfield_outputs.heliostat_repair_cost.assign( sfa.m_results.heliostat_repair_cost );
+    m_solarfield_outputs.avail_schedule.assign_vector( sfa.m_results.avail_schedule, sfa.m_results.n_avail_schedule );
 
 	return true;
 }
@@ -1368,28 +1399,40 @@ bool Project::O()
 	optical_degradation od;
 
 	od.m_settings.n_hr_sim = 25 * 8760;
-	od.m_settings.n_wash_crews = m_variables.n_wash_crews.val;
-	od.m_settings.n_helio = m_design_outputs.number_heliostats.val;
-	od.m_settings.degr_loss_per_hr = m_parameters.degr_per_hour.val;
-	od.m_settings.degr_accel_per_year = m_parameters.degr_accel_per_year.val;
-	od.m_settings.replacement_threshold = m_variables.degr_replace_limit.val;
-	od.m_settings.soil_loss_per_hr = m_parameters.soil_per_hour.val;
-	od.m_settings.wash_units_per_hour = m_parameters.wash_units_per_hour.val;
-	od.m_settings.hours_per_week = m_parameters.wash_crew_max_hours_week.val;
+	od.m_settings.n_wash_crews = m_variables.n_wash_crews.as_integer();
+	od.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
+	od.m_settings.degr_loss_per_hr = m_parameters.degr_per_hour.as_number();
+	od.m_settings.degr_accel_per_year = m_parameters.degr_accel_per_year.as_number();
+	od.m_settings.replacement_threshold = m_variables.degr_replace_limit.as_number();
+	od.m_settings.soil_loss_per_hr = m_parameters.soil_per_hour.as_number();
+	od.m_settings.wash_units_per_hour = m_parameters.wash_units_per_hour.as_number();
+	od.m_settings.hours_per_week = m_parameters.wash_crew_max_hours_week.as_number();
 	od.m_settings.hours_per_day = 10.;
-	od.m_settings.seed = m_parameters.degr_seed.val;
+	od.m_settings.seed = m_parameters.degr_seed.as_integer();
 
 	od.simulate(sim_progress_handler);
 
 	double ann_fact = 8760. / (double)od.m_settings.n_hr_sim;
 	
 	od.m_results.heliostat_refurbish_cost_y1 =
-		od.m_results.n_replacements * m_parameters.heliostat_refurbish_cost.val;
+		od.m_results.n_replacements * m_parameters.heliostat_refurbish_cost.as_number();
 	
 	//Annualize
 	od.m_results.n_replacements *= ann_fact;
 	
 	od.m_results.heliostat_refurbish_cost = calc_real_dollars( od.m_results.heliostat_refurbish_cost_y1 ) * ann_fact;
+
+    //assign results to structure
+    m_optical_outputs.n_replacements.assign(od.m_results.n_replacements);
+    m_optical_outputs.heliostat_refurbish_cost.assign(od.m_results.heliostat_refurbish_cost);
+    m_optical_outputs.heliostat_refurbish_cost_y1.assign(od.m_results.heliostat_refurbish_cost_y1);
+    m_optical_outputs.avg_soil.assign(od.m_results.avg_soil);
+    m_optical_outputs.avg_degr.assign(od.m_results.avg_degr);
+
+    m_optical_outputs.soil_schedule.assign_vector( od.m_results.soil_schedule, od.m_results.n_schedule );
+    m_optical_outputs.degr_schedule.assign_vector( od.m_results.degr_schedule, od.m_results.n_schedule );
+    m_optical_outputs.repl_schedule.assign_vector( od.m_results.repl_schedule, od.m_results.n_schedule );
+    m_optical_outputs.repl_total.assign_vector( od.m_results.repl_total, od.m_results.n_schedule );
 
 	return true;
 }

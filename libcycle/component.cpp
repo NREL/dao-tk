@@ -35,10 +35,8 @@ Component::Component()
 Component::Component(  std::string name, std::string type, 
 			//std::string dist_type, double failure_alpha, double failure_beta, 
 			double repair_rate, double repair_cooldown_time,
-            double hot_start_penalty, double warm_start_penalty, 
-			double cold_start_penalty, 
             std::unordered_map< std::string, failure_event > *failure_events, 
-			double availability_reduction, double repair_cost)
+			double availability_reduction, double repair_cost, std::string repair_mode)
 {
     /*
     Description of attributes:
@@ -50,9 +48,6 @@ Component::Component(  std::string name, std::string type,
     repair_rate -- rate at which repairs take place (events/h)
     repair_cooldown_time -- added required downtime for repair (h)
     repair_cost -- dollar cost of repairs, not including revenue lost ($)
-    hot_start_penalty -- increase in hazard rate due to hot start
-    warm_start_penalty -- increase in hazard rate due to warm start
-    cold_start_penalty -- increase in hazard rate due to cold start
     */
 
     if( name == "MAINTENANCE" )
@@ -61,12 +56,10 @@ Component::Component(  std::string name, std::string type,
 	m_failure_types = {};
     m_name = name;
     m_type = type;
-    m_hot_start_penalty = hot_start_penalty;
-    m_warm_start_penalty = warm_start_penalty;
-    m_cold_start_penalty = cold_start_penalty;
     m_repair_cost = repair_cost;
 	m_availability_reduction = availability_reduction;
 	m_cooldown_time = repair_cooldown_time;
+	m_repair_mode = repair_mode;
 
 	m_status.hazard_rate = 1.0;
     m_status.downtime_remaining = 0.0;
@@ -178,24 +171,6 @@ void Component::SetDowntimeRemaining(double time)
 	m_status.downtime_remaining = time;
 }
 
-
-double Component::GetHotStartPenalty()
-{
-	return m_hot_start_penalty;
-}
-
-
-double Component::GetWarmStartPenalty()
-{
-	return m_warm_start_penalty;
-}
-
-
-double Component::GetColdStartPenalty()
-{
-	return m_cold_start_penalty;
-}
-
         
 void Component::GenerateTimeToRepair(WELLFiveTwelve &gen)
 {
@@ -252,19 +227,13 @@ void Component::TestForBinaryFailure(std::string mode, int t, WELLFiveTwelve &ge
 	}
 }
 
-void Component::TestForFailure(double time, double ramp_mult, WELLFiveTwelve &gen, int t, std::string start, std::string mode)
+void Component::TestForFailure(double time, double ramp_mult,
+	WELLFiveTwelve &gen, int t, double hazard_increase, std::string mode)
 {
 	/*
 	Generates failure events under the provided dispatch, if there is not sufficient life
 	remaining in the component, or the RNG generates a failure on start.
 	*/
-	double hazard_mult = 0.0;
-	if (start == "HotStart")
-		hazard_mult = m_hot_start_penalty;
-	if (start == "WarmStart")
-		hazard_mult = m_warm_start_penalty;
-	if (start == "ColdStart")
-		hazard_mult = m_cold_start_penalty;
 	std::string opmode;
 	if (mode == "OS")
 	// if starting standby or online, test for fail on start, 
@@ -283,9 +252,14 @@ void Component::TestForFailure(double time, double ramp_mult, WELLFiveTwelve &ge
 		opmode = mode;
 	for (size_t j = 0; j < m_failure_types.size(); j++)
 	{
-		if (m_failure_types.at(j).GetFailureMode() == opmode)
+		if (m_failure_types.at(j).GetFailureMode() == opmode || m_failure_types.at(j).GetFailureMode() == "ALL")
 		{
-			if (time * (m_status.hazard_rate + hazard_mult) * ramp_mult > m_failure_types.at(j).GetLifeRemaining())
+			if (time * (m_status.hazard_rate + hazard_increase) * ramp_mult > m_failure_types.at(j).GetLifeRemaining())
+				GenerateFailure(gen, t, j);
+		}
+		if (m_failure_types.at(j).GetFailureMode() == "O" && (opmode == "OO" || opmode == "OF" ) )
+		{
+			if (time * (m_status.hazard_rate + hazard_increase) * ramp_mult > m_failure_types.at(j).GetLifeRemaining())
 				GenerateFailure(gen, t, j);
 		}
 	}
@@ -294,7 +268,7 @@ void Component::TestForFailure(double time, double ramp_mult, WELLFiveTwelve &ge
 
          
 void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen, 
-		bool read_only, int t, std::string start, std::string mode)
+		bool read_only, int t, double hazard_increase, std::string mode)
 {
     /* 
     assumes operation for a given period of time, with 
@@ -310,12 +284,7 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
     */
     if( ! IsOperational() )
         throw std::exception("can't operate a plant in downtime.");
-	if( start == "HotStart")
-		m_status.hazard_rate += m_hot_start_penalty;
-	if (start == "WarmStart")
-		m_status.hazard_rate += m_warm_start_penalty;
-	if (start == "ColdStart")
-		m_status.hazard_rate += m_cold_start_penalty;
+	m_status.hazard_rate += hazard_increase;
 	std::string opmode;
 	//if starting a mode, operate as if
 	//in the first hour of operation for that mode to degrade lifetimes.
@@ -336,7 +305,13 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
 		opmode = mode;
 	for (size_t j = 0; j < m_failure_types.size(); j++)
 	{
-		if (m_failure_types.at(j).GetFailureMode() == opmode)
+		if (m_failure_types.at(j).GetFailureMode() == opmode || m_failure_types.at(j).GetFailureMode() == "ALL")
+		{
+			if (time * m_status.hazard_rate * ramp_mult > m_failure_types.at(j).GetLifeRemaining() && !read_only)
+				throw std::exception("failure should be thrown.");
+			m_failure_types.at(j).ReduceLifeRemaining(time * m_status.hazard_rate * ramp_mult);
+		}
+		if (m_failure_types.at(j).GetFailureMode() == "O" && (opmode == "OO" || opmode == "OF"))
 		{
 			if (time * m_status.hazard_rate * ramp_mult > m_failure_types.at(j).GetLifeRemaining() && !read_only)
 				throw std::exception("failure should be thrown.");
@@ -346,7 +321,7 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
 }
          
 void Component::ReadFailure(double downtime, double life_remaining, 
-	int fail_idx, bool reset_hazard)
+	int fail_idx, bool reset_hazard = true)
 {
     /*
     reads a failure event.  This executes the failure without the 
@@ -359,7 +334,10 @@ void Component::ReadFailure(double downtime, double life_remaining,
 	m_status.operational = false;
     SetDowntimeRemaining(downtime);
     m_failure_types.at(fail_idx).SetLifeOrProb(life_remaining);
-    ResetHazardRate();
+	if (reset_hazard)
+	{
+		ResetHazardRate();
+	}
 }
 
                 
@@ -387,17 +365,38 @@ void Component::GenerateFailure(WELLFiveTwelve &gen, int t, int fail_idx)
 	//std::cerr << "FAILURE EVENT GENERATED. downtime: " << std::to_string(m_status.downtime_remaining) << " life_rem: " << std::to_string(m_failure_types.at(fail_idx).GetLifeOrProb()) << " fail idx: " << std::to_string(fail_idx) << " reset hazard rate: " << std::to_string(true) << "\n";
 
 }
- 
-        
-void Component::AdvanceDowntime(double time)
+
+bool Component::CanBeRepaired(std::string mode)
 {
-    //moves forward in time while the plant is down.
-    m_status.downtime_remaining -= time;
-    if( m_status.downtime_remaining <= 0.0 )
-    {
-        m_status.downtime_remaining = 0.0;
-        m_status.operational = true;
-    }
+	//determines whether or not the component can be repaired.
+	//if the plant is off, or the component can be repaired for any mode,
+	//then return true.
+	if (mode == "OFF" || m_repair_mode == "A")
+	{
+		return true;
+	}
+	//if the plant is in standby and the component may be repaired in standby,
+	//return true.
+	if (m_repair_mode == "S" && (mode == "SS" || mode == "SF" || mode == "SO") )
+	{
+		return true;
+	}		
+	return false;
+}
+        
+void Component::AdvanceDowntime(double time, std::string mode)
+{
+    //moves forward in time while the plant is down, or on standby
+	//if the repair mode is "S".
+	if (CanBeRepaired(mode))
+	{
+		m_status.downtime_remaining -= time;
+		if (m_status.downtime_remaining <= 0.0)
+		{
+			m_status.downtime_remaining = 0.0;
+			m_status.operational = true;
+		}
+	}
 }
 
 std::vector<double> Component::GetLifetimesAndProbs()
