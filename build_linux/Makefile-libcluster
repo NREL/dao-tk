@@ -1,0 +1,22 @@
+VPATH=../libcluster
+
+CXX = g++
+CFLAGS = -g -D__64BIT__ -fPIC -Wall -O3
+#LDFLAGS = -std=c++11 -lm -lstdc++ 
+CXXFLAGS= -std=c++0x $(CFLAGS)
+
+
+OBJECTS = \
+	solpos.o\
+	metrics.o\
+	cluster.o\
+	clustersim.o
+
+TARGET = libcluster.a
+
+$(TARGET) : $(OBJECTS)
+	ar rs $(TARGET) $(OBJECTS)
+
+clean:
+	rm -rf $(TARGET) $(OBJECTS)
+
