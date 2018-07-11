@@ -310,6 +310,100 @@ void CSPPlant::CreateComponentsFromFile(std::string component_data)
     
 }
 
+
+void CSPPlant::AddCondenserTrain(int num_fans, int num_radiators)
+{
+	m_num_condenser_trains += 1; 
+	std::string component_name;
+	std::string train_name = "C" + std::to_string(m_num_condenser_trains);
+	for (int i = 1; i <= num_fans; i++)
+	{
+		component_name = train_name + "-F" + std::to_string(i);
+		AddComponent(component_name,"CondenserFan", 35.5, 0, 0.01, 7.777, "S");
+		AddFailureType(component_name, "Fan Failure", "O", "gamma", 1, 841188);
+	}
+	AddComponent(component_name+"-T", "CondenserTrain", 15.55, 0, 0.00, 7.777, "S");
+	for (int i = 1; i <= num_radiators; i++)
+	{
+		AddFailureType(component_name+"-T", "Radiator "+std::to_string(i)+" Failure", "O", "gamma", 1, 698976);
+	}
+}
+
+void CSPPlant::AddSaltToSteamTrains(int num_trains)
+{
+	std::string component_name;
+	for (int i = 1; i <= num_trains; i++)
+	{
+		m_num_salt_steam_trains += 1;
+		component_name = "SST" + std::to_string(m_num_salt_steam_trains);
+		AddComponent(component_name, "Salt-to-steam Train", 2.14, 72, 0.5, 7.777, "A");
+		AddFailureType(component_name, "Boiler External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
+		AddFailureType(component_name, "Boiler External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
+		AddFailureType(component_name, "Boiler External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
+		AddFailureType(component_name, "Boiler External_Leak_Small_(tube)", "ALL", "gamma", 0.3, 1200000);
+		AddFailureType(component_name, "Economizer External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
+		AddFailureType(component_name, "Economizer External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
+		AddFailureType(component_name, "Economizer External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
+		AddFailureType(component_name, "Economizer External_Leak_Small_(tube)", "ALL", "gamma", 0.3, 1200000);
+		AddFailureType(component_name, "Reheater External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
+		AddFailureType(component_name, "Reheater External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
+		AddFailureType(component_name, "Reheater External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
+		AddFailureType(component_name, "Reheater External_Leak_Small_(tube)", "ALL", "gamma", 0.3, 1200000);
+		AddFailureType(component_name, "Superheater External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
+		AddFailureType(component_name, "Superheater External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
+		AddFailureType(component_name, "Superheater External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
+		AddFailureType(component_name, "Superheater External_Leak_Small_(tube)", "ALL", "gamma", 0.3, 1200000);
+	}
+}
+
+void CSPPlant::AddFeedwaterHeaters(int num_fwh)
+{
+	std::string component_name;
+	for (int i = 1; i <= num_fwh; i++)
+	{
+		m_num_feedwater_heaters += 1;
+		component_name = "FWH" + std::to_string(m_num_feedwater_heaters);
+		AddComponent(component_name, "FeedwaterHeater", 2.14, 48., 0.05, 7.777, "A");
+		AddFailureType(component_name, "External_Leak_Large_(shell)", "O", "gamma", 0.3, 75000000);
+		AddFailureType(component_name, "External_Leak_Large_(tube)", "O", "gamma", 0.3, 10000000);
+		AddFailureType(component_name, "External_Leak_Small_(shell)", "O", "gamma", 0.5, 10000000);
+		AddFailureType(component_name, "External_Leak_Small_(tube)", "O", "gamma", 0.3, 1200000);
+	}
+}
+
+void CSPPlant::AddSaltPumps(int num_pumps)
+{
+	std::string component_name;
+	for (int i = 1; i <= num_pumps; i++)
+	{
+		m_num_salt_pumps += 1;
+		component_name = "SP" + std::to_string(m_num_feedwater_heaters);
+		AddComponent(component_name, "Molten salt pump", 0.5, 0., 1., 7.777, "D");
+		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
+		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
+		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "SF", "gamma", 1.5, 3750);
+		AddFailureType(component_name, "Fail_to_Run_>_1_hour_(standby)", "SO", "gamma", 0.5, 83300);
+		AddFailureType(component_name, "Fail_to_Start_(standby)", "SS", "beta", 0.9, 599);
+		AddFailureType(component_name, "Fail_to_Start_(running)", "OS", "beta", 0.9, 449);
+		AddFailureType(component_name, "Fail_to_Run_(running)", "O", "gamma", 1.5, 300);
+	}
+}
+
+void CSPPlant::AddWaterPumps(int num_pumps)
+{
+	std::string component_name;
+	for (int i = m_num_water_pumps + 1; i <= m_num_water_pumps + num_pumps; i++)
+	{
+		m_num_salt_pumps += 1;
+		component_name = "WP" + std::to_string(m_num_feedwater_heaters);
+		AddComponent(component_name, "Water pump", 0.5, 0., 1., 7.777, "D");
+		AddFailureType(component_name, "External_Leak_Large_(shell)", "O", "gamma", 0.3, 75000000);
+		AddFailureType(component_name, "External_Leak_Large_(tube)", "O", "gamma", 0.3, 10000000);
+		AddFailureType(component_name, "External_Leak_Small_(shell)", "O", "gamma", 0.5, 10000000);
+		AddFailureType(component_name, "External_Leak_Small_(tube)", "O", "gamma", 0.3, 1200000);
+	}
+}
+
 void CSPPlant::SetPlantAttributes(double maintenance_interval,
 				double maintenance_duration,
 				double ramp_threshold, double downtime_threshold, 

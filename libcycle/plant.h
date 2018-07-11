@@ -47,6 +47,11 @@ class CSPPlant
 	BoundedJohnsonDist m_hs_dist;
 	BoundedJohnsonDist m_ws_dist;
 	BoundedJohnsonDist m_cs_dist;
+	int m_num_condenser_trains = 0;
+	int m_num_feedwater_heaters = 0;
+	int m_num_salt_steam_trains = 0;
+	int m_num_salt_pumps = 0;
+	int m_num_water_pumps = 0;
 
 	
 
@@ -83,6 +88,11 @@ public:
 	void AddFailureType(std::string component, std::string id, std::string failure_mode,
 		std::string dist_type, double alpha, double beta);
     void CreateComponentsFromFile(std::string component_data);
+	void AddCondenserTrain(int num_fans, int num_radiators);
+	void AddSaltToSteamTrains(int num_trains);
+	void AddFeedwaterHeaters(int num_fwh);
+	void AddSaltPumps(int num_pumps);
+	void AddWaterPumps(int num_pumps);
 	void SetPlantAttributes(double maintenance_interval,
 		double maintenance_duration,
 		double ramp_threshold, double downtime_threshold,
