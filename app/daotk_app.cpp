@@ -198,7 +198,7 @@ MainWindow &MainWindow::Instance()
 	return *g_mainWindow;
 }
 
-Project *MainWindow::Project()
+Project *MainWindow::GetProject()
 {
     return &m_project;
 }
