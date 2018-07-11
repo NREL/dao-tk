@@ -35,10 +35,11 @@ struct ComponentStatus
     double downtime_remaining;
     bool operational;
     bool running;
+	double repair_event_time;
 
     ComponentStatus();
     ComponentStatus( std::vector<double> lifes, double hazard, 
-			double downtime );
+			double downtime, double repair_event_time );
 };
 
 
@@ -62,7 +63,8 @@ class Component
 	std::string m_repair_mode; // "A"=Anytime; "S"=standby or downtime; "D"=downtime only
     ComponentStatus m_status;
 
-    std::unordered_map< std::string, failure_event > *m_parent_failure_events;
+	std::unordered_map< std::string, failure_event > *m_parent_failure_events;
+	std::vector< std::string > *m_parent_failure_event_labels;
 
 	Distribution *m_repair_dist;
 
@@ -74,7 +76,7 @@ public:
 		double repair_rate, double repair_cooldown_time,
 		std::unordered_map< std::string, failure_event > *failure_events, 
 		double availability_reduction = 1.0, double repair_cost = 0.0,
-		std::string repair_mode = "D"
+		std::string repair_mode = "D", std::vector< std::string > *failure_eventlabels = {}
 		);
 
     void ReadStatus( ComponentStatus &status );
@@ -126,7 +128,9 @@ public:
     void GenerateFailure(WELLFiveTwelve &gen, int t, int j); 
 
 	bool CanBeRepaired(std::string mode);
-        
+
+	void ResetDowntime();
+
     void AdvanceDowntime(double time, std::string mode);
 
 	std::vector<double> GetLifetimesAndProbs();
