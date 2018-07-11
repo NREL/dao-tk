@@ -324,40 +324,46 @@ void _test_clusters(lk::invoke_t &cxt)
 	MainWindow &mw = MainWindow::Instance();
 
 	Project P;
-	P.m_variables.h_tower.val = 100.;
-	P.m_variables.rec_height.val = 15.;
-	P.m_variables.D_rec.val = 12.;
-	P.m_variables.design_eff.val = .41;
-	P.m_variables.dni_des.val = 950.;
-	P.m_variables.P_ref.val = 25.;
-	P.m_variables.solarm.val = 2.4;
-	P.m_variables.tshours.val = 10.;
-	P.m_variables.degr_replace_limit.val = .7;
-	P.m_variables.om_staff.val = 5;
-	P.m_variables.n_wash_crews.val = 3;
-	P.m_variables.N_panels.val = 16;
+	P.m_variables.h_tower.assign( 100. );
+	P.m_variables.rec_height.assign( 15. );
+	P.m_variables.D_rec.assign( 12. );
+	P.m_variables.design_eff.assign( .41 );
+	P.m_variables.dni_des.assign( 950. );
+	P.m_variables.P_ref.assign( 25. );
+	P.m_variables.solarm.assign( 2.4 );
+	P.m_variables.tshours.assign( 10. );
+	P.m_variables.degr_replace_limit.assign( .7 );
+	P.m_variables.om_staff.assign( 5 );
+	P.m_variables.n_wash_crews.assign( 3 );
+	P.m_variables.N_panels.assign( 16 );
 
-	P.m_parameters.is_dispatch.val = true;
-	P.m_parameters.solar_resource_file.val = "C:/Users/jmartine/Documents/CSP optimization project/Clustering/Simulate/Final/languages/python/weather_and_pricing/Rice weather/253097_34.09_-114.86_2015.csv";	
+	P.m_parameters.is_dispatch.assign( true );
+	P.m_parameters.solar_resource_file.assign( "C:/Users/jmartine/Documents/CSP optimization project/Clustering/Simulate/Final/languages/python/weather_and_pricing/Rice weather/253097_34.09_-114.86_2015.csv" );	
 	std::string price_file = "C:/Users/jmartine/Documents/CSP optimization project/Clustering/Simulate/Final/languages/python/weather_and_pricing/Rice price/2015.csv";
 
 	//--- User inputs for clustering
 	project_cluster_inputs user_inputs;
 
 	if (H->find("weather_file") != H->end())
-		P.m_parameters.solar_resource_file.val = H->at("weather_file")->as_string();
+		P.m_parameters.solar_resource_file.assign( H->at("weather_file")->as_string() );
 
 	if (H->find("price_file") != H->end())
 		price_file = H->at("price_file")->as_string();
 
-	if (H->find("n_cluster") != H->end())
-		user_inputs.ncluster = H->at("n_cluster")->as_integer();
+    if (H->find("n_cluster") != H->end())
+        user_inputs.ncluster = H->at("n_cluster")->as_integer();
+    else
+        user_inputs.ncluster = 40;
 
 	if (H->find("n_sim_days") != H->end())
 		user_inputs.nsim = H->at("n_sim_days")->as_integer();
+    else
+        user_inputs.nsim = 2;
 
-	if (H->find("n_prev") != H->end())
-		user_inputs.nprev = H->at("n_prev")->as_integer();
+    if (H->find("n_prev") != H->end())
+        user_inputs.nprev = H->at("n_prev")->as_integer();
+    else
+        user_inputs.nprev = 1;
 
 	if (H->find("hard_partitions") != H->end())
 		user_inputs.hard_partitions = H->at("hard_partitions")->as_boolean();
@@ -370,19 +376,21 @@ void _test_clusters(lk::invoke_t &cxt)
 
 
 
-	if (H->find("algorithm") != H->end())
-	{
-		std::string algorithm = H->at("algorithm")->as_string();
+    if (H->find("algorithm") != H->end())
+    {
+        std::string algorithm = H->at("algorithm")->as_string();
 
-		if (algorithm == "affinity propagation")
-			user_inputs.alg = AFFINITY_PROPAGATION;
-		else if (algorithm == "kmeans")
-			user_inputs.alg = KMEANS;
-		else if (algorithm == "random")
-			user_inputs.alg = RANDOM_SELECTION;
-		else
-			mw.Log("Specified clustering algorithm not recognized");
-	}
+        if (algorithm == "affinity propagation")
+            user_inputs.alg = AFFINITY_PROPAGATION;
+        else if (algorithm == "kmeans")
+            user_inputs.alg = KMEANS;
+        else if (algorithm == "random")
+            user_inputs.alg = RANDOM_SELECTION;
+        else
+            mw.Log("Specified clustering algorithm not recognized");
+    }
+    else
+        user_inputs.alg = KMEANS;
 
 
 	//--- Price array from price file
@@ -401,21 +409,23 @@ void _test_clusters(lk::invoke_t &cxt)
 		price_data.push_back(atof(record));
 	}
 	fclose(fp);
-	P.m_parameters.dispatch_factors_ts.val = price_data;
+	P.m_parameters.dispatch_factors_ts.assign_vector( price_data );
 
 
 	//--- solar field availability for testing
 	//std::vector<double> sfavail(8760, 0.96);  
 	std::string sfavail_file = "C:/Users/jmartine/Documents/CSP optimization project/Clustering/Simulate/Final/languages/python/sfavail.csv";
 	std::vector<double> sfavail;
-	fp = fopen(sfavail_file.c_str(), "r");
+	/*fp = fopen(sfavail_file.c_str(), "r");
 	while ((line = fgets(buffer, sizeof(buffer), fp)) != NULL)
 	{
 		record = strtok(line, ",");
 		sfavail.push_back(atof(record));
 	}
 	fclose(fp);
-
+*/
+    for (int i = 0; i < 8760; i++)
+        sfavail.push_back(0.99);
 
 	//--- Run simulation
 	P.D();

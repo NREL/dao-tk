@@ -31,7 +31,15 @@ public:
         this->vec()->resize(nval);
         for (int i = 0; i < nval; i++)
             this->vec()->at(i).assign(_vec[i]);
-    }
+    };
+
+    void assign_vector(std::vector<double> &vec)
+    {
+        this->empty_vector();
+        this->vec()->resize(vec.size());
+        for (size_t i = 0; i < vec.size(); i++)
+            this->vec()->at(i).assign(vec.at(i));
+    };
 };
 
 class variable : public data_base

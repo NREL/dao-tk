@@ -1471,12 +1471,16 @@ void Project::setup_clusters(const project_cluster_inputs &user_inputs, const st
 
 	//--- Set weather / price / solar field availability inputs
 	metrics.inputs.weather_files.clear();
-	std::string weatherfile = m_parameters.solar_resource_file.val;
+	std::string weatherfile = m_parameters.solar_resource_file.as_string();
 	metrics.inputs.weather_files.push_back(weatherfile);
 	metrics.inputs.is_price_files = false;
-	metrics.inputs.prices = m_parameters.dispatch_factors_ts.val;
+    metrics.inputs.prices.clear();
+    metrics.inputs.prices.resize( m_parameters.dispatch_factors_ts.vec()->size() );
+    for (size_t i = 0; i < m_parameters.dispatch_factors_ts.vec()->size(); i++)
+        metrics.inputs.prices.at(i) = m_parameters.dispatch_factors_ts.vec()->at(i).as_number();
+
 	metrics.inputs.sfavail = sfavail;
-	metrics.inputs.stowlimit = m_parameters.v_wind_max.val;
+	metrics.inputs.stowlimit = m_parameters.v_wind_max.as_number();
 
 
 	//--- Update user-specified inputs if defined
@@ -1512,7 +1516,7 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 
 	//--- Set time step size from weather file
 	int nrec = 0;
-	FILE *fp = fopen(m_parameters.solar_resource_file.val.c_str(), "r");
+	FILE *fp = fopen(m_parameters.solar_resource_file.as_string().c_str(), "r");
 	char *line;
 	char buffer[1024];
 	while ((line = fgets(buffer, sizeof(buffer), fp)) != NULL)
@@ -1536,9 +1540,9 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 	ssc_number_t val, nhel, helio_height, helio_width, dens_mirror;
 	ssc_data_set_number(m_ssc_data, "flux_max", 1000.0);
 	ssc_data_set_number(m_ssc_data, "field_model_type", 3);
-	ssc_data_set_number(m_ssc_data, "is_ampl_engine", m_parameters.is_ampl_engine.val);
-	if (m_parameters.is_ampl_engine.val)
-		ssc_data_set_string(m_ssc_data, "ampl_data_dir", m_parameters.ampl_data_dir.val.c_str());
+	ssc_data_set_number(m_ssc_data, "is_ampl_engine", m_parameters.is_ampl_engine.as_boolean());
+	if (m_parameters.is_ampl_engine.as_boolean())
+		ssc_data_set_string(m_ssc_data, "ampl_data_dir", m_parameters.ampl_data_dir.as_string().c_str());
 
 	ssc_data_get_number(m_ssc_data, "helio_height", &helio_height);
 	ssc_data_get_number(m_ssc_data, "helio_width", &helio_width);
@@ -1565,7 +1569,7 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 	ssc_data_set_matrix(m_ssc_data, "flux_positions", p_fluxpos, nr, 2);
 
 
-	ssc_module_exec_set_print(m_parameters.print_messages.val); 
+	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean()); 
 	ssc_module_t mod_mspt = ssc_module_create("tcsmolten_salt");
 
 
@@ -1609,7 +1613,7 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 		s_metric_outputs metric_results;
 		cluster_sim csim;
 		csim.set_default_inputs();
-		csim.inputs.days.nnext = int(m_parameters.is_dispatch.val);
+		csim.inputs.days.nnext = int(m_parameters.is_dispatch.as_boolean());
 
 		//--- Update with user-defined inputs if defined
 		csim.inputs.is_run_continuous = user_inputs.is_run_continuous;
@@ -1676,7 +1680,7 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 					int d = std::max(csim.firstday(exemplar)-csim.inputs.days.nprev-1, 0);	// Day before first simulated day
 					avg_prev_dni += metric_results.daily_dni.at(d, 0) / (double)ng;
 				}
-				tes_charge = csim.initial_charge_heuristic(avg_prev_dni, m_variables.solarm.val);
+				tes_charge = csim.initial_charge_heuristic(avg_prev_dni, m_variables.solarm.as_number());
 			}
 
 
@@ -1753,7 +1757,7 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 				{
 					int d = std::max((d1 - csim.inputs.days.nprev - 1), 0);  // Day before first simulated day
 					double prev_dni = metric_results.daily_dni.at(d, 0);
-					tes_charge = csim.initial_charge_heuristic(prev_dni, m_variables.solarm.val);
+					tes_charge = csim.initial_charge_heuristic(prev_dni, m_variables.solarm.as_number());
 				}
 
 
@@ -1772,7 +1776,10 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 				delete[] p_vals;
 
 				// Run simulation and collect results
-				ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0);
+                if (!ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0))
+                {
+                    message_handler("SSC simulation failed");
+                }
 
 				int doy_full = d1;
 				int doy_sim = nprev;
@@ -1812,7 +1819,7 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 	for (int i = 0; i < full_data["gen"].size(); i++)
 	{
 		annual_generation += full_data["gen"].at(i) / (double)wf_steps_per_hour;
-		revenue_units += full_data["gen"].at(i) * m_parameters.dispatch_factors_ts.val.at(i) / (double)wf_steps_per_hour;
+		revenue_units += full_data["gen"].at(i) * m_parameters.dispatch_factors_ts.vec()->at(i).as_number() / (double)wf_steps_per_hour;
 	}
 	message_handler(wxString::Format("Annual generation (GWhe) = %.4f",annual_generation / 1.e6));
 	message_handler(wxString::Format("Annual revenue (GWhe) = %.4f", revenue_units / 1.e6));
