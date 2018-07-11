@@ -117,7 +117,7 @@ void _var(lk::invoke_t &cxt)
 		"Set a variable value.", "(string:name, variant:value):none",
 		"Get a variable value", "(string:name):variant");
 
-	Project *project = MainWindow::Instance().Project();
+	Project *project = MainWindow::Instance().GetProject();
 
 	//collect the item name
 	std::string namearg = cxt.arg(0).as_string();

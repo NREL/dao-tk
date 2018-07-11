@@ -315,7 +315,7 @@ void Project::ssc_to_lk_hash(ssc_data_t &cxt, lk::varhash_t &vars)
 {
     for (lk::varhash_t::iterator v = vars.begin(); v != vars.end(); v++)
     {
-        unsigned char c = v->second->type();
+        // unsigned char c = v->second->type();
         int datatype = ssc_data_query(cxt, v->first.c_str());
         
         switch (datatype)
@@ -542,12 +542,12 @@ void Project::update_calculated_values_post_layout()
 	//
 	//#------------parasitics (informational, not used as a compute module input)
 	//#parasitic BOP
-	//D['csp.pt.par.calc.bop'] = \
-	//D['bop_par'] * D['bop_par_f'] * (D['bop_par_0'] + D['bop_par_1'] + \
+	//D['csp.pt.par.calc.bop'] = 
+	//D['bop_par'] * D['bop_par_f'] * (D['bop_par_0'] + D['bop_par_1'] + 
 	//	D['bop_par_2'])*D['P_ref']
 	//#Aux parasitic
-	//D['csp.pt.par.calc.aux'] = \
-	//D['aux_par'] * D['aux_par_f'] * (D['aux_par_0'] + D['aux_par_1'] + \
+	//D['csp.pt.par.calc.aux'] = 
+	//D['aux_par'] * D['aux_par_f'] * (D['aux_par_0'] + D['aux_par_1'] + 
 	//	D['aux_par_2'])*D['P_ref']
 	//
 	//
@@ -559,8 +559,8 @@ void Project::update_calculated_values_post_layout()
 	//D['csp.pt.rec.htf_c_avg'] = htf_cp(D['csp.pt.rec.htf_t_avg'])
 	//
 	//#maximum flow rate to the receiver
-	//D['csp.pt.rec.max_flow_to_rec'] = \
-	//(D['csp.pt.rec.max_oper_frac'] * D['Q_rec_des'] * 1e6) \
+	//D['csp.pt.rec.max_flow_to_rec'] = 
+	//(D['csp.pt.rec.max_oper_frac'] * D['Q_rec_des'] * 1e6) 
 	/// (D['csp.pt.rec.htf_c_avg'] * 1e3*(D['T_htf_hot_des'] - D['T_htf_cold_des']))
 	//
 	//#max flow rate in kg / hr
@@ -669,7 +669,7 @@ bool Project::run_design()
 	if (fp == NULL)
 	{
 		message_handler(wxString::Format("The solar resource file could not be located (Design module). The specified path is:\n%s", 
-            m_parameters.solar_resource_file.as_string().c_str()));
+            m_parameters.solar_resource_file.as_string().c_str()).c_str());
 		return false;;
 	}
 	fclose(fp);

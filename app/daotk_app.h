@@ -51,7 +51,7 @@ public:
 	virtual ~MainWindow();
 	static MainWindow &Instance();
 	void UpdateFrameTitle();
-	Project *Project();
+	Project *GetProject();
 	
 	bool UpdateIsStopFlagSet();
 	void SetProgress( int percent, const wxString &msg = wxEmptyString );
