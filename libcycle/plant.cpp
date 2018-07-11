@@ -2,6 +2,7 @@
 #include "lib_util.h"
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 
 void CSPPlant::InitializeCyclingDists()
 {
@@ -47,8 +48,12 @@ void CSPPlant::SetCondenserEfficienciesCold(std::vector<double> eff_cold)
 	int num_streams = 0;
 	for (size_t i = 0; i < m_components.size(); i++)
 	{
-		if (m_components.at(i).GetType() == "CondenserTrain")
+		if (m_components.at(i).GetType() == "Condenser train")
 			num_streams++;
+	}
+	if (num_streams != m_num_condenser_trains)
+	{
+		throw std::exception("condenser trains not created correctly");
 	}
 	if (eff_cold.size() != num_streams + 1)
 		throw std::exception("efficiencies must be equal to one plus number of streams"); 
@@ -64,7 +69,7 @@ void CSPPlant::SetCondenserEfficienciesHot(std::vector<double> eff_hot)
 	int num_streams = 0;
 	for (size_t i = 0; i < m_components.size(); i++)
 	{
-		if (m_components.at(i).GetType() == "CondenserTrain")
+		if (m_components.at(i).GetType() == "Condenser train")
 			num_streams++;
 	}
 	if (eff_hot.size() != num_streams+1)
@@ -161,7 +166,7 @@ bool CSPPlant::AirstreamOnline()
 	is false, as the plant can't operate with no airstreams.)
 	*/
 	for (size_t i = 0; i<m_components.size(); i++)
-		if (m_components.at(i).GetType() == "CondenserTrain" && m_components.at(i).IsOperational())
+		if (m_components.at(i).GetType() == "Condenser train" && m_components.at(i).IsOperational())
 		{
 			return true;
 		}
@@ -176,7 +181,7 @@ bool CSPPlant::FWHOnline()
 	is false, as the plant can't operate with no feedwater heaters.)
 	*/
 	for (size_t i = 0; i<m_components.size(); i++)
-		if (m_components.at(i).GetType() == "FeedwaterHeater" && m_components.at(i).IsOperational())
+		if (m_components.at(i).GetType() == "Feedwater heater" && m_components.at(i).IsOperational())
 		{
 			return true;
 		}
@@ -227,19 +232,38 @@ std::unordered_map< std::string, failure_event > CSPPlant::GetFailureEvents()
 	return m_failure_events;
 }
 
+std::vector<std::string> CSPPlant::GetFailureEventLabels()
+{
+	return m_failure_event_labels;
+}
+
 double CSPPlant::GetHotStartPenalty()
 {
+	/* accessor for hot start penalty. */
 	return m_hot_start_penalty;
 }
 
 double CSPPlant::GetWarmStartPenalty()
 {
+	/* accessor for warm start penalty. */
 	return m_warm_start_penalty;
 }
 
 double CSPPlant::GetColdStartPenalty()
 {
+	/* accessor for cold start penalty. */
 	return m_cold_start_penalty;
+}
+
+void CSPPlant::SetShutdownAvailability(double avail) 
+{
+	m_shutdown_availability = avail;
+}
+
+
+void CSPPlant::SetNoRestartAvailability(double avail)
+{
+	m_no_restart_availability = avail;
 }
 
 
@@ -251,7 +275,7 @@ void CSPPlant::AddComponent( std::string name, std::string type, //std::string d
 )
 {
     m_components.push_back( Component(name, type, //dist_type, failure_alpha, failure_beta, 
-		repair_rate, repair_cooldown_time, &m_failure_events, availability_reduction, repair_cost, repair_mode) );
+		repair_rate, repair_cooldown_time, &m_failure_events, availability_reduction, repair_cost, repair_mode, &m_failure_event_labels) );
 }
 
 void CSPPlant::AddFailureType(std::string component, std::string id, std::string failure_mode,
@@ -313,30 +337,30 @@ void CSPPlant::CreateComponentsFromFile(std::string component_data)
 
 void CSPPlant::AddCondenserTrain(int num_fans, int num_radiators)
 {
-	m_num_condenser_trains += 1; 
+	m_num_condenser_trains += 1;
 	std::string component_name;
 	std::string train_name = "C" + std::to_string(m_num_condenser_trains);
 	for (int i = 1; i <= num_fans; i++)
 	{
 		component_name = train_name + "-F" + std::to_string(i);
-		AddComponent(component_name,"CondenserFan", 35.5, 0, 0.01, 7.777, "S");
+		AddComponent(component_name, "Condenser fan", 35.5, 0, 0.01, 7.777, "S");
 		AddFailureType(component_name, "Fan Failure", "O", "gamma", 1, 841188);
 	}
-	AddComponent(component_name+"-T", "CondenserTrain", 15.55, 0, 0.00, 7.777, "S");
+	AddComponent(component_name + "-T", "Condenser train", 15.55, 0, 0.00, 7.777, "S");
 	for (int i = 1; i <= num_radiators; i++)
 	{
-		AddFailureType(component_name+"-T", "Radiator "+std::to_string(i)+" Failure", "O", "gamma", 1, 698976);
+		AddFailureType(component_name + "-T", "Radiator " + std::to_string(i) + " Failure", "O", "gamma", 1, 698976);
 	}
 }
 
 void CSPPlant::AddSaltToSteamTrains(int num_trains)
 {
 	std::string component_name;
-	for (int i = 1; i <= num_trains; i++)
+	for (int i = 0; i < num_trains; i++)
 	{
 		m_num_salt_steam_trains += 1;
 		component_name = "SST" + std::to_string(m_num_salt_steam_trains);
-		AddComponent(component_name, "Salt-to-steam Train", 2.14, 72, 0.5, 7.777, "A");
+		AddComponent(component_name, "Salt-to-steam train", 2.14, 72, 0.5, 7.777, "A");
 		AddFailureType(component_name, "Boiler External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
 		AddFailureType(component_name, "Boiler External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
 		AddFailureType(component_name, "Boiler External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
@@ -359,11 +383,11 @@ void CSPPlant::AddSaltToSteamTrains(int num_trains)
 void CSPPlant::AddFeedwaterHeaters(int num_fwh)
 {
 	std::string component_name;
-	for (int i = 1; i <= num_fwh; i++)
+	for (int i = 0; i < num_fwh; i++)
 	{
 		m_num_feedwater_heaters += 1;
 		component_name = "FWH" + std::to_string(m_num_feedwater_heaters);
-		AddComponent(component_name, "FeedwaterHeater", 2.14, 48., 0.05, 7.777, "A");
+		AddComponent(component_name, "Feedwater heater", 2.14, 48., 0.05, 7.777, "A");
 		AddFailureType(component_name, "External_Leak_Large_(shell)", "O", "gamma", 0.3, 75000000);
 		AddFailureType(component_name, "External_Leak_Large_(tube)", "O", "gamma", 0.3, 10000000);
 		AddFailureType(component_name, "External_Leak_Small_(shell)", "O", "gamma", 0.5, 10000000);
@@ -374,10 +398,10 @@ void CSPPlant::AddFeedwaterHeaters(int num_fwh)
 void CSPPlant::AddSaltPumps(int num_pumps)
 {
 	std::string component_name;
-	for (int i = 1; i <= num_pumps; i++)
+	for (int i = 0; i < num_pumps; i++)
 	{
 		m_num_salt_pumps += 1;
-		component_name = "SP" + std::to_string(m_num_feedwater_heaters);
+		component_name = "SP" + std::to_string(m_num_salt_pumps);
 		AddComponent(component_name, "Molten salt pump", 0.5, 0., 1., 7.777, "D");
 		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
 		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
@@ -385,22 +409,48 @@ void CSPPlant::AddSaltPumps(int num_pumps)
 		AddFailureType(component_name, "Fail_to_Run_>_1_hour_(standby)", "SO", "gamma", 0.5, 83300);
 		AddFailureType(component_name, "Fail_to_Start_(standby)", "SS", "beta", 0.9, 599);
 		AddFailureType(component_name, "Fail_to_Start_(running)", "OS", "beta", 0.9, 449);
-		AddFailureType(component_name, "Fail_to_Run_(running)", "O", "gamma", 1.5, 300);
+		AddFailureType(component_name, "Fail_to_Run_(running)", "O", "gamma", 1.5, 300000);
 	}
 }
 
 void CSPPlant::AddWaterPumps(int num_pumps)
 {
 	std::string component_name;
-	for (int i = m_num_water_pumps + 1; i <= m_num_water_pumps + num_pumps; i++)
+	for (int i = 0; i < num_pumps; i++)
 	{
-		m_num_salt_pumps += 1;
-		component_name = "WP" + std::to_string(m_num_feedwater_heaters);
+		m_num_water_pumps += 1;
+		component_name = "WP" + std::to_string(m_num_water_pumps);
 		AddComponent(component_name, "Water pump", 0.5, 0., 1., 7.777, "D");
 		AddFailureType(component_name, "External_Leak_Large_(shell)", "O", "gamma", 0.3, 75000000);
 		AddFailureType(component_name, "External_Leak_Large_(tube)", "O", "gamma", 0.3, 10000000);
 		AddFailureType(component_name, "External_Leak_Small_(shell)", "O", "gamma", 0.5, 10000000);
 		AddFailureType(component_name, "External_Leak_Small_(tube)", "O", "gamma", 0.3, 1200000);
+	}
+}
+
+void CSPPlant::AddTurbines(int num_hi_pressure, int num_mid_pressure, int num_low_pressure)
+{
+	std::string component_name;
+	for (int i = 0; i < num_hi_pressure; i++)
+	{
+		m_num_hp_turbines += 1;
+		component_name = "HPT" + std::to_string(m_num_hp_turbines);
+		AddComponent(component_name, "High-pressure turbine", 32.7, 72, 1, 7.777, "D");
+		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
+	}
+	for (int i = 0; i < num_mid_pressure; i++)
+	{
+		m_num_mp_turbines += 1;
+		component_name = "MPT" + std::to_string(m_num_mp_turbines);
+		AddComponent(component_name, "Medium-pressure turbine", 32.7, 72, 1, 7.777, "D");
+		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
+	}
+	for (int i = 0; i < num_low_pressure; i++)
+	{
+		m_num_lp_turbines += 1;
+		component_name = "LPT" + std::to_string(m_num_lp_turbines);
+		AddComponent(component_name, "Low-pressure turbine", 32.7, 72, 1, 7.777, "D");
+		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
 	}
 }
 
@@ -476,7 +526,7 @@ int CSPPlant::NumberOfAirstreamsOnline()
 	*/
 	int num_streams = 0;
 	for (size_t i = 0; i<m_components.size(); i++)
-		if (m_components.at(i).GetType() == "CondenserTrain" && m_components.at(i).IsOperational())
+		if (m_components.at(i).GetType() == "Condenser train" && m_components.at(i).IsOperational())
 		{
 			num_streams++;
 		}
@@ -500,7 +550,9 @@ double CSPPlant::GetCycleAvailability(double temp)
 
 	temp -- ambient temperature (affects condenser efficiency)
 	*/
-	if (!AirstreamOnline() || !FWHOnline())
+	if (!AirstreamOnline())
+		return 0.0; 
+	if (!FWHOnline())
 		return 0.0;
 	double avail = GetCondenserEfficiency(temp);
 	for (size_t i = 0; i<m_components.size(); i++)
@@ -546,28 +598,64 @@ bool CSPPlant::AllComponentsOperational()
     
 }
 
-void CSPPlant::PlantMaintenanceShutdown(int t, bool record)
+double CSPPlant::GetMaxComponentDowntime()
 {
+	/* 
+	returns the maximum downtime remaining of any component in the plant.
+	*/
+	double t = 0;
 
+	for (size_t i = 0; i < m_components.size(); i++)
+	{
+		t = std::max(t, m_components.at(i).GetDowntimeRemaining());
+	}
+
+	return t;
+}
+
+void CSPPlant::PlantMaintenanceShutdown(int t, bool reset_time, bool record, 
+		double duration)
+{
     /*
 	creates a maintenance event that lasts for a fixed duration.  No
-    power cycle operation take place at this time.
+    power cycle operation take place at this time. 
     failure_file - output file to record failure
     t -- period index
-    record -- True if outputting failure event to file, False o.w.
-    
+	reset_time -- true if the maintenance clock should be reset, false o.w.
+    record -- true if outputting failure event to file, false o.w.
+    duration -- length of outage; this is only used when reset_time==false
 	*/
-    for( size_t i=0; i<m_components.size(); i++)
-        m_components.at(i).Shutdown( m_maintenance_duration );
+	std::string label;
+	if (reset_time)
+	{
+		label = "MAINTENANCE";
+		for (size_t i = 0; i<m_components.size(); i++)
+			m_components.at(i).Shutdown(m_maintenance_duration);
+	}
+	else
+	{
+		label = "UNPLANNEDMAINTENANCE";
+		for (size_t i = 0; i<m_components.size(); i++)
+			m_components.at(i).Shutdown(duration);
+	}
+	
 
 	if (record)
 	{
 		m_failure_events[
-					std::to_string(t)+"MAINTENANCE"
-				] = failure_event(t, "MAINTENANCE", -1, 0., 0. );
+			std::to_string(t) + label
+		] = failure_event(t, label, -1, duration, 0.);
+			m_failure_event_labels.push_back(std::to_string(t) + label);
 	}
-    m_hours_to_maintenance = m_maintenance_interval * 1.0;
 
+	if (reset_time)
+	    m_hours_to_maintenance = m_maintenance_interval * 1.0;
+
+	if (m_record_state_failure)
+	{
+		m_record_state_failure = false;
+		StoreState();
+	}
 }
 
 void CSPPlant::AdvanceDowntime(std::string mode)
@@ -760,7 +848,7 @@ std::vector< double > CSPPlant::RunDispatch()
     
 	*/
     std::vector< double > operating_periods( m_num_periods, 0 );
-
+	m_record_state_failure = true;
     for( int t=0; t<m_num_periods; t++)
     {
 		if ( t == m_read_periods )
@@ -769,19 +857,32 @@ std::vector< double > CSPPlant::RunDispatch()
 			//ajz: I moved the failure events removal to the point at which 
 			//we stop reading old failure events and start writing new ones.
 			m_failure_events.clear();
+			m_failure_event_labels.clear();
 		}
 		//Shut all components down for maintenance if such an event is 
 		//read in inputs, or the hours to maintenance is <= zero.
 		if( m_hours_to_maintenance <= 0 && t >= m_read_periods )
         {
-            PlantMaintenanceShutdown(t-m_read_periods,true);
+            PlantMaintenanceShutdown(t-m_read_periods,true,true);
         }
+		//Read in planned maintenance events
 		if (
-			m_failure_events.find(std::to_string(t) + "MAINTENANCE") 
+			m_failure_events.find(std::to_string(t) + "MAINTENANCE")
 			!= m_failure_events.end()
 			)
 		{
-			PlantMaintenanceShutdown(t, false);
+			PlantMaintenanceShutdown(t, true, false);
+		}
+		//Read in unplanned maintenance events, if any
+		if (
+			m_failure_events.find(std::to_string(t) + "UNPLANNEDMAINTENANCE")
+			!= m_failure_events.end()
+			)
+		{
+			PlantMaintenanceShutdown(
+				t, false, false, 
+				m_failure_events[std::to_string(t) + "UNPLANNEDMAINTENANCE"].duration
+			);
 		}
 		//Read in any component failures, if in the read-only stage.
 		if (t < m_read_periods)
@@ -822,10 +923,25 @@ std::vector< double > CSPPlant::RunDispatch()
 			double ramp_mult = GetRampMult(power_output);
 			TestForComponentFailures(ramp_mult, t, start, mode);
 			cycle_avail = GetCycleAvailability(m_dispatch.at("ambient_temperature").at(t));
+			//if the cycle availability is set to zero, this means the plant is in maintenace
+			//or a critical failure has occurred, so shut the plant down.
 			if (cycle_avail < m_eps)
 			{
 				power_output = 0.0;
+				if (mode != "OFF" && m_record_state_failure)
+				{
+					StoreState();
+					m_record_state_failure = false;
+				}
 				mode = "OFF";
+			}
+			else if (cycle_avail < m_shutdown_availability)
+			{
+				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
+			}
+			else if (cycle_avail < m_no_restart_availability && mode == "OFF")
+			{
+				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
 			}
 		}
 		power_output = std::min(power_output, cycle_avail*m_capacity);
@@ -834,6 +950,12 @@ std::vector< double > CSPPlant::RunDispatch()
 
 		//std::cerr << "Period " << std::to_string(t) << " availability: " << std::to_string(cycle_avail) << ".  Mode: " << mode <<"\n";
     }
+
+	if (m_record_state_failure)
+	{
+		StoreState();  //if no failures have occurred, save final plant state. otherwise, 
+					   //record the state at the first full plant shutdown.
+	}
 
 	return operating_periods;                   
 }

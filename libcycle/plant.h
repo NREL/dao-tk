@@ -14,7 +14,8 @@ class CSPPlant
     WELLFiveTwelve *m_gen;
     std::vector< Component > m_components;
     std::unordered_map<std::string, std::vector<double> > m_dispatch;
-    std::unordered_map< std::string, failure_event > m_failure_events;
+	std::unordered_map< std::string, failure_event > m_failure_events;
+	std::vector <std::string> m_failure_event_labels;
 	std::unordered_map< std::string, ComponentStatus > m_component_status;
 	std::unordered_map< std::string, double > m_plant_status;
     int m_read_periods;
@@ -33,6 +34,8 @@ class CSPPlant
     int m_num_periods;
     double m_downtime_threshold;
     double m_downtime;
+	double m_shutdown_availability = 0.3;
+	double m_no_restart_availability = 0.96;
     double m_eps;
     bool m_output;
 	double m_capacity;
@@ -52,7 +55,10 @@ class CSPPlant
 	int m_num_salt_steam_trains = 0;
 	int m_num_salt_pumps = 0;
 	int m_num_water_pumps = 0;
-
+	int m_num_hp_turbines = 0;
+	int m_num_mp_turbines = 0;
+	int m_num_lp_turbines = 0;
+	bool m_record_state_failure = true;
 	
 
 public:
@@ -80,7 +86,10 @@ public:
 	double GetHotStartPenalty();
 	double GetWarmStartPenalty();
 	double GetColdStartPenalty();
+	void SetShutdownAvailability(double avail);
+	void SetNoRestartAvailability(double avail);
 	std::unordered_map< std::string, failure_event > GetFailureEvents();
+	std::vector<std::string> GetFailureEventLabels();
     void AddComponent( std::string name, std::string type, //std::string dist_type, double failure_alpha, double failure_beta, 
 		double repair_rate, double repair_cooldown_time, 
         double availability_reduction = 1.0, 
@@ -93,6 +102,7 @@ public:
 	void AddFeedwaterHeaters(int num_fwh);
 	void AddSaltPumps(int num_pumps);
 	void AddWaterPumps(int num_pumps);
+	void AddTurbines(int num_hi_pressure = 1, int num_mid_pressure = 1, int num_low_pressure = 1);
 	void SetPlantAttributes(double maintenance_interval,
 		double maintenance_duration,
 		double ramp_threshold, double downtime_threshold,
@@ -108,7 +118,8 @@ public:
 
 	void TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode);
 	bool AllComponentsOperational();
-    void PlantMaintenanceShutdown(int t, bool record);
+	double GetMaxComponentDowntime();
+    void PlantMaintenanceShutdown(int t, bool reset_time, bool record, double duration=0.);
     void AdvanceDowntime(std::string mode);
     double GetRampMult(double power_out);
     void OperateComponents(double ramp_mult, int t, std::string start, std::string mode);
