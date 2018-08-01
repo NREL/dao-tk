@@ -41,6 +41,9 @@
         "tuple": "cpp",
         "type_traits": "cpp",
         "typeinfo": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "hash_set": "cpp",
+        "string_view": "cpp",
+        "chrono": "cpp"
     }
 }
