@@ -174,6 +174,7 @@ MainWindow::MainWindow()
 
 	m_tabList->Append("Data");
 	m_DataViewForm = new DataView(m_notebook);
+	m_DataViewForm->SetDataObject( m_project.GetMergedData() );
 	m_notebook->AddPage(m_DataViewForm, "Data");
 
 	m_tabList->Append("Log");

@@ -300,6 +300,11 @@ Project::~Project()
 //	sscdata_localdata(obj, false);
 //}
 
+lk::varhash_t *Project::GetMergedData()
+{
+	return &_merged_data;
+}
+
 data_base *Project::GetVarPtr(const char *name)
 {
     

@@ -324,6 +324,7 @@ public:
 	int Z();
 
 	data_base *GetVarPtr(const char *name);
+	lk::varhash_t *GetMergedData();
 
 	// def setup_clusters(self, Nclusters, Ndays = 2, Nprev = 1, Nnext = 1, user_weights = None, user_divisions = None):
 	// def M(self, variables, design):
