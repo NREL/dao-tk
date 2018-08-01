@@ -330,6 +330,11 @@ void MainWindow::SetProgress( int percent, const wxString &msg )
 	m_statusLabel->SetLabel(msg);
 }
 
+void MainWindow::UpdateDataTable()
+{
+	m_DataViewForm->UpdateView();
+}
+
 bool MainWindow::UpdateIsStopFlagSet()
 {
 	return m_ScriptViewForm->GetEditor()->IsStopFlagSet();

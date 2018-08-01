@@ -55,6 +55,7 @@ public:
 	
 	bool UpdateIsStopFlagSet();
 	void SetProgress( int percent, const wxString &msg = wxEmptyString );
+	void UpdateDataTable();
 
 	void ClearLog();
 	void Log(const wxString &, bool wnl = true);

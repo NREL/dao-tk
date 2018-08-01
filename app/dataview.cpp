@@ -79,6 +79,7 @@
 #include <wex/numeric.h>
 
 #include "dataview.h"
+#include "project.h"
 
 #ifdef __WXOSX__
 #define FONTSIZE 13
@@ -425,10 +426,9 @@ void DataView::UpdateView()
 		for(lk::varhash_t::iterator it = m_vt->begin(); it != m_vt->end(); it++ )
 		{
 			varnames.push_back( it->first );
-			int len = it->first.length();
+			int len = (static_cast<data_base*>(it->second))->nice_name.length();
 			if (len > padto) padto = len;
 		}
-		std::sort( varnames.begin(), varnames.end());
 		padto += 2;
 
 
@@ -437,13 +437,16 @@ void DataView::UpdateView()
 		{
 			lk_string name = varnames.at(ni);
 
-			m_names.Add( name );
-			wxString label = name;
 
 			if (lk::vardata_t *v = m_vt->at(name))
 			{
-				for (int j=0;j< padto-(int)name.length();j++)
-					label += ' ';
+				m_names.Add( name );
+				wxString label = wxString::Format( "%" + wxString::Format("-%ds",padto) ,( static_cast<data_base*>(v) )->nice_name );
+
+				// for (int j=0;j< padto-(int)label.length();j++)
+				// 	label += " ";
+				
+				int labellen = label.length();
 
 				label += wxString(v->typestr());
 				if (v->type() == lk::vardata_t::NUMBER)
@@ -458,9 +461,9 @@ void DataView::UpdateView()
 							label += wxString::Format(" [%d,%d]", (int)v->vec()->size(), (int)v->vec()->front().vec()->size() );
 						else
 							label += wxString::Format( " [%d]", (int)v->vec()->size() );
+   				labels.Add( label );
 			}
 
-			labels.Add( label );
 		}
 
 		m_varlist->Freeze();

@@ -138,34 +138,36 @@ void _test(lk::invoke_t &cxt)
 	// MainWindow::Instance().Log()
 	MainWindow &mw = MainWindow::Instance();
 
-	Project P;
+	Project *P = mw.GetProject();
 
-	P.m_variables.h_tower.assign( 100. );
-	P.m_variables.rec_height.assign( 15. );
-	P.m_variables.D_rec.assign( 12. );
-	P.m_variables.design_eff.assign( .41 );
-	P.m_variables.dni_des.assign( 950. );
-	P.m_variables.P_ref.assign( 25. );
-	P.m_variables.solarm.assign( 2.4 );
-	P.m_variables.tshours.assign( 10. );
-	P.m_variables.degr_replace_limit.assign( .7 );
-	P.m_variables.om_staff.assign( 5 );
-	P.m_variables.n_wash_crews.assign( 3 );
-	P.m_variables.N_panels.assign( 16 );
+	P->m_variables.h_tower.assign( 100. );
+	P->m_variables.rec_height.assign( 15. );
+	P->m_variables.D_rec.assign( 12. );
+	P->m_variables.design_eff.assign( .41 );
+	P->m_variables.dni_des.assign( 950. );
+	P->m_variables.P_ref.assign( 25. );
+	P->m_variables.solarm.assign( 2.4 );
+	P->m_variables.tshours.assign( 10. );
+	P->m_variables.degr_replace_limit.assign( .7 );
+	P->m_variables.om_staff.assign( 5 );
+	P->m_variables.n_wash_crews.assign( 3 );
+	P->m_variables.N_panels.assign( 16 );
 
-	P.m_parameters.solar_resource_file.assign( "C:/Users/mwagner/Documents/NREL/projects/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+	P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
 
-	P.D();
-	P.M();
-	P.O();
+	P->D();
+	P->M();
+	P->O();
 
-	mw.Log(wxString::Format("Total field area: %.2f", P.m_design_outputs.area_sf.as_number()));
-	mw.Log(wxString::Format("Number of repairs: %d", (int)P.m_solarfield_outputs.n_repairs.as_integer()));
-	mw.Log(wxString::Format("Number of mirror replacements: %d", (int)P.m_optical_outputs.n_replacements.as_integer()));
-	mw.Log(wxString::Format("Average soiling: %.2f", P.m_optical_outputs.avg_soil.as_number()));
-	mw.Log(wxString::Format("Average degradation: %.2f", P.m_optical_outputs.avg_degr.as_number()));
+
+	mw.Log(wxString::Format("Total field area: %.2f", P->m_design_outputs.area_sf.as_number()));
+	mw.Log(wxString::Format("Number of repairs: %d", (int)P->m_solarfield_outputs.n_repairs.as_integer()));
+	mw.Log(wxString::Format("Number of mirror replacements: %d", (int)P->m_optical_outputs.n_replacements.as_integer()));
+	mw.Log(wxString::Format("Average soiling: %.2f", P->m_optical_outputs.avg_soil.as_number()));
+	mw.Log(wxString::Format("Average degradation: %.2f", P->m_optical_outputs.avg_degr.as_number()));
 
 	mw.SetProgress(0.);
+	mw.UpdateDataTable();
 
 	return;
 
