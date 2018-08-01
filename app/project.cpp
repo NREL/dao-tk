@@ -161,21 +161,21 @@ design_outputs::design_outputs()
 	*/
 
 	double nan = std::numeric_limits<double>::quiet_NaN();
-	number_heliostats.set(-1, "number_heliostats", lk::vardata_t::NUMBER, true);
-	area_sf.set(nan, "area_sf", lk::vardata_t::NUMBER, true);
-	base_land_area.set(nan, "base_land_area", lk::vardata_t::NUMBER, true);
-	land_area.set(nan, "land_area", lk::vardata_t::NUMBER, true);
+	number_heliostats.set(-1, "number_heliostats", lk::vardata_t::NUMBER, true, "[-] Heliostat count", "D|");
+	area_sf.set(nan, "area_sf", lk::vardata_t::NUMBER, true, "[m2] Total heliostat area", "D|");
+	base_land_area.set(nan, "base_land_area", lk::vardata_t::NUMBER, true, "[acre] Solar field land area", "D|");
+	land_area.set(nan, "land_area", lk::vardata_t::NUMBER, true, "[acre] Total land area", "D|");
 	h_tower_opt.set(nan, "h_tower_opt", lk::vardata_t::NUMBER, true);
 	rec_height_opt.set(nan, "rec_height_opt", lk::vardata_t::NUMBER, true);
 	rec_aspect_opt.set(nan, "rec_aspect_opt", lk::vardata_t::NUMBER, true);
-	cost_rec_tot.set(nan, "cost_rec_tot", lk::vardata_t::NUMBER, true);
-	cost_sf_tot.set(nan, "cost_sf_tot", lk::vardata_t::NUMBER, true);
-	cost_sf_real.set(nan, "", lk::vardata_t::NUMBER, true);
-	cost_tower_tot.set(nan, "cost_tower_tot", lk::vardata_t::NUMBER, true);
-	cost_land_tot.set(nan, "cost_land_tot", lk::vardata_t::NUMBER, true);
-	cost_land_real.set(nan, "", lk::vardata_t::NUMBER, true);
-	cost_site_tot.set(nan, "cost_site_tot", lk::vardata_t::NUMBER, true);
-	flux_max_observed.set(nan, "flux_max_observed", lk::vardata_t::NUMBER, true);
+	cost_rec_tot.set(nan, "cost_rec_tot", lk::vardata_t::NUMBER, true, "[$] Receiver cost", "Fin|");
+	cost_sf_tot.set(nan, "cost_sf_tot", lk::vardata_t::NUMBER, true, "[$] Solar field cost", "Fin|");
+	cost_sf_real.set(nan, "", lk::vardata_t::NUMBER, true, "[$] Solar field cost (real)", "Fin|");
+	cost_tower_tot.set(nan, "cost_tower_tot", lk::vardata_t::NUMBER, true, "[$] Tower cost", "Fin|");
+	cost_land_tot.set(nan, "cost_land_tot", lk::vardata_t::NUMBER, true, "[$] Land cost", "Fin|");
+	cost_land_real.set(nan, "", lk::vardata_t::NUMBER, true, "[$] Land cost (real)", "Fin|");
+	cost_site_tot.set(nan, "cost_site_tot", lk::vardata_t::NUMBER, true, "[$] Site cost", "Fin|");
+	flux_max_observed.set(nan, "flux_max_observed", lk::vardata_t::NUMBER, true, "[kW/m2] Max observed flux", "SF|");
 
 	std::vector< std::vector< double > > empty_mat;
 	opteff_table.set(empty_mat, "opteff_table", lk::vardata_t::VECTOR, true);
@@ -210,9 +210,9 @@ solarfield_outputs::solarfield_outputs()
 	*/
 
 	double nan = std::numeric_limits<double>::quiet_NaN();
-	n_repairs.set(nan, "n_repairs", lk::vardata_t::NUMBER, true);
-	staff_utilization.set(nan, "staff_utilization", lk::vardata_t::NUMBER, true);
-	heliostat_repair_cost_y1.set(nan, "heliostat_repair_cost_y1", lk::vardata_t::NUMBER, true);
+	n_repairs.set(nan, "n_repairs", lk::vardata_t::NUMBER, true, "[-] Number of heliostat repairs", "HAv|");
+	staff_utilization.set(nan, "staff_utilization", lk::vardata_t::NUMBER, true, "[-] Staff utilization", "HAv|");
+	heliostat_repair_cost_y1.set(nan, "heliostat_repair_cost_y1", lk::vardata_t::NUMBER, true, "[$] Heliostat repair cost (year 1)", "O&M|");
 	heliostat_repair_cost.set(nan, "heliostat_repair_cost", lk::vardata_t::NUMBER, true);
 
 	std::vector< double > empty_vec;
@@ -235,15 +235,15 @@ optical_outputs::optical_outputs()
 	double nan = std::numeric_limits<double>::quiet_NaN();
 	std::vector< double > empty_vec;
 	
-	n_replacements.set(nan, "n_replacements", lk::vardata_t::NUMBER, true );
-	heliostat_refurbish_cost.set(nan, "heliostat_refurbish_cost", lk::vardata_t::NUMBER, true );
-	heliostat_refurbish_cost_y1.set(nan, "heliostat_refurbish_cost_y1", lk::vardata_t::NUMBER, true );
-	avg_soil.set(nan, "avg_soil", lk::vardata_t::NUMBER, true );
-	avg_degr.set(nan, "avg_degr", lk::vardata_t::NUMBER, true );
+	n_replacements.set(nan, "n_replacements", lk::vardata_t::NUMBER, true, "[-] Mirror replacements", "Opc|" );
+	heliostat_refurbish_cost.set(nan, "heliostat_refurbish_cost", lk::vardata_t::NUMBER, true, "[$] Mirror replacement cost", "O&M|" );
+	heliostat_refurbish_cost_y1.set(nan, "heliostat_refurbish_cost_y1", lk::vardata_t::NUMBER, true, "[$] Mirror replacement cost (year 1)", "O&M|" );
+	avg_soil.set(nan, "avg_soil", lk::vardata_t::NUMBER, true, "[-] Average lifetime soiling", "Opc|" );
+	avg_degr.set(nan, "avg_degr", lk::vardata_t::NUMBER, true, "[-] Average lifetime degradation", "Opc|" );
 
-	soil_schedule.set(empty_vec, "soil_schedule", lk::vardata_t::VECTOR, true );
-	degr_schedule.set(empty_vec, "degr_schedule", lk::vardata_t::VECTOR, true );
-	repl_schedule.set(empty_vec, "repl_schedule", lk::vardata_t::VECTOR, true );
+	soil_schedule.set(empty_vec, "soil_schedule", lk::vardata_t::VECTOR, true, "[-] Soiling time series", "Opc|" );
+	degr_schedule.set(empty_vec, "degr_schedule", lk::vardata_t::VECTOR, true, "[-] Degradation time series", "Opc|" );
+	repl_schedule.set(empty_vec, "repl_schedule", lk::vardata_t::VECTOR, true, "[-] Mirror repl. time series", "Opc|" );
 	repl_total.set(empty_vec, "repl_total", lk::vardata_t::VECTOR, true );
 
     (*this)["n_replacements"] = &n_replacements;

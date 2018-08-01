@@ -440,14 +440,18 @@ void DataView::UpdateView()
 
 			if (lk::vardata_t *v = m_vt->at(name))
 			{
-				m_names.Add( name );
-				wxString label = wxString::Format( "%" + wxString::Format("-%ds",padto) ,( static_cast<data_base*>(v) )->nice_name );
+				wxString nice_name = ( static_cast<data_base*>(v) )->nice_name;
+				
+				if( nice_name.empty() ) 
+					continue;
 
+				wxString label = wxString::Format( "%" + wxString::Format("-%ds",padto) , nice_name );
+
+
+				m_names.Add( name );
 				// for (int j=0;j< padto-(int)label.length();j++)
 				// 	label += " ";
 				
-				int labellen = label.length();
-
 				label += wxString(v->typestr());
 				if (v->type() == lk::vardata_t::NUMBER)
 					label += " " + wxString::Format("%lg", v->as_number() );				
@@ -525,13 +529,19 @@ void DataView::OnCommand(wxCommandEvent &evt)
 				lk::vardata_t *v = m_vt->at( (const char*) m_selections[i].c_str() );
 				if ( v != 0 
 					&& v->type() == lk::vardata_t::VECTOR
-					&& v->vec()->size() == 8760)
+					&& v->vec()->size() % 8760 == 0)
 				{
-					for (int k=0;k<8760;k++)
-						da[k] = v->vec()->at(k).as_number();
+					int nyear = v->vec()->size() / 8760;
 
-					dv->AddDataSet(  new wxDVArrayDataSet( m_selections[i], da ) );
-					iadded++;
+					for (int y=0;y<nyear;y++)
+					{
+						for (int k=0;k<8760;k++)
+							da[k] = v->vec()->at(k+y*8760).as_number();
+
+						dv->AddDataSet(  new wxDVArrayDataSet( m_selections[i] + (nyear > 1 ? wxString::Format("_y%d", y+1) : ""), da ) );
+						iadded++;
+					}
+
 				}
 			}
 			

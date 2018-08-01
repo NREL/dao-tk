@@ -42,8 +42,11 @@ protected:
 		set_limits(vmin, vmax);
         this->name = vname;
 		this->type = datatype;
-		this->nice_name.append( "Var|" );
-		this->nice_name.append( _nice_name );
+		if( _nice_name )
+		{
+			this->nice_name.append( "Var|" );
+			this->nice_name.append( _nice_name );
+		}
     };
 
 public:
@@ -102,8 +105,11 @@ protected:
     {
         this->name = vname;
         this->type = datatype;
-		this->nice_name = _group_name ? _group_name : "Par|";
-		this->nice_name.append( _nice_name ? _nice_name : vname );
+		if( _nice_name )
+		{
+			this->nice_name = _group_name ? _group_name : "Par|";
+			this->nice_name.append( _nice_name );
+		}
         is_calculated = calculated;
     };
 
