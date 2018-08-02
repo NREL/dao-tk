@@ -37,14 +37,18 @@ public:
 class variable : public data_base
 {
 protected:
-    void _set_base(double vmin, double vmax, std::string vname, const unsigned char datatype, const char *_nice_name)
+    void _set_base(double vmin, double vmax, std::string vname, const unsigned char datatype, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
 		set_limits(vmin, vmax);
         this->name = vname;
 		this->type = datatype;
+		this->nice_name.clear();
 		if( _nice_name )
 		{
-			this->nice_name.append( "Var|" );
+			this->nice_name.append( wxString::Format("%-8s", _group ) );
+
+			this->nice_name.append( wxString::Format("%-8s", wxString::Format("[%s]", _units ? _units : "-") ) );
+			
 			this->nice_name.append( _nice_name );
 		}
     };
@@ -64,18 +68,18 @@ public:
 		return true;
 	};
 	
-	void set(double _defaultval, double _vmin, double _vmax, std::string _vname, const unsigned char _datatype, const char *_nice_name)
+	void set(double _defaultval, double _vmin, double _vmax, std::string _vname, const unsigned char _datatype, const char *_nice_name=0, const char *_units=0, const char *_group=0)
 	{
         this->defaultval.assign(_defaultval); 
         this->assign(_defaultval);
-        _set_base(_vmin, _vmax, _vname, _datatype, _nice_name);
+        _set_base(_vmin, _vmax, _vname, _datatype, _nice_name, _units, _group);
 	};
     
-    void set(int _defaultval, double _vmin, double _vmax, std::string _vname, const unsigned char _datatype, const char *_nice_name)
+    void set(int _defaultval, double _vmin, double _vmax, std::string _vname, const unsigned char _datatype, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
         this->defaultval.assign(_defaultval);
         this->assign(_defaultval);
-        _set_base(_vmin, _vmax, _vname, _datatype, _nice_name);
+        _set_base(_vmin, _vmax, _vname, _datatype, _nice_name, _units, _group);
     };
 
 };
@@ -101,13 +105,16 @@ struct variables : public lk::varhash_t
 class parameter : public data_base
 {
 protected:
-    void _set_base(std::string vname, const unsigned int datatype, bool calculated, const char *_nice_name, const char *_group_name)
+    void _set_base(std::string vname, const unsigned int datatype, bool calculated, const char *_nice_name, const char *_units, const char *_group)
     {
         this->name = vname;
         this->type = datatype;
 		if( _nice_name )
 		{
-			this->nice_name = _group_name ? _group_name : "Par|";
+			this->nice_name.append( wxString::Format("%-8s", _group ) );
+
+			this->nice_name.append( wxString::Format("%-8s", wxString::Format("[%s]", _units ? _units : "-") ) );
+			
 			this->nice_name.append( _nice_name );
 		}
         is_calculated = calculated;
@@ -116,41 +123,41 @@ protected:
 public:
 	bool is_calculated;
 	//double
-	void set(double v, std::string vname, const unsigned int datatype, bool calculated=false, const char *_nice_name=0, const char *_group_name=0)
+	void set(double v, std::string vname, const unsigned int datatype, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
 	{
 		this->assign(v);
-        _set_base(vname, datatype, calculated, _nice_name, _group_name) ;
+        _set_base(vname, datatype, calculated, _nice_name, _units, _group) ;
 	};
     //int
-    void set(int v, std::string vname, const unsigned int datatype, bool calculated = false, const char *_nice_name=0, const char *_group_name=0)
+    void set(int v, std::string vname, const unsigned int datatype, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
         this->assign(v);
-        _set_base(vname, datatype, calculated, _nice_name, _group_name) ;
+        _set_base(vname, datatype, calculated, _nice_name, _units, _group) ;
     };
     //boolean
-    void set(bool v, std::string vname, const unsigned int datatype, bool calculated = false, const char *_nice_name=0, const char *_group_name=0)
+    void set(bool v, std::string vname, const unsigned int datatype, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
         this->assign(v);
-        _set_base(vname, datatype, calculated, _nice_name, _group_name) ;
+        _set_base(vname, datatype, calculated, _nice_name, _units, _group) ;
     };
     //string
-    void set(std::string v, std::string vname, const unsigned int datatype, bool calculated = false, const char *_nice_name=0, const char *_group_name=0)
+    void set(std::string v, std::string vname, const unsigned int datatype, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
         this->assign(v);
-        _set_base(vname, datatype, calculated, _nice_name, _group_name) ;
+        _set_base(vname, datatype, calculated, _nice_name, _units, _group) ;
     };
     //vector-double
-    void set(std::vector<double> &v, std::string vname, const unsigned int datatype, bool calculated = false, const char *_nice_name=0, const char *_group_name=0)
+    void set(std::vector<double> &v, std::string vname, const unsigned int datatype, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
         this->empty_vector();
         this->vec()->resize(v.size());
         for (size_t i = 0; i < v.size(); i++)
             this->vec()->at(i).assign(v.at(i));
 
-        _set_base(vname, datatype, calculated, _nice_name, _group_name);
+        _set_base(vname, datatype, calculated, _nice_name, _units, _group);
     };
     //matrix-double
-    void set(std::vector< std::vector< double > > &v, std::string vname, const unsigned int datatype, bool calculated = false, const char *_nice_name=0, const char *_group_name=0)
+    void set(std::vector< std::vector< double > > &v, std::string vname, const unsigned int datatype, bool calculated = false, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
         this->empty_vector();
         this->vec()->resize(v.size());
@@ -161,7 +168,7 @@ public:
                 this->vec()->at(i).resize(v.at(i).size());
                 this->vec()->at(i).assign(v.at(i).at(j));
             }
-        _set_base(vname, datatype, calculated, _nice_name, _group_name);
+        _set_base(vname, datatype, calculated, _nice_name, _units, _group);
     };
 
 };
