@@ -81,7 +81,7 @@ parameters::parameters()
 	wash_units_per_hour.set( 45., "wash_units_per_hour", lk::vardata_t::NUMBER, false, "[1/crew-hr] Heliostat wash rate", "Par|Opc|" );
 	wash_crew_max_hours_week.set( 70., "wash_crew_max_hours_week", lk::vardata_t::NUMBER, false, "[hr] Wash crew max hours per week", "Par|Opc|" );
 	degr_per_hour.set( 1.e-7, "degr_per_hour", lk::vardata_t::NUMBER, false, "[1/hr] Reflectivity degradation rate", "Par|Opc|" );
-	degr_accel_per_year.set( 0.125, "degr_accel_per_year", lk::vardata_t::NUMBER, false, "[1/hr/year] Reflectivity degradation acceleration", "Par|Opc|" );
+	degr_accel_per_year.set( 0.125, "degr_accel_per_year", lk::vardata_t::NUMBER, false, "[1/yr] Refl. degradation acceleration", "Par|Opc|" );
 	degr_seed.set( 123, "degr_seed", lk::vardata_t::NUMBER, false, "Random number generator seed", "Par|Opc|" );
 	soil_per_hour.set( 6.e-4, "soil_per_hour", lk::vardata_t::NUMBER, false, "[1/hr] Mean soiling rate", "Par|Opc|" );
 	adjust_constant.set( 4, "adjust:constant", lk::vardata_t::NUMBER, false, "[%] Misc fixed power loss", "Par|Fin|" );
