@@ -2,6 +2,8 @@
 #define __dao_h
 
 #include <wx/frame.h>
+#include <wx/filename.h>
+
 #include "project.h"
 
 //#define ST_CONSOLE_APP      //define this if we want to compile as a console application (no gui)
@@ -29,6 +31,15 @@ DECLARE_APP(MyApp)
 class MainWindow : public wxFrame
 {
 private:
+	wxFileName 
+        m_recent_file_list,    //File containing the list of recent files
+        m_settings_file,
+        m_working_dir, //The working directory
+        m_install_dir, //the head installation directory
+        m_image_dir, //the directory containing resource images
+        m_local_dir,    //The location to store edited app files
+        m_help_dir;    //the location of the help directory
+
 	wxMetroButton * m_mainMenuButton;
 	wxMetroTabList *m_tabList;
 	wxSimplebook *m_notebook;

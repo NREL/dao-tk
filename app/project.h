@@ -24,6 +24,8 @@ public:
 	std::string name;
     unsigned char type;   //type defined in lk::vardata_t {NUMBER, STRING, VECTOR, HASH}
 	std::string nice_name;
+	std::string units;
+	std::string group;
 
     void assign_vector(float *_vec, int nval)
     {
@@ -31,7 +33,12 @@ public:
         this->vec()->resize(nval);
         for (int i = 0; i < nval; i++)
             this->vec()->at(i).assign(_vec[i]);
-    }
+    };
+
+	std::string GetDisplayName()
+	{
+		return wxString::Format("[%s] %s", units, nice_name).ToStdString();
+	};
 };
 
 class variable : public data_base
@@ -42,15 +49,9 @@ protected:
 		set_limits(vmin, vmax);
         this->name = vname;
 		this->type = datatype;
-		this->nice_name.clear();
-		if( _nice_name )
-		{
-			this->nice_name.append( wxString::Format("%-8s", _group ) );
-
-			this->nice_name.append( wxString::Format("%-8s", wxString::Format("[%s]", _units ? _units : "-") ) );
-			
-			this->nice_name.append( _nice_name );
-		}
+		this->nice_name = _nice_name; 
+		this->units = _units;
+		this->group = _group;
     };
 
 public:
@@ -109,14 +110,9 @@ protected:
     {
         this->name = vname;
         this->type = datatype;
-		if( _nice_name )
-		{
-			this->nice_name.append( wxString::Format("%-8s", _group ) );
-
-			this->nice_name.append( wxString::Format("%-8s", wxString::Format("[%s]", _units ? _units : "-") ) );
-			
-			this->nice_name.append( _nice_name );
-		}
+		this->nice_name = _nice_name != '\0' ? _nice_name : "";
+		this->units = _units != '\0' ? _units : "";
+		this->group = _group != '\0' ? _group : "";
         is_calculated = calculated;
     };
 

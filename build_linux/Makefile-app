@@ -21,6 +21,7 @@ CXXFLAGS=-std=c++0x $(CFLAGS)
 OBJECTS  = \
 	daotk_app.o \
 	dataview.o \
+	treeselect.o \
 	logview.o \
 	project.o \
 	scripting.o \

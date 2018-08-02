@@ -79,6 +79,7 @@
 #include <wex/numeric.h>
 
 #include "dataview.h"
+#include "treeselect.h"
 #include "project.h"
 
 #ifdef __WXOSX__
@@ -258,7 +259,17 @@ private:
 	wxArrayString m_items;
 };
 
+class TreeItemData : public wxTreeItemData
+{
+public:
+	TreeItemData() : wxTreeItemData() {};
+	TreeItemData( const char * _varname ) : wxTreeItemData() 
+	{
+		varname = _varname;
+	};
 
+	std::string varname;
+};
 
 enum { ID_COPY_CLIPBOARD = 2315,
 	   ID_LIST,
@@ -278,7 +289,7 @@ BEGIN_EVENT_TABLE( DataView, wxPanel )
 	EVT_BUTTON( ID_UNSELECT_ALL, DataView::OnCommand )
 	EVT_BUTTON( ID_SHOW_STATS, DataView::OnCommand )
 	EVT_BUTTON( ID_DVIEW, DataView::OnCommand )
-	EVT_CHECKLISTBOX( ID_LIST, DataView::OnVarListCheck )
+	EVT_TREE_STATE_IMAGE_CLICK( ID_LIST, DataView::OnVarListCheck )
 	EVT_LISTBOX_DCLICK( ID_LIST, DataView::OnVarListDClick )
 	EVT_GRID_CMD_LABEL_RIGHT_CLICK( ID_GRID, DataView::OnGridLabelRightClick )
 	EVT_GRID_CMD_LABEL_LEFT_DCLICK( ID_GRID, DataView::OnGridLabelDoubleClick )
@@ -290,11 +301,11 @@ BEGIN_EVENT_TABLE( DataView, wxPanel )
 END_EVENT_TABLE()
 
 
-DataView::DataView( wxWindow *parent ) 
+DataView::DataView( wxWindow *parent, const char *imagedir ) 
 	: wxPanel( parent ),
   	m_frozen(false),
 	m_grid_table(0),
-	m_root_item(0),
+	// m_root_item(0),
 	m_vt(0)
 {
 	wxBoxSizer *tb_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -305,12 +316,11 @@ DataView::DataView( wxWindow *parent )
 	tb_sizer->Add( new wxButton( this, ID_DVIEW, "Timeseries graph...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxEXPAND|wxALL, 2);
 	tb_sizer->AddStretchSpacer(1);
 
-	wxSplitterWindow *splitwin = new wxSplitterWindow(this, wxID_ANY, 
-		wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE ); 
+	wxSplitterWindow *splitwin = new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE ); 
 	splitwin->SetMinimumPaneSize(210);
 
-	m_varlist = new wxCheckListBox( splitwin, ID_LIST );
-	m_varlist->SetFont( wxFont(FONTSIZE, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
+	m_varlist = new VarTreeView( splitwin, ID_LIST,  imagedir);
+	// m_varlist->SetFont( wxFont(FONTSIZE, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
 	
 	m_grid = new wxExtGridCtrl(splitwin, ID_GRID);
 	m_grid->SetFont( wxFont(FONTSIZE, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
@@ -354,22 +364,54 @@ wxArrayString DataView::GetSelections()
 	return m_selections;
 }
 
-void DataView::SetSelections(const wxArrayString &sel)
+void DataView::SetSelections(const wxArrayString &sel, const wxArrayString &labels)
 {
-	m_selections = sel;
-	size_t i=0;
-	while (i < m_selections.Count())
-	{
-		if ( m_names.Index( m_selections[i] ) == wxNOT_FOUND )
-			m_selections.RemoveAt(i);
-		else
-		{
-			i++;
-		}
-	}
+    m_varlist->DeleteAllItems();
 
-	for (unsigned int idx=0;idx<m_names.Count();idx++)
-		m_varlist->Check( idx, (m_selections.Index( m_names[idx] ) >= 0) );	
+    m_root = m_varlist->AddRoot("Data", VarTreeView::ICON_REMOVE,VarTreeView::ICON_REMOVE);
+    m_varlist->SetItemBold(m_root);
+    wxTreeItemId cur_parent;
+    wxString cur_context = wxEmptyString;
+	
+
+    for (int i=0;i < (int)m_names.Count();i++)
+    {
+        // m_items.at(i).tree_id.Unset();
+
+        // if ( !m_items.at(i).shown && !m_items.at(i).checked ) continue;
+		if(  m_names[i].IsEmpty() )
+			continue;
+		
+		lk::vardata_t *v = m_vt->at(m_names[i]);
+		
+		wxArrayString parsename = wxSplit(labels[i], wxChar('@'));
+
+		wxString cxt = parsename[0];
+        wxString lbl = parsename[1];
+
+        if (cur_context != cxt)
+        {
+            cur_context = cxt;
+            cur_parent = m_varlist->AppendItem(m_root, cur_context, -1, -1, new TreeItemData(m_names[i].c_str()) );
+            m_varlist->SetItemBold(cur_parent);
+        }
+        
+        // if (lbl.IsEmpty())
+        //     lbl = m_items.at(i).label;
+
+		wxTreeItemId item_id;
+        if (cur_parent.IsOk())
+            item_id = m_varlist->AppendItem( cur_parent, lbl, VarTreeView::ICON_CHECK_FALSE,-1, new TreeItemData(m_names[i].c_str()) );
+        else
+            item_id = m_varlist->AppendItem( m_root, lbl, VarTreeView::ICON_CHECK_FALSE, -1, new TreeItemData(m_names[i].c_str()) );
+
+        if ( m_selections.Index( m_names[i] ) >= 0 )
+            m_varlist->Check( item_id, true );
+    }
+
+    m_varlist->Expand(m_root);
+    m_varlist->UnselectAll();
+
 }
 
 static void SortByLabels(wxArrayString &names, wxArrayString &labels)
@@ -416,7 +458,8 @@ void DataView::UpdateView()
 
 	m_names.Clear();
 
-	m_varlist->Clear();
+	// m_varlist->Clear();
+	wxArrayString labels;
 
 	if (m_vt != NULL)
 	{
@@ -426,13 +469,12 @@ void DataView::UpdateView()
 		for(lk::varhash_t::iterator it = m_vt->begin(); it != m_vt->end(); it++ )
 		{
 			varnames.push_back( it->first );
-			int len = (static_cast<data_base*>(it->second))->nice_name.length();
+			int len = (static_cast<data_base*>(it->second))->GetDisplayName().length();
 			if (len > padto) padto = len;
 		}
 		padto += 2;
 
 
-		wxArrayString labels;
 		for( int ni=0; ni<varnames.size(); ni++)
 		{
 			lk_string name = varnames.at(ni);
@@ -440,13 +482,12 @@ void DataView::UpdateView()
 
 			if (lk::vardata_t *v = m_vt->at(name))
 			{
-				wxString nice_name = ( static_cast<data_base*>(v) )->nice_name;
+				data_base *dv = static_cast<data_base*>(v);
 				
-				if( nice_name.empty() ) 
+				if( dv->nice_name.empty() ) 
 					continue;
 
-				wxString label = wxString::Format( "%" + wxString::Format("-%ds",padto) , nice_name );
-
+				wxString label = wxString::Format( "%s@%" + wxString::Format("-%ds",padto) , dv->group, dv->nice_name );
 
 				m_names.Add( name );
 				// for (int j=0;j< padto-(int)label.length();j++)
@@ -470,17 +511,17 @@ void DataView::UpdateView()
 
 		}
 
-		m_varlist->Freeze();
 		SortByLabels(m_names, labels );
-		for (int i=0;i<(int)m_names.Count();i++)
-		{
-			int idx = m_varlist->Append( labels[i]);
-			m_varlist->Check( idx, false );
-		}
-		m_varlist->Thaw();
+		// m_varlist->Freeze();
+		// for (int i=0;i<(int)m_names.Count();i++)
+		// {
+		// 	int idx = m_varlist->Append( labels[i]);
+		// 	m_varlist->Check( idx, false );
+		// }
+		// m_varlist->Thaw();
 	}
 	
-	SetSelections( sel_list );
+	SetSelections( sel_list, labels );
 	UpdateGrid();
 }
 	
@@ -546,7 +587,7 @@ void DataView::OnCommand(wxCommandEvent &evt)
 			}
 			
 			if (iadded == 0)
-				wxMessageBox("Please check one or more array variables with 8760 values to show in the timeseries viewer.");
+				wxMessageBox("Please check one or more array variables with a multiple of 8760 values to show in the timeseries viewer.");
 			else
 			{
 				dv->SelectDataOnBlankTabs();
@@ -573,19 +614,21 @@ void DataView::OnCommand(wxCommandEvent &evt)
 	}
 }
 
-void DataView::OnVarListCheck(wxCommandEvent &evt)
+void DataView::OnVarListCheck(wxTreeEvent &evt)
 {
-	int idx = evt.GetSelection();
-	if (idx >= 0  && idx < (int)m_names.Count())
-	{
-		wxString var = m_names[idx];
+	
+	wxTreeItemId idx = evt.GetItem();
+
+	// if (idx >= 0  && idx < (int)m_names.Count())
+	// {
+		wxString var = static_cast<TreeItemData*>( m_varlist->GetItemData(idx) )->varname;
 		
 		if (m_varlist->IsChecked(idx) && m_selections.Index(var) == wxNOT_FOUND)
 			m_selections.Add( var );
 
 		if (!m_varlist->IsChecked(idx) && m_selections.Index(var) != wxNOT_FOUND)
 			m_selections.Remove( var );
-	}
+	// }
 
 	UpdateGrid();
 }
@@ -597,11 +640,13 @@ void DataView::OnVarListDClick(wxCommandEvent &)
 
 wxString DataView::GetSelection()
 {
-	int n = m_varlist->GetSelection();
-	if (n >= 0 && n < (int)m_names.Count())
-		return m_names[n];
-	else
-		return wxEmptyString;
+	return ( static_cast<TreeItemData*>( m_varlist->GetItemData( m_varlist->GetSelection() ) ) )->varname;
+
+	// int n = m_varlist->GetSelection();
+	// if (n >= 0 && n < (int)m_names.Count())
+	// 	return m_names[n];
+	// else
+	// 	return wxEmptyString;
 }
 
 void DataView::ShowStats( wxString name )

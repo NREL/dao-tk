@@ -61,6 +61,7 @@
 #include <ssc/sscapi.h>
 
 class wxExtGridCtrl;
+class VarTreeView;
 
 class DataView : public wxPanel
 {
@@ -68,7 +69,7 @@ public:
 
 	class Table; // forward
 
-	DataView( wxWindow *parent );
+	DataView( wxWindow *parent, const char* imagedir );
 	virtual ~DataView() { m_vt = NULL; }
 
 	void SetDataObject( lk::varhash_t *vt ) { m_vt = vt; UpdateView(); }
@@ -83,7 +84,7 @@ public:
 	std::vector<int> GetColumnWidths();
 	void SetColumnWidths( const std::vector<int> &cwl );
 	wxArrayString GetSelections();
-	void SetSelections(const wxArrayString &sel);
+	void SetSelections(const wxArrayString &sel, const wxArrayString &labels);
 
 	wxString GetSelection();
 
@@ -91,7 +92,7 @@ public:
 
 private:
 	void OnCommand(wxCommandEvent &evt);
-	void OnVarListCheck(wxCommandEvent &evt);
+	void OnVarListCheck(wxTreeEvent &evt);
 	void OnVarListDClick(wxCommandEvent &evt);
 	void OnPopup( wxCommandEvent &evt);
 
@@ -101,10 +102,13 @@ private:
 	bool m_frozen;
 	wxExtGridCtrl *m_grid;
 	Table *m_grid_table;
-	wxCheckListBox *m_varlist;
+	// wxCheckListBox *m_varlist;
+	VarTreeView *m_varlist;
+	wxTreeItemId m_root;
 
-	wxTreeItemId m_root_item;
-	std::vector<wxTreeItemId> m_tree_items;
+
+	// wxTreeItemId m_root_item;
+	// std::vector<wxTreeItemId> m_tree_items;
 	wxArrayString m_names;
 	wxArrayString m_selections;
 
