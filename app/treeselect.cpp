@@ -1,8 +1,9 @@
+
 /*******************************************************************************************************
-*  Copyright 2017 Alliance for Sustainable Energy, LLC
+*  Copyright 2018 Alliance for Sustainable Energy, LLC
 *
 *  NOTICE: This software was developed at least in part by Alliance for Sustainable Energy, LLC
-*  (�Alliance�) under Contract No. DE-AC36-08GO28308 with the U.S. Department of Energy and the U.S.
+*  ("Alliance") under Contract No. DE-AC36-08GO28308 with the U.S. Department of Energy and the U.S.
 *  The Government retains for itself and others acting on its behalf a nonexclusive, paid-up,
 *  irrevocable worldwide license in the software to reproduce, prepare derivative works, distribute
 *  copies to the public, perform publicly and display publicly, and to permit others to do so.
@@ -26,8 +27,9 @@
 *  4. Redistribution of this software, without modification, must refer to the software by the same
 *  designation. Redistribution of a modified version of this software (i) may not refer to the modified
 *  version by the same designation, or by any confusingly similar designation, and (ii) must refer to
-*  the underlying software originally provided by Alliance as �System Advisor Model� or �SAM�. Except
-*  to comply with the foregoing, the terms �System Advisor Model�, �SAM�, or any confusingly similar
+*  the underlying software originally provided by Alliance as "Solar Power tower Integrated Layout and 
+*  Optimization Tool" or "SolarPILOT". Except to comply with the foregoing, the terms "Solar Power 
+*  tower Integrated Layout and Optimization Tool", "SolarPILOT", or any confusingly similar
 *  designation may not be used to refer to any modified version of this software or any modified
 *  version of the underlying software originally provided by Alliance without the prior written consent
 *  of Alliance.
@@ -47,98 +49,99 @@
 *  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************************************/
 
-#ifndef __dataview_h
-#define __dataview_h
 
-#include <vector>
-
-#include <wx/panel.h>
-#include <wx/checklst.h>
+#include <wx/imaglist.h>
 #include <wx/treebase.h>
-#include <wx/grid.h>
 
-#include <lk/env.h>
-#include <ssc/sscapi.h>
+#include "treeselect.h"
 
-class wxExtGridCtrl;
-class VarTreeView;
+//******* VarTreeView control *************
 
-class DataView : public wxPanel
+VarTreeView::VarTreeView( wxWindow *parent, int id, wxString imagedir, const wxPoint &pos, const wxSize &size)
+    : wxTreeCtrl(parent, id, pos, size, wxTR_HAS_BUTTONS|wxTR_SINGLE|wxTR_HIDE_ROOT|wxTR_ROW_LINES)
 {
-public:
+    bCheckMode = true;
+    wxImageList *images = new wxImageList( 16, 16 );
+    images->Add(wxBitmap(imagedir+"checkbox_false_16.png", wxBITMAP_TYPE_PNG));
+    images->Add(wxBitmap(imagedir+"checkbox_true_16.png", wxBITMAP_TYPE_PNG));
+    AssignImageList( images );
+}
 
-	class Table; // forward
-
-	DataView( wxWindow *parent, const char* imagedir );
-	virtual ~DataView() { m_vt = NULL; }
-
-	void SetDataObject( lk::varhash_t *vt ) { m_vt = vt; UpdateView(); }
-	ssc_data_t GetDataObject() { return m_vt; }
-
-	void UpdateView();	
-	void UpdateGrid();
-	virtual void Freeze();
-	virtual void Thaw();
-
-
-	std::vector<int> GetColumnWidths();
-	void SetColumnWidths( const std::vector<int> &cwl );
-	wxArrayString GetSelections();
-	void SetSelections(const wxArrayString &sel, const wxArrayString &labels);
-
-	wxString GetSelection();
-
-	 void ShowStats( wxString name=wxEmptyString );
-
-private:
-	void OnTextSearch( wxCommandEvent &evt );
-	void OnCommand(wxCommandEvent &evt);
-	void OnVarListCheck(wxTreeEvent &evt);
-	void OnVarListDClick(wxCommandEvent &evt);
-	void OnPopup( wxCommandEvent &evt);
-
-	void OnGridLabelRightClick(wxGridEvent &evt);
-	void OnGridLabelDoubleClick(wxGridEvent &evt);
-
-	bool m_frozen;
-	wxExtGridCtrl *m_grid;
-	Table *m_grid_table;
-	// wxCheckListBox *m_varlist;
-	VarTreeView *m_varlist;
-	wxTreeItemId m_root;
-	// wxFont m_data_font;
-
-	// wxTreeItemId m_root_item;
-	// std::vector<wxTreeItemId> m_tree_items;
-	wxArrayString m_names;
-	wxArrayString m_selections;
-
-	wxString m_popup_var_name;
-
-	lk::varhash_t *m_vt;
-
-	DECLARE_EVENT_TABLE();
-};
-
-
-class wxExtGridCtrl;
-class wxNumericCtrl;
-
-class StatDialog: public wxDialog
+void VarTreeView::Check(const wxTreeItemId &item, bool b)
 {
-public:
-	StatDialog(wxWindow *parent, const wxString &title);
+    SetItemImage(item, b ? ICON_CHECK_TRUE : ICON_CHECK_FALSE);
+}
 
-	void Compute( std::vector<lk::vardata_t> &val );
+bool VarTreeView::IsChecked(const wxTreeItemId &item)
+{
+    return (GetItemImage(item)==ICON_CHECK_TRUE);
+}
 
-private:
-	wxExtGridCtrl *grdMonthly;
-	wxNumericCtrl *numSumOver1000;
-	wxNumericCtrl *numSum;
-	wxNumericCtrl *numMax;
-	wxNumericCtrl *numMean;
-	wxNumericCtrl *numMin;
-};
+void VarTreeView::EnableCheckMode(bool b)
+{
+    bCheckMode = b;
+}
 
+bool VarTreeView::IsCheckMode()
+{
+    return bCheckMode;
+}
 
-#endif
+void VarTreeView::OnLClick(wxMouseEvent &evt)
+{
+    int flags=0;
+    wxTreeItemId item = HitTest(evt.GetPosition(), flags);
+    if (!item.IsOk()||!bCheckMode)
+    {
+        evt.Skip();
+        return;
+    }
+
+    int state = GetItemImage(item);
+    if (state == ICON_CHECK_TRUE || state == ICON_CHECK_FALSE)
+    {
+        SetItemImage(item, 1-state);
+        wxTreeEvent tree_evt( ::wxEVT_TREE_STATE_IMAGE_CLICK , this, item );
+        tree_evt.SetPoint( evt.GetPosition() );
+        tree_evt.SetLabel( GetItemText(item) );
+        ProcessEvent( tree_evt );
+    }
+    else
+        evt.Skip();
+}
+BEGIN_EVENT_TABLE(VarTreeView, wxTreeCtrl)
+    EVT_LEFT_DOWN(VarTreeView::OnLClick)
+END_EVENT_TABLE()
+//---------------------------------
+
+/* ******** VarTreeTextCtrl ************** */
+
+BEGIN_EVENT_TABLE(VarTreeTextCtrl,wxTextCtrl)
+    EVT_KILL_FOCUS(VarTreeTextCtrl::OnLoseFocus)
+    EVT_SET_FOCUS(VarTreeTextCtrl::OnSetFocus)
+END_EVENT_TABLE()
+
+VarTreeTextCtrl::VarTreeTextCtrl( wxWindow *parent, int id, const wxPoint &pos, const wxSize &size, long style)
+    : wxTextCtrl(parent, id, "", pos, size, wxTE_PROCESS_ENTER|style)
+{
+    /* nothing to do */
+    bSendOnFocus = true;
+}
+
+void VarTreeTextCtrl::OnLoseFocus(wxFocusEvent &evt)
+{
+    if (bSendOnFocus && m_origVal != GetValue())
+    {
+        wxCommandEvent enterpress(wxEVT_COMMAND_TEXT_ENTER, this->GetId() );
+        enterpress.SetEventObject(this);
+        enterpress.SetString(GetValue());
+        GetEventHandler()->ProcessEvent(enterpress);
+    }
+    evt.Skip();
+}
+
+void VarTreeTextCtrl::OnSetFocus(wxFocusEvent &evt)
+{
+    m_origVal = GetValue();
+    evt.Skip();
+}

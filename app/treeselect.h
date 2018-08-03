@@ -1,8 +1,9 @@
+
 /*******************************************************************************************************
-*  Copyright 2017 Alliance for Sustainable Energy, LLC
+*  Copyright 2018 Alliance for Sustainable Energy, LLC
 *
 *  NOTICE: This software was developed at least in part by Alliance for Sustainable Energy, LLC
-*  (�Alliance�) under Contract No. DE-AC36-08GO28308 with the U.S. Department of Energy and the U.S.
+*  ("Alliance") under Contract No. DE-AC36-08GO28308 with the U.S. Department of Energy and the U.S.
 *  The Government retains for itself and others acting on its behalf a nonexclusive, paid-up,
 *  irrevocable worldwide license in the software to reproduce, prepare derivative works, distribute
 *  copies to the public, perform publicly and display publicly, and to permit others to do so.
@@ -26,8 +27,9 @@
 *  4. Redistribution of this software, without modification, must refer to the software by the same
 *  designation. Redistribution of a modified version of this software (i) may not refer to the modified
 *  version by the same designation, or by any confusingly similar designation, and (ii) must refer to
-*  the underlying software originally provided by Alliance as �System Advisor Model� or �SAM�. Except
-*  to comply with the foregoing, the terms �System Advisor Model�, �SAM�, or any confusingly similar
+*  the underlying software originally provided by Alliance as "Solar Power tower Integrated Layout and 
+*  Optimization Tool" or "SolarPILOT". Except to comply with the foregoing, the terms "Solar Power 
+*  tower Integrated Layout and Optimization Tool", "SolarPILOT", or any confusingly similar
 *  designation may not be used to refer to any modified version of this software or any modified
 *  version of the underlying software originally provided by Alliance without the prior written consent
 *  of Alliance.
@@ -47,98 +49,50 @@
 *  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************************************/
 
-#ifndef __dataview_h
-#define __dataview_h
 
+#ifndef _PAR_EDIT_CTRLS_
+#define _PAR_EDIT_CTRLS_ 1
+
+#include <wx/wx.h>
+#include <wx/treectrl.h>
 #include <vector>
 
-#include <wx/panel.h>
-#include <wx/checklst.h>
-#include <wx/treebase.h>
-#include <wx/grid.h>
+#define EVT_NUMERIC(id, func) EVT_TEXT_ENTER(id, func)
 
-#include <lk/env.h>
-#include <ssc/sscapi.h>
-
-class wxExtGridCtrl;
-class VarTreeView;
-
-class DataView : public wxPanel
+// emits ITEM_ACTIVATED for item check change
+class VarTreeView : public wxTreeCtrl
 {
+    DECLARE_EVENT_TABLE();
+    void OnLClick(wxMouseEvent &evt);
+    bool bCheckMode;
+
 public:
 
-	class Table; // forward
+    enum {ICON_CHECK_FALSE, ICON_CHECK_TRUE, ICON_JUMPTO, ICON_ADD, ICON_REMOVE, ICON_RARROW, ICON_JUSTIFY, ICON_FOLDER, ICON_FILE, ICON_BROKEN_LINK};
 
-	DataView( wxWindow *parent, const char* imagedir );
-	virtual ~DataView() { m_vt = NULL; }
+    VarTreeView( wxWindow *parent, int id, wxString imagedir, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize);
 
-	void SetDataObject( lk::varhash_t *vt ) { m_vt = vt; UpdateView(); }
-	ssc_data_t GetDataObject() { return m_vt; }
-
-	void UpdateView();	
-	void UpdateGrid();
-	virtual void Freeze();
-	virtual void Thaw();
-
-
-	std::vector<int> GetColumnWidths();
-	void SetColumnWidths( const std::vector<int> &cwl );
-	wxArrayString GetSelections();
-	void SetSelections(const wxArrayString &sel, const wxArrayString &labels);
-
-	wxString GetSelection();
-
-	 void ShowStats( wxString name=wxEmptyString );
-
-private:
-	void OnTextSearch( wxCommandEvent &evt );
-	void OnCommand(wxCommandEvent &evt);
-	void OnVarListCheck(wxTreeEvent &evt);
-	void OnVarListDClick(wxCommandEvent &evt);
-	void OnPopup( wxCommandEvent &evt);
-
-	void OnGridLabelRightClick(wxGridEvent &evt);
-	void OnGridLabelDoubleClick(wxGridEvent &evt);
-
-	bool m_frozen;
-	wxExtGridCtrl *m_grid;
-	Table *m_grid_table;
-	// wxCheckListBox *m_varlist;
-	VarTreeView *m_varlist;
-	wxTreeItemId m_root;
-	// wxFont m_data_font;
-
-	// wxTreeItemId m_root_item;
-	// std::vector<wxTreeItemId> m_tree_items;
-	wxArrayString m_names;
-	wxArrayString m_selections;
-
-	wxString m_popup_var_name;
-
-	lk::varhash_t *m_vt;
-
-	DECLARE_EVENT_TABLE();
+    void EnableCheckMode(bool b);
+    bool IsCheckMode();
+    void Check(const wxTreeItemId &item, bool b);
+    bool IsChecked(const wxTreeItemId &item);
 };
 
-
-class wxExtGridCtrl;
-class wxNumericCtrl;
-
-class StatDialog: public wxDialog
+class VarTreeTextCtrl : public wxTextCtrl
 {
 public:
-	StatDialog(wxWindow *parent, const wxString &title);
+    VarTreeTextCtrl( wxWindow *parent, int id, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize, long style = 0);
 
-	void Compute( std::vector<lk::vardata_t> &val );
+    void SendEventOnLoseFocus(bool b) { bSendOnFocus = b; }
+
+protected:
+    void OnLoseFocus(wxFocusEvent &evt);
+    void OnSetFocus(wxFocusEvent &evt);
 
 private:
-	wxExtGridCtrl *grdMonthly;
-	wxNumericCtrl *numSumOver1000;
-	wxNumericCtrl *numSum;
-	wxNumericCtrl *numMax;
-	wxNumericCtrl *numMean;
-	wxNumericCtrl *numMin;
+    bool bSendOnFocus;
+    wxString m_origVal;
+    DECLARE_EVENT_TABLE()
 };
-
 
 #endif

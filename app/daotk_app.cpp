@@ -139,6 +139,20 @@ MainWindow::MainWindow()
 	else
 		g_mainWindow = this;
 
+	//Set up directories
+    m_working_dir.SetPath( ::wxGetCwd() ); 
+    m_install_dir.SetPath( wxPathOnly( wxStandardPaths::Get().GetExecutablePath()) ); // + "/../";
+    m_install_dir.RemoveLastDir();
+
+    m_image_dir.SetPath( m_install_dir.GetPath() ); 
+	m_image_dir.AppendDir("deploy");
+    m_image_dir.AppendDir("rs");
+    m_help_dir.SetPath( m_install_dir.GetPath() );
+    m_help_dir.AppendDir("rs");
+    m_help_dir.AppendDir("help");
+    m_local_dir.SetPath( wxPathOnly(wxStandardPaths::Get().GetUserLocalDataDir()) );
+    m_local_dir.AppendDir("dao-tk");
+
 	wxBoxSizer *tools = new wxBoxSizer(wxHORIZONTAL);
 	tools->Add(m_mainMenuButton = new wxMetroButton(this, ID_MAIN_MENU, wxEmptyString, wxBITMAP_PNG_FROM_DATA(menu), wxDefaultPosition, wxDefaultSize /*, wxMB_DOWNARROW */), 0, wxALL | wxEXPAND, 0);
 	m_tabList = new wxMetroTabList(this, ID_TABS, wxDefaultPosition, wxDefaultSize);
@@ -173,7 +187,8 @@ MainWindow::MainWindow()
 	m_notebook->AddPage(m_ScriptViewForm, "Script");
 
 	m_tabList->Append("Data");
-	m_DataViewForm = new DataView(m_notebook);
+	m_DataViewForm = new DataView(m_notebook, m_image_dir.GetFullPath().c_str() );
+	m_DataViewForm->SetDataObject( m_project.GetMergedData() );
 	m_notebook->AddPage(m_DataViewForm, "Data");
 
 	m_tabList->Append("Log");
@@ -327,6 +342,11 @@ void MainWindow::SetProgress( int percent, const wxString &msg )
 {
 	m_progressBar->SetValue( percent );
 	m_statusLabel->SetLabel(msg);
+}
+
+void MainWindow::UpdateDataTable()
+{
+	m_DataViewForm->UpdateView();
 }
 
 bool MainWindow::UpdateIsStopFlagSet()
