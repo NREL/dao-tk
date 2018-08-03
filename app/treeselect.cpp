@@ -58,7 +58,7 @@
 //******* VarTreeView control *************
 
 VarTreeView::VarTreeView( wxWindow *parent, int id, wxString imagedir, const wxPoint &pos, const wxSize &size)
-    : wxTreeCtrl(parent, id, pos, size, wxTR_HAS_BUTTONS|wxTR_NO_LINES|wxTR_SINGLE|wxTR_HIDE_ROOT)
+    : wxTreeCtrl(parent, id, pos, size, wxTR_HAS_BUTTONS|wxTR_SINGLE|wxTR_HIDE_ROOT|wxTR_ROW_LINES)
 {
     bCheckMode = true;
     wxImageList *images = new wxImageList( 16, 16 );
@@ -101,7 +101,6 @@ void VarTreeView::OnLClick(wxMouseEvent &evt)
     if (state == ICON_CHECK_TRUE || state == ICON_CHECK_FALSE)
     {
         SetItemImage(item, 1-state);
-        // wxTreeEvent tree_evt( ::wxEVT_COMMAND_TREE_ITEM_ACTIVATED , this, item );
         wxTreeEvent tree_evt( ::wxEVT_TREE_STATE_IMAGE_CLICK , this, item );
         tree_evt.SetPoint( evt.GetPosition() );
         tree_evt.SetLabel( GetItemText(item) );
@@ -116,7 +115,6 @@ END_EVENT_TABLE()
 //---------------------------------
 
 /* ******** VarTreeTextCtrl ************** */
-
 
 BEGIN_EVENT_TABLE(VarTreeTextCtrl,wxTextCtrl)
     EVT_KILL_FOCUS(VarTreeTextCtrl::OnLoseFocus)

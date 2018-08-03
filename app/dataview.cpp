@@ -330,13 +330,14 @@ DataView::DataView( wxWindow *parent, const char *imagedir )
 	wxSplitterWindow *splitwin = new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE ); 
 	splitwin->SetMinimumPaneSize(210);
 
-	wxPanel *vtpanel = new wxPanel(splitwin);
-	VarTreeTextCtrl *vtsearch = new VarTreeTextCtrl(vtpanel, ID_DATA_SEARCH);
-	m_varlist = new VarTreeView( vtpanel, ID_LIST,  imagedir);
-
 	wxFont datafont = wxFont(FONTSIZE, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
 
+	wxPanel *vtpanel = new wxPanel(splitwin);
+	VarTreeTextCtrl *vtsearch = new VarTreeTextCtrl(vtpanel, ID_DATA_SEARCH);
+	
+	m_varlist = new VarTreeView( vtpanel, ID_LIST,  imagedir);
 	m_varlist->SetFont( datafont );
+	m_varlist->SetIndent(8);
 	
 	wxBoxSizer *vtsizer = new wxBoxSizer(wxVERTICAL);
 	vtsizer->Add( vtsearch, 0, wxALL|wxEXPAND, 2);
@@ -671,6 +672,7 @@ void DataView::OnCommand(wxCommandEvent &evt)
 		break;
 	case ID_EXPAND_ALL:
 		m_varlist->ExpandAll();
+		m_varlist->EnsureVisible( m_varlist->GetRootItem() );
 		break;
 	case ID_COLLAPSE_ALL:
 		{
@@ -681,6 +683,7 @@ void DataView::OnCommand(wxCommandEvent &evt)
 				m_varlist->CollapseAllChildren( node );
 				node = m_varlist->GetNextSibling(node);
 			}
+			m_varlist->EnsureVisible( m_varlist->GetRootItem() );
 		}
 	}
 }
