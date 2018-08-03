@@ -22,9 +22,12 @@
                 "${workspaceRoot}/libcycle",
                 "${workspaceRoot}/libcluster",
                 "${workspaceRoot}/app"
-
             ],
-            "defines": ["SP_USE_SOLTRACE","SP_STANDALONE","SP_USE_THREADS"],
+            "defines": [
+                "SP_USE_SOLTRACE",
+                "SP_STANDALONE",
+                "SP_USE_THREADS"
+            ],
             "intelliSenseMode": "clang-x64",
             "browse": {
                 "path": [
@@ -53,5 +56,5 @@
             }
         }
     ],
-    "version": 3
+    "version": 4
 }
