@@ -85,7 +85,7 @@
 #ifdef __WXOSX__
 #define FONTSIZE 13
 #else
-#define FONTSIZE 10
+#define FONTSIZE 9
 #endif
 
 class DataView::Table : public wxGridTableBase
@@ -280,6 +280,8 @@ enum { ID_COPY_CLIPBOARD = 2315,
 	   ID_SHOW_STATS,
 	   ID_SELECT_ALL,
 	   ID_UNSELECT_ALL,
+	   ID_EXPAND_ALL,
+	   ID_COLLAPSE_ALL,
 	   ID_DVIEW,
 	   ID_POPUP_STATS,
 	   ID_POPUP_PLOT_BAR,
@@ -292,6 +294,8 @@ BEGIN_EVENT_TABLE( DataView, wxPanel )
 	EVT_BUTTON( ID_UNSELECT_ALL, DataView::OnCommand )
 	EVT_BUTTON( ID_SELECT_ALL, DataView::OnCommand )
 	EVT_BUTTON( ID_UNSELECT_ALL, DataView::OnCommand )
+	EVT_BUTTON( ID_EXPAND_ALL, DataView::OnCommand )
+	EVT_BUTTON( ID_COLLAPSE_ALL, DataView::OnCommand )
 	EVT_BUTTON( ID_SHOW_STATS, DataView::OnCommand )
 	EVT_BUTTON( ID_DVIEW, DataView::OnCommand )
 	EVT_TREE_STATE_IMAGE_CLICK( ID_LIST, DataView::OnVarListCheck )
@@ -314,6 +318,8 @@ DataView::DataView( wxWindow *parent, const char *imagedir )
 	m_vt(0)
 {
 	wxBoxSizer *tb_sizer = new wxBoxSizer(wxHORIZONTAL);
+	tb_sizer->Add( new wxButton(this, ID_EXPAND_ALL, "Expand all", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL|wxEXPAND, 2);
+	tb_sizer->Add( new wxButton(this, ID_COLLAPSE_ALL, "Collapse all", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL|wxEXPAND, 2);
 	tb_sizer->Add( new wxButton(this, ID_SELECT_ALL, "Select all", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL|wxEXPAND, 2);
 	tb_sizer->Add( new wxButton(this, ID_UNSELECT_ALL, "Unselect all", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL|wxEXPAND, 2);
 	tb_sizer->Add( new wxButton( this, ID_COPY_CLIPBOARD, "Copy to clipboard", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxEXPAND|wxALL, 2);
@@ -327,7 +333,7 @@ DataView::DataView( wxWindow *parent, const char *imagedir )
 	wxPanel *vtpanel = new wxPanel(splitwin);
 	VarTreeTextCtrl *vtsearch = new VarTreeTextCtrl(vtpanel, ID_DATA_SEARCH);
 	m_varlist = new VarTreeView( vtpanel, ID_LIST,  imagedir);
-	// m_varlist->SetFont( wxFont(FONTSIZE, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
+	m_varlist->SetFont( wxFont(FONTSIZE, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
 	
 	wxBoxSizer *vtsizer = new wxBoxSizer(wxVERTICAL);
 	vtsizer->Add( vtsearch, 0, wxALL|wxEXPAND, 2);
@@ -629,6 +635,19 @@ void DataView::OnCommand(wxCommandEvent &evt)
 	case ID_COPY_CLIPBOARD:
 		m_grid->Copy( m_grid->NumCellsSelected() == 1, true);
 		break;
+	case ID_EXPAND_ALL:
+		m_varlist->ExpandAll();
+		break;
+	case ID_COLLAPSE_ALL:
+		{
+			wxTreeItemIdValue cookie; //unused
+			wxTreeItemId node = m_varlist->GetFirstChild( m_varlist->GetRootItem(), cookie);
+			while( node.IsOk() )
+			{
+				m_varlist->CollapseAllChildren( node );
+				node = m_varlist->GetNextSibling(node);
+			}
+		}
 	}
 }
 
