@@ -408,7 +408,8 @@ void VarTreeView::OnLClick(wxMouseEvent &evt)
     if (state == ICON_CHECK_TRUE || state == ICON_CHECK_FALSE)
     {
         SetItemImage(item, 1-state);
-        wxTreeEvent tree_evt( ::wxEVT_COMMAND_TREE_ITEM_ACTIVATED , this, item );
+        // wxTreeEvent tree_evt( ::wxEVT_COMMAND_TREE_ITEM_ACTIVATED , this, item );
+        wxTreeEvent tree_evt( ::wxEVT_TREE_STATE_IMAGE_CLICK , this, item );
         tree_evt.SetPoint( evt.GetPosition() );
         tree_evt.SetLabel( GetItemText(item) );
         ProcessEvent( tree_evt );
@@ -648,12 +649,6 @@ wxFont VarTreePainter::GetNormalFont(bool b, int sz)
     if (sz >= 6)
         f.SetPointSize( sz );
     return f;
-}
-
-wxFont VarTreePainter::GetArialFont(bool b, int sz)
-{
-    return wxFont(sz, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, 
-        b?wxFONTWEIGHT_BOLD:wxFONTWEIGHT_NORMAL, false, "arial" ); 
 }
 
 int VarTreePainter::WordWrap(wxDC& dc, const wxString &str, int width, bool draw, int x, int y, wxArrayString *lines)

@@ -26,6 +26,7 @@ public:
 	std::string nice_name;
 	std::string units;
 	std::string group;
+	bool is_shown_in_list;
 
     void assign_vector(float *_vec, int nval)
     {
@@ -52,6 +53,7 @@ protected:
 		this->nice_name = _nice_name; 
 		this->units = _units;
 		this->group = _group;
+		this->is_shown_in_list = true;
     };
 
 public:
@@ -113,6 +115,7 @@ protected:
 		this->nice_name = _nice_name != '\0' ? _nice_name : "";
 		this->units = _units != '\0' ? _units : "";
 		this->group = _group != '\0' ? _group : "";
+		this->is_shown_in_list = true;
         is_calculated = calculated;
     };
 

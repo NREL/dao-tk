@@ -91,6 +91,7 @@ public:
 	 void ShowStats( wxString name=wxEmptyString );
 
 private:
+	void OnTextSearch( wxCommandEvent &evt );
 	void OnCommand(wxCommandEvent &evt);
 	void OnVarListCheck(wxTreeEvent &evt);
 	void OnVarListDClick(wxCommandEvent &evt);

@@ -262,7 +262,10 @@ private:
 class TreeItemData : public wxTreeItemData
 {
 public:
-	TreeItemData() : wxTreeItemData() {};
+	TreeItemData() : wxTreeItemData() 
+	{
+		varname = "";
+	};
 	TreeItemData( const char * _varname ) : wxTreeItemData() 
 	{
 		varname = _varname;
@@ -272,6 +275,7 @@ public:
 };
 
 enum { ID_COPY_CLIPBOARD = 2315,
+	   ID_DATA_SEARCH,
 	   ID_LIST,
 	   ID_SHOW_STATS,
 	   ID_SELECT_ALL,
@@ -283,6 +287,7 @@ enum { ID_COPY_CLIPBOARD = 2315,
 	   ID_GRID };
 
 BEGIN_EVENT_TABLE( DataView, wxPanel )
+	EVT_TEXT( ID_DATA_SEARCH, DataView::OnTextSearch )
 	EVT_BUTTON( ID_COPY_CLIPBOARD, DataView::OnCommand )
 	EVT_BUTTON( ID_UNSELECT_ALL, DataView::OnCommand )
 	EVT_BUTTON( ID_SELECT_ALL, DataView::OnCommand )
@@ -319,8 +324,15 @@ DataView::DataView( wxWindow *parent, const char *imagedir )
 	wxSplitterWindow *splitwin = new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE ); 
 	splitwin->SetMinimumPaneSize(210);
 
-	m_varlist = new VarTreeView( splitwin, ID_LIST,  imagedir);
+	wxPanel *vtpanel = new wxPanel(splitwin);
+	VarTreeTextCtrl *vtsearch = new VarTreeTextCtrl(vtpanel, ID_DATA_SEARCH);
+	m_varlist = new VarTreeView( vtpanel, ID_LIST,  imagedir);
 	// m_varlist->SetFont( wxFont(FONTSIZE, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
+	
+	wxBoxSizer *vtsizer = new wxBoxSizer(wxVERTICAL);
+	vtsizer->Add( vtsearch, 0, wxALL|wxEXPAND, 2);
+	vtsizer->Add(m_varlist, 1, wxALL|wxEXPAND, 2);
+	vtpanel->SetSizer(vtsizer);
 	
 	m_grid = new wxExtGridCtrl(splitwin, ID_GRID);
 	m_grid->SetFont( wxFont(FONTSIZE, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
@@ -333,7 +345,7 @@ DataView::DataView( wxWindow *parent, const char *imagedir )
 	m_grid->SetDefaultCellAlignment( wxALIGN_RIGHT, wxALIGN_CENTER );
 	m_grid->SetRowLabelAlignment( wxALIGN_LEFT, wxALIGN_CENTER );
 
-	splitwin->SplitVertically(m_varlist, m_grid, 390);
+	splitwin->SplitVertically(vtpanel, m_grid, 390);
 
 
 	wxBoxSizer *szv_main = new wxBoxSizer(wxVERTICAL);
@@ -409,7 +421,8 @@ void DataView::SetSelections(const wxArrayString &sel, const wxArrayString &labe
             m_varlist->Check( item_id, true );
     }
 
-    m_varlist->Expand(m_root);
+    // m_varlist->Expand(m_root);
+	m_varlist->ExpandAll();
     m_varlist->UnselectAll();
 
 }
@@ -469,8 +482,13 @@ void DataView::UpdateView()
 		for(lk::varhash_t::iterator it = m_vt->begin(); it != m_vt->end(); it++ )
 		{
 			varnames.push_back( it->first );
-			int len = (static_cast<data_base*>(it->second))->GetDisplayName().length();
-			if (len > padto) padto = len;
+
+			data_base* vit = static_cast<data_base*>(it->second);
+			if( vit->is_shown_in_list )
+			{
+				int len = vit->GetDisplayName().length();
+				if (len > padto) padto = len;
+			}
 		}
 		padto += 2;
 
@@ -484,7 +502,7 @@ void DataView::UpdateView()
 			{
 				data_base *dv = static_cast<data_base*>(v);
 				
-				if( dv->nice_name.empty() ) 
+				if( dv->nice_name.empty() || !dv->is_shown_in_list ) 
 					continue;
 
 				wxString label = wxString::Format( "%s@%" + wxString::Format("-%ds",padto) , dv->group, dv->nice_name );
@@ -613,6 +631,60 @@ void DataView::OnCommand(wxCommandEvent &evt)
 		break;
 	}
 }
+
+
+void DataView::OnTextSearch( wxCommandEvent & evt)
+{
+    wxString filter = ( static_cast<VarTreeTextCtrl*>(evt.GetEventObject()) )->GetValue().Lower();
+
+	if (filter.IsEmpty())
+    {
+        for (lk::varhash_t::iterator it= m_vt->begin(); it != m_vt->end(); it++)
+            static_cast<data_base*>( it->second )->is_shown_in_list = true;
+    }
+    else
+    {
+        for (lk::varhash_t::iterator it= m_vt->begin(); it != m_vt->end(); it++)
+        {
+            data_base *vit = static_cast<data_base*>( it->second );
+			wxString searchname = wxString(vit->group + vit->name + vit->GetDisplayName());	//search group, variable, and display name
+
+            if (filter.Len() <= 2 && searchname.Left( filter.Len() ).Lower() == filter)
+                vit->is_shown_in_list = true;
+            else if (searchname.Lower().Find( filter ) >= 0)
+                vit->is_shown_in_list = true;
+            // else if (searchname.Lower().Find( filter ) == 0)
+            //     vit->is_shown_in_list = true;
+			else if ( m_selections.Index( vit->name ) != wxNOT_FOUND )
+				vit->is_shown_in_list = true;
+            else
+                vit->is_shown_in_list = false;
+        }
+    }
+
+    UpdateView();
+
+    if ( !filter.IsEmpty() )
+    {
+        m_varlist->ExpandAll();
+        m_varlist->EnsureVisible( m_root );
+    }
+    else
+    {
+		wxTreeItemId current_item = m_varlist->GetRootItem();
+		wxTreeItemIdValue cookie; 		//unused, but required for the call
+
+		while( current_item.IsOk() )
+		{
+			if( m_varlist->IsChecked(current_item) )
+				m_varlist->Expand( m_varlist->GetItemParent( current_item ) );
+
+			current_item = m_varlist->GetNextChild( current_item, cookie );
+		}
+
+    }
+}
+
 
 void DataView::OnVarListCheck(wxTreeEvent &evt)
 {

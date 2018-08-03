@@ -228,9 +228,6 @@ public:
     static void DrawScrollBar(wxDC &dc, bool vertical, int x, int y, int width, int height);
     static void DrawArrowButton(wxDC &dc, ArrowType type, int x, int y, int width, int height);
     static void DrawArrow(wxDC &dc, ArrowType type, int x, int y, int width, int height);
-
-    
     static wxFont GetNormalFont(bool b=true, int sz=-1);
-    static wxFont GetArialFont(bool b=true, int sz=-1); //Keep this around.
 };
 #endif
