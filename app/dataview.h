@@ -106,7 +106,7 @@ private:
 	// wxCheckListBox *m_varlist;
 	VarTreeView *m_varlist;
 	wxTreeItemId m_root;
-
+	// wxFont m_data_font;
 
 	// wxTreeItemId m_root_item;
 	// std::vector<wxTreeItemId> m_tree_items;

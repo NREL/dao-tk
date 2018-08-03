@@ -98,7 +98,7 @@ public:
 		m_attr = new wxGridCellAttr;
 		m_attr->SetBackgroundColour( wxColour( 240,240,240 ) );
 		m_attr->SetTextColour( "navy" );
-		m_attr->SetFont( wxFont(FONTSIZE, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
+		m_attr->SetFont( wxFont(FONTSIZE, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
 	}
 
 	virtual ~Table()
@@ -333,7 +333,10 @@ DataView::DataView( wxWindow *parent, const char *imagedir )
 	wxPanel *vtpanel = new wxPanel(splitwin);
 	VarTreeTextCtrl *vtsearch = new VarTreeTextCtrl(vtpanel, ID_DATA_SEARCH);
 	m_varlist = new VarTreeView( vtpanel, ID_LIST,  imagedir);
-	m_varlist->SetFont( wxFont(FONTSIZE, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
+
+	wxFont datafont = wxFont(FONTSIZE, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+
+	m_varlist->SetFont( datafont );
 	
 	wxBoxSizer *vtsizer = new wxBoxSizer(wxVERTICAL);
 	vtsizer->Add( vtsearch, 0, wxALL|wxEXPAND, 2);
@@ -341,7 +344,10 @@ DataView::DataView( wxWindow *parent, const char *imagedir )
 	vtpanel->SetSizer(vtsizer);
 	
 	m_grid = new wxExtGridCtrl(splitwin, ID_GRID);
-	m_grid->SetFont( wxFont(FONTSIZE, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
+	m_grid->SetFont( datafont );
+	m_grid->SetDefaultCellFont( datafont );
+	m_grid->SetLabelFont( datafont );
+	
 	m_grid->EnableEditing(false);
 	m_grid->EnableCopyPaste(false);
 	m_grid->DisableDragCell();
@@ -388,15 +394,13 @@ void DataView::SetSelections(const wxArrayString &sel, const wxArrayString &labe
 
     m_root = m_varlist->AddRoot("Data", VarTreeView::ICON_REMOVE,VarTreeView::ICON_REMOVE);
     m_varlist->SetItemBold(m_root);
-    wxTreeItemId cur_parent;
+    wxTreeItemId cur_parent = m_root;
     wxString cur_context = wxEmptyString;
+	wxArrayString cur_context_list;
 	
 
     for (int i=0;i < (int)m_names.Count();i++)
     {
-        // m_items.at(i).tree_id.Unset();
-
-        // if ( !m_items.at(i).shown && !m_items.at(i).checked ) continue;
 		if(  m_names[i].IsEmpty() )
 			continue;
 		
@@ -407,16 +411,50 @@ void DataView::SetSelections(const wxArrayString &sel, const wxArrayString &labe
 		wxString cxt = parsename[0];
         wxString lbl = parsename[1];
 
-        if (cur_context != cxt)
+
+        if (cur_context != cxt) 	//something in the context has changed
         {
-            cur_context = cxt;
-            cur_parent = m_varlist->AppendItem(m_root, cur_context, -1, -1, new TreeItemData(m_names[i].c_str()) );
-            m_varlist->SetItemBold(cur_parent);
+			wxArrayString cxt_list = wxSplit(parsename[0], wxChar('|'));
+
+			//need to figure out at which level the first difference appears
+			int i_level = 0;
+			
+			int ncxt_list = cxt_list.Count();
+			int ncur_context_list = cur_context_list.Count();
+
+			for(int i=0; i<ncxt_list; i++)
+			{
+				if( i > ncur_context_list-1 )
+				{
+					i_level = i;
+					break;
+				}
+				if( cxt_list[i] != cur_context_list[i] )
+				{
+					i_level = i;
+					break;
+				}
+			}
+
+			int nlevels_up = cur_context_list.Count() - i_level;
+			
+			for( int ind=0; ind<nlevels_up; ind++)
+				cur_parent = m_varlist->GetItemParent(cur_parent);
+
+			if( cur_parent == 0 )
+				cur_parent = m_root;	//needed on first pass through
+
+			//reconstruct nodes back down
+			for( int ind=i_level; ind<ncxt_list; ind++)
+			{
+				cur_parent = m_varlist->AppendItem(cur_parent, cxt_list[ind], -1, -1, new TreeItemData(cxt.c_str()) );
+            	m_varlist->SetItemBold(cur_parent);
+			}
+		
+			cur_context = cxt;
+			cur_context_list = cxt_list;
         }
         
-        // if (lbl.IsEmpty())
-        //     lbl = m_items.at(i).label;
-
 		wxTreeItemId item_id;
         if (cur_parent.IsOk())
             item_id = m_varlist->AppendItem( cur_parent, lbl, VarTreeView::ICON_CHECK_FALSE,-1, new TreeItemData(m_names[i].c_str()) );
@@ -513,6 +551,9 @@ void DataView::UpdateView()
 
 				wxString label = wxString::Format( "%s@%" + wxString::Format("-%ds",padto) , dv->group, dv->nice_name );
 
+				if( label.Find("Par") != wxNOT_FOUND)
+					double xadsf = 0.;
+
 				m_names.Add( name );
 				// for (int j=0;j< padto-(int)label.length();j++)
 				// 	label += " ";
@@ -536,13 +577,6 @@ void DataView::UpdateView()
 		}
 
 		SortByLabels(m_names, labels );
-		// m_varlist->Freeze();
-		// for (int i=0;i<(int)m_names.Count();i++)
-		// {
-		// 	int idx = m_varlist->Append( labels[i]);
-		// 	m_varlist->Check( idx, false );
-		// }
-		// m_varlist->Thaw();
 	}
 	
 	SetSelections( sel_list, labels );
