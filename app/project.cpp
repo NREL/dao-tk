@@ -1543,6 +1543,8 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 	ssc_data_set_number(m_ssc_data, "is_ampl_engine", m_parameters.is_ampl_engine.as_boolean());
 	if (m_parameters.is_ampl_engine.as_boolean())
 		ssc_data_set_string(m_ssc_data, "ampl_data_dir", m_parameters.ampl_data_dir.as_string().c_str());
+	else
+		ssc_data_set_string(m_ssc_data, "ampl_data_dir", (const char*)(""));		
 
 	ssc_data_get_number(m_ssc_data, "helio_height", &helio_height);
 	ssc_data_get_number(m_ssc_data, "helio_width", &helio_width);
@@ -1779,6 +1781,8 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
                 if (!ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0))
                 {
                     message_handler("SSC simulation failed");
+					ssc_module_free(mod_mspt);
+ 					return false;
                 }
 
 				int doy_full = d1;
