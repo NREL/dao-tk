@@ -45,11 +45,12 @@ static lk::fcall_t *daotk_functions()
 {
 	static lk::fcall_t st[] = {
 		_test,
+		_initialize,
 		_power_cycle,
 		_simulate_optical,
 		_simulate_solarfield,
+		_simulate_performance,
 		_var,
-		_test_clusters,
 		0 };
 
 	return (lk::fcall_t*)st;

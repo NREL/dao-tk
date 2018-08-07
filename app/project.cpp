@@ -292,11 +292,56 @@ simulation_outputs::simulation_outputs()
 ---------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------
 */
+	// struct CALLING_SIM{ enum E {DESIGN=1, HELIO_AVAIL, HELIO_OPTIC, SIMULATION, EXPLICIT, FINANCE, OBJECTIVE, NULLSIM=0}; };
+bool Project::Validate(Project::CALLING_SIM::E sim_type, std::string *error_msg)
+{
+	//make sure the appropriate items have been set up for the method that's being called
+	switch(sim_type)
+	{
+		case CALLING_SIM::DESIGN:
+
+			break;
+		case CALLING_SIM::HELIO_AVAIL:
+
+			break;
+		case CALLING_SIM::HELIO_OPTIC:
+
+			break;
+		case CALLING_SIM::SIMULATION:
+
+			break;
+		case CALLING_SIM::EXPLICIT:
+
+			break;
+		case CALLING_SIM::FINANCE:
+
+			break;
+		case CALLING_SIM::OBJECTIVE:
+
+			break;
+		case CALLING_SIM::NULLSIM:
+
+			break;
+	}
+
+
+	return true;
+}
+
+void Project::Initialize()
+{
+	initialize_ssc_project();
+
+    ssc_to_lk_hash(m_ssc_data, m_parameters);
+    ssc_to_lk_hash(m_ssc_data, m_variables);
+
+	
+}
 
 Project::Project()
 {
 	m_ssc_data = 0;
-	initialize_ssc_project();
+	Initialize();
 
 	//construct the merged data map
 	std::vector<lk::varhash_t*> struct_pointers = { &m_variables, &m_parameters, &m_design_outputs,
@@ -775,6 +820,13 @@ void Project::initialize_ssc_project()
 	//       MSPT parameters and defaults
 	//-----------------------------------------------------------------------------
 	//-----------------------------------------------------------------------------
+	
+	//initialize some of the variables here. They aren't actually SSC variables..
+	ssc_data_set_number( m_ssc_data, "om_staff", 5);
+	ssc_data_set_number( m_ssc_data, "n_wash_crews", 5);
+	ssc_data_set_number( m_ssc_data, "degr_replace_limit", 0.7);
+	//parameters
+	ssc_data_set_string( m_ssc_data, "ampl_data_dir", " ");
 	ssc_data_set_number( m_ssc_data, "is_stochastic_disp", 0 );
 	ssc_data_set_number( m_ssc_data, "q_rec_standby",  9e9 );
 	ssc_data_set_number( m_ssc_data, "eta_map_aod_format",  0 );

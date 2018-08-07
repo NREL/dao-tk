@@ -559,19 +559,18 @@ void DataView::UpdateView()
 				// for (int j=0;j< padto-(int)label.length();j++)
 				// 	label += " ";
 				
-				label += wxString(v->typestr());
-				if (v->type() == lk::vardata_t::NUMBER)
-					label += " " + wxString::Format("%lg", v->as_number() );				
-				else if (v->type() == lk::vardata_t::STRING)
-					label += " " + wxString(v->as_string().c_str());
-				else if (v->type() == lk::vardata_t::VECTOR)
+				if (dv->type == lk::vardata_t::NUMBER)
+					label += "number " + wxString::Format("%lg", v->as_number() );				
+				else if (dv->type == lk::vardata_t::STRING)
+					label += "string " + wxString(v->as_string().c_str());
+				else if (dv->type == lk::vardata_t::VECTOR)
 					if( v->vec()->empty() )
-						label += wxString::Format( " [%d]", (int)v->vec()->size() );
+						label += wxString::Format( "array [%d]", (int)v->vec()->size() );
 					else
 						if( v->vec()->front().type() == lk::vardata_t::VECTOR)
-							label += wxString::Format(" [%d,%d]", (int)v->vec()->size(), (int)v->vec()->front().vec()->size() );
+							label += wxString::Format("matrix [%d,%d]", (int)v->vec()->size(), (int)v->vec()->front().vec()->size() );
 						else
-							label += wxString::Format( " [%d]", (int)v->vec()->size() );
+							label += wxString::Format( "array [%d]", (int)v->vec()->size() );
    				labels.Add( label );
 			}
 

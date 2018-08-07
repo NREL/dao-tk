@@ -349,12 +349,7 @@ class Project
 
 	void lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
     void ssc_to_lk_hash(ssc_data_t &cxt, lk::varhash_t &vars);
-    //void lk_var_to_data(lk::vardata_t &var, data_base &data);
 	void initialize_ssc_project();
-	//void update_sscdata_from_object(datas_base &obj);
-	//void update_object_from_sscdata(datas_base &obj);
-	//void sscdata_localdata(data_base *obj, bool set_ssc_from_local);       //set ssc data from obj (set_ssc_from_local=true), or set local from ssc (false)
-	//void sscdata_localdata_map(datas_base &objs, bool set_ssc_from_local);  //set ssc data from list (set_ssc_from_local=true), or set local from ssc (false)
 	void update_calculated_system_values();
 	void update_calculated_values_post_layout();
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
@@ -362,6 +357,7 @@ class Project
 
 
 public:
+
 	variables m_variables;
 	parameters m_parameters;
 	design_outputs m_design_outputs;
@@ -373,9 +369,9 @@ public:
 	Project();
 	~Project();
 
-	//data access
-	//void SetData(data_base *obj);
-	//void GetData(data_base *obj);
+	struct CALLING_SIM{ enum E {DESIGN=1, HELIO_AVAIL, HELIO_OPTIC, SIMULATION, EXPLICIT, FINANCE, OBJECTIVE, NULLSIM=0}; };
+	bool Validate(CALLING_SIM::E simtype=CALLING_SIM::E::NULLSIM, std::string *error_msg=0);
+	void Initialize();
 
 	//objective function methods
 	bool D();
