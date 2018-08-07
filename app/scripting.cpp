@@ -302,16 +302,6 @@ void _simulate_solarfield(lk::invoke_t &cxt)
 
 }
 
-
-
-
-
-
-
-
-
-
-
 void _test_clusters(lk::invoke_t &cxt)
 {
 
@@ -325,29 +315,30 @@ void _test_clusters(lk::invoke_t &cxt)
 
 	MainWindow &mw = MainWindow::Instance();
 
-	Project P;
-	P.m_variables.h_tower.assign( 100. );
-	P.m_variables.rec_height.assign( 15. );
-	P.m_variables.D_rec.assign( 12. );
-	P.m_variables.design_eff.assign( .41 );
-	P.m_variables.dni_des.assign( 950. );
-	P.m_variables.P_ref.assign( 25. );
-	P.m_variables.solarm.assign( 2.4 );
-	P.m_variables.tshours.assign( 10. );
-	P.m_variables.degr_replace_limit.assign( .7 );
-	P.m_variables.om_staff.assign( 5 );
-	P.m_variables.n_wash_crews.assign( 3 );
-	P.m_variables.N_panels.assign( 16 );
+	Project* P = mw.GetProject();
 
-	P.m_parameters.is_dispatch.assign( true );
-	P.m_parameters.solar_resource_file.assign( "C:/Users/jmartine/Documents/CSP optimization project/Clustering/Simulate/Final/languages/python/weather_and_pricing/Rice weather/253097_34.09_-114.86_2015.csv" );	
-	std::string price_file = "C:/Users/jmartine/Documents/CSP optimization project/Clustering/Simulate/Final/languages/python/weather_and_pricing/Rice price/2015.csv";
+	P->m_variables.h_tower.assign( 180. );
+	P->m_variables.rec_height.assign( 17. );
+	P->m_variables.D_rec.assign( 15. );
+	P->m_variables.design_eff.assign( .41 );
+	P->m_variables.dni_des.assign( 950. );
+	P->m_variables.P_ref.assign( 100. );
+	P->m_variables.solarm.assign( 2.1 );
+	P->m_variables.tshours.assign( 10. );
+	P->m_variables.degr_replace_limit.assign( .7 );
+	P->m_variables.om_staff.assign( 5 );
+	P->m_variables.n_wash_crews.assign( 3 );
+	P->m_variables.N_panels.assign( 16 );
+
+	P->m_parameters.is_dispatch.assign( 0. );
+	P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_weather.csv" );	
+	std::string price_file = "/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_price.csv";
 
 	//--- User inputs for clustering
 	project_cluster_inputs user_inputs;
 
 	if (H->find("weather_file") != H->end())
-		P.m_parameters.solar_resource_file.assign( H->at("weather_file")->as_string() );
+		P->m_parameters.solar_resource_file.assign( H->at("weather_file")->as_string() );
 
 	if (H->find("price_file") != H->end())
 		price_file = H->at("price_file")->as_string();
@@ -411,12 +402,12 @@ void _test_clusters(lk::invoke_t &cxt)
 		price_data.push_back(atof(record));
 	}
 	fclose(fp);
-	P.m_parameters.dispatch_factors_ts.assign_vector( price_data );
+	P->m_parameters.dispatch_factors_ts.assign_vector( price_data );
 
 
 	//--- solar field availability for testing
 	//std::vector<double> sfavail(8760, 0.96);  
-	std::string sfavail_file = "C:/Users/jmartine/Documents/CSP optimization project/Clustering/Simulate/Final/languages/python/sfavail.csv";
+	std::string sfavail_file = "/home/mike/workspace/dao-tk/deploy/samples/clustering//sfavail.csv";
 	std::vector<double> sfavail;
 	/*fp = fopen(sfavail_file.c_str(), "r");
 	while ((line = fgets(buffer, sizeof(buffer), fp)) != NULL)
@@ -430,9 +421,10 @@ void _test_clusters(lk::invoke_t &cxt)
         sfavail.push_back(0.99);
 
 	//--- Run simulation
-	P.D();
-	P.sim_clusters(user_inputs, sfavail);
-
+	P->D();
+	P->sim_clusters(user_inputs, sfavail);
+	
+	mw.UpdateDataTable();
 
 	return;
 

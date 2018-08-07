@@ -260,6 +260,39 @@ optical_outputs::optical_outputs()
 
 }
 
+simulation_outputs::simulation_outputs()
+{
+	double nan = std::numeric_limits<double>::quiet_NaN();
+	std::vector< double > empty_vec;
+
+	generation_arr.set(empty_vec, "generation_arr", lk::vardata_t::VECTOR, true, "Net power generation", "kWe", "Simulation|Outputs");
+	solar_field_power_arr.set(empty_vec, "solar_field_power_arr", lk::vardata_t::VECTOR, true, "Solarfield thermal power", "kWt", "Simulation|Outputs");
+	tes_charge_state.set(empty_vec, "e_ch_tes", lk::vardata_t::VECTOR, true, "Thermal storage charge state", "MWht", "Simulation|Outputs");
+	dni_arr.set(empty_vec, "dni_arr", lk::vardata_t::VECTOR, true, "Direct normal irradiation", "W/m2", "Simulation|Outputs");
+	price_arr.set(empty_vec, "price_arr", lk::vardata_t::VECTOR, true, "Price signal", "-", "Simulation|Outputs");
+	
+	dni_templates.set(empty_vec, "dni_templates", lk::vardata_t::VECTOR, true, "DNI clusters", "W/m2", "Simulation|Outputs");
+	price_templates.set(empty_vec, "price_templates", lk::vardata_t::VECTOR, true, "Price clusters", "-", "Simulation|Outputs");
+
+	annual_generation.set(nan, "annual_generation", lk::vardata_t::NUMBER, true, "Annual total generation", "GWhe", "Simulation|Outputs");
+	annual_revenue.set(nan, "annual_revenue", lk::vardata_t::NULLVAL, true, "Annual revenue units", "-", "Simulation|Outputs");
+
+	(*this)["generation_arr"] = &generation_arr;
+	(*this)["solar_field_power_arr"] = &solar_field_power_arr;
+	(*this)["tes_charge_state"] = &tes_charge_state;
+	(*this)["dni_arr"] = &dni_arr;
+	(*this)["price_arr"] = &price_arr;
+	(*this)["dni_templates"] = &dni_templates;
+	(*this)["price_templates"] = &price_templates;
+	(*this)["annual_generation"] = &annual_generation;
+	(*this)["annual_revenue"] = &annual_revenue;
+}
+
+/* 
+---------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------
+*/
+
 Project::Project()
 {
 	m_ssc_data = 0;
@@ -267,7 +300,7 @@ Project::Project()
 
 	//construct the merged data map
 	std::vector<lk::varhash_t*> struct_pointers = { &m_variables, &m_parameters, &m_design_outputs,
-		&m_solarfield_outputs, &m_optical_outputs, &m_cycle_outputs };
+		&m_solarfield_outputs, &m_optical_outputs, &m_cycle_outputs, &m_simulation_outputs };
 
 	_merged_data.clear();
 
@@ -486,7 +519,7 @@ void Project::update_calculated_system_values()
 	ssc_data_set_number(m_ssc_data, "system_capacity", nameplate*1000.);
 
 	//// q_pb_design(informational, not used as a compute module input for mspt)
-	ssc_number_t q_pb_design = m_variables.P_ref.as_number() * m_variables.design_eff.as_number();
+	ssc_number_t q_pb_design = m_variables.P_ref.as_number() / m_variables.design_eff.as_number();
 	//D["q_pb_design"] = float(D["P_ref"]) / float(D["design_eff"])
 	ssc_data_set_number(m_ssc_data, "q_pb_design", q_pb_design);
 
@@ -1531,9 +1564,6 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 	int wf_steps_per_hour = nrec / 8760;
 	int nperday = wf_steps_per_hour * 24;
 
-
-
-
 	//--- Set solar field availability
 	nr = (int)sfavail.size();
 	ssc_number_t *p_sf = new ssc_number_t[nr];
@@ -1556,7 +1586,8 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 	ssc_data_get_number(m_ssc_data, "dens_mirror", &dens_mirror);
 	ssc_data_get_number(m_ssc_data, "number_heliostats", &nhel);
 	ssc_data_set_number(m_ssc_data, "A_sf_in", helio_height*helio_width*dens_mirror*nhel);
-	ssc_data_set_number(m_ssc_data, "n_hel", nhel);
+	ssc_data_set_number(m_ssc_data, "N_hel", nhel);
+	
 
 	ssc_data_get_number(m_ssc_data, "base_land_area", &val);
 	ssc_data_set_number(m_ssc_data, "land_area_base", val);
@@ -1580,12 +1611,12 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 	ssc_module_t mod_mspt = ssc_module_create("tcsmolten_salt");
 
 
-
+	
 
 	//--- Initialize results
 	double annual_generation, revenue_units, total_installed_cost, system_capacity;
-	int n_hourly_keys = 2;
-	std::string hourly_keys[] = { "gen",  "Q_thermal" };
+	int n_hourly_keys = 5;
+	std::string hourly_keys[] = { "gen",  "Q_thermal", "e_ch_tes", "beam", "pricing_mult" };
 	unordered_map < std::string, std::vector<double>> collect_ssc_data, full_data;
 	for (int i = 0; i < n_hourly_keys; i++)
 	{
@@ -1593,9 +1624,6 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 		collect_ssc_data[key].assign(nrec, 0.0);
 		full_data[key].assign(nrec, 0.0);
 	}
-
-
-
 
 	//--- Run full simulation
 	if (user_inputs.is_run_full)
@@ -1833,6 +1861,16 @@ bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std:
 	message_handler(wxString::Format("Annual generation (GWhe) = %.4f",annual_generation / 1.e6).c_str());
 	message_handler(wxString::Format("Annual revenue (GWhe) = %.4f", revenue_units / 1.e6).c_str());
 
+	//"gen",  "Q_thermal", "annual_energy", "e_ch_tes", "beam", "pricing_mult" 
+	
+	m_simulation_outputs.generation_arr.assign_vector( full_data["gen"] );
+	m_simulation_outputs.solar_field_power_arr.assign_vector( full_data["Q_thermal"]);
+	m_simulation_outputs.tes_charge_state.assign_vector( full_data["e_ch_tes"] );
+	m_simulation_outputs.dni_arr.assign_vector( full_data["beam"] );
+	m_simulation_outputs.price_arr.assign_vector( full_data["pricing_mult"] );
+
+	m_simulation_outputs.annual_generation.assign( annual_generation );
+	m_simulation_outputs.annual_revenue.assign( revenue_units );
 
 	return true;
 }

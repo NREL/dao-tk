@@ -304,7 +304,20 @@ struct cycle_outputs : public lk::varhash_t
 	cycle_outputs() {};
 };
 
+struct simulation_outputs : public lk::varhash_t
+{
+	parameter generation_arr;
+	parameter solar_field_power_arr;
+	parameter tes_charge_state;
+	parameter dni_arr;
+	parameter price_arr;
+	parameter dni_templates;
+	parameter price_templates;
+	parameter annual_generation;
+	parameter annual_revenue;
 
+	simulation_outputs();
+};
 
 
 struct project_cluster_inputs
@@ -327,10 +340,7 @@ struct project_cluster_inputs
 
 };
 
-
-
-
-//main clas
+//main class
 class Project
 {
 	ssc_data_t m_ssc_data;
@@ -358,6 +368,7 @@ public:
 	solarfield_outputs m_solarfield_outputs;
 	optical_outputs m_optical_outputs;
 	cycle_outputs m_cycle_outputs;
+	simulation_outputs m_simulation_outputs;
 
 	Project();
 	~Project();
