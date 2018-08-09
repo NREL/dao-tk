@@ -105,7 +105,7 @@ int MyApp::OnExit()
 
 enum {
 	ID_MAIN_MENU = wxID_HIGHEST + 123, ID_TABS,
-	ID_NEW_SCRIPT, ID_OPEN_SCRIPT
+	ID_NEW_SCRIPT, ID_OPEN_SCRIPT, ID_RUN_SCRIPT
 };
 
 
@@ -122,6 +122,7 @@ EVT_MENU(wxID_SAVE, MainWindow::OnCommand)
 EVT_MENU(wxID_SAVEAS, MainWindow::OnCommand)
 EVT_MENU(wxID_CLOSE, MainWindow::OnCommand)
 EVT_MENU(wxID_EXIT, MainWindow::OnCommand)
+EVT_MENU(ID_RUN_SCRIPT, MainWindow::OnCommand)
 EVT_BUTTON(wxID_HELP, MainWindow::OnCommand)
 END_EVENT_TABLE()
 
@@ -180,6 +181,7 @@ MainWindow::MainWindow()
 	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'o', wxID_OPEN));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 's', wxID_SAVE));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'w', wxID_CLOSE));
+	entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F5, ID_RUN_SCRIPT));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F1, wxID_HELP));
 	SetAcceleratorTable(wxAcceleratorTable(entries.size(), &entries[0]));
 
@@ -312,6 +314,8 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
 		menu.AppendSeparator();
 		menu.Append(wxID_CLOSE, "Close\tCtrl-W");
 		menu.Append(wxID_EXIT, "Quit");
+		menu.AppendSeparator();
+		menu.Append(ID_RUN_SCRIPT, "Run script\tF5");
 		menu.Popup(this, p);
 	}
 	break;
@@ -321,7 +325,9 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
 	case wxID_HELP:
 		//ShowHelpTopic("home");
 		break;
-
+	case ID_RUN_SCRIPT:
+		m_ScriptViewForm->Exec();
+		break;
 	};
 }
 
