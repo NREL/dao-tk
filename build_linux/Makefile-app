@@ -23,6 +23,7 @@ OBJECTS  = \
 	dataview.o \
 	treeselect.o \
 	logview.o \
+	project_init.o \
 	project.o \
 	scripting.o \
 	scriptview.o
