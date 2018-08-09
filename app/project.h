@@ -9,6 +9,7 @@
 #include "../liboptical/optical_degr.h"
 #include "../libsolar/solarfield_avail.h"
 
+#include "../libcluster/clustersim.h"
 
 /* 
 A class containing the aspects of the current project
@@ -36,6 +37,13 @@ public:
             this->vec()->at(i).assign(_vec[i]);
     };
 
+    void assign_vector(std::vector<double> &vec)
+    {
+        this->empty_vector();
+        this->vec()->resize(vec.size());
+        for (size_t i = 0; i < vec.size(); i++)
+            this->vec()->at(i).assign(vec.at(i));
+    };
 	std::string GetDisplayName()
 	{
 		return wxString::Format("[%s] %s", units, nice_name).ToStdString();
@@ -296,6 +304,42 @@ struct cycle_outputs : public lk::varhash_t
 	cycle_outputs() {};
 };
 
+struct simulation_outputs : public lk::varhash_t
+{
+	parameter generation_arr;
+	parameter solar_field_power_arr;
+	parameter tes_charge_state;
+	parameter dni_arr;
+	parameter price_arr;
+	parameter dni_templates;
+	parameter price_templates;
+	parameter annual_generation;
+	parameter annual_revenue;
+
+	simulation_outputs();
+};
+
+
+struct project_cluster_inputs
+{
+	int ncluster;
+	int nsim;
+	int nprev;
+	int alg;
+	bool hard_partitions;
+	bool is_run_continuous;
+	bool is_run_full;
+
+	project_cluster_inputs()
+	{
+		ncluster = nsim = nprev = alg = -1;
+		hard_partitions = true;
+		is_run_continuous = false;
+		is_run_full = false;
+	}
+
+};
+
 //main class
 class Project
 {
@@ -305,31 +349,29 @@ class Project
 
 	void lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
     void ssc_to_lk_hash(ssc_data_t &cxt, lk::varhash_t &vars);
-    //void lk_var_to_data(lk::vardata_t &var, data_base &data);
 	void initialize_ssc_project();
-	//void update_sscdata_from_object(datas_base &obj);
-	//void update_object_from_sscdata(datas_base &obj);
-	//void sscdata_localdata(data_base *obj, bool set_ssc_from_local);       //set ssc data from obj (set_ssc_from_local=true), or set local from ssc (false)
-	//void sscdata_localdata_map(datas_base &objs, bool set_ssc_from_local);  //set ssc data from list (set_ssc_from_local=true), or set local from ssc (false)
 	void update_calculated_system_values();
 	void update_calculated_values_post_layout();
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
 	bool run_design();
 
+
 public:
+
 	variables m_variables;
 	parameters m_parameters;
 	design_outputs m_design_outputs;
 	solarfield_outputs m_solarfield_outputs;
 	optical_outputs m_optical_outputs;
 	cycle_outputs m_cycle_outputs;
+	simulation_outputs m_simulation_outputs;
 
 	Project();
 	~Project();
 
-	//data access
-	//void SetData(data_base *obj);
-	//void GetData(data_base *obj);
+	struct CALLING_SIM{ enum E {DESIGN=1, HELIO_AVAIL, HELIO_OPTIC, SIMULATION, EXPLICIT, FINANCE, OBJECTIVE, NULLSIM=0}; };
+	bool Validate(CALLING_SIM::E simtype=CALLING_SIM::E::NULLSIM, std::string *error_msg=0);
+	void Initialize();
 
 	//objective function methods
 	bool D();
@@ -339,6 +381,11 @@ public:
 	int E();
 	int F();
 	int Z();
+
+
+	void setup_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail, s_metric_outputs &metric_results, s_cluster_outputs &cluster_results);
+	bool sim_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail);
+
 
 	data_base *GetVarPtr(const char *name);
 	lk::varhash_t *GetMergedData();
@@ -352,8 +399,6 @@ public:
 	// def Z(self, variables, **kwargs):
 
 };
-
-
 
 
 

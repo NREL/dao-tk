@@ -11,6 +11,9 @@
 #include "../libsolar/solarfield_avail.h"
 #include "../libsolar/solarfield_structures.h"
 
+#include "../libcluster/cluster.h"
+#include "../libcluster/metrics.h"
+#include "../libcluster/clustersim.h"
 
 
 int set_array(ssc_data_t p_data, const char *name, const char* fn, int len)
@@ -111,23 +114,120 @@ bool sim_progress_handler(float progress, const char *msg)
 	return !MainWindow::Instance().UpdateIsStopFlagSet();
 }
 
+void _initialize(lk::invoke_t &cxt)
+{
+	LK_DOC("initialize", "Reset all variable and parameter values to defaults.", "(void):void");
+	MainWindow &mw = MainWindow::Instance();
+	mw.GetProject()->Initialize();
+	mw.UpdateDataTable();
+}
+
 void _var(lk::invoke_t &cxt)
 {
 	LK_DOC2("var", "Sets or gets a variable value.",
 		"Set a variable value.", "(string:name, variant:value):none",
 		"Get a variable value", "(string:name):variant");
 
-	Project *project = MainWindow::Instance().GetProject();
+	MainWindow &mw = MainWindow::Instance();
+	Project *project = mw.GetProject();
 
 	//collect the item name
 	std::string namearg = cxt.arg(0).as_string();
 	data_base* dat = project->GetVarPtr(namearg.c_str());
 
-	//is this a set or get operation?
-    if (cxt.arg_count() > 1)
-    {
-		
+	if(! dat)
+	{
+		//variable not found
+		mw.Log( wxString::Format("The specified variable name (%s) is not "
+								 "included in the available variables.", 
+								 namearg.c_str()
+								 ) 
+			   );
+		return;
 	}
+
+
+	//is this a set or get operation?
+    if (cxt.arg_count() == 2) //set
+    {
+		//validate data type
+		if( cxt.arg(1).type() != dat->type )
+		{
+			std::string expected_type;
+			std::string given_type;
+
+			switch( dat->type )
+			{
+				case lk::vardata_t::STRING: expected_type = "string"; break;
+				case lk::vardata_t::NUMBER: expected_type = "number"; break;
+				case lk::vardata_t::VECTOR: expected_type = "array"; break;
+				default: expected_type = "unknown";
+			}
+			switch( cxt.arg(1).type() )
+			{
+				case lk::vardata_t::STRING: given_type = "string"; break;
+				case lk::vardata_t::NUMBER: given_type = "number"; break;
+				case lk::vardata_t::VECTOR: given_type = "array"; break;
+				default: given_type = "unknown";
+			}
+
+			mw.Log( wxString::Format("The variable %s has an expected data type "
+									"of %s, but the provided data type is %s. "
+									"Please assign the variable according to the "
+									"required type.", namearg.c_str(), 
+									expected_type.c_str(), given_type.c_str()
+									) 
+				);
+			return;
+		}
+		//assign data type
+		switch( dat->type )
+		{
+			case lk::vardata_t::STRING:
+				dat->assign( cxt.arg(1).as_string() );
+				break;
+			case lk::vardata_t::NUMBER:
+				dat->assign( cxt.arg(1).as_number() );
+				break;
+			case lk::vardata_t::VECTOR:
+				dat->vec()->assign( cxt.arg(1).vec()->begin(), cxt.arg(1).vec()->end() );
+				break;
+			default:
+				mw.Log("Specified variable does not contain valid data. Must be of type "
+					   "string, double, integer, boolean, or array (vector).");
+				return;
+		}
+	}
+	else if (cxt.arg_count() == 1) //get
+	{
+		switch( dat->type )
+		{
+			case lk::vardata_t::STRING:
+				cxt.result().assign( dat->as_string() );
+				break;
+			case lk::vardata_t::NUMBER:
+				cxt.result().assign( dat->as_number() );
+				break;
+			case lk::vardata_t::VECTOR:
+				cxt.result().vec()->assign( dat->vec()->begin(), dat->vec()->end() );
+				break;
+			default:
+				mw.Log("Specified variable does not contain valid data. Must be of type "
+						"string, double, integer, boolean, or array (vector).");
+				return;
+		}
+	}
+	else
+	{
+		mw.Log( wxString::Format("Invalid argument list: %d arguments provided. "
+								 "The var(string, value) function assigns a variable "
+								 "value. The var(string) function retrives a variable value.", 
+								 (int)cxt.arg_count() 
+								 ) 
+			   );
+	}
+	
+	mw.UpdateDataTable();
 
 }
 
@@ -173,6 +273,13 @@ void _test(lk::invoke_t &cxt)
 
 }
 
+void _generate_solarfield(lk::invoke_t &cxt)
+{
+	LK_DOC("generate_solarfield", "Creates a new solar field layout and geometry from current project settings.", "([table:options]):table");
+
+	MainWindow::Instance().GetProject()->D();
+	
+}
 
 void _power_cycle(lk::invoke_t &cxt)
 {
@@ -192,6 +299,14 @@ void _simulate_optical(lk::invoke_t &cxt)
 	optical_degradation OD;
 	
 	lk::varhash_t *h = cxt.arg(0).hash();
+
+	std::string error_msg;
+	MainWindow &mw = MainWindow::Instance();
+	if( ! mw.GetProject()->Validate(Project::CALLING_SIM::HELIO_OPTIC, &error_msg) )
+	{
+		mw.Log( error_msg );
+		return;
+	}
 
 	OD.m_settings.n_helio = 8000;
 	if( h->find("n_helio") != h->end() )
@@ -254,8 +369,14 @@ void _simulate_solarfield(lk::invoke_t &cxt)
 	solarfield_availability SA;
 
 	lk::varhash_t *H = cxt.arg(0).hash();
-
-
+	
+	std::string error_msg;
+	MainWindow &mw = MainWindow::Instance();
+	if( ! mw.GetProject()->Validate(Project::CALLING_SIM::HELIO_AVAIL, &error_msg) )
+	{
+		mw.Log( error_msg );
+		return;
+	}
 
 	SA.m_settings.mf = 12000;
 	if (H->find("mean_time_to_failure") != H->end())
@@ -299,6 +420,159 @@ void _simulate_solarfield(lk::invoke_t &cxt)
 
 }
 
+void _simulate_performance(lk::invoke_t &cxt)
+{
+
+	LK_DOC("simulate_performance", "Test creation/simulation of clusters."
+		"Table keys include: "
+		"n_cluster, n_sim_days, n_prev, weather_file, price_file, "
+		"sfavail_file, algorithm, hard_partitions, is_run_continuous, "
+		"is_run_full"
+		, "(table:inputs):table");
+
+
+	lk::varhash_t *H = cxt.arg(0).hash();
+
+	MainWindow &mw = MainWindow::Instance();
+
+	Project* P = mw.GetProject();
+
+	std::string error_msg;
+	if( ! P->Validate(Project::CALLING_SIM::SIMULATION, &error_msg) )
+	{
+		mw.Log( error_msg );
+		return;
+	}
+
+	// P->m_variables.h_tower.assign( 180. );
+	// P->m_variables.rec_height.assign( 17. );
+	// P->m_variables.D_rec.assign( 15. );
+	// P->m_variables.design_eff.assign( .41 );
+	// P->m_variables.dni_des.assign( 950. );
+	// P->m_variables.P_ref.assign( 100. );
+	// P->m_variables.solarm.assign( 2.1 );
+	// P->m_variables.tshours.assign( 10. );
+	// P->m_variables.degr_replace_limit.assign( .7 );
+	// P->m_variables.om_staff.assign( 5 );
+	// P->m_variables.n_wash_crews.assign( 3 );
+	// P->m_variables.N_panels.assign( 16 );
+
+	// P->m_parameters.is_dispatch.assign( 1. );
+	// P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_weather.csv" );	
+	// std::string price_file = "/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_price.csv";
+
+	//--- User inputs for clustering
+	project_cluster_inputs user_inputs;
+
+	if (H->find("weather_file") != H->end())
+		P->m_parameters.solar_resource_file.assign( H->at("weather_file")->as_string() );
+
+	std::string price_file = "";
+	if (H->find("price_file") != H->end())
+		price_file = H->at("price_file")->as_string();
+
+	std::string  sfavail_file = "";
+	if (H->find("sfavail_file") != H->end() )
+		sfavail_file = H->at("sfavail_file")->as_string();
+
+    if (H->find("n_cluster") != H->end())
+        user_inputs.ncluster = H->at("n_cluster")->as_integer();
+    else
+        user_inputs.ncluster = 40;
+
+	if (H->find("n_sim_days") != H->end())
+		user_inputs.nsim = H->at("n_sim_days")->as_integer();
+    else
+        user_inputs.nsim = 2;
+
+    if (H->find("n_prev") != H->end())
+        user_inputs.nprev = H->at("n_prev")->as_integer();
+    else
+        user_inputs.nprev = 1;
+
+	if (H->find("hard_partitions") != H->end())
+		user_inputs.hard_partitions = H->at("hard_partitions")->as_boolean();
+
+	if (H->find("is_run_continuous") != H->end())
+		user_inputs.is_run_continuous = H->at("is_run_continuous")->as_boolean();
+
+	if (H->find("is_run_full") != H->end())
+		user_inputs.is_run_full = H->at("is_run_full")->as_boolean();
 
 
 
+    if (H->find("algorithm") != H->end())
+    {
+        std::string algorithm = H->at("algorithm")->as_string();
+
+        if (algorithm == "affinity propagation")
+            user_inputs.alg = AFFINITY_PROPAGATION;
+        else if (algorithm == "kmeans")
+            user_inputs.alg = KMEANS;
+        else if (algorithm == "random")
+            user_inputs.alg = RANDOM_SELECTION;
+        else
+            mw.Log("Specified clustering algorithm not recognized");
+    }
+    else
+        user_inputs.alg = KMEANS;
+
+
+	//--- Price array from price file
+	std::vector<double> price_data;
+	if( ! price_file.empty() )
+	{
+		FILE *fp = fopen(price_file.c_str(), "r");
+		if (fp == NULL)
+		{
+			mw.Log(wxString::Format("Failed to open price file"));
+			return;
+		}
+		char *line, *record;
+		char buffer[1024];
+		while ((line = fgets(buffer, sizeof(buffer), fp)) != NULL)
+		{
+			record = strtok(line, ",");
+			price_data.push_back(atof(record));
+		}
+		fclose(fp);
+	}
+	else
+	{
+		//use default vector of 1.
+		mw.Log("No price file specified. Using default unity vector.");
+		price_data.resize(8760, 1.);
+	}
+	
+	P->m_parameters.dispatch_factors_ts.assign_vector( price_data );
+
+
+	//--- solar field availability 
+	std::vector<double> sfavail;
+	if( ! sfavail_file.empty() )
+	{
+		char *line, *record;
+		char buffer[1024];
+		FILE *fp = fopen(sfavail_file.c_str(), "r");
+		while ((line = fgets(buffer, sizeof(buffer), fp)) != NULL)
+		{
+			record = strtok(line, ",");
+			sfavail.push_back(atof(record));
+		}
+		fclose(fp);
+	}
+	else
+	{
+		sfavail.resize(8760, 1.);
+	}
+
+
+	//--- Run simulation
+	// P->D();
+	P->sim_clusters(user_inputs, sfavail);
+	
+	mw.UpdateDataTable();
+
+	return;
+
+}
