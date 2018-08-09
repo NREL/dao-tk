@@ -102,6 +102,7 @@ parameters::parameters()
 
 	std::vector< double > pvalts(8760, 1.);
 	dispatch_factors_ts.set( pvalts, "dispatch_factors_ts", lk::vardata_t::VECTOR, false );
+	dispatch_factors_ts.set( pvalts, "user_sf_avail", lk::vardata_t::VECTOR, false );
 	
     (*this)["print_messages"] = &print_messages;
     (*this)["check_max_flux"] = &check_max_flux;
@@ -152,7 +153,7 @@ parameters::parameters()
     (*this)["flux_max"] = &flux_max;
     (*this)["c_ces"] = &c_ces;
     (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
-
+	(*this)["user_sf_avail"] = &user_sf_avail;
 }
 
 design_outputs::design_outputs()
@@ -295,26 +296,94 @@ simulation_outputs::simulation_outputs()
 	// struct CALLING_SIM{ enum E {DESIGN=1, HELIO_AVAIL, HELIO_OPTIC, SIMULATION, EXPLICIT, FINANCE, OBJECTIVE, NULLSIM=0}; };
 bool Project::Validate(Project::CALLING_SIM::E sim_type, std::string *error_msg)
 {
-	//make sure the appropriate items have been set up for the method that's being called
+	/* 
+	make sure the appropriate items have been set up for the method that's being called
+	*/
+
+	//check all of the variable and parameter values for nan or invalid
+	bool any_var_errors = false;
+	for( lk::varhash_t::iterator it = _merged_data.begin(); it != _merged_data.end(); it++ )
+	{
+		data_base *v = static_cast< data_base* >( it->second );
+		bool valid_flag = true;
+		if( !v->IsInvalidAllowed() )
+		{
+			switch(v->type)
+			{
+				case lk::vardata_t::NUMBER:
+					if( v->as_number() != v->as_number() )
+						valid_flag = false;
+					break;
+				case lk::vardata_t::VECTOR:
+					if( v->vec()->size() == 0 )
+						valid_flag = false;
+					break;
+				case lk::vardata_t::STRING:
+					if( v->as_string().empty() )
+						valid_flag = false;
+					break;
+				default:
+					break;
+			}
+		}
+		if( ! valid_flag && error_msg != 0)
+		{
+			(*error_msg).append(wxString::Format("Variable or parameter has invalid data: %s (%s)\n", 
+												v->nice_name.c_str(), v->name.c_str()).c_str());
+			any_var_errors = true;
+		}
+	}
+	if( any_var_errors )
+		return false;
+
+
 	switch(sim_type)
 	{
 		case CALLING_SIM::DESIGN:
 
 			break;
 		case CALLING_SIM::HELIO_AVAIL:
-
+			if( !is_design_valid )
+			{
+				(*error_msg).append("Error: Attempting to run heliostat field availability without a valid solar field design.\n");
+				return false;
+			}
 			break;
 		case CALLING_SIM::HELIO_OPTIC:
-
+			if( !is_design_valid )
+			{
+				(*error_msg).append("Error: Attempting to run heliostat field soiling/degradation without a valid solar field design.\n");
+				return false;
+			}
 			break;
 		case CALLING_SIM::SIMULATION:
-
+			if( !is_design_valid )
+			{
+				(*error_msg).append("Error: Attempting to run heliostat field soiling/degradation without a valid solar field design.\n");
+				return false;
+			}
+			else
+			{
+				if( !is_sf_avail_valid )
+					(*error_msg).append("Notice: Simulating performance without valid solar field availability model output.\n");
+				if( !is_sf_optical_valid )
+					(*error_msg).append("Notice: Simulating performance without valid solar field soiling/degradation model output.\n");
+			}
 			break;
 		case CALLING_SIM::EXPLICIT:
-
+			if( !is_design_valid )
+			{
+				(*error_msg).append("Error: Cannot calculate system costs without a valid solar field design.\n");
+				return false;
+			}
 			break;
 		case CALLING_SIM::FINANCE:
+			if( !( is_design_valid && is_simulation_valid ) )
+			{
+				(*error_msg).append(wxString::Format( "Error: Cannot calculate system financial metrics without a valid %s.\n",
+													is_design_valid ? "plant performance simulation" : "solar field design").c_str() );
 
+			}
 			break;
 		case CALLING_SIM::OBJECTIVE:
 
@@ -330,12 +399,15 @@ bool Project::Validate(Project::CALLING_SIM::E sim_type, std::string *error_msg)
 
 void Project::Initialize()
 {
+	is_design_valid = false;
+	is_sf_avail_valid = false;
+	is_sf_optical_valid = false;
+	is_simulation_valid = false;
+
 	initialize_ssc_project();
 
     ssc_to_lk_hash(m_ssc_data, m_parameters);
     ssc_to_lk_hash(m_ssc_data, m_variables);
-
-	
 }
 
 Project::Project()
@@ -366,18 +438,6 @@ Project::~Project()
 	if (m_ssc_data)
 		ssc_data_free(m_ssc_data);
 }
-
-//void Project::SetData(data_base *obj)
-//{
-//	//pass-through function - set. SSC value assigned from obj->val
-//	sscdata_localdata(obj, true);
-//}
-//
-//void Project::GetData(data_base *obj)
-//{
-//	//pass-through function - get. Value assigned to obj->val from SSC value.
-//	sscdata_localdata(obj, false);
-//}
 
 lk::varhash_t *Project::GetMergedData()
 {
@@ -731,77 +791,6 @@ void Project::update_calculated_values_post_layout()
 	//ssc_api.module_free(cost)
 
 }
-
-bool Project::run_design()
-{
-
-	/*
-	run only the design
-	
-	usr_vars is a dict containing name : value pairs.The name must be a valid
-	ssc variable from vartab.py, and corresponding value must match the var
-	type given in the same file.
-	*/
-	
-	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean()); //0 = no, 1 = yes(print progress updates)
-	
-	//change any defaults
-	ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 1.);
-	
-	//#Check to make sure the weather file exists
-	FILE *fp = fopen(m_parameters.solar_resource_file.as_string().c_str(), "r");
-	if (fp == NULL)
-	{
-		message_handler(wxString::Format("The solar resource file could not be located (Design module). The specified path is:\n%s", 
-            m_parameters.solar_resource_file.as_string().c_str()).c_str());
-		return false;;
-	}
-	fclose(fp);
-
-	update_calculated_system_values();
-	ssc_data_set_matrix(m_ssc_data, "heliostat_positions_in", (ssc_number_t*)0, 0, 0);
-	
-    lk_hash_to_ssc(m_ssc_data, m_variables);
-    lk_hash_to_ssc(m_ssc_data, m_parameters);
-
-	//update_sscdata_from_object(m_variables);
-	//update_sscdata_from_object(m_parameters);
-
-	//Run design to get field layout
-	ssc_module_t mod_solarpilot = ssc_module_create("solarpilot");
-	ssc_module_exec_with_handler(mod_solarpilot, m_ssc_data, ssc_progress_handler, 0);
-	
-	//Collect calculated data
-    ssc_to_lk_hash(m_ssc_data, m_design_outputs);
-	
-	ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 0.);
-	
-	//update values
-	{
-		int nr, nc;
-		ssc_number_t *p_hel = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
-		ssc_data_set_matrix(m_ssc_data, "helio_positions", p_hel, nr, nc);
-	}
-	ssc_number_t val;
-	ssc_data_get_number(m_ssc_data, "area_sf", &val);
-	ssc_data_set_number(m_ssc_data, "A_sf", val);
-
-	//a successful layout will have solar field area
-	if (val < 0.1 || val == std::numeric_limits<double>::quiet_NaN())
-		return false;
-	
-	ssc_data_get_number(m_ssc_data, "base_land_area", &val);
-	ssc_data_set_number(m_ssc_data, "land_area_base", val);
-	
-	update_calculated_values_post_layout();
-	// use this layout
-	ssc_data_set_number(m_ssc_data, "field_model_type", 2.);
-	
-	ssc_module_free(mod_solarpilot);
-	
-	return true;
-}
-
 
 void Project::initialize_ssc_project()
 {
@@ -1407,16 +1396,74 @@ double Project::calc_real_dollars(const double &dollars, bool is_revenue, bool i
 bool Project::D()
 {
 	/*
-	Run design
+	run only the design
+	
+	usr_vars is a dict containing name : value pairs.The name must be a valid
+	ssc variable from vartab.py, and corresponding value must match the var
+	type given in the same file.
 	*/
-	if( ! run_design() )
-		return false;
+	
+	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean()); //0 = no, 1 = yes(print progress updates)
+	
+	//change any defaults
+	ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 1.);
+	
+	//#Check to make sure the weather file exists
+	FILE *fp = fopen(m_parameters.solar_resource_file.as_string().c_str(), "r");
+	if (fp == NULL)
+	{
+		message_handler(wxString::Format("The solar resource file could not be located (Design module). The specified path is:\n%s", 
+            m_parameters.solar_resource_file.as_string().c_str()).c_str());
+		return false;;
+	}
+	fclose(fp);
 
+	update_calculated_system_values();
+	ssc_data_set_matrix(m_ssc_data, "heliostat_positions_in", (ssc_number_t*)0, 0, 0);
+	
+    lk_hash_to_ssc(m_ssc_data, m_variables);
+    lk_hash_to_ssc(m_ssc_data, m_parameters);
+
+	//Run design to get field layout
+	ssc_module_t mod_solarpilot = ssc_module_create("solarpilot");
+	ssc_module_exec_with_handler(mod_solarpilot, m_ssc_data, ssc_progress_handler, 0);
+	
+	//Collect calculated data
+    ssc_to_lk_hash(m_ssc_data, m_design_outputs);
+	
+	ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 0.);
+	
+	//update values
+	{
+		int nr, nc;
+		ssc_number_t *p_hel = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
+		ssc_data_set_matrix(m_ssc_data, "helio_positions", p_hel, nr, nc);
+	}
+	ssc_number_t val;
+	ssc_data_get_number(m_ssc_data, "area_sf", &val);
+	ssc_data_set_number(m_ssc_data, "A_sf", val);
+
+	//a successful layout will have solar field area
+	if (val < 0.1 || val == std::numeric_limits<double>::quiet_NaN())
+		return false;
+	
+	ssc_data_get_number(m_ssc_data, "base_land_area", &val);
+	ssc_data_set_number(m_ssc_data, "land_area_base", val);
+	
+	update_calculated_values_post_layout();
+	// use this layout
+	ssc_data_set_number(m_ssc_data, "field_model_type", 2.);
+	
+	ssc_module_free(mod_solarpilot);
+
+	//assign outputs and return
+	
 	//Land cost
 	m_design_outputs.cost_land_real.assign( calc_real_dollars( m_parameters.land_spec_cost.as_number() * m_design_outputs.land_area.as_number() ) ); 
 	//solar field cost
 	m_design_outputs.cost_sf_real.assign( calc_real_dollars( (m_parameters.heliostat_spec_cost.as_number() + m_parameters.site_spec_cost.as_number())*m_design_outputs.area_sf.as_number() ) );
 
+	is_design_valid = true;
 	return true;
 }
 
@@ -1472,6 +1519,7 @@ bool Project::M()
     m_solarfield_outputs.heliostat_repair_cost.assign( sfa.m_results.heliostat_repair_cost );
     m_solarfield_outputs.avail_schedule.assign_vector( sfa.m_results.avail_schedule, sfa.m_results.n_avail_schedule );
 
+	is_sf_avail_valid = true;
 	return true;
 }
 
@@ -1524,31 +1572,24 @@ bool Project::O()
     m_optical_outputs.repl_schedule.assign_vector( od.m_results.repl_schedule, od.m_results.n_schedule );
     m_optical_outputs.repl_total.assign_vector( od.m_results.repl_total, od.m_results.n_schedule );
 
+	is_sf_optical_valid = true;
 	return true;
 }
 
-bool Project::S(float *sf_avail, float *sf_soil, float *sf_degr)
+bool Project::S()
 {
 	/* 
 	
 	*/
 
-	return true;
+	std::vector<double> sfavail(m_parameters.user_sf_avail.vec()->size());
+	for(int i=0; i<sfavail.size(); i++)
+		sfavail.at(i) = m_parameters.user_sf_avail.vec()->at(i).as_number();
+
+	is_simulation_valid = simulate_system(m_cluster_parameters, sfavail );
+	
+	return is_simulation_valid;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 void Project::setup_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail, s_metric_outputs &metric_results, s_cluster_outputs &cluster_results)
 {
@@ -1599,7 +1640,7 @@ void Project::setup_clusters(const project_cluster_inputs &user_inputs, const st
 }
 
 
-bool Project::sim_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail)
+bool Project::simulate_system(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail)
 {
 
 	int nr, nc;

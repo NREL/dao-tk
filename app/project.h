@@ -21,6 +21,8 @@ extern void message_handler(const char *msg);
 
 class data_base : public lk::vardata_t
 {
+protected:
+	bool m_is_invalid_allowed; //allow values to contain invalid data during simulation (values will be assigned/updated by the program)
 public:
 	std::string name;
     unsigned char type;   //type defined in lk::vardata_t {NUMBER, STRING, VECTOR, HASH}
@@ -48,6 +50,11 @@ public:
 	{
 		return wxString::Format("[%s] %s", units, nice_name).ToStdString();
 	};
+
+	bool IsInvalidAllowed()
+	{
+		return m_is_invalid_allowed;
+	};
 };
 
 class variable : public data_base
@@ -62,6 +69,7 @@ protected:
 		this->units = _units;
 		this->group = _group;
 		this->is_shown_in_list = true;
+		this->m_is_invalid_allowed = false;
     };
 
 public:
@@ -125,6 +133,7 @@ protected:
 		this->group = _group != '\0' ? _group : "";
 		this->is_shown_in_list = true;
         is_calculated = calculated;
+		this->m_is_invalid_allowed = is_calculated ? true : false;
     };
 
 public:
@@ -237,6 +246,7 @@ struct parameters : public lk::varhash_t
     //vector-doubles
 	parameter c_ces;
 	parameter dispatch_factors_ts;
+	parameter user_sf_avail;
 	//-----------------------------------------------------------------------
 
 	parameters();
@@ -332,17 +342,27 @@ struct project_cluster_inputs
 
 	project_cluster_inputs()
 	{
+		initialize();
+	};
+	
+	void initialize()
+	{
 		ncluster = nsim = nprev = alg = -1;
 		hard_partitions = true;
 		is_run_continuous = false;
 		is_run_full = false;
-	}
+	};
 
 };
 
 //main class
 class Project
 {
+	bool is_design_valid;
+	bool is_sf_avail_valid;
+	bool is_sf_optical_valid;
+	bool is_simulation_valid;
+
 	ssc_data_t m_ssc_data;
 	
 	lk::varhash_t _merged_data;
@@ -353,13 +373,15 @@ class Project
 	void update_calculated_system_values();
 	void update_calculated_values_post_layout();
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
-	bool run_design();
-
+	
+	void setup_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail, s_metric_outputs &metric_results, s_cluster_outputs &cluster_results);
+	bool simulate_system(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail);
 
 public:
 
 	variables m_variables;
 	parameters m_parameters;
+	project_cluster_inputs m_cluster_parameters;
 	design_outputs m_design_outputs;
 	solarfield_outputs m_solarfield_outputs;
 	optical_outputs m_optical_outputs;
@@ -377,14 +399,12 @@ public:
 	bool D();
 	bool M();
 	bool O();
-	bool S(float *sf_avail = 0, float *sf_soil = 0, float *sf_degr = 0);
+	bool S();
 	int E();
 	int F();
 	int Z();
 
 
-	void setup_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail, s_metric_outputs &metric_results, s_cluster_outputs &cluster_results);
-	bool sim_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail);
 
 
 	data_base *GetVarPtr(const char *name);

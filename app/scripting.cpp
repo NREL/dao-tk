@@ -424,11 +424,11 @@ void _simulate_performance(lk::invoke_t &cxt)
 {
 
 	LK_DOC("simulate_performance", "Test creation/simulation of clusters."
-		"Table keys include: "
-		"n_cluster, n_sim_days, n_prev, weather_file, price_file, "
+		"Table keys for clustering include: "
+		"is_clustering_used, n_cluster, n_sim_days, n_prev, weather_file, price_file, "
 		"sfavail_file, algorithm, hard_partitions, is_run_continuous, "
 		"is_run_full"
-		, "(table:inputs):table");
+		, "(table:cluster_options):table");
 
 
 	lk::varhash_t *H = cxt.arg(0).hash();
@@ -462,7 +462,7 @@ void _simulate_performance(lk::invoke_t &cxt)
 	// std::string price_file = "/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_price.csv";
 
 	//--- User inputs for clustering
-	project_cluster_inputs user_inputs;
+	P->m_cluster_parameters.initialize();
 
 	if (H->find("weather_file") != H->end())
 		P->m_parameters.solar_resource_file.assign( H->at("weather_file")->as_string() );
@@ -475,48 +475,50 @@ void _simulate_performance(lk::invoke_t &cxt)
 	if (H->find("sfavail_file") != H->end() )
 		sfavail_file = H->at("sfavail_file")->as_string();
 
-    if (H->find("n_cluster") != H->end())
-        user_inputs.ncluster = H->at("n_cluster")->as_integer();
-    else
-        user_inputs.ncluster = 40;
-
-	if (H->find("n_sim_days") != H->end())
-		user_inputs.nsim = H->at("n_sim_days")->as_integer();
-    else
-        user_inputs.nsim = 2;
-
-    if (H->find("n_prev") != H->end())
-        user_inputs.nprev = H->at("n_prev")->as_integer();
-    else
-        user_inputs.nprev = 1;
-
-	if (H->find("hard_partitions") != H->end())
-		user_inputs.hard_partitions = H->at("hard_partitions")->as_boolean();
-
-	if (H->find("is_run_continuous") != H->end())
-		user_inputs.is_run_continuous = H->at("is_run_continuous")->as_boolean();
-
 	if (H->find("is_run_full") != H->end())
-		user_inputs.is_run_full = H->at("is_run_full")->as_boolean();
+		P->m_cluster_parameters.is_run_full = H->at("is_run_full")->as_boolean();
+	else 
+		P->m_cluster_parameters.is_run_full = true;
 
+	if( P->m_cluster_parameters.is_run_full )
+	{
+		if (H->find("n_cluster") != H->end())
+			P->m_cluster_parameters.ncluster = H->at("n_cluster")->as_integer();
+		else
+			P->m_cluster_parameters.ncluster = 40;
 
+		if (H->find("n_sim_days") != H->end())
+			P->m_cluster_parameters.nsim = H->at("n_sim_days")->as_integer();
+		else
+			P->m_cluster_parameters.nsim = 2;
 
-    if (H->find("algorithm") != H->end())
-    {
-        std::string algorithm = H->at("algorithm")->as_string();
+		if (H->find("n_prev") != H->end())
+			P->m_cluster_parameters.nprev = H->at("n_prev")->as_integer();
+		else
+			P->m_cluster_parameters.nprev = 1;
 
-        if (algorithm == "affinity propagation")
-            user_inputs.alg = AFFINITY_PROPAGATION;
-        else if (algorithm == "kmeans")
-            user_inputs.alg = KMEANS;
-        else if (algorithm == "random")
-            user_inputs.alg = RANDOM_SELECTION;
-        else
-            mw.Log("Specified clustering algorithm not recognized");
-    }
-    else
-        user_inputs.alg = KMEANS;
+		if (H->find("hard_partitions") != H->end())
+			P->m_cluster_parameters.hard_partitions = H->at("hard_partitions")->as_boolean();
 
+		if (H->find("is_run_continuous") != H->end())
+			P->m_cluster_parameters.is_run_continuous = H->at("is_run_continuous")->as_boolean();
+
+		if (H->find("algorithm") != H->end())
+		{
+			std::string algorithm = H->at("algorithm")->as_string();
+
+			if (algorithm == "affinity propagation")
+				P->m_cluster_parameters.alg = AFFINITY_PROPAGATION;
+			else if (algorithm == "kmeans")
+				P->m_cluster_parameters.alg = KMEANS;
+			else if (algorithm == "random")
+				P->m_cluster_parameters.alg = RANDOM_SELECTION;
+			else
+				mw.Log("Specified clustering algorithm not recognized");
+		}
+		else
+			P->m_cluster_parameters.alg = KMEANS;
+	}
 
 	//--- Price array from price file
 	std::vector<double> price_data;
@@ -565,11 +567,11 @@ void _simulate_performance(lk::invoke_t &cxt)
 	{
 		sfavail.resize(8760, 1.);
 	}
+	P->m_parameters.user_sf_avail.assign_vector( sfavail );
 
 
 	//--- Run simulation
-	// P->D();
-	P->sim_clusters(user_inputs, sfavail);
+	P->S();
 	
 	mw.UpdateDataTable();
 
