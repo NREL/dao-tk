@@ -359,7 +359,7 @@ bool Project::Validate(Project::CALLING_SIM::E sim_type, std::string *error_msg)
 		case CALLING_SIM::SIMULATION:
 			if( !is_design_valid )
 			{
-				(*error_msg).append("Error: Attempting to run heliostat field soiling/degradation without a valid solar field design.\n");
+				(*error_msg).append("Error: Attempting to run time-series performance simulation without a valid solar field design.\n");
 				return false;
 			}
 			else
