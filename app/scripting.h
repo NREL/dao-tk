@@ -7,6 +7,7 @@
 
 extern void _test(lk::invoke_t &cxt);
 extern void _var(lk::invoke_t &cxt);
+extern void _generate_solarfield(lk::invoke_t &cxt);
 extern void _power_cycle(lk::invoke_t &cxt);
 extern void _simulate_optical(lk::invoke_t &cxt);
 extern void _simulate_solarfield(lk::invoke_t &cxt);

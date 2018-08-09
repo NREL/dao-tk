@@ -273,6 +273,13 @@ void _test(lk::invoke_t &cxt)
 
 }
 
+void _generate_solarfield(lk::invoke_t &cxt)
+{
+	LK_DOC("generate_solarfield", "Creates a new solar field layout and geometry from current project settings.", "([table:options]):table");
+
+	MainWindow::Instance().GetProject()->D();
+	
+}
 
 void _power_cycle(lk::invoke_t &cxt)
 {

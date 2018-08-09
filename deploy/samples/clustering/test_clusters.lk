@@ -8,5 +8,16 @@ r = test_clusters({
 	"is_run_continuous"=true,
 	"is_run_full"=true,
 	});
-*/	
-test();	
+*/
+//var("price_file","/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_price.csv");
+var("solar_resource_file","/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_weather.csv");
+
+d = generate_solarfield();
+
+	
+r = simulate_performance({
+	"price_file"="/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_price.csv",
+	"weather_file"="/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_weather.csv",
+	"is_run_continuous"=true //,
+	//"is_run_full"=true,
+	});
