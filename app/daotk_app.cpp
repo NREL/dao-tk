@@ -6,6 +6,7 @@
 #include <wx/log.h>
 #include <wx/stdpaths.h>
 #include <wx/busyinfo.h>
+#include <wx/splitter.h>
 
 #ifdef __WXMSW__
 #include <wex/mswfatal.h>
@@ -182,18 +183,23 @@ MainWindow::MainWindow()
 	entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F1, wxID_HELP));
 	SetAcceleratorTable(wxAcceleratorTable(entries.size(), &entries[0]));
 
+
+	wxSplitterWindow *splitwin = new wxSplitterWindow(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE ); 
+	splitwin->SetMinimumPaneSize(210);
+
 	m_tabList->Append("Script");
-	m_ScriptViewForm = new ScriptView(m_notebook);
-	m_notebook->AddPage(m_ScriptViewForm, "Script");
+	m_ScriptViewForm = new ScriptView(splitwin);
+	m_LogViewForm = new LogView(splitwin);
+
+	m_notebook->AddPage(splitwin, "Script");
+
+	splitwin->SplitHorizontally(m_ScriptViewForm, m_LogViewForm, 390);
 
 	m_tabList->Append("Data");
 	m_DataViewForm = new DataView(m_notebook, m_image_dir.GetFullPath().c_str() );
 	m_DataViewForm->SetDataObject( m_project.GetMergedData() );
 	m_notebook->AddPage(m_DataViewForm, "Data");
 
-	m_tabList->Append("Log");
-	m_LogViewForm = new LogView(m_notebook);
-	m_notebook->AddPage(m_LogViewForm, "Log");
 
 	UpdateFrameTitle();
 }
