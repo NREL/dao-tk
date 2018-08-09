@@ -278,6 +278,7 @@ void _generate_solarfield(lk::invoke_t &cxt)
 	LK_DOC("generate_solarfield", "Creates a new solar field layout and geometry from current project settings.", "([table:options]):table");
 
 	MainWindow::Instance().GetProject()->D();
+	MainWindow::Instance().SetProgress(0.);
 	
 }
 
@@ -287,6 +288,7 @@ void _power_cycle(lk::invoke_t &cxt)
 
 	//do something
 	
+	MainWindow::Instance().SetProgress(0.);
 }
 
 void _simulate_optical(lk::invoke_t &cxt)
@@ -354,6 +356,7 @@ void _simulate_optical(lk::invoke_t &cxt)
 
 	OD.simulate();
 
+	mw.SetProgress(0.);
 	return;
 
 }
@@ -416,6 +419,7 @@ void _simulate_solarfield(lk::invoke_t &cxt)
 	
 	SA.simulate();
 
+	mw.SetProgress(0.);
 	return;
 
 }
@@ -573,6 +577,7 @@ void _simulate_performance(lk::invoke_t &cxt)
 	//--- Run simulation
 	P->S();
 	
+	mw.SetProgress(0.);
 	mw.UpdateDataTable();
 
 	return;
