@@ -31,7 +31,7 @@ public:
 	std::string group;
 	bool is_shown_in_list;
 
-    void assign_vector(float *_vec, int nval)
+	void assign_vector(float *_vec, int nval)
     {
         this->empty_vector();
         this->vec()->resize(nval);

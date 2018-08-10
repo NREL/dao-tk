@@ -11,6 +11,7 @@
 #ifdef __WXMSW__
 #include <wex/mswfatal.h>
 #endif
+#include <cstdio>
 
 #include "../app/menu.cpng"
 #include "../app/notes_white.cpng"
@@ -20,6 +21,13 @@
 #include <wex/icons/cirplus.cpng>
 #include <wex/icons/qmark.cpng>
 #include <wex/utils.h>
+
+#include <rapidjson/rapidjson.h>
+#include <rapidjson/document.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/filewritestream.h>
+#include <rapidjson/filereadstream.h>
+#include <rapidjson/reader.h>
 
 #include "scripting.h"
 #include "dataview.h"
@@ -267,8 +275,145 @@ void MainWindow::Save()
 		return;
 	}
 
-	if (!m_ScriptViewForm->Save())
+	// if (!m_ScriptViewForm->Save())
+	FILE *fp = fopen(m_fileName.c_str(), "w");
+	if( fp == NULL )
+	{
 		wxMessageBox("Error writing project to disk:\n\n" + m_fileName, "Notice", wxOK, this);
+		fclose(fp);
+		return;
+	}
+
+	lk::varhash_t *all_data = GetProject()->GetMergedData();
+
+	
+	rapidjson::Document D;
+	D.SetObject();
+	rapidjson::Document::AllocatorType &alloc = D.GetAllocator();
+
+	unsigned int cest=0;	//counter to estimate required file size
+
+	for( lk::varhash_t::iterator it = all_data->begin(); it != all_data->end(); it++ )
+	{
+		data_base *v = static_cast< data_base* >( it->second );
+
+		rapidjson::Value jv(rapidjson::kObjectType);
+		
+		rapidjson::Value jdata;
+
+		switch(v->type)
+		{
+			case lk::vardata_t::NUMBER:
+			{
+				double vnum = v->as_number();
+				if( vnum != vnum )
+					continue;	//don't save invalid data
+
+				jdata.SetDouble( vnum );
+				cest += 10;
+			}
+			break;
+			case lk::vardata_t::STRING:
+			{
+				std::string strval = v->as_string();
+				char *buf = new char[strval.length()];
+				sprintf(buf, "%s", strval.c_str());
+
+				jdata.SetString(buf, strval.length(), alloc );
+
+				delete buf;
+				cest += strval.length();
+			}
+			break;
+			case lk::vardata_t::VECTOR:
+			{
+				jdata.SetArray();
+
+				//determine whether this is a 1D or 2D array
+				int nr = v->vec()->size();
+				int nc = 0;
+
+				bool invalid_data = false;
+
+				for( size_t i=0; i<nr; i++)
+				{
+					if( nc > 0 )
+					{
+
+						for( size_t j=0; j < nc; j++)
+						{
+							double dval = v->vec()->at(i).vec()->at(j).as_number();
+							if( dval != dval )
+							{
+								invalid_data = true;
+								break;			//if any nan's are present, don't save
+							}
+
+							jdata.PushBack( dval, alloc );
+						}
+						if( invalid_data )
+							break;
+
+						cest += nc*10;
+					}
+					else
+					{
+						double dval = v->as_number();
+						if( dval != dval )
+						{
+							invalid_data = true;
+							break;			//if any nan's are present, don't save
+						}
+						
+						jdata.PushBack( dval, alloc );
+						cest += 10;
+					}
+				}				
+				if( invalid_data )
+					continue;
+
+				if( nr > 0)
+				{
+					if( v->vec()->front().type() == lk::vardata_t::VECTOR )
+					{
+						nc = v->vec()->front().vec()->size();
+						if( nc > 0 )
+						{
+							rapidjson::Value jshape(rapidjson::kArrayType);
+							jshape.PushBack(nr, alloc);
+							jshape.PushBack(nc, alloc);
+
+							jv.AddMember("matrix_shape", jshape, alloc);
+						}
+					}
+				}
+			}
+		}
+		//add the name
+		rapidjson::Value jname(rapidjson::kStringType);
+		jname.Set(v->name.c_str());
+		jv.AddMember("name", jname, alloc);
+		cest += v->name.size();
+
+		//add to the data structure
+		jv.AddMember("data", jdata, alloc);
+		D.AddMember((rapidjson::Value::StringRefType)(v->name.c_str()), jv, alloc);
+	}
+
+	int initsize=2;
+	while(initsize < cest)
+		initsize *= 2;
+
+	rapidjson::StringBuffer stringbuffer(0, initsize);
+	rapidjson::Writer< rapidjson::StringBuffer > writer(stringbuffer);
+	
+	D.Accept(writer);
+
+	std::string output = stringbuffer.GetString();
+	fprintf(fp, "%s", stringbuffer.GetString() );
+
+	fclose(fp);
+	
 }
 
 void MainWindow::SaveAs()
