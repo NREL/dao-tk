@@ -25,9 +25,9 @@
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
-#include <rapidjson/filewritestream.h>
-#include <rapidjson/filereadstream.h>
 #include <rapidjson/reader.h>
+// #include <rapidjson/filewritestream.h>
+// #include <rapidjson/filereadstream.h>
 
 #include "scripting.h"
 #include "dataview.h"
@@ -38,6 +38,8 @@
 int version_major = 0;
 int version_minor = 0;
 int version_micro = 0;
+
+namespace rjs = rapidjson;
 
 class CustomThemeProvider : public wxMetroThemeProvider
 {
@@ -112,8 +114,9 @@ int MyApp::OnExit()
 }
 
 enum {
-	ID_MAIN_MENU = wxID_HIGHEST + 123, ID_TABS,
-	ID_NEW_SCRIPT, ID_OPEN_SCRIPT, ID_RUN_SCRIPT
+	ID_MAIN_MENU = wxID_HIGHEST + 123, ID_TABS, 
+	ID_NEW_SCRIPT, ID_OPEN_SCRIPT, ID_RUN_SCRIPT, 
+	ID_SAVE_SCRIPT, ID_SAVE_SCRIPT_AS
 };
 
 
@@ -130,6 +133,10 @@ EVT_MENU(wxID_SAVE, MainWindow::OnCommand)
 EVT_MENU(wxID_SAVEAS, MainWindow::OnCommand)
 EVT_MENU(wxID_CLOSE, MainWindow::OnCommand)
 EVT_MENU(wxID_EXIT, MainWindow::OnCommand)
+EVT_MENU(ID_NEW_SCRIPT, MainWindow::OnCommand)
+EVT_MENU(ID_OPEN_SCRIPT, MainWindow::OnCommand)
+EVT_MENU(ID_SAVE_SCRIPT, MainWindow::OnCommand)
+EVT_MENU(ID_SAVE_SCRIPT_AS, MainWindow::OnCommand)
 EVT_MENU(ID_RUN_SCRIPT, MainWindow::OnCommand)
 EVT_BUTTON(wxID_HELP, MainWindow::OnCommand)
 END_EVENT_TABLE()
@@ -189,6 +196,9 @@ MainWindow::MainWindow()
 	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'o', wxID_OPEN));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 's', wxID_SAVE));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'w', wxID_CLOSE));
+	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL|wxACCEL_SHIFT, 'o', ID_OPEN_SCRIPT));
+	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL|wxACCEL_SHIFT, 'n', ID_NEW_SCRIPT));
+	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL|wxACCEL_SHIFT, 's', ID_SAVE_SCRIPT));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F5, ID_RUN_SCRIPT));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F1, wxID_HELP));
 	SetAcceleratorTable(wxAcceleratorTable(entries.size(), &entries[0]));
@@ -292,9 +302,9 @@ void MainWindow::Save()
 	lk::varhash_t *all_data = GetProject()->GetMergedData();
 
 	
-	rapidjson::Document D;
+	rjs::Document D;
 	D.SetObject();
-	rapidjson::Document::AllocatorType &alloc = D.GetAllocator();
+	rjs::Document::AllocatorType &alloc = D.GetAllocator();
 
 	unsigned int cest=0;	//counter to estimate required file size
 
@@ -302,9 +312,9 @@ void MainWindow::Save()
 	{
 		data_base *v = static_cast< data_base* >( it->second );
 
-		rapidjson::Value jv(rapidjson::kObjectType);
+		rjs::Value jv(rjs::kObjectType);
 		
-		rapidjson::Value jdata;
+		rjs::Value jdata;
 
 		switch(v->type)
 		{
@@ -316,7 +326,7 @@ void MainWindow::Save()
 
 				int scale;
 				jdata.SetInt( double_scale(vnum, &scale) );
-				jv.AddMember("s", rapidjson::Value().SetInt(scale), alloc);
+				jv.AddMember("s", rjs::Value().SetInt(scale), alloc);
 				cest += 10;
 			}
 			break;
@@ -388,7 +398,7 @@ void MainWindow::Save()
 						nc = v->vec()->front().vec()->size();
 						if( nc > 0 )
 						{
-							rapidjson::Value jshape(rapidjson::kArrayType);
+							rjs::Value jshape(rjs::kArrayType);
 							jshape.PushBack(nr, alloc);
 							jshape.PushBack(nc, alloc);
 
@@ -399,22 +409,22 @@ void MainWindow::Save()
 			}
 		}
 		//add the name
-		rapidjson::Value jname(rapidjson::kStringType);
+		rjs::Value jname(rjs::kStringType);
 		jname.Set(v->name.c_str());
 		jv.AddMember("n", jname, alloc);
 		cest += v->name.size();
 
 		//add to the data structure
 		jv.AddMember("d", jdata, alloc);
-		D.AddMember((rapidjson::Value::StringRefType)(v->name.c_str()), jv, alloc);
+		D.AddMember((rjs::Value::StringRefType)(v->name.c_str()), jv, alloc);
 	}
 
 	int initsize=2;
 	while(initsize < cest)
 		initsize *= 2;
 
-	rapidjson::StringBuffer stringbuffer(0, initsize);
-	rapidjson::Writer< rapidjson::StringBuffer > writer(stringbuffer);
+	rjs::StringBuffer stringbuffer(0, initsize);
+	rjs::Writer< rjs::StringBuffer > writer(stringbuffer);
 	writer.SetMaxDecimalPlaces(4);
 	D.Accept(writer);
 
@@ -437,11 +447,100 @@ void MainWindow::SaveAs()
 	}
 }
 
+bool MainWindow::Open()
+{
+	Close();
+	wxFileDialog dlg(this, "Open", wxEmptyString, wxEmptyString,
+		"DAO-Tk Project Files (*.dtk)|*.dtk",
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST | wxFD_CHANGE_DIR);
+
+	if (dlg.ShowModal() == wxID_OK)
+		if (!Load(dlg.GetPath()))
+		{
+			wxMessageBox("Could not load file:\n\n" + dlg.GetPath());
+			return false;
+		}
+	return true;
+}
+
+struct ProjectLoaderHandler
+{
+	lk::varhash_t *data;
+	
+	bool Null() { return true; }
+    bool Bool(bool b) { return true; }
+    bool Int(int i) { return true; }
+    bool Uint(unsigned u) { return true; }
+    bool Int64(int64_t i) { return true; }
+    bool Uint64(uint64_t u) { return true; }
+    bool Double(double d) { return true; }
+    bool RawNumber(const char* str, rjs::SizeType length, bool copy) { 
+        return true;
+    }
+    bool String(const char* str, rjs::SizeType length, bool copy) { 
+        return true;
+    }
+    bool StartObject() { return true; }
+    bool Key(const char* str, rjs::SizeType length, bool copy) {
+        return true;
+    }
+    bool EndObject(rjs::SizeType memberCount) { return true; }
+    bool StartArray() { return true; }
+    bool EndArray(rjs::SizeType elementCount) { return true; }
+};
+
+
+bool MainWindow::Load(const wxString &file)
+{
+	FILE *fp = fopen(file.c_str(), "r");
+	if (fp)
+	{
+		wxString str;
+		char buf[1024];
+		while (fgets(buf, 1023, fp) != 0)
+			str += buf;
+
+		fclose(fp);
+
+		m_fileName = file;
+		m_statusLabel->SetLabel(m_fileName);
+		
+		rjs::Document D;
+		ProjectLoaderHandler handler;
+		rjs::Reader reader;
+		rjs::StringStream ss(buf);
+		reader.Parse(ss, handler);
+
+		return true;
+	}
+	else return false;
+
+}
 
 void MainWindow::OnCommand(wxCommandEvent &evt)
 {
 	switch (evt.GetId())
 	{
+	case ID_MAIN_MENU:
+	{
+		wxPoint p = m_mainMenuButton->ClientToScreen(wxPoint(0, m_mainMenuButton->GetClientSize().y));
+		wxMetroPopupMenu menu;
+		menu.Append(wxID_NEW, "New project\tCtrl-N");
+		menu.Append(wxID_OPEN, "Open project\tCtrl-O");
+		menu.Append(wxID_SAVE, "Save project\tCtrl-S");
+		menu.Append(wxID_SAVEAS, "Save project as...");
+		menu.AppendSeparator();
+		menu.Append(ID_NEW_SCRIPT, "New script\tCtrl+Shift-N");
+		menu.Append(ID_OPEN_SCRIPT, "Open script\tCtrl+Shift-O");
+		menu.Append(ID_SAVE_SCRIPT, "Save script\tCtrl+Shift-S");
+		menu.Append(ID_SAVE_SCRIPT_AS, "Save script as...");
+		menu.Append(ID_RUN_SCRIPT, "Run script\tF5");
+		menu.AppendSeparator();
+		menu.Append(wxID_CLOSE, "Close project\tCtrl-W");
+		menu.Append(wxID_EXIT, "Quit");
+		menu.Popup(this, p);
+	}
+	break;
 	case wxID_NEW:
 	case wxID_CLOSE:
 		m_ScriptViewForm->CloseDoc();
@@ -453,26 +552,8 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
 		Save();
 		break;
 	case wxID_OPEN:
-	{
-		m_ScriptViewForm->Open();
+		Open();
 		break;
-	}
-	case ID_MAIN_MENU:
-	{
-		wxPoint p = m_mainMenuButton->ClientToScreen(wxPoint(0, m_mainMenuButton->GetClientSize().y));
-		wxMetroPopupMenu menu;
-		menu.Append(wxID_NEW, "New project\tCtrl-N");
-		menu.Append(wxID_OPEN, "Open project\tCtrl-O");
-		menu.Append(wxID_SAVE, "Save\tCtrl-S");
-		menu.Append(wxID_SAVEAS, "Save as...");
-		menu.AppendSeparator();
-		menu.Append(wxID_CLOSE, "Close\tCtrl-W");
-		menu.Append(wxID_EXIT, "Quit");
-		menu.AppendSeparator();
-		menu.Append(ID_RUN_SCRIPT, "Run script\tF5");
-		menu.Popup(this, p);
-	}
-	break;
 	case wxID_EXIT:
 		Close();
 		break;
@@ -481,6 +562,18 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
 		break;
 	case ID_RUN_SCRIPT:
 		m_ScriptViewForm->Exec();
+		break;
+	case ID_NEW_SCRIPT:
+		m_ScriptViewForm->CloseDoc();
+		break;
+	case ID_OPEN_SCRIPT:
+		m_ScriptViewForm->Open();
+		break;
+	case ID_SAVE_SCRIPT:
+		m_ScriptViewForm->Save();
+		break;
+	case ID_SAVE_SCRIPT_AS:
+		m_ScriptViewForm->SaveAs();
 		break;
 	};
 }

@@ -77,6 +77,9 @@ public:
 	void Save();
 	void SaveAs();
 
+	bool Open();
+	bool Load(const wxString &);
+
 protected:
 	void OnClose(wxCloseEvent &);
 	void OnCommand(wxCommandEvent &);

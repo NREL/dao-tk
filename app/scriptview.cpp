@@ -80,8 +80,6 @@ public:
 	}
 	virtual void OnSyntaxCheck(int, const wxString &err)
 	{
-		// ClearOutput();
-		// Output(err);
 		SyntaxOutput(err);
 	}
 };
