@@ -309,7 +309,9 @@ void MainWindow::Save()
 				if( vnum != vnum )
 					continue;	//don't save invalid data
 
-				jdata.SetDouble( vnum );
+				int scale;
+				jdata.SetInt( double_scale(vnum, &scale) );
+				jv.AddMember("s", rapidjson::Value().SetInt(scale), alloc);
 				cest += 10;
 			}
 			break;
@@ -348,8 +350,9 @@ void MainWindow::Save()
 								invalid_data = true;
 								break;			//if any nan's are present, don't save
 							}
-
-							jdata.PushBack( dval, alloc );
+							int scale;
+							jdata.PushBack( double_scale(dval, &scale), alloc );
+							jdata.PushBack( scale, alloc );
 						}
 						if( invalid_data )
 							break;
@@ -358,14 +361,15 @@ void MainWindow::Save()
 					}
 					else
 					{
-						double dval = v->as_number();
+						double dval = v->vec()->at(i).as_number();
 						if( dval != dval )
 						{
 							invalid_data = true;
 							break;			//if any nan's are present, don't save
 						}
-						
-						jdata.PushBack( dval, alloc );
+						int scale;
+						jdata.PushBack( double_scale(dval, &scale), alloc );
+						jdata.PushBack( scale, alloc );
 						cest += 10;
 					}
 				}				
@@ -383,7 +387,7 @@ void MainWindow::Save()
 							jshape.PushBack(nr, alloc);
 							jshape.PushBack(nc, alloc);
 
-							jv.AddMember("matrix_shape", jshape, alloc);
+							jv.AddMember("ms", jshape, alloc);
 						}
 					}
 				}
@@ -392,11 +396,11 @@ void MainWindow::Save()
 		//add the name
 		rapidjson::Value jname(rapidjson::kStringType);
 		jname.Set(v->name.c_str());
-		jv.AddMember("name", jname, alloc);
+		jv.AddMember("n", jname, alloc);
 		cest += v->name.size();
 
 		//add to the data structure
-		jv.AddMember("data", jdata, alloc);
+		jv.AddMember("d", jdata, alloc);
 		D.AddMember((rapidjson::Value::StringRefType)(v->name.c_str()), jv, alloc);
 	}
 
@@ -406,7 +410,7 @@ void MainWindow::Save()
 
 	rapidjson::StringBuffer stringbuffer(0, initsize);
 	rapidjson::Writer< rapidjson::StringBuffer > writer(stringbuffer);
-	
+	writer.SetMaxDecimalPlaces(4);
 	D.Accept(writer);
 
 	std::string output = stringbuffer.GetString();

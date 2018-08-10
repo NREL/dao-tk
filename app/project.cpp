@@ -3,6 +3,25 @@
 #include <limits>
 
 
+ int double_scale(double val, int *scale)
+ {
+	 if( val == 0. )
+	 {
+		*scale = 0;
+	 	return 0;
+	 }
+
+	 int power = (int)std::ceil( std::log10(val) );
+	 *scale = SIGNIF_FIGURE - power;
+	 return (int)(val*std::pow(10, *scale));
+ }
+ 
+ double double_unscale(int val, int power)
+ {
+	 return (double)(val)*pow(10,-power);
+ }
+
+
 variables::variables()
 {
 	/* 
