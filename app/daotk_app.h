@@ -70,6 +70,7 @@ public:
 
 	void ClearLog();
 	void Log(const wxString &, bool wnl = true);
+	void SyntaxLog(const wxString &);
 
 	bool LoadScript(const wxString &file);
 

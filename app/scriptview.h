@@ -16,6 +16,7 @@ private:
 	wxString m_fileName;
 	wxButton *m_stopButton;
 	wxString m_lastFindStr;
+	wxTextCtrl *m_syntaxText;
 public:
 	ScriptView(wxWindow *parent);
 	virtual ~ScriptView();
@@ -29,6 +30,7 @@ public:
 	bool Write(const wxString &file);
 	bool Load(const wxString &file);
 	void Exec();
+	void SyntaxText(const wxString &);
 
 
 	wxLKScriptCtrl *GetEditor() { return m_editor; }

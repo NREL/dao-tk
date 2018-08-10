@@ -247,6 +247,11 @@ void MainWindow::ClearLog()
 	m_LogViewForm->ClearLog();
 }
 
+void MainWindow::SyntaxLog(const wxString &text)
+{
+	m_ScriptViewForm->SyntaxText(text);
+}
+
 bool MainWindow::LoadScript(const wxString &file)
 {
 	return m_ScriptViewForm->Load(file);
