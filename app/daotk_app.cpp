@@ -26,6 +26,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/reader.h>
+#include <rapidjson/error/en.h>
 // #include <rapidjson/filewritestream.h>
 // #include <rapidjson/filereadstream.h>
 
@@ -312,6 +313,9 @@ void MainWindow::Save()
 	{
 		data_base *v = static_cast< data_base* >( it->second );
 
+		if( v->name.empty() || it->first.empty() )
+			continue;
+
 		rjs::Value jv(rjs::kObjectType);
 		
 		rjs::Value jdata;
@@ -428,7 +432,8 @@ void MainWindow::Save()
 	writer.SetMaxDecimalPlaces(4);
 	D.Accept(writer);
 
-	std::string output = stringbuffer.GetString();
+	// std::string output = stringbuffer.GetString();
+	
 	fprintf(fp, "%s", stringbuffer.GetString() );
 
 	fclose(fp);
@@ -449,7 +454,7 @@ void MainWindow::SaveAs()
 
 bool MainWindow::Open()
 {
-	Close();
+	// Close();
 	wxFileDialog dlg(this, "Open", wxEmptyString, wxEmptyString,
 		"DAO-Tk Project Files (*.dtk)|*.dtk",
 		wxFD_OPEN | wxFD_FILE_MUST_EXIST | wxFD_CHANGE_DIR);
@@ -463,32 +468,6 @@ bool MainWindow::Open()
 	return true;
 }
 
-struct ProjectLoaderHandler
-{
-	lk::varhash_t *data;
-	
-	bool Null() { return true; }
-    bool Bool(bool b) { return true; }
-    bool Int(int i) { return true; }
-    bool Uint(unsigned u) { return true; }
-    bool Int64(int64_t i) { return true; }
-    bool Uint64(uint64_t u) { return true; }
-    bool Double(double d) { return true; }
-    bool RawNumber(const char* str, rjs::SizeType length, bool copy) { 
-        return true;
-    }
-    bool String(const char* str, rjs::SizeType length, bool copy) { 
-        return true;
-    }
-    bool StartObject() { return true; }
-    bool Key(const char* str, rjs::SizeType length, bool copy) {
-        return true;
-    }
-    bool EndObject(rjs::SizeType memberCount) { return true; }
-    bool StartArray() { return true; }
-    bool EndArray(rjs::SizeType elementCount) { return true; }
-};
-
 
 bool MainWindow::Load(const wxString &file)
 {
@@ -496,6 +475,7 @@ bool MainWindow::Load(const wxString &file)
 	if (fp)
 	{
 		wxString str;
+		str.reserve((int)1e6);
 		char buf[1024];
 		while (fgets(buf, 1023, fp) != 0)
 			str += buf;
@@ -503,13 +483,120 @@ bool MainWindow::Load(const wxString &file)
 		fclose(fp);
 
 		m_fileName = file;
-		m_statusLabel->SetLabel(m_fileName);
 		
 		rjs::Document D;
-		ProjectLoaderHandler handler;
-		rjs::Reader reader;
-		rjs::StringStream ss(buf);
-		reader.Parse(ss, handler);
+		
+		rjs::ParseResult pres = D.Parse(str.c_str());
+
+		if( !pres )
+		{
+        	wxMessageBox( wxString::Format("\nDTK File Parse Error (%d): %s\n",
+						 pres.Offset(), rjs::GetParseError_En(pres.Code()) ), "File error", wxICON_ERROR);
+			return false;
+		}
+
+
+		// ------------ transfer data into project structure -------------------
+		lk::varhash_t *all_data = GetProject()->GetMergedData();
+
+		for( lk::varhash_t::iterator it = all_data->begin(); it != all_data->end(); it++ )
+		{
+			data_base *v = static_cast< data_base* >( it->second );
+
+			//if the item doesn't have a name, we can't load data for it
+			if( v->name.empty() || it->first.empty() )
+				continue;
+
+			//try to find the item
+			if( !D.HasMember(v->name.c_str()) )
+				continue;
+
+			rjs::Value &jv = D[v->name.c_str()];
+
+			switch(v->type)
+			{
+				case lk::vardata_t::NUMBER:
+				{
+					int inum = jv.HasMember("d") ? jv["d"].GetInt() : 0;
+					int scale = jv.HasMember("s") ? jv["s"].GetInt() : 0;
+					
+					double vnum = double_unscale(inum, scale);
+
+					v->assign( vnum );
+				}
+				break;
+				case lk::vardata_t::STRING:
+				{
+					v->assign( jv.HasMember("d") ? jv["d"].GetString() : "" );
+				}
+				break;
+				case lk::vardata_t::VECTOR:
+				{
+					//determine whether this is a 1D or 2D array
+					int nr, nc=0;
+					if( jv.HasMember("ms") ) 		//matrix shape
+					{
+						//matrix
+						int ms[2];
+						ms[0] = jv["ms"].GetArray()[0].GetInt();
+						ms[1] = jv["ms"].GetArray()[1].GetInt();
+
+						if( jv["d"].GetArray().Size() != ms[0]*ms[1]*4)
+						{
+							m_LogViewForm->Log( wxString::Format("NOTICE: Data array size error when loading \"%s\" from file.", v->nice_name.c_str()).c_str(), true );
+							continue;
+						}
+
+						v->empty_vector();
+						v->vec()->resize( nr );
+
+						int ind=0;
+						rjs::GenericArray<false, rjs::Value> A = jv["d"].GetArray();
+
+						for( int i=0; i<nr; i++ )
+						{
+							lk::vardata_t &vi = v->vec()->at(i);
+							vi.empty_vector();
+							vi.vec()->resize(nc);
+
+							for( int j=0; j<nc; j++ )
+							{
+								vi.vec()->at(j).assign( double_unscale(A[ind].GetInt(), A[ind+1].GetInt() ) );
+								ind += 2;
+							}
+						}
+						
+					}
+					else
+					{
+						//vector
+						rjs::GenericArray<false, rjs::Value> A = jv["d"].GetArray();
+						int nr = A.Size();
+
+						if( nr % 2 != 0)
+						{
+							m_LogViewForm->Log( wxString::Format("NOTICE: Data array size error when loading \"%s\" from file.", v->nice_name.c_str()).c_str(), true );
+							continue;
+						}
+
+						nr = nr/2;
+
+						v->empty_vector();
+						v->vec()->resize(nr);
+
+						int ind=0;
+						for( int i=0; i<nr; i++ )
+						{
+							v->vec()->at(i).assign( double_unscale(A[ind].GetInt(), A[ind+1].GetInt() ) );
+							ind += 2;
+						}
+					}
+				}
+			}
+		}		
+
+		UpdateDataTable();
+		SetProgress(0, wxString::Format("Successfully loaded \"%s\"", m_fileName.c_str()) );
 
 		return true;
 	}
