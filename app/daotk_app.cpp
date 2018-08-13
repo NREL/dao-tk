@@ -33,6 +33,7 @@
 #include "scripting.h"
 #include "dataview.h"
 #include "scriptview.h"
+#include "scriptlist.h"
 #include "logview.h"
 #include "daotk_app.h"
 
@@ -204,17 +205,22 @@ MainWindow::MainWindow()
 	entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F1, wxID_HELP));
 	SetAcceleratorTable(wxAcceleratorTable(entries.size(), &entries[0]));
 
-
+	
 	wxSplitterWindow *splitwin = new wxSplitterWindow(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE ); 
 	splitwin->SetMinimumPaneSize(210);
 
+	wxSplitterWindow *splitscript = new wxSplitterWindow(splitwin, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE ); 
+
 	m_tabList->Append("Script");
-	m_ScriptViewForm = new ScriptView(splitwin);
+	m_ScriptViewForm = new ScriptView(splitscript);
+	m_ScriptList = new ScriptList(splitscript);
+	splitscript->SplitVertically(m_ScriptList, m_ScriptViewForm, 180);
+
 	m_LogViewForm = new LogView(splitwin);
 
 	m_notebook->AddPage(splitwin, "Script");
 
-	splitwin->SplitHorizontally(m_ScriptViewForm, m_LogViewForm, 390);
+	splitwin->SplitHorizontally(splitscript, m_LogViewForm, 390);
 
 	m_tabList->Append("Data");
 	m_DataViewForm = new DataView(m_notebook, m_image_dir.GetFullPath().c_str() );

@@ -13,6 +13,7 @@ class wxPanel;
 class wxMetroButton;
 class wxMetroTabList;
 class ScriptView;
+class ScriptList;
 class DataView;
 class LogView;
 
@@ -45,6 +46,7 @@ private:
 	wxSimplebook *m_notebook;
 
 	ScriptView *m_ScriptViewForm;
+	ScriptList *m_ScriptList;
 	DataView *m_DataViewForm;
 	LogView *m_LogViewForm;
 

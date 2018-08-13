@@ -27,7 +27,8 @@ OBJECTS  = \
 	project_init.o \
 	project.o \
 	scripting.o \
-	scriptview.o
+	scriptview.o \
+	scriptlist.o
 
 TARGET = dao-tk
 
