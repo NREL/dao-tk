@@ -65,6 +65,7 @@ public:
 	static MainWindow &Instance();
 	void UpdateFrameTitle();
 	Project *GetProject();
+	ScriptView *GetScriptViewForm();
 	
 	bool UpdateIsStopFlagSet();
 	void SetProgress( int percent, const wxString &msg = wxEmptyString );

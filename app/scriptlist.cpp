@@ -1,4 +1,6 @@
 #include "scriptlist.h"
+#include "daotk_app.h"
+#include "scriptview.h"
 
 #include <wx/listctrl.h>
 #include <wx/imaglist.h>
@@ -106,7 +108,6 @@ void ScriptList::UpdateScriptList()
         else if( truncpath.length() > pmax )
             truncpath = truncpath.SubString(0,pmax-2) + "..";
 
-        //                                                  "%-20s%-4s%-8s%-2s%-8s", 
         wxString prettypath = wxString::Format( 
             wxString::Format("%s-%ds%s-3s%s-%ds%s-2s%s-%ds", "%", pmax, "%", "%", dmax, "%", "%", dmax),
                                 truncpath.c_str(),
@@ -132,7 +133,7 @@ void ScriptList::Add()
     */
    wxFileDialog dlg(this, "Add Script", wxEmptyString, wxEmptyString,
 		"LK Script Files (*.lk)|*.lk",
-		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST | wxFD_CHANGE_DIR);
 
 	if (dlg.ShowModal() == wxID_OK)
     {
@@ -170,9 +171,16 @@ void ScriptList::MoveItemInList(size_t sel, bool is_up)
 
 }
 
-void ScriptList::OnScriptSelected( wxListEvent &evt )
+void ScriptList::OnScriptSelected( wxListEvent & )
 {
-    int ind = evt.GetSelection();
+    long index = m_list->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+
+    if( index != wxNOT_FOUND )
+    {
+        if( MainWindow::Instance().GetScriptViewForm()->CloseDoc() )
+            MainWindow::Instance().GetScriptViewForm()->Load( m_scripts.at(index).path);
+    }
+
 }
 
 void ScriptList::OnCommand( wxCommandEvent &evt )

@@ -251,6 +251,11 @@ Project *MainWindow::GetProject()
     return &m_project;
 }
 
+ScriptView *MainWindow::GetScriptViewForm()
+{
+	return m_ScriptViewForm;
+}
+
 void MainWindow::Log(const wxString &text, bool wnl)
 {
 	m_LogViewForm->Log(text, wnl);
