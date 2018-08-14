@@ -213,7 +213,7 @@ MainWindow::MainWindow()
 
 	m_tabList->Append("Script");
 	m_ScriptViewForm = new ScriptView(splitscript);
-	m_ScriptList = new ScriptList(splitscript);
+	m_ScriptList = new ScriptList(splitscript, &m_image_dir);
 	splitscript->SplitVertically(m_ScriptList, m_ScriptViewForm, 180);
 
 	m_LogViewForm = new LogView(splitwin);
@@ -428,6 +428,28 @@ void MainWindow::Save()
 		jv.AddMember("d", jdata, alloc);
 		D.AddMember((rjs::Value::StringRefType)(v->name.c_str()), jv, alloc);
 	}
+	//Add script list info
+	std::vector<ScriptListObject> *sl = m_ScriptList->GetList();
+	for(int i=0; i<sl->size(); i++)
+	{
+		rjs::Value jv(rjs::kObjectType);
+		jv.AddMember("sls", rjs::Value((int)sl->at(i).status), alloc);
+		
+		rjs::Value jdp(rjs::kStringType);
+		jdp.Set(sl->at(i).path.c_str());
+		jv.AddMember("slp", jdp, alloc);
+
+		rjs::Value jdc(rjs::kStringType);
+		jdc.SetString( (rjs::Value::StringRefType)sl->at(i).created.FormatISOCombined().c_str() );
+		jv.AddMember("slc", jdc, alloc);
+
+		rjs::Value jdm(rjs::kStringType);
+		jdm.SetString( (rjs::Value::StringRefType)sl->at(i).modified.FormatISOCombined().c_str() );
+		jv.AddMember("slm", jdm, alloc);
+
+		D.AddMember( (rjs::Value::StringRefType)(wxString::Format("jlo%02d",i).c_str()), jv, alloc);
+	}
+
 
 	int initsize=2;
 	while(initsize < cest)
@@ -599,9 +621,32 @@ bool MainWindow::Load(const wxString &file)
 					}
 				}
 			}
-		}		
+		}	
+		//load script list info
+		std::vector< ScriptListObject >* slist = m_ScriptList->GetList();
+		slist->clear();
+
+		bool lo_found = true;
+		int i=0;
+		while( lo_found )
+		{
+			std::string name = wxString::Format("jlo%03d", i);
+			lo_found = D.HasMember( name.c_str() );
+			if( lo_found )
+			{
+				ScriptListObject slo;
+				rjs::Value &jv = D[ name.c_str() ];
+				slo.status = jv["sls"].GetInt();
+				slo.created.SetFromString( jv["slc"].GetString() );
+				slo.modified.SetFromString( jv["slm"].GetString() );
+
+				slist->push_back( slo );
+			}
+			i++;
+		}
 
 		UpdateDataTable();
+		m_ScriptList->UpdateScriptList();
 		SetProgress(0, wxString::Format("Successfully loaded \"%s\"", m_fileName.c_str()) );
 
 		return true;
