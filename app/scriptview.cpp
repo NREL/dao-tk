@@ -285,7 +285,7 @@ void ScriptView::Exec()
 
 void ScriptView::CreateVariableDialog()
 {
-    VariableDialog *dlg = new VariableDialog(this, wxID_ANY, wxDEFAULT_FRAME_STYLE);
+    VariableDialog *dlg = new VariableDialog(this, MainWindow::Instance().GetProject()->GetMergedData(), wxID_ANY, wxDEFAULT_FRAME_STYLE);
     dlg->Show();
     
     return;

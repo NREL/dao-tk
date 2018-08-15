@@ -147,8 +147,7 @@ MainWindow::MainWindow()
     m_install_dir.RemoveLastDir();
 
     m_image_dir.SetPath( m_install_dir.GetPath() ); 
-	m_image_dir.AppendDir("deploy");
-    m_image_dir.AppendDir("rs");
+	m_image_dir.AppendDir("rs");
     m_help_dir.SetPath( m_install_dir.GetPath() );
     m_help_dir.AppendDir("rs");
     m_help_dir.AppendDir("help");

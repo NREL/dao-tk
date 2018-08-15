@@ -8,9 +8,11 @@
 
 enum {ID_SEARCHSELECT=wxID_HIGHEST+154, ID_SEARCHTEXT, ID_SEARCHCLEAR};
 
-VariableDialog::VariableDialog(wxWindow *parent, int id, long style, wxSize size, wxPoint position)
+VariableDialog::VariableDialog(wxWindow *parent, lk::varhash_t *variable_data, int id, long style, wxSize size, wxPoint position)
     : wxFrame(parent, id, "Variable information", position, size, style)
 {
+
+    m_variable_data = variable_data;
 
     std::vector< std::string> searchchoices = { "All", "Name", "Description", "Type" };
     wxArrayString sca; 
@@ -61,26 +63,54 @@ void VariableDialog::OnCommand(wxCommandEvent &evt)
 void VariableDialog::UpdateHelp(const char* filter, const char* type)
 {
     std::string filtered_text = "<html><head></head><body>";
-    std::string sfilter(filter);
+    wxString sfilter(filter);
     std::string stype(type);
+
+    sfilter.MakeLower();        //lowercase
         
     //do search here and append doc items  -- "All", "Name", "Description", "Type"
-       
-    if (stype == "Name")
+    for (lk::varhash_t::iterator vit = m_variable_data->begin(); vit != m_variable_data->end(); vit++)
     {
-
-    }
-    else if (stype == "Description")
-    {
-
-    }
-    else if (stype == "Type")
-    {
-
-    }
-    else // (stype == "" || stype == "All")
-    {
-
+        data_base* v = static_cast<data_base*>(vit->second);
+        if (stype == "Name")
+        {
+            if (v->name.find(sfilter.c_str(), 0) != std::string::npos)
+                filtered_text.append(v->doc.formatted_doc);
+        }
+        else if (stype == "Description")
+        {
+            if (v->doc.description.find(sfilter.c_str(), 0) != std::string::npos)
+                filtered_text.append(v->doc.formatted_doc);
+        }
+        else if (stype == "Type")
+        {
+            switch ( v->type )
+            {
+            case data_base::NUMBER:
+                if (wxString("number double float integer long").Find(sfilter) != wxNOT_FOUND)
+                    filtered_text.append(v->doc.formatted_doc);
+                break;
+            case data_base::STRING:
+                if (wxString("string character text").Find(sfilter) != wxNOT_FOUND)
+                    filtered_text.append(v->doc.formatted_doc);
+                break;
+            case data_base::VECTOR:
+                if( wxString("vector array matrix list").Find(sfilter) != wxNOT_FOUND)
+                    filtered_text.append(v->doc.formatted_doc);
+                break;
+            case data_base::HASH:
+                if( wxString("table hash map").Find(sfilter) != wxNOT_FOUND)
+                    filtered_text.append(v->doc.formatted_doc);
+                break;
+            default:
+                break;
+            }
+        }
+        else // (stype == "" || stype == "All")
+        {
+            if( v->doc.formatted_doc.find(sfilter.c_str(), 0) != std::string::npos )
+                filtered_text.append(v->doc.formatted_doc);
+        }
     }
 
     filtered_text.append("</body></html>");

@@ -2,6 +2,7 @@
 #define _VAR_DIALOG
 
 #include "project.h"
+
 #include <wx/wx.h>
 
 #include <vector>
@@ -17,9 +18,11 @@ class VariableDialog : public wxFrame
     wxTextCtrl *m_searchtext;
     wxComboBox *m_searchselect;
     wxHtmlWindow *m_html;
+    lk::varhash_t *m_variable_data;
+
 
 public:
-    VariableDialog(wxWindow *parent, int id=-1, long style= wxDEFAULT_FRAME_STYLE, 
+    VariableDialog(wxWindow *parent, lk::varhash_t* variable_data, int id = -1, long style = wxDEFAULT_FRAME_STYLE,
                 wxSize size=wxDefaultSize, wxPoint position=wxDefaultPosition);
 
     void OnCommand(wxCommandEvent &);
