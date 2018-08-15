@@ -58,7 +58,7 @@ class Component
     double m_repair_cost;
     std::string m_name;
     std::string m_type;
-	double m_availability_reduction;
+	double m_capacity_reduction;
 	double m_cooldown_time;
 	std::string m_repair_mode; // "A"=Anytime; "S"=standby or downtime; "D"=downtime only
     ComponentStatus m_status;
@@ -94,7 +94,7 @@ public:
     
     double GetRepairCost();
 
-	double GetAvailabilityReduction();
+	double GetCapacityReduction();
 
 	double GetCooldownTime();
         
@@ -138,6 +138,8 @@ public:
 	void GenerateInitialLifesAndProbs(WELLFiveTwelve &gen);
             
 	ComponentStatus GetState();
+
+	void Reset(WELLFiveTwelve &gen);
 
 };
 

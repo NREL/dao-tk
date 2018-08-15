@@ -59,7 +59,7 @@ Component::Component(  std::string name, std::string type,
     m_name = name;
     m_type = type;
     m_repair_cost = repair_cost;
-	m_availability_reduction = availability_reduction;
+	m_capacity_reduction = availability_reduction;
 	m_cooldown_time = repair_cooldown_time;
 	m_repair_mode = repair_mode;
 
@@ -122,9 +122,9 @@ double Component::GetRepairCost()
 	return m_repair_cost;
 }
 
-double Component::GetAvailabilityReduction()
+double Component::GetCapacityReduction()
 {
-	return m_availability_reduction;
+	return m_capacity_reduction;
 }
 
 double Component::GetCooldownTime()
@@ -238,6 +238,8 @@ void Component::TestForBinaryFailure(std::string mode, int t, WELLFiveTwelve &ge
 void Component::TestForFailure(double time, double ramp_mult,
 	WELLFiveTwelve &gen, int t, double hazard_increase, std::string mode)
 {
+	if (mode == "OFF")
+		return;
 	/*
 	Generates failure events under the provided dispatch, if there is not sufficient life
 	remaining in the component, or the RNG generates a failure on start.
@@ -312,7 +314,7 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
 		opmode = mode;
 	for (size_t j = 0; j < m_failure_types.size(); j++)
 	{
-		if (m_failure_types.at(j).GetFailureMode() == opmode || m_failure_types.at(j).GetFailureMode() == "ALL")
+		if (m_failure_types.at(j).GetFailureMode() == opmode || (opmode != "OFF" && m_failure_types.at(j).GetFailureMode() == "ALL"))
 		{
 			if (time * m_status.hazard_rate * ramp_mult > m_failure_types.at(j).GetLifeRemaining() && !read_only)
 				throw std::exception("failure should be thrown.");
@@ -442,4 +444,14 @@ ComponentStatus Component::GetState()
 			m_status.downtime_remaining*1.0, m_status.repair_event_time*1.0
 			)
 		); 
+}
+
+void Component::Reset(WELLFiveTwelve &gen)
+{
+	m_cooldown_time = 0.;
+	m_status.downtime_remaining = 0.;
+	m_status.hazard_rate = 1.;
+	m_status.operational = true;
+	m_status.repair_event_time = 0.;
+	GenerateInitialLifesAndProbs(gen);
 }

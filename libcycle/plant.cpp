@@ -6,9 +6,9 @@
 
 void CSPPlant::InitializeCyclingDists()
 {
-	m_hs_dist = BoundedJohnsonDist(-0.59472, 0.348199, 0, 0.000102, "BoundedJohnson");
-	m_ws_dist = BoundedJohnsonDist(-0.42154, 0.404542, 0, 0.000166, "BoundedJohnson");
-	m_cs_dist = BoundedJohnsonDist(1.076964, 0.503553, 0.0000767, 0.000278, "BoundedJohnson");
+	m_hs_dist = BoundedJohnsonDist(0.995066, 0.252898, 4.139E-5, 4.489E-4, "BoundedJohnson");
+	m_ws_dist = BoundedJohnsonDist(2.220435, 0.623145, 2.914E-5, 1.773E-3, "BoundedJohnson");
+	m_cs_dist = BoundedJohnsonDist(0.469391, 0.581813, 3.691E-5, 2.369E-4, "BoundedJohnson");
 }
 
 void CSPPlant::AssignGenerator( WELLFiveTwelve *gen )
@@ -79,13 +79,18 @@ void CSPPlant::SetCondenserEfficienciesHot(std::vector<double> eff_hot)
 
 void CSPPlant::ReadComponentStatus(
 	std::unordered_map< std::string, ComponentStatus > dstat
-	)
+)
 {
 	/*
 	Mutator for component status for all components in the plant.
 	Used at initialization.
 	*/
 	m_component_status = dstat;
+}
+
+void CSPPlant::ClearComponentStatus()
+{
+	m_component_status.clear();
 }
 
 void CSPPlant::SetStatus()
@@ -162,7 +167,7 @@ bool CSPPlant::AirstreamOnline()
 {
 	/*
 	Returns true if at least one condenser airstream is operational, and false
-	otherwise  Used to determine cycle availability (which is zero if this
+	otherwise  Used to determine cycle Capacity (which is zero if this
 	is false, as the plant can't operate with no airstreams.)
 	*/
 	for (size_t i = 0; i<m_components.size(); i++)
@@ -177,7 +182,7 @@ bool CSPPlant::FWHOnline()
 {
 	/*
 	Returns true if at least one feedwater heater is operational, and false
-	otherwise.  Used to determine cycle availability (which is zero if this
+	otherwise.  Used to determine cycle Capacity (which is zero if this
 	is false, as the plant can't operate with no feedwater heaters.)
 	*/
 	for (size_t i = 0; i<m_components.size(); i++)
@@ -255,27 +260,27 @@ double CSPPlant::GetColdStartPenalty()
 	return m_cold_start_penalty;
 }
 
-void CSPPlant::SetShutdownAvailability(double avail) 
+void CSPPlant::SetShutdownCapacity(double capacity) 
 {
-	m_shutdown_availability = avail;
+	m_shutdown_capacity = capacity;
 }
 
 
-void CSPPlant::SetNoRestartAvailability(double avail)
+void CSPPlant::SetNoRestartCapacity(double capacity)
 {
-	m_no_restart_availability = avail;
+	m_no_restart_capacity = capacity;
 }
 
 
 void CSPPlant::AddComponent( std::string name, std::string type, //std::string dist_type, double failure_alpha, double failure_beta, 
 		double repair_rate, double repair_cooldown_time,
-        double availability_reduction,
+        double Capacity_reduction,
 		double repair_cost,
 		std::string repair_mode
 )
 {
     m_components.push_back( Component(name, type, //dist_type, failure_alpha, failure_beta, 
-		repair_rate, repair_cooldown_time, &m_failure_events, availability_reduction, repair_cost, repair_mode, &m_failure_event_labels) );
+		repair_rate, repair_cooldown_time, &m_failure_events, Capacity_reduction, repair_cost, repair_mode, &m_failure_event_labels) );
 }
 
 void CSPPlant::AddFailureType(std::string component, std::string id, std::string failure_mode,
@@ -320,7 +325,7 @@ void CSPPlant::CreateComponentsFromFile(std::string component_data)
         std::vector< std::string > entry = util::split( entries.at(i), "," );
 
         if( entry.size() != 8 )
-            throw std::exception( "Mal-formed cycle availability model table. Component table must contain 8 entries per row (comma separated values), with each entry separated by a ';'." );
+            throw std::exception( "Mal-formed cycle Capacity model table. Component table must contain 8 entries per row (comma separated values), with each entry separated by a ';'." );
 
         std::vector< double > dat(6);
 
@@ -405,11 +410,11 @@ void CSPPlant::AddSaltPumps(int num_pumps)
 		AddComponent(component_name, "Molten salt pump", 0.5, 0., 1., 7.777, "D");
 		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
 		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
-		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "SF", "gamma", 1.5, 3750);
-		AddFailureType(component_name, "Fail_to_Run_>_1_hour_(standby)", "SO", "gamma", 0.5, 83300);
-		AddFailureType(component_name, "Fail_to_Start_(standby)", "SS", "beta", 0.9, 599);
-		AddFailureType(component_name, "Fail_to_Start_(running)", "OS", "beta", 0.9, 449);
-		AddFailureType(component_name, "Fail_to_Run_(running)", "O", "gamma", 1.5, 300000);
+		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "gamma", 1.5, 3750);
+		AddFailureType(component_name, "Fail_to_Run_>_1_hour_(standby)", "OO", "gamma", 0.5, 83300);
+		AddFailureType(component_name, "Fail_to_Start_(standby)", "OS", "beta", 0.9, 599);
+		//AddFailureType(component_name, "Fail_to_Start_(running)", "OS", "beta", 0.9, 449);
+		//AddFailureType(component_name, "Fail_to_Run_(running)", "O", "gamma", 1.5, 300000);
 	}
 }
 
@@ -541,12 +546,12 @@ double CSPPlant::GetCondenserEfficiency(double temp)
 	return m_condenser_efficiencies_hot[num_streams];
 }
 
-double CSPPlant::GetCycleAvailability(double temp)
+double CSPPlant::GetCycleCapacity(double temp)
 {
 	/* 
-	Provides the cycles availability, based on components that
+	Provides the cycles Capacity, based on components that
 	are operational.  Assumes that when multiple components are
-	down, the effect on cycle availability is additive
+	down, the effect on cycle Capacity is additive
 
 	temp -- ambient temperature (affects condenser efficiency)
 	*/
@@ -554,13 +559,13 @@ double CSPPlant::GetCycleAvailability(double temp)
 		return 0.0; 
 	if (!FWHOnline())
 		return 0.0;
-	double avail = GetCondenserEfficiency(temp);
+	double capacity = GetCondenserEfficiency(temp);
 	for (size_t i = 0; i<m_components.size(); i++)
 		if (!m_components.at(i).IsOperational())
-			avail -= m_components.at(i).GetAvailabilityReduction();
-	if (avail < 0.0)
+			capacity -= m_components.at(i).GetCapacityReduction();
+	if (capacity < 0.0)
 		return 0.0;
-	return avail;
+	return capacity;
 }
 
 void CSPPlant::TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode)
@@ -907,13 +912,14 @@ std::vector< double > CSPPlant::RunDispatch()
 				}
 			}
 		}
-		// If cycle availability is zero or there is no power output, advance downtime.  
-		// Otherwise, check for failures, and operate if there is still availability.
+		// If cycle Capacity is zero or there is no power output, advance downtime.  
+		// Otherwise, check for failures, and operate if there is still Capacity.
 		double power_output = m_dispatch.at("cycle_power").at(t);
-		double cycle_avail = GetCycleAvailability(m_dispatch.at("ambient_temperature").at(t));
+		double cycle_capacity = GetCycleCapacity(m_dispatch.at("ambient_temperature").at(t));
 		std::string start = GetStartMode(t);
 		std::string mode = GetOperatingMode(t);
-		if (cycle_avail < m_eps)
+		
+		if (cycle_capacity < m_eps)
 		{
 			power_output = 0.0;
 			mode = "OFF";
@@ -922,10 +928,10 @@ std::vector< double > CSPPlant::RunDispatch()
 		{
 			double ramp_mult = GetRampMult(power_output);
 			TestForComponentFailures(ramp_mult, t, start, mode);
-			cycle_avail = GetCycleAvailability(m_dispatch.at("ambient_temperature").at(t));
-			//if the cycle availability is set to zero, this means the plant is in maintenace
+			cycle_capacity = GetCycleCapacity(m_dispatch.at("ambient_temperature").at(t));
+			//if the cycle Capacity is set to zero, this means the plant is in maintenace
 			//or a critical failure has occurred, so shut the plant down.
-			if (cycle_avail < m_eps)
+			if (cycle_capacity < m_eps)
 			{
 				power_output = 0.0;
 				if (mode != "OFF" && m_record_state_failure)
@@ -935,20 +941,20 @@ std::vector< double > CSPPlant::RunDispatch()
 				}
 				mode = "OFF";
 			}
-			else if (cycle_avail < m_shutdown_availability)
+			else if (cycle_capacity < m_shutdown_capacity)
 			{
 				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
 			}
-			else if (cycle_avail < m_no_restart_availability && mode == "OFF")
+			else if (cycle_capacity < m_no_restart_capacity && mode == "OFF")
 			{
 				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
 			}
 		}
-		power_output = std::min(power_output, cycle_avail*m_capacity);
+		power_output = std::min(power_output, cycle_capacity*m_capacity);
 		Operate(power_output, t, start, mode);
-		operating_periods[t] = cycle_avail;
+		operating_periods[t] = cycle_capacity;
 
-		//std::cerr << "Period " << std::to_string(t) << " availability: " << std::to_string(cycle_avail) << ".  Mode: " << mode <<"\n";
+		//std::cerr << "Period " << std::to_string(t) << " Capacity: " << std::to_string(cycle_capacity) << ".  Mode: " << mode <<"\n";
     }
 
 	if (m_record_state_failure)
@@ -1018,6 +1024,7 @@ void CSPPlant::Operate(double power_out, int t, std::string start, std::string m
 	else
 		throw std::exception("invalid operating mode.");
 	OperateComponents(ramp_mult, t, start, mode); 
+
 }
 
 std::vector< double > CSPPlant::Simulate(bool reset_status)
@@ -1031,6 +1038,7 @@ std::vector< double > CSPPlant::Simulate(bool reset_status)
 	{
 		SetStatus();
 	}
+
 	return operating_periods;
     //outfile = open(
     //    os.path.join(m_output_dir,"operating_periods.txt"),'w'
@@ -1039,4 +1047,18 @@ std::vector< double > CSPPlant::Simulate(bool reset_status)
     //    outfile.write(str(operating_periods[i])+",")
     //failure_file.close()
     //outfile.close()
+}
+
+void CSPPlant::ResetPlant(WELLFiveTwelve &gen)
+{
+	m_online = false;
+	m_time_online = 0.;
+	m_standby = false;
+	m_time_in_standby = 0.;
+	m_power_output = 0.;
+	m_hours_to_maintenance = m_maintenance_interval;
+	for (size_t c = 0; c < GetComponents().size(); c++)
+	{
+		GetComponents().at(c).Reset(gen);
+	}
 }

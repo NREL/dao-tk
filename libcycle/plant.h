@@ -1,5 +1,5 @@
-#ifndef _PLANT_AVAIL_
-#define _PLANT_AVAIL_
+#ifndef _PLANT_CAPACITY_
+#define _PLANT_CAPACITY_
 
 #include <vector>
 #include <string>
@@ -24,8 +24,8 @@ class CSPPlant
 	double m_ramp_threshold;
 	double m_ramp_threshold_min;
 	double m_ramp_threshold_max;
-	double m_ramping_penalty_min = 2.0;
-	double m_ramping_penalty_max = 8.0;
+	double m_ramping_penalty_min = 1.2;  //Using Gas-CC
+	double m_ramping_penalty_max = 4.0;  //Using Gas-CC
     double m_hours_to_maintenance;
     bool m_online;
     double m_power_output;
@@ -34,8 +34,8 @@ class CSPPlant
     int m_num_periods;
     double m_downtime_threshold;
     double m_downtime;
-	double m_shutdown_availability = 0.3;
-	double m_no_restart_availability = 0.96;
+	double m_shutdown_capacity = 0.3;
+	double m_no_restart_capacity = 0.96;
     double m_eps;
     bool m_output;
 	double m_capacity;
@@ -70,6 +70,7 @@ public:
 	void SetCondenserEfficienciesCold(std::vector<double> eff_cold);
 	void SetCondenserEfficienciesHot(std::vector<double> eff_hot);
 	void ReadComponentStatus(std::unordered_map< std::string, ComponentStatus > dstat);
+	void ClearComponentStatus();
     void SetStatus();
     std::vector< Component >& GetComponents();
     std::vector< double > GetComponentLifetimes();
@@ -86,13 +87,13 @@ public:
 	double GetHotStartPenalty();
 	double GetWarmStartPenalty();
 	double GetColdStartPenalty();
-	void SetShutdownAvailability(double avail);
-	void SetNoRestartAvailability(double avail);
+	void SetShutdownCapacity(double capacity);
+	void SetNoRestartCapacity(double capacity);
 	std::unordered_map< std::string, failure_event > GetFailureEvents();
 	std::vector<std::string> GetFailureEventLabels();
     void AddComponent( std::string name, std::string type, //std::string dist_type, double failure_alpha, double failure_beta, 
 		double repair_rate, double repair_cooldown_time, 
-        double availability_reduction = 1.0, 
+        double Capacity_reduction = 1.0, 
 		double repair_cost = 0., std::string repair_mode = "D");
 	void AddFailureType(std::string component, std::string id, std::string failure_mode,
 		std::string dist_type, double alpha, double beta);
@@ -114,7 +115,7 @@ public:
     void SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing=false);
 	int NumberOfAirstreamsOnline();
 	double GetCondenserEfficiency(double temp);
-	double GetCycleAvailability(double temp);
+	double GetCycleCapacity(double temp);
 
 	void TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode);
 	bool AllComponentsOperational();
@@ -132,7 +133,7 @@ public:
     std::vector< double > RunDispatch();
     void Operate(double power_out, int t, std::string start, std::string mode);
 	std::vector< double > Simulate(bool reset_status);
-
+	void ResetPlant(WELLFiveTwelve &gen);
 };
 
 
