@@ -19,10 +19,46 @@ extern ssc_bool_t ssc_progress_handler(ssc_module_t, ssc_handler_t, int action, 
 extern bool sim_progress_handler(float progress, const char *msg);
 extern void message_handler(const char *msg);
 
+struct documentation
+{
+    std::string formatted_doc;
+    std::string description;
+    std::string units;
+
+    documentation()
+    {
+        formatted_doc.clear();
+        description.clear();
+        units.clear();
+    };
+};
+
 class data_base : public lk::vardata_t
 {
 protected:
 	bool m_is_invalid_allowed; //allow values to contain invalid data during simulation (values will be assigned/updated by the program)
+    std::string BaseFormattedDoc(const char* group, const char* nicename, const char* vartype, bool is_calculated, const char* limits = 0)
+    {
+        char buf[2000];
+
+        sprintf(buf, 
+            "<h2>%s [%s]: %s</h2>"
+            "<b>%s</b>  Type: %s%s<br>"
+            "<p>%s</p>",
+            this->name.c_str(), 
+            this->doc.units.c_str(),
+            group,
+            nicename,
+            vartype,
+            is_calculated ? " (calculated)" : "",
+            this->doc.description.c_str()
+            );
+        
+        this->doc.formatted_doc = buf;
+
+        return std::string(buf);
+    };
+
 public:
 	std::string name;
     unsigned char type;   //type defined in lk::vardata_t {NUMBER, STRING, VECTOR, HASH}
@@ -30,6 +66,7 @@ public:
 	std::string units;
 	std::string group;
 	bool is_shown_in_list;
+    documentation doc;
 
     void assign_vector(float *_vec, int nval)
     {
@@ -367,6 +404,7 @@ class Project
 	
 	lk::varhash_t _merged_data;
 
+    void add_documentation();
 	void lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
     void ssc_to_lk_hash(ssc_data_t &cxt, lk::varhash_t &vars);
 	void initialize_ssc_project();

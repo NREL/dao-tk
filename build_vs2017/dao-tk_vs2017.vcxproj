@@ -28,6 +28,9 @@
     <ClCompile Include="..\app\project.cpp" />
     <ClCompile Include="..\app\scripting.cpp" />
     <ClCompile Include="..\app\scriptview.cpp" />
+    <ClCompile Include="..\app\treeselect.cpp" />
+    <ClCompile Include="..\app\vardialog.cpp" />
+    <ClCompile Include="..\app\vardocument.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\app\daotk_app.h" />
@@ -36,6 +39,8 @@
     <ClInclude Include="..\app\project.h" />
     <ClInclude Include="..\app\scripting.h" />
     <ClInclude Include="..\app\scriptview.h" />
+    <ClInclude Include="..\app\treeselect.h" />
+    <ClInclude Include="..\app\vardialog.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="libcluster.vcxproj">

@@ -414,6 +414,7 @@ Project::Project()
 {
 	m_ssc_data = 0;
 	Initialize();
+    add_documentation();
 
 	//construct the merged data map
 	std::vector<lk::varhash_t*> struct_pointers = { &m_variables, &m_parameters, &m_design_outputs,
