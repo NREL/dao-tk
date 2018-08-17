@@ -18,11 +18,11 @@ class VariableDialog : public wxFrame
     wxTextCtrl *m_searchtext;
     wxComboBox *m_searchselect;
     wxHtmlWindow *m_html;
-    lk::varhash_t *m_variable_data;
+    std::vector< lk::varhash_t* > m_variable_data;
 
 
 public:
-    VariableDialog(wxWindow *parent, lk::varhash_t* variable_data, int id = -1, long style = wxDEFAULT_FRAME_STYLE,
+    VariableDialog(wxWindow *parent, std::vector< void* > vargroups, int id = -1, long style = wxDEFAULT_FRAME_STYLE,
                 wxSize size=wxDefaultSize, wxPoint position=wxDefaultPosition);
 
     void OnCommand(wxCommandEvent &);

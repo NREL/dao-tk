@@ -214,17 +214,6 @@ public:
 				}
 			}
 
-			// else if (v->type == SSC_TABLE && (unsigned int)row < v->table.size())
-			// {
-			// 	int k = 0;
-			// 	const char *key = v->table.first();
-			// 	while (key != 0)
-			// 	{
-			// 		if (k++ == row) break;
-			// 		key = v->table.next();
-			// 	}
-			// 	return ".{'" + wxString(key) + "'}";
-			// }
 		}
 		
 		return wxEmptyString;
@@ -559,11 +548,11 @@ void DataView::UpdateView()
 				// for (int j=0;j< padto-(int)label.length();j++)
 				// 	label += " ";
 				
-				if (dv->type == lk::vardata_t::NUMBER)
+				if (dv->type() == lk::vardata_t::NUMBER)
 					label += "number " + wxString::Format("%lg", v->as_number() );				
-				else if (dv->type == lk::vardata_t::STRING)
+				else if (dv->type() == lk::vardata_t::STRING)
 					label += "string " + wxString(v->as_string().c_str());
-				else if (dv->type == lk::vardata_t::VECTOR)
+				else if (dv->type() == lk::vardata_t::VECTOR)
 					if( v->vec()->empty() )
 						label += wxString::Format( "array [%d]", (int)v->vec()->size() );
 					else

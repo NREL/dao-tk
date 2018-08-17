@@ -285,7 +285,7 @@ void ScriptView::Exec()
 
 void ScriptView::CreateVariableDialog()
 {
-    VariableDialog *dlg = new VariableDialog(this, MainWindow::Instance().GetProject()->GetMergedData(), wxID_ANY, wxDEFAULT_FRAME_STYLE);
+    VariableDialog *dlg = new VariableDialog(this, MainWindow::Instance().GetProject()->GetDataObjects(), wxID_ANY, wxDEFAULT_FRAME_STYLE);
     dlg->Show();
     
     return;
@@ -303,6 +303,7 @@ EVT_BUTTON(wxID_FORWARD, ScriptView::OnCommand)
 
 
 EVT_BUTTON(ID_RUN, ScriptView::OnCommand)
+EVT_BUTTON(ID_VARS, ScriptView::OnCommand)
 
 EVT_BUTTON(wxID_STOP, ScriptView::OnCommand)
 EVT_BUTTON(ID_RUN, ScriptView::OnCommand)

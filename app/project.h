@@ -31,25 +31,46 @@ struct documentation
         description.clear();
         units.clear();
     };
+
+    void set(const char* _units, const char* _description)
+    {
+        this->description = _description;
+        this->units = _units;
+    };
 };
 
 class data_base : public lk::vardata_t
 {
 protected:
 	bool m_is_invalid_allowed; //allow values to contain invalid data during simulation (values will be assigned/updated by the program)
-    std::string BaseFormattedDoc(const char* group, const char* nicename, const char* vartype, bool is_calculated, const char* limits = 0)
+    std::string BaseFormattedDoc(bool is_calculated, const char* limits = 0)
     {
         char buf[2000];
 
+        std::string vartype;
+        switch (this->type())
+        {
+        case lk::vardata_t::NUMBER:
+            break;
+        case lk::vardata_t::STRING:
+            break;
+        case lk::vardata_t::VECTOR:
+            break;
+        case lk::vardata_t::HASH:
+            break;
+        default:
+            break;
+        }
+
         sprintf(buf, 
-            "<h2>%s [%s]: %s</h2>"
+            "<h3>%s [%s]: %s</h3>"
             "<b>%s</b>  Type: %s%s<br>"
             "<p>%s</p>",
-            this->name.c_str(), 
+            this->nice_name.c_str(),
             this->doc.units.c_str(),
-            group,
-            nicename,
-            vartype,
+            this->group.c_str(),
+            this->name.c_str(), 
+            vartype.c_str(),
             is_calculated ? " (calculated)" : "",
             this->doc.description.c_str()
             );
@@ -61,7 +82,6 @@ protected:
 
 public:
 	std::string name;
-    unsigned char type;   //type defined in lk::vardata_t {NUMBER, STRING, VECTOR, HASH}
 	std::string nice_name;
 	std::string units;
 	std::string group;
@@ -92,16 +112,17 @@ public:
 	{
 		return m_is_invalid_allowed;
 	};
+
+    virtual void CreateDoc() {};
 };
 
 class variable : public data_base
 {
 protected:
-    void _set_base(double vmin, double vmax, std::string vname, const unsigned char datatype, const char *_nice_name=0, const char *_units=0, const char *_group=0)
+    void _set_base(double vmin, double vmax, std::string vname, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
 		set_limits(vmin, vmax);
         this->name = vname;
-		this->type = datatype;
 		this->nice_name = _nice_name; 
 		this->units = _units;
 		this->group = _group;
@@ -124,18 +145,25 @@ public:
 		return true;
 	};
 	
-	void set(double _defaultval, double _vmin, double _vmax, std::string _vname, const unsigned char _datatype, const char *_nice_name=0, const char *_units=0, const char *_group=0)
+	void set(double _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0)
 	{
         this->defaultval.assign(_defaultval); 
         this->assign(_defaultval);
-        _set_base(_vmin, _vmax, _vname, _datatype, _nice_name, _units, _group);
+        _set_base(_vmin, _vmax, _vname, _nice_name, _units, _group);
 	};
     
-    void set(int _defaultval, double _vmin, double _vmax, std::string _vname, const unsigned char _datatype, const char *_nice_name=0, const char *_units=0, const char *_group=0)
+    void set(int _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
         this->defaultval.assign(_defaultval);
         this->assign(_defaultval);
-        _set_base(_vmin, _vmax, _vname, _datatype, _nice_name, _units, _group);
+        _set_base(_vmin, _vmax, _vname, _nice_name, _units, _group);
+    };
+
+    void CreateDoc()
+    {
+        char lims[100];
+        sprintf(lims, "[%f,%f]", this->minval.as_number(), this->maxval.as_number());
+        BaseFormattedDoc(false, lims);
     };
 
 };
@@ -161,10 +189,9 @@ struct variables : public lk::varhash_t
 class parameter : public data_base
 {
 protected:
-    void _set_base(std::string vname, const unsigned int datatype, bool calculated, const char *_nice_name, const char *_units, const char *_group)
+    void _set_base(std::string vname, bool calculated, const char *_nice_name, const char *_units, const char *_group)
     {
         this->name = vname;
-        this->type = datatype;
 		this->nice_name = _nice_name != '\0' ? _nice_name : "";
 		this->units = _units != '\0' ? _units : "";
 		this->group = _group != '\0' ? _group : "";
@@ -176,41 +203,41 @@ protected:
 public:
 	bool is_calculated;
 	//double
-	void set(double v, std::string vname, const unsigned int datatype, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
+	void set(double v, std::string vname, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
 	{
 		this->assign(v);
-        _set_base(vname, datatype, calculated, _nice_name, _units, _group) ;
+        _set_base(vname, calculated, _nice_name, _units, _group) ;
 	};
     //int
-    void set(int v, std::string vname, const unsigned int datatype, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
+    void set(int v, std::string vname, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
         this->assign(v);
-        _set_base(vname, datatype, calculated, _nice_name, _units, _group) ;
+        _set_base(vname, calculated, _nice_name, _units, _group) ;
     };
     //boolean
-    void set(bool v, std::string vname, const unsigned int datatype, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
+    void set(bool v, std::string vname, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
         this->assign(v);
-        _set_base(vname, datatype, calculated, _nice_name, _units, _group) ;
+        _set_base(vname, calculated, _nice_name, _units, _group) ;
     };
     //string
-    void set(std::string v, std::string vname, const unsigned int datatype, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
+    void set(std::string v, std::string vname, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
         this->assign(v);
-        _set_base(vname, datatype, calculated, _nice_name, _units, _group) ;
+        _set_base(vname, calculated, _nice_name, _units, _group) ;
     };
     //vector-double
-    void set(std::vector<double> &v, std::string vname, const unsigned int datatype, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
+    void set(std::vector<double> &v, std::string vname, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
         this->empty_vector();
         this->vec()->resize(v.size());
         for (size_t i = 0; i < v.size(); i++)
             this->vec()->at(i).assign(v.at(i));
 
-        _set_base(vname, datatype, calculated, _nice_name, _units, _group);
+        _set_base(vname, calculated, _nice_name, _units, _group);
     };
     //matrix-double
-    void set(std::vector< std::vector< double > > &v, std::string vname, const unsigned int datatype, bool calculated = false, const char *_nice_name=0, const char *_units=0, const char *_group=0)
+    void set(std::vector< std::vector< double > > &v, std::string vname, bool calculated = false, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
         this->empty_vector();
         this->vec()->resize(v.size());
@@ -221,7 +248,12 @@ public:
                 this->vec()->at(i).resize(v.at(i).size());
                 this->vec()->at(i).assign(v.at(i).at(j));
             }
-        _set_base(vname, datatype, calculated, _nice_name, _units, _group);
+        _set_base(vname, calculated, _nice_name, _units, _group);
+    };
+
+    void CreateDoc()
+    {
+        BaseFormattedDoc(is_calculated, 0);
     };
 
 };
@@ -447,6 +479,7 @@ public:
 
 	data_base *GetVarPtr(const char *name);
 	lk::varhash_t *GetMergedData();
+    std::vector< void* > GetDataObjects();
 
 	// def setup_clusters(self, Nclusters, Ndays = 2, Nprev = 1, Nnext = 1, user_weights = None, user_divisions = None):
 	// def M(self, variables, design):

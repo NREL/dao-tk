@@ -151,12 +151,12 @@ void _var(lk::invoke_t &cxt)
     if (cxt.arg_count() == 2) //set
     {
 		//validate data type
-		if( cxt.arg(1).type() != dat->type )
+		if( cxt.arg(1).type() != dat->type() )
 		{
 			std::string expected_type;
 			std::string given_type;
 
-			switch( dat->type )
+			switch( dat->type() )
 			{
 				case lk::vardata_t::STRING: expected_type = "string"; break;
 				case lk::vardata_t::NUMBER: expected_type = "number"; break;
@@ -181,7 +181,7 @@ void _var(lk::invoke_t &cxt)
 			return;
 		}
 		//assign data type
-		switch( dat->type )
+		switch( dat->type() )
 		{
 			case lk::vardata_t::STRING:
 				dat->assign( cxt.arg(1).as_string() );
@@ -200,7 +200,7 @@ void _var(lk::invoke_t &cxt)
 	}
 	else if (cxt.arg_count() == 1) //get
 	{
-		switch( dat->type )
+		switch( dat->type() )
 		{
 			case lk::vardata_t::STRING:
 				cxt.result().assign( dat->as_string() );
