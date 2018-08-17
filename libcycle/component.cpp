@@ -22,8 +22,9 @@ std::string failure_event::print()
 
 ComponentStatus::ComponentStatus(){}
 
-ComponentStatus::ComponentStatus(std::vector<double> lifes, double hazard, double downtime )
-    : lifetimes(lifes), hazard_rate( hazard ), downtime_remaining( downtime )
+ComponentStatus::ComponentStatus(std::vector<double> lifes, double hazard, double downtime,
+		double repair_event_time)
+    : lifetimes(lifes), hazard_rate( hazard ), downtime_remaining( downtime ), repair_event_time( repair_event_time )
 {}
 
 //##################################################################################
@@ -36,7 +37,8 @@ Component::Component(  std::string name, std::string type,
 			//std::string dist_type, double failure_alpha, double failure_beta, 
 			double repair_rate, double repair_cooldown_time,
             std::unordered_map< std::string, failure_event > *failure_events, 
-			double availability_reduction, double repair_cost, std::string repair_mode)
+			double availability_reduction, double repair_cost, std::string repair_mode,
+			std::vector<std::string> *failure_event_labels)
 {
     /*
     Description of attributes:
@@ -57,18 +59,20 @@ Component::Component(  std::string name, std::string type,
     m_name = name;
     m_type = type;
     m_repair_cost = repair_cost;
-	m_availability_reduction = availability_reduction;
+	m_capacity_reduction = availability_reduction;
 	m_cooldown_time = repair_cooldown_time;
 	m_repair_mode = repair_mode;
 
 	m_status.hazard_rate = 1.0;
     m_status.downtime_remaining = 0.0;
 	m_status.operational = true;
+	m_status.repair_event_time = 0.0;
 
 	Distribution *edist = new ExponentialDist(repair_rate, repair_cooldown_time, "exponential");
 	m_repair_dist = (ExponentialDist *) edist;
 
     m_parent_failure_events = failure_events;
+	m_parent_failure_event_labels = failure_event_labels;
 }
 
 
@@ -77,6 +81,7 @@ void Component::ReadStatus( ComponentStatus &status )
 	m_status.hazard_rate =  status.hazard_rate;
     m_status.downtime_remaining = status.downtime_remaining;
 	m_status.operational = (m_status.downtime_remaining < 1e-8);
+	m_status.repair_event_time = status.repair_event_time;
 	for (size_t j = 0; j < m_failure_types.size(); j++)
 	{
 		m_failure_types.at(j).SetLifeOrProb(status.lifetimes.at(j));
@@ -117,9 +122,9 @@ double Component::GetRepairCost()
 	return m_repair_cost;
 }
 
-double Component::GetAvailabilityReduction()
+double Component::GetCapacityReduction()
 {
-	return m_availability_reduction;
+	return m_capacity_reduction;
 }
 
 double Component::GetCooldownTime()
@@ -144,6 +149,7 @@ void Component::Shutdown(double time)
     */
 	m_status.operational = false;
     m_status.downtime_remaining = time;
+	m_status.repair_event_time = time;
 }
 
         
@@ -151,6 +157,7 @@ void Component::RestoreComponent()
 {
 	m_status.operational = true;
 	m_status.downtime_remaining = 0.0;
+	m_status.repair_event_time = 0.0;
 }
 
         
@@ -182,6 +189,7 @@ void Component::GenerateTimeToRepair(WELLFiveTwelve &gen)
     retval -- lifetime in adjusted hours of operation
     */
     m_status.downtime_remaining = m_repair_dist->GetVariate(gen);
+	m_status.repair_event_time = m_status.downtime_remaining*1.0;
 	//std::cerr << "NEW FAILURE - DOWNTIME: " << std::to_string(m_status.downtime_remaining) << "\n";
 }
 
@@ -221,7 +229,7 @@ void Component::TestForBinaryFailure(std::string mode, int t, WELLFiveTwelve &ge
 		if (m_failure_types.at(j).GetFailureMode() == mode)
 		{
 			var = gen.getVariate();
-			if (var*m_status.hazard_rate <= m_failure_types.at(j).GetFailureProbability())
+			if ( var <= m_failure_types.at(j).GetFailureProbability() *m_status.hazard_rate )
 				GenerateFailure(gen, t, j);
 		}
 	}
@@ -230,6 +238,8 @@ void Component::TestForBinaryFailure(std::string mode, int t, WELLFiveTwelve &ge
 void Component::TestForFailure(double time, double ramp_mult,
 	WELLFiveTwelve &gen, int t, double hazard_increase, std::string mode)
 {
+	if (mode == "OFF")
+		return;
 	/*
 	Generates failure events under the provided dispatch, if there is not sufficient life
 	remaining in the component, or the RNG generates a failure on start.
@@ -278,7 +288,6 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
     gen -- random U[0,1] variate generator object
     read_only -- indicates whether to generate a failure event if 
         life_remaining falls below 0 during operation
-    failure_file -- output file to record failures
     t -- period index
     retval -- None
     */
@@ -305,7 +314,7 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
 		opmode = mode;
 	for (size_t j = 0; j < m_failure_types.size(); j++)
 	{
-		if (m_failure_types.at(j).GetFailureMode() == opmode || m_failure_types.at(j).GetFailureMode() == "ALL")
+		if (m_failure_types.at(j).GetFailureMode() == opmode || (opmode != "OFF" && m_failure_types.at(j).GetFailureMode() == "ALL"))
 		{
 			if (time * m_status.hazard_rate * ramp_mult > m_failure_types.at(j).GetLifeRemaining() && !read_only)
 				throw std::exception("failure should be thrown.");
@@ -321,7 +330,7 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
 }
          
 void Component::ReadFailure(double downtime, double life_remaining, 
-	int fail_idx, bool reset_hazard = true)
+	int fail_idx, bool reset_hazard)
 {
     /*
     reads a failure event.  This executes the failure without the 
@@ -334,10 +343,7 @@ void Component::ReadFailure(double downtime, double life_remaining,
 	m_status.operational = false;
     SetDowntimeRemaining(downtime);
     m_failure_types.at(fail_idx).SetLifeOrProb(life_remaining);
-	if (reset_hazard)
-	{
-		ResetHazardRate();
-	}
+    ResetHazardRate();
 }
 
                 
@@ -362,6 +368,7 @@ void Component::GenerateFailure(WELLFiveTwelve &gen, int t, int fail_idx)
 		t, GetName(), fail_idx, m_status.downtime_remaining, 
 		m_failure_types.at(fail_idx).GetLifeOrProb()
 		);
+	(*m_parent_failure_event_labels).push_back(label);
 	//std::cerr << "FAILURE EVENT GENERATED. downtime: " << std::to_string(m_status.downtime_remaining) << " life_rem: " << std::to_string(m_failure_types.at(fail_idx).GetLifeOrProb()) << " fail idx: " << std::to_string(fail_idx) << " reset hazard rate: " << std::to_string(true) << "\n";
 
 }
@@ -382,6 +389,11 @@ bool Component::CanBeRepaired(std::string mode)
 		return true;
 	}		
 	return false;
+}
+
+void Component::ResetDowntime()
+{
+	m_status.downtime_remaining = m_status.repair_event_time*1.0;
 }
         
 void Component::AdvanceDowntime(double time, std::string mode)
@@ -429,7 +441,17 @@ ComponentStatus Component::GetState()
 	return (
 		ComponentStatus(
 			GetLifetimesAndProbs(), m_status.hazard_rate*1.0,
-			m_status.downtime_remaining*1.0
+			m_status.downtime_remaining*1.0, m_status.repair_event_time*1.0
 			)
 		); 
+}
+
+void Component::Reset(WELLFiveTwelve &gen)
+{
+	m_cooldown_time = 0.;
+	m_status.downtime_remaining = 0.;
+	m_status.hazard_rate = 1.;
+	m_status.operational = true;
+	m_status.repair_event_time = 0.;
+	GenerateInitialLifesAndProbs(gen);
 }
