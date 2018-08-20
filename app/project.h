@@ -81,14 +81,15 @@ protected:
             "<tr><td>Type</td><td>%s%s</td></tr>"
             "</table>"
             "</font>"
-            "<p><font size=\"+1\">%s</font></p><hr>",
+            "<p><font size=\"+1\">%s</font></p><a href=\"id?%s\">Add</a><hr>",
             this->nice_name.c_str(),
             fmt_units.c_str(),
             this->name.c_str(), 
             this->group.c_str(),
             vartype.c_str(),
             is_calculated ? " (calculated)" : "",
-            this->doc.description.c_str()
+            this->doc.description.c_str(),
+            this->name.c_str()
             );
         
         this->doc.formatted_doc = buf;

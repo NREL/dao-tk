@@ -6,7 +6,7 @@
 
 #include <wex/icons/stock_cancel_20.cpng>
 
-enum {ID_SEARCHSELECT=wxID_HIGHEST+154, ID_SEARCHTEXT, ID_SEARCHCLEAR};
+enum {ID_SEARCHSELECT=wxID_HIGHEST+154, ID_SEARCHTEXT, ID_SEARCHCLEAR, ID_VAR_HELP};
 
 VariableDialog::VariableDialog(wxWindow *parent, std::vector< void* > vargroups, int id, long style, wxSize size, wxPoint position)
     : wxFrame(parent, id, "Variable information", position, size, style)
@@ -27,7 +27,7 @@ VariableDialog::VariableDialog(wxWindow *parent, std::vector< void* > vargroups,
     m_searchselect = new wxComboBox(main_panel, ID_SEARCHSELECT, searchchoices[0],
                     wxDefaultPosition, wxDefaultSize, sca, wxCB_DROPDOWN | wxCB_READONLY);
     
-    m_html = new wxHtmlWindow(main_panel, wxID_ANY);
+    m_html = new wxHtmlWindow(main_panel, ID_VAR_HELP);
 
     wxBoxSizer *mainsizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *topsizer = new wxBoxSizer(wxHORIZONTAL);
@@ -163,9 +163,15 @@ void VariableDialog::UpdateHelp(const char* filter, const char* type)
     m_html->SetPage(filtered_text);
 }
 
+void VariableDialog::OnHtmlEvent(wxHtmlLinkEvent &evt)
+{
+    wxString link = evt.GetLinkInfo().GetHref();
+    return;
+}
 
 BEGIN_EVENT_TABLE( VariableDialog, wxFrame )
     EVT_TEXT(ID_SEARCHTEXT, VariableDialog::OnCommand)
     EVT_COMBOBOX(ID_SEARCHSELECT, VariableDialog::OnCommand)
     EVT_BUTTON(ID_SEARCHCLEAR, VariableDialog::OnCommand)
+    EVT_HTML_LINK_CLICKED(ID_VAR_HELP, VariableDialog::OnHtmlEvent)
 END_EVENT_TABLE()

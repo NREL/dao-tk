@@ -4,6 +4,7 @@
 #include "project.h"
 
 #include <wx/wx.h>
+#include <wx/wxhtml.h>
 
 #include <vector>
 #include <string>
@@ -26,6 +27,7 @@ public:
                 wxSize size=wxDefaultSize, wxPoint position=wxDefaultPosition);
 
     void OnCommand(wxCommandEvent &);
+    void OnHtmlEvent(wxHtmlLinkEvent &evt);
 
     void UpdateHelp(const char* filter, const char* type);
 
