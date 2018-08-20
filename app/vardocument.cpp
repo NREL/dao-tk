@@ -17,8 +17,12 @@ void Project::add_documentation()
                                 "of heliostats in the solar field.</it>");
     m_variables.P_ref.doc.set("MW<sub>e</sub>","Design-point gross electrical power output from the power block. Gross power "
                               "accounts for feedwater pumps and parasitics within the power block excluding condenser fan operation.");
-    m_variables.solarm.doc.set("-","");
-    m_variables.tshours.doc.set("","");
+    m_variables.solarm.doc.set("-","The solar multiple represents the ratio of the thermal power delivered by the solar field at "
+                                "design conditions to the thermal power delivered to the power block at design conditions."
+                                "<br><sl>The larger the solar multiple, the more energy will be aviailable for thermal storage.</sl>");
+    m_variables.tshours.doc.set("hr","The number of hours that the power block can operate at full load while drawing thermal power "
+                                 "exclusively from the thermeal storage system."
+                                 "<br><sl></sl>");
     m_variables.degr_replace_limit.doc.set("","");
     m_variables.om_staff.doc.set("","");
     m_variables.n_wash_crews.doc.set("","");

@@ -51,25 +51,41 @@ protected:
         switch (this->type())
         {
         case lk::vardata_t::NUMBER:
+            vartype = "Number";
             break;
         case lk::vardata_t::STRING:
+            vartype = "String";
             break;
         case lk::vardata_t::VECTOR:
+            vartype = "Array";
             break;
         case lk::vardata_t::HASH:
+            vartype = "Table";
             break;
         default:
             break;
         }
 
-        sprintf(buf, 
-            "<h3>%s [%s]: %s</h3>"
-            "<b>%s</b>  Type: %s%s<br>"
-            "<p>%s</p>",
+        std::string fmt_units;
+        if (this->doc.units.empty() || this->doc.units == "-")
+            fmt_units = "";
+        else
+            fmt_units = "[" + this->doc.units + "]";
+
+        sprintf(buf,
+            "<h3>%s <font color=\"#C0C0C0\">%s</font></h3>"
+            "<font color=\"#800000\">"
+            "<table style=\"background-color:#DDD\">"
+            "<tr><td>Handle</td><td><b>%s</b></td></tr>"
+            "<tr><td>Group</td><td>%s</td></tr>"
+            "<tr><td>Type</td><td>%s%s</td></tr>"
+            "</table>"
+            "</font>"
+            "<p><font size=\"+1\">%s</font></p><hr>",
             this->nice_name.c_str(),
-            this->doc.units.c_str(),
-            this->group.c_str(),
+            fmt_units.c_str(),
             this->name.c_str(), 
+            this->group.c_str(),
             vartype.c_str(),
             is_calculated ? " (calculated)" : "",
             this->doc.description.c_str()
