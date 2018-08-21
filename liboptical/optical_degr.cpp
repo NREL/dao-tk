@@ -80,8 +80,33 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	}
 
 	std::vector< opt_crew > crews;
-	for (int i = 0; i<m_settings.n_wash_crews; i++)
+	int ncrews = (int)ceil(m_settings.n_wash_crews);
+	int n_helio_per_crew = (int) ceil(n_helio_s / m_settings.n_wash_crews);
+	int hel = 0;
+	for (int i = 0; i < ncrews; i++)
+	{
 		crews.push_back(opt_crew());
+
+		double time_fraction = 1.0;
+		int n_helio = n_helio_per_crew;
+		if (i == ncrews - 1)
+		{
+			n_helio = n_helio_s - hel;
+			if ((double)ncrews != m_settings.n_wash_crews)
+				time_fraction = m_settings.n_wash_crews - floor(m_settings.n_wash_crews);
+		}
+
+		crews[i].max_hours_per_week = time_fraction * m_settings.hours_per_week;
+		crews[i].max_hours_per_day = time_fraction * m_settings.hours_per_day;
+
+		// set heliostats assigned to wash crew
+		crews[i].helios_in_zone.clear();
+		for (int j = 0; j<n_helio; j++)
+			crews[i].helios_in_zone.push_back(hel+j);
+
+		hel += n_helio;
+
+	}
 
 
 	std::vector< double > soil(m_settings.n_hr_sim);
@@ -100,10 +125,9 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	std::default_random_engine rand2(seed2);
 	//---------
 
-	//initialize where each crew starts in the field
-	int inc = (int)((float)n_helio_s / (float)crews.size());
+	//initialize where each crew starts in the zone
 	for (size_t c = 0; c<crews.size(); c++)
-		crews.at(c).current_heliostat = c * inc;
+		crews.at(c).current_heliostat = 0;
 	int n_replacements_cumu = 0;
 
 	//create the degradation rate by age
@@ -158,19 +182,21 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		{
 
 			//check crew availability
-			if (crew->hours_this_week >= m_settings.hours_per_week ||
-				crew->hours_today >= m_settings.hours_per_day)
+			if (crew->hours_this_week >= crew->max_hours_per_week ||
+				crew->hours_today >= crew->max_hours_per_day)
 				continue;
+			
+			double f_avail = fmin(1.0, fmin(crew->max_hours_per_week - crew->hours_this_week, crew->max_hours_per_day - crew->hours_today)) / 1.0;   // fraction of time step crew is available (assuming 1hr timestep)
 
 			//double crew_time = 0.;
-			double units_washed_remain = wash_units_per_hour_s;
+			double units_washed_remain = wash_units_per_hour_s * f_avail;
 			for (;;)
 			{
 				//if the current heliostat is out of range, reset to 0
-				if (crew->current_heliostat > n_helio_s - 1)
+				if (crew->current_heliostat > crew->helios_in_zone.size() - 1)
 					crew->current_heliostat = 0;
 
-				int this_heliostat = crew->current_heliostat;
+				int this_heliostat = crew->helios_in_zone[crew->current_heliostat];
 
 				bool do_break = false;
 
@@ -187,7 +213,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 					else
 					{
 						crew->carryover_wash_time = 0.;
-						helios.at(crew->current_heliostat).soil_loss = 1.;  //reset
+						helios.at(this_heliostat).soil_loss = 1.;  //reset
 						crew->current_heliostat++;
 					}
 				}
@@ -203,7 +229,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 					else
 					{
 						crew->carryover_wash_time = 0.;
-						helios.at(crew->current_heliostat).soil_loss = 1.;  //reset
+						helios.at(this_heliostat).soil_loss = 1.;  //reset
 						crew->current_heliostat++;
 					}
 				}
@@ -223,8 +249,8 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 			}
 
 			//track time spent
-			crew->hours_today++;
-			crew->hours_this_week++;
+			crew->hours_today += f_avail * 1.0;
+			crew->hours_this_week += f_avail * 1.0;
 		}
 
 		//log averages

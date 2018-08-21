@@ -1537,7 +1537,7 @@ bool Project::O()
 	optical_degradation od;
 
 	od.m_settings.n_hr_sim = 25 * 8760;
-	od.m_settings.n_wash_crews = m_variables.n_wash_crews.as_integer();
+	od.m_settings.n_wash_crews = m_variables.n_wash_crews.as_number();
 	od.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
 	od.m_settings.degr_loss_per_hr = m_parameters.degr_per_hour.as_number();
 	od.m_settings.degr_accel_per_year = m_parameters.degr_accel_per_year.as_number();

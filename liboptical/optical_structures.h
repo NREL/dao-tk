@@ -8,7 +8,7 @@ struct opt_settings
 {
     int n_helio;
 
-    int n_wash_crews;
+    double n_wash_crews;
 
     double wash_units_per_hour;
     double hours_per_day;
@@ -48,6 +48,11 @@ struct opt_crew
     int replacements_made;
     double hours_this_week;
     double hours_today;
+
+	double max_hours_per_week;
+	double max_hours_per_day;
+
+	std::vector<int> helios_in_zone;
 
 	opt_crew();
 }; 
