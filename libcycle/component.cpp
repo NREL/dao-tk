@@ -330,7 +330,7 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
 }
          
 void Component::ReadFailure(double downtime, double life_remaining, 
-	int fail_idx, bool reset_hazard)
+	int fail_idx, bool reset_hazard=true)
 {
     /*
     reads a failure event.  This executes the failure without the 
@@ -343,7 +343,10 @@ void Component::ReadFailure(double downtime, double life_remaining,
 	m_status.operational = false;
     SetDowntimeRemaining(downtime);
     m_failure_types.at(fail_idx).SetLifeOrProb(life_remaining);
-    ResetHazardRate();
+	if (reset_hazard)
+	{
+		ResetHazardRate();
+	}
 }
 
                 

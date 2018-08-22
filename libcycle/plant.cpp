@@ -110,13 +110,14 @@ void CSPPlant::SetStatus()
 
 	SetPlantAttributes(
 		m_maintenance_interval, m_maintenance_duration, 
-		m_ramp_threshold, m_downtime_threshold, m_steplength, 
+		m_downtime_threshold, m_steplength, 
 		m_plant_status["hours_to_maintenance"] * 1.0,
 		m_plant_status["power_output"] * 1.0, m_plant_status["standby"] && true,
-		m_capacity, m_plant_status["time_online"] * 1.0, 
+		m_capacity, m_condenser_temp_threshold, m_plant_status["time_online"] * 1.0,
 		m_plant_status["time_in_standby"] * 1.0,
 		m_plant_status["downtime"] * 1.0,
-		m_condenser_temp_threshold
+		m_shutdown_capacity,
+		m_no_restart_capacity
 		);
 
 }
@@ -272,15 +273,19 @@ void CSPPlant::SetNoRestartCapacity(double capacity)
 }
 
 
-void CSPPlant::AddComponent( std::string name, std::string type, //std::string dist_type, double failure_alpha, double failure_beta, 
-		double repair_rate, double repair_cooldown_time,
+void CSPPlant::AddComponent( std::string name, 
+		std::string type, 
+		double repair_rate, 
+		double repair_cooldown_time,
         double Capacity_reduction,
 		double repair_cost,
 		std::string repair_mode
 )
 {
-    m_components.push_back( Component(name, type, //dist_type, failure_alpha, failure_beta, 
-		repair_rate, repair_cooldown_time, &m_failure_events, Capacity_reduction, repair_cost, repair_mode, &m_failure_event_labels) );
+    m_components.push_back( Component(name, type,  
+		repair_rate, repair_cooldown_time, &m_failure_events, 
+		Capacity_reduction, repair_cost, repair_mode, 
+		&m_failure_event_labels) );
 }
 
 void CSPPlant::AddFailureType(std::string component, std::string id, std::string failure_mode,
@@ -434,6 +439,9 @@ void CSPPlant::AddWaterPumps(int num_pumps)
 }
 
 void CSPPlant::AddTurbines(int num_hi_pressure, int num_mid_pressure, int num_low_pressure)
+/*
+Adds Hi-, Medium-, and Low-Pressure Turbines to the plant object.
+*/
 {
 	std::string component_name;
 	for (int i = 0; i < num_hi_pressure; i++)
@@ -459,14 +467,41 @@ void CSPPlant::AddTurbines(int num_hi_pressure, int num_mid_pressure, int num_lo
 	}
 }
 
-void CSPPlant::SetPlantAttributes(double maintenance_interval,
-				double maintenance_duration,
-				double ramp_threshold, double downtime_threshold, 
-				double steplength, double hours_to_maintenance,
-				double power_output, bool standby, double capacity,
-				double temp_threshold, 
+void CSPPlant::GeneratePlantComponents(
+		int num_condenser_trains = 2,
+		int fans_per_train = 30,
+		int radiators_per_train = 1,
+		int num_salt_steam_trains = 2,
+		int num_fwh = 6,
+		int num_salt_pumps = 2,
+		int num_water_pumps = 2,
+		int num_hi_pressure = 1, int num_mid_pressure = 1, int num_low_pressure = 1
+	)
+{
+	/* 
+	Generates all the components in the plant.  Aggregates the other 
+	component-specific methods.
+	*/
+	for (int i = 0; i < num_condenser_trains; i++)
+	{
+		AddCondenserTrain(fans_per_train, radiators_per_train);
+	}
+	AddSaltToSteamTrains(num_salt_steam_trains);
+	AddFeedwaterHeaters(num_fwh);
+	AddSaltPumps(num_salt_pumps);
+	AddWaterPumps(num_water_pumps);
+	AddTurbines(num_hi_pressure, num_mid_pressure, num_low_pressure);
+}
+
+void CSPPlant::SetPlantAttributes(double maintenance_interval = 5000.,
+				double maintenance_duration = 24.,
+				double downtime_threshold = 24., 
+				double steplength = 1., double hours_to_maintenance = 5000.,
+				double power_output = 0., bool standby = false, double capacity = 500000.,
+				double temp_threshold = 20., 
 				double time_online = 0., double time_in_standby = 0.,
-				double downtime = 0.
+				double downtime = 0., double shutdown_capacity = 0.45, 
+				double no_restart_capacity = 0.9
 	)
 {
     /*
@@ -477,9 +512,9 @@ void CSPPlant::SetPlantAttributes(double maintenance_interval,
 
     m_maintenance_interval = maintenance_interval;
     m_maintenance_duration = maintenance_duration;
-    m_ramp_threshold = ramp_threshold;
-	m_ramp_threshold_min = 1.1*m_ramp_threshold;
-	m_ramp_threshold_max = 2.0*m_ramp_threshold;
+    m_ramp_threshold = capacity * 0.2;  //using Gas-CC as source, Kumar 2012,
+	m_ramp_threshold_min = 1.1*m_ramp_threshold;   //Table 1-1
+	m_ramp_threshold_max = 2.0*m_ramp_threshold;   
     m_downtime_threshold = downtime_threshold;
     m_steplength = steplength;
     m_hours_to_maintenance = hours_to_maintenance;
@@ -491,15 +526,17 @@ void CSPPlant::SetPlantAttributes(double maintenance_interval,
 	m_time_online = time_online;
 	m_condenser_temp_threshold = temp_threshold;
 	m_downtime = downtime;
+	m_shutdown_capacity = shutdown_capacity;
+	m_no_restart_capacity = no_restart_capacity;
 }
 
 void CSPPlant::SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing)
 {
 
     /*
-    Set's an attribute of the dispatch series. 
+    Sets an attribute of the dispatch series. 
 
-    ## availabile attributes include ##
+    ## available attributes include ##
     cost
     standby
     can_cycle_run
@@ -1048,6 +1085,7 @@ std::vector< double > CSPPlant::Simulate(bool reset_status)
     //failure_file.close()
     //outfile.close()
 }
+
 
 void CSPPlant::ResetPlant(WELLFiveTwelve &gen)
 {
