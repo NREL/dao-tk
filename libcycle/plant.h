@@ -153,6 +153,8 @@ public:
 	std::vector< double > RunDispatch();
 	void Operate(double power_out, int t, std::string start, std::string mode);
 	std::vector< double > Simulate(bool reset_status);
+	std::unordered_map< int, std::vector< double > > RunScenarios(
+		int num_scenarios );
 	void ResetPlant(WELLFiveTwelve &gen);
 };
 

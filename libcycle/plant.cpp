@@ -1088,6 +1088,26 @@ std::vector< double > CSPPlant::Simulate(bool reset_status)
     //outfile.close()
 }
 
+std::unordered_map < int, std::vector<double> > CSPPlant::RunScenarios(
+	int num_scenarios = 1)
+{
+	/*
+	Generates a collection of Monte Carlo realizations of failure and
+	maintenance events in the power block.  
+	*/
+	InitializeCyclingDists();
+	std::vector< double > operating_periods;
+	std::unordered_map< int, std::vector< double > > results;
+	for (int i = 0; i < num_scenarios; i++)
+	{
+		m_gen->assignStates(i);
+		GeneratePlantCyclingPenalties();
+		ResetPlant(*m_gen);
+		results[i] = Simulate(false);
+		m_gen->saveStates(i);
+	}
+	return results;
+}
 
 void CSPPlant::ResetPlant(WELLFiveTwelve &gen)
 {
