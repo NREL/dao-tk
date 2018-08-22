@@ -468,15 +468,17 @@ Adds Hi-, Medium-, and Low-Pressure Turbines to the plant object.
 }
 
 void CSPPlant::GeneratePlantComponents(
-		int num_condenser_trains = 2,
-		int fans_per_train = 30,
-		int radiators_per_train = 1,
-		int num_salt_steam_trains = 2,
-		int num_fwh = 6,
-		int num_salt_pumps = 2,
-		int num_water_pumps = 2,
-		int num_hi_pressure = 1, int num_mid_pressure = 1, int num_low_pressure = 1
-	)
+	int num_condenser_trains = 2,
+	int fans_per_train = 30,
+	int radiators_per_train = 1,
+	int num_salt_steam_trains = 2,
+	int num_fwh = 6,
+	int num_salt_pumps = 2,
+	int num_water_pumps = 2,
+	int num_hi_pressure = 1, 
+	int num_mid_pressure = 1, 
+	int num_low_pressure = 1
+)
 {
 	/* 
 	Generates all the components in the plant.  Aggregates the other 

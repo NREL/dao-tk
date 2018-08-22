@@ -50,15 +50,15 @@ The power cycle composition should be defined by the user, but defaults are incl
 | Parameter | Data Type | Description  | Default Value (if any) | 
 | --- | --- | --- | --- |
 | num_condenser_trains | Integer | Number of condenser trains in power cycle | 2 |
-| fans_per_train | Integer | Number of fans in each condenser train | 2 |
-| radiators_per_train | Integer | Number of radiators in each condenser train | 2 |
+| fans_per_train | Integer | Number of fans in each condenser train | 30 |
+| radiators_per_train | Integer | Number of radiators in each condenser train | 1 |
 | num_salt_steam_trains | Integer | Number of salt-to-steam trains in power cycle | 2 |
-| num_fwh | Integer | Number of feedwater heaters in power cycle | 2 |
+| num_fwh | Integer | Number of feedwater heaters in power cycle | 6 |
 | num_salt_pumps | Integer | Number of molten salt pumps in power cycle | 2 |
 | num_water_pumps | Integer | Number of water pumps in power cycle | 2 |
-| num_hi_pressure |  Integer | Number of high-pressure turbines in power cycle | 2 |
-| num_mid_pressure |  Integer | Number of medium-pressure turbinesin power cycle | 2 |
-| num_low_pressure |  Integer | Number of low-pressure turbines in power cycle | 2 |
+| num_hi_pressure |  Integer | Number of high-pressure turbines in power cycle | 1 |
+| num_mid_pressure |  Integer | Number of medium-pressure turbinesin power cycle | 1 |
+| num_low_pressure |  Integer | Number of low-pressure turbines in power cycle | 1 |
 
 ### Plant Parameters
 
