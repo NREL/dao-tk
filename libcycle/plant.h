@@ -9,7 +9,7 @@
 #include "well512.h"
 
 
-class CSPPlant
+class PowerCycle
 {
 	WELLFiveTwelve *m_gen;
 	std::vector< Component > m_components;

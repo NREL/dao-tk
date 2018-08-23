@@ -4,19 +4,19 @@
 #include <iostream>
 #include <fstream>
 
-void CSPPlant::InitializeCyclingDists()
+void PowerCycle::InitializeCyclingDists()
 {
 	m_hs_dist = BoundedJohnsonDist(0.995066, 0.252898, 4.139E-5, 4.489E-4, "BoundedJohnson");
 	m_ws_dist = BoundedJohnsonDist(2.220435, 0.623145, 2.914E-5, 1.773E-3, "BoundedJohnson");
 	m_cs_dist = BoundedJohnsonDist(0.469391, 0.581813, 3.691E-5, 2.369E-4, "BoundedJohnson");
 }
 
-void CSPPlant::AssignGenerator( WELLFiveTwelve *gen )
+void PowerCycle::AssignGenerator( WELLFiveTwelve *gen )
 {
     m_gen = gen;
 }
 
-void CSPPlant::GeneratePlantCyclingPenalties()
+void PowerCycle::GeneratePlantCyclingPenalties()
 {
 	/*
 	Generates perfectly correlated cycling penalties
@@ -31,7 +31,7 @@ void CSPPlant::GeneratePlantCyclingPenalties()
 	m_cold_start_penalty = m_cs_dist.GetInverseCDF(unif);
 }
 
-void CSPPlant::SetSimulationParameters( int read_periods, int num_periods, double epsilon, bool print_output)
+void PowerCycle::SetSimulationParameters( int read_periods, int num_periods, double epsilon, bool print_output)
 {
     m_read_periods = read_periods;
     m_num_periods = num_periods;
@@ -39,7 +39,7 @@ void CSPPlant::SetSimulationParameters( int read_periods, int num_periods, doubl
     m_eps = epsilon;
 }
 
-void CSPPlant::SetCondenserEfficienciesCold(std::vector<double> eff_cold)
+void PowerCycle::SetCondenserEfficienciesCold(std::vector<double> eff_cold)
 {
 	/*
 	Mutator for condenser efficiencies when ambient temperature is lower than the
@@ -60,7 +60,7 @@ void CSPPlant::SetCondenserEfficienciesCold(std::vector<double> eff_cold)
 	m_condenser_efficiencies_cold = eff_cold;
 }
 
-void CSPPlant::SetCondenserEfficienciesHot(std::vector<double> eff_hot)
+void PowerCycle::SetCondenserEfficienciesHot(std::vector<double> eff_hot)
 {
 	/*
 	Mutator for condenser efficiencies when ambient temperature is lower than the
@@ -77,7 +77,7 @@ void CSPPlant::SetCondenserEfficienciesHot(std::vector<double> eff_hot)
 	m_condenser_efficiencies_hot = eff_hot;
 }
 
-void CSPPlant::ReadComponentStatus(
+void PowerCycle::ReadComponentStatus(
 	std::unordered_map< std::string, ComponentStatus > dstat
 )
 {
@@ -88,12 +88,12 @@ void CSPPlant::ReadComponentStatus(
 	m_component_status = dstat;
 }
 
-void CSPPlant::ClearComponentStatus()
+void PowerCycle::ClearComponentStatus()
 {
 	m_component_status.clear();
 }
 
-void CSPPlant::SetStatus()
+void PowerCycle::SetStatus()
 {
 
     for( std::vector< Component >::iterator it=m_components.begin(); it!= m_components.end(); it++)
@@ -122,7 +122,7 @@ void CSPPlant::SetStatus()
 
 }
 
-std::vector< Component > &CSPPlant::GetComponents()
+std::vector< Component > &PowerCycle::GetComponents()
 {
     /*
 	accessor for components list.
@@ -130,7 +130,7 @@ std::vector< Component > &CSPPlant::GetComponents()
     return m_components;
 }
 
-std::vector< double > CSPPlant::GetComponentLifetimes()
+std::vector< double > PowerCycle::GetComponentLifetimes()
 {
 
     /*
@@ -147,12 +147,12 @@ std::vector< double > CSPPlant::GetComponentLifetimes()
 
 }
 
-double CSPPlant::GetHoursToMaintenance()
+double PowerCycle::GetHoursToMaintenance()
 {
 	return m_hours_to_maintenance;
 }
 
-std::vector< double >  CSPPlant::GetComponentDowntimes()
+std::vector< double >  PowerCycle::GetComponentDowntimes()
 {
     /*
 	retval -- linked list of downtime remaining of each component.
@@ -164,7 +164,7 @@ std::vector< double >  CSPPlant::GetComponentDowntimes()
     return down;
 }
 
-bool CSPPlant::AirstreamOnline()
+bool PowerCycle::AirstreamOnline()
 {
 	/*
 	Returns true if at least one condenser airstream is operational, and false
@@ -179,7 +179,7 @@ bool CSPPlant::AirstreamOnline()
 	return false;
 }
 
-bool CSPPlant::FWHOnline()
+bool PowerCycle::FWHOnline()
 {
 	/*
 	Returns true if at least one feedwater heater is operational, and false
@@ -194,7 +194,7 @@ bool CSPPlant::FWHOnline()
 	return false;
 }
 
-bool CSPPlant::IsOnline()
+bool PowerCycle::IsOnline()
 {
 
     /*
@@ -204,7 +204,7 @@ bool CSPPlant::IsOnline()
     return m_online; 
 }
 
-bool CSPPlant::IsOnStandby()
+bool PowerCycle::IsOnStandby()
 {
     /*
 	retval --  a boolean indicator of whether the plant is in standby 
@@ -213,67 +213,67 @@ bool CSPPlant::IsOnStandby()
     return m_standby;
 }
 
-double CSPPlant::GetTimeInStandby()
+double PowerCycle::GetTimeInStandby()
 {
 	return m_time_in_standby;
 }
 
-double CSPPlant::GetTimeOnline()
+double PowerCycle::GetTimeOnline()
 {
 	return m_time_online;
 }
 
-double CSPPlant::GetRampThreshold()
+double PowerCycle::GetRampThreshold()
 {
 	return m_ramp_threshold;
 }
 
-double CSPPlant::GetSteplength()
+double PowerCycle::GetSteplength()
 {
 	return m_steplength;
 }
 
-std::unordered_map< std::string, failure_event > CSPPlant::GetFailureEvents()
+std::unordered_map< std::string, failure_event > PowerCycle::GetFailureEvents()
 {
 	return m_failure_events;
 }
 
-std::vector<std::string> CSPPlant::GetFailureEventLabels()
+std::vector<std::string> PowerCycle::GetFailureEventLabels()
 {
 	return m_failure_event_labels;
 }
 
-double CSPPlant::GetHotStartPenalty()
+double PowerCycle::GetHotStartPenalty()
 {
 	/* accessor for hot start penalty. */
 	return m_hot_start_penalty;
 }
 
-double CSPPlant::GetWarmStartPenalty()
+double PowerCycle::GetWarmStartPenalty()
 {
 	/* accessor for warm start penalty. */
 	return m_warm_start_penalty;
 }
 
-double CSPPlant::GetColdStartPenalty()
+double PowerCycle::GetColdStartPenalty()
 {
 	/* accessor for cold start penalty. */
 	return m_cold_start_penalty;
 }
 
-void CSPPlant::SetShutdownCapacity(double capacity) 
+void PowerCycle::SetShutdownCapacity(double capacity) 
 {
 	m_shutdown_capacity = capacity;
 }
 
 
-void CSPPlant::SetNoRestartCapacity(double capacity)
+void PowerCycle::SetNoRestartCapacity(double capacity)
 {
 	m_no_restart_capacity = capacity;
 }
 
 
-void CSPPlant::AddComponent( std::string name, 
+void PowerCycle::AddComponent( std::string name, 
 		std::string type, 
 		double repair_rate, 
 		double repair_cooldown_time,
@@ -288,7 +288,7 @@ void CSPPlant::AddComponent( std::string name,
 		&m_failure_event_labels) );
 }
 
-void CSPPlant::AddFailureType(std::string component, std::string id, std::string failure_mode,
+void PowerCycle::AddFailureType(std::string component, std::string id, std::string failure_mode,
 	std::string dist_type, double alpha, double beta)
 {
 	for (size_t j = 0; j < m_components.size(); j++)
@@ -303,7 +303,7 @@ void CSPPlant::AddFailureType(std::string component, std::string id, std::string
 	}
 }
 
-void CSPPlant::CreateComponentsFromFile(std::string component_data)
+void PowerCycle::CreateComponentsFromFile(std::string component_data)
 {
 
     /*
@@ -345,7 +345,7 @@ void CSPPlant::CreateComponentsFromFile(std::string component_data)
 }
 
 
-void CSPPlant::AddCondenserTrain(int num_fans, int num_radiators)
+void PowerCycle::AddCondenserTrain(int num_fans, int num_radiators)
 {
 	m_num_condenser_trains += 1;
 	std::string component_name;
@@ -363,7 +363,7 @@ void CSPPlant::AddCondenserTrain(int num_fans, int num_radiators)
 	}
 }
 
-void CSPPlant::AddSaltToSteamTrains(int num_trains)
+void PowerCycle::AddSaltToSteamTrains(int num_trains)
 {
 	std::string component_name;
 	for (int i = 0; i < num_trains; i++)
@@ -390,7 +390,7 @@ void CSPPlant::AddSaltToSteamTrains(int num_trains)
 	}
 }
 
-void CSPPlant::AddFeedwaterHeaters(int num_fwh)
+void PowerCycle::AddFeedwaterHeaters(int num_fwh)
 {
 	std::string component_name;
 	for (int i = 0; i < num_fwh; i++)
@@ -405,7 +405,7 @@ void CSPPlant::AddFeedwaterHeaters(int num_fwh)
 	}
 }
 
-void CSPPlant::AddSaltPumps(int num_pumps)
+void PowerCycle::AddSaltPumps(int num_pumps)
 {
 	std::string component_name;
 	for (int i = 0; i < num_pumps; i++)
@@ -423,7 +423,7 @@ void CSPPlant::AddSaltPumps(int num_pumps)
 	}
 }
 
-void CSPPlant::AddWaterPumps(int num_pumps)
+void PowerCycle::AddWaterPumps(int num_pumps)
 {
 	std::string component_name;
 	for (int i = 0; i < num_pumps; i++)
@@ -438,7 +438,7 @@ void CSPPlant::AddWaterPumps(int num_pumps)
 	}
 }
 
-void CSPPlant::AddTurbines(int num_hi_pressure, int num_mid_pressure, int num_low_pressure)
+void PowerCycle::AddTurbines(int num_hi_pressure, int num_mid_pressure, int num_low_pressure)
 /*
 Adds Hi-, Medium-, and Low-Pressure Turbines to the plant object.
 */
@@ -467,7 +467,7 @@ Adds Hi-, Medium-, and Low-Pressure Turbines to the plant object.
 	}
 }
 
-void CSPPlant::GeneratePlantComponents(
+void PowerCycle::GeneratePlantComponents(
 	int num_condenser_trains = 2,
 	int fans_per_train = 30,
 	int radiators_per_train = 1,
@@ -495,7 +495,7 @@ void CSPPlant::GeneratePlantComponents(
 	AddTurbines(num_hi_pressure, num_mid_pressure, num_low_pressure);
 }
 
-void CSPPlant::SetPlantAttributes(double maintenance_interval = 5000.,
+void PowerCycle::SetPlantAttributes(double maintenance_interval = 5000.,
 				double maintenance_duration = 24.,
 				double downtime_threshold = 24., 
 				double steplength = 1., double hours_to_maintenance = 5000.,
@@ -532,7 +532,7 @@ void CSPPlant::SetPlantAttributes(double maintenance_interval = 5000.,
 	m_no_restart_capacity = no_restart_capacity;
 }
 
-void CSPPlant::SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing)
+void PowerCycle::SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing)
 {
 
     /*
@@ -563,7 +563,7 @@ void CSPPlant::SetDispatch(std::unordered_map< std::string, std::vector< double 
     
 }
 
-int CSPPlant::NumberOfAirstreamsOnline()
+int PowerCycle::NumberOfAirstreamsOnline()
 {
 	/*
 	returns the number of condenser airstreams that are online.
@@ -577,7 +577,7 @@ int CSPPlant::NumberOfAirstreamsOnline()
 	return num_streams;
 }
 
-double CSPPlant::GetCondenserEfficiency(double temp)
+double PowerCycle::GetCondenserEfficiency(double temp)
 {
 	int num_streams = NumberOfAirstreamsOnline();
 	if (temp < m_condenser_temp_threshold)
@@ -585,7 +585,7 @@ double CSPPlant::GetCondenserEfficiency(double temp)
 	return m_condenser_efficiencies_hot[num_streams];
 }
 
-double CSPPlant::GetCycleCapacity(double temp)
+double PowerCycle::GetCycleCapacity(double temp)
 {
 	/* 
 	Provides the cycles Capacity, based on components that
@@ -607,7 +607,7 @@ double CSPPlant::GetCycleCapacity(double temp)
 	return capacity;
 }
 
-void CSPPlant::TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode)
+void PowerCycle::TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode)
 {
 	/*
 	Determines whether a component is to fail, based on current dispatch.
@@ -625,7 +625,7 @@ void CSPPlant::TestForComponentFailures(double ramp_mult, int t, std::string sta
 		);
 }
 
-bool CSPPlant::AllComponentsOperational()
+bool PowerCycle::AllComponentsOperational()
 {
 
     /*
@@ -642,7 +642,7 @@ bool CSPPlant::AllComponentsOperational()
     
 }
 
-double CSPPlant::GetMaxComponentDowntime()
+double PowerCycle::GetMaxComponentDowntime()
 {
 	/* 
 	returns the maximum downtime remaining of any component in the plant.
@@ -657,7 +657,7 @@ double CSPPlant::GetMaxComponentDowntime()
 	return t;
 }
 
-void CSPPlant::PlantMaintenanceShutdown(int t, bool reset_time, bool record, 
+void PowerCycle::PlantMaintenanceShutdown(int t, bool reset_time, bool record, 
 		double duration)
 {
     /*
@@ -702,7 +702,7 @@ void CSPPlant::PlantMaintenanceShutdown(int t, bool reset_time, bool record,
 	}
 }
 
-void CSPPlant::AdvanceDowntime(std::string mode)
+void PowerCycle::AdvanceDowntime(std::string mode)
 {
 
     /*
@@ -718,7 +718,7 @@ void CSPPlant::AdvanceDowntime(std::string mode)
 
 }
 
-double CSPPlant::GetRampMult(double power_out)
+double PowerCycle::GetRampMult(double power_out)
 {
 
 	/*
@@ -745,7 +745,7 @@ double CSPPlant::GetRampMult(double power_out)
 
 }
 
-void CSPPlant::OperateComponents(double ramp_mult, int t, std::string start, std::string mode)
+void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, std::string mode)
 {
 
     /*
@@ -781,7 +781,7 @@ void CSPPlant::OperateComponents(double ramp_mult, int t, std::string start, std
 	}
 }
 
-void CSPPlant::ResetHazardRates()
+void PowerCycle::ResetHazardRates()
 {
 
     /*
@@ -792,7 +792,7 @@ void CSPPlant::ResetHazardRates()
         
 }
 
-void CSPPlant::StoreComponentState()
+void PowerCycle::StoreComponentState()
 {
 	/*
 	Stores the current state of each component, as of 
@@ -808,7 +808,7 @@ void CSPPlant::StoreComponentState()
 	}
 }
 
-void CSPPlant::StorePlantState()
+void PowerCycle::StorePlantState()
 {
 	/*
 	Stores the current state of the plant, as of
@@ -823,7 +823,7 @@ void CSPPlant::StorePlantState()
 	m_plant_status["downtime"] = m_downtime*1.0;
 }
 
-void CSPPlant::StoreState()
+void PowerCycle::StoreState()
 {
 	/*
 	Stores the current state of the plant and each component, as of
@@ -833,7 +833,7 @@ void CSPPlant::StoreState()
 	StorePlantState();
 }
 
-std::string CSPPlant::GetStartMode(int t)
+std::string PowerCycle::GetStartMode(int t)
 {
 	/* 
 	returns the start mode as a string, or "none" if there is no start.
@@ -852,7 +852,7 @@ std::string CSPPlant::GetStartMode(int t)
 	return "None";
 }
 
-std::string CSPPlant::GetOperatingMode(int t)
+std::string PowerCycle::GetOperatingMode(int t)
 {
 	/*
 	returns the operating mode as a string.
@@ -880,7 +880,7 @@ std::string CSPPlant::GetOperatingMode(int t)
 	return "OFF";
 }
 
-std::vector< double > CSPPlant::RunDispatch()
+std::vector< double > PowerCycle::RunDispatch()
 {
 
     /*
@@ -1005,7 +1005,7 @@ std::vector< double > CSPPlant::RunDispatch()
 	return operating_periods;                   
 }
 
-void CSPPlant::Operate(double power_out, int t, std::string start, std::string mode)
+void PowerCycle::Operate(double power_out, int t, std::string start, std::string mode)
 {
 
     /*
@@ -1066,7 +1066,7 @@ void CSPPlant::Operate(double power_out, int t, std::string start, std::string m
 
 }
 
-std::vector< double > CSPPlant::Simulate(bool reset_status)
+std::vector< double > PowerCycle::Simulate(bool reset_status)
 {
 
     /*failure_file = open(
@@ -1088,7 +1088,7 @@ std::vector< double > CSPPlant::Simulate(bool reset_status)
     //outfile.close()
 }
 
-std::unordered_map < int, std::vector<double> > CSPPlant::RunScenarios(
+std::unordered_map < int, std::vector<double> > PowerCycle::RunScenarios(
 	int num_scenarios = 1)
 {
 	/*
@@ -1109,7 +1109,7 @@ std::unordered_map < int, std::vector<double> > CSPPlant::RunScenarios(
 	return results;
 }
 
-void CSPPlant::ResetPlant(WELLFiveTwelve &gen)
+void PowerCycle::ResetPlant(WELLFiveTwelve &gen)
 {
 	m_online = false;
 	m_time_online = 0.;
