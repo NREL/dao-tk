@@ -62,7 +62,6 @@ The power cycle composition should be defined by the user, but defaults are incl
 | condenser_eff_cold | Vector of floating point numbers | Efficiency of condenser according to how many trains are operational for low ambient temperatures | {0,1,1} |
 | condenser_eff_hot | Vector of floating point numbers | Efficiency of condenser according to how many trains are operational for high ambient temperatures | {0,0.95,1} |
 
-
 ### Plant Parameters
 
 These plant parameters may be user-defined, but have default values as a starting point.
@@ -86,7 +85,6 @@ Plant parameters are all scalars, so no sets are included in the table that foll
 | shutdown_capacity | Floating point number | Capacity threshold for power cycle immediate shutdown (fraction) | 0.45 |
 | no_restart_capacity | Floating point number | Capacity threshold for power cycle immediate shutdown (fraction) | 0.9 |
 
-
 ### Simulation Parameters
 
 These are not expected to be user-defined inputs, but are required to run the model.
@@ -101,7 +99,6 @@ Simulation parameters are all scalars, so no sets are included in the table that
 | output | Boolean | True if information on failure events is printed to the console, false o.w. | false |
 | num_scenarios | Integer between 1 and 100 | Number of scenarios in simulation | 1 | 
 
-
 ### Dispatch Parameters
 
 These are the inputs that we expect to come from the optimization model and/or SAM.
@@ -111,7 +108,6 @@ These are the inputs that we expect to come from the optimization model and/or S
 | t | cycle_power | Floating point number | Cycle power output in time period t (W) |
 | t | ambient_temperature | Floating point number | Ambient temperature in time period t (Celsius) | 
 | t | standby | Binary | 1 if the power cycle is in standby, 0 otherwise |
-
 
 ## Outputs
 

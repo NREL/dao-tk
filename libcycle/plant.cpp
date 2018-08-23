@@ -508,7 +508,7 @@ void PowerCycle::SetPlantAttributes(double maintenance_interval = 5000.,
 				double maintenance_duration = 24.,
 				double downtime_threshold = 24., 
 				double steplength = 1., double hours_to_maintenance = 5000.,
-				double power_output = 0., bool standby = false, double capacity = 500000.,
+				double power_output = 0., bool current_standby = false, double capacity = 500000.,
 				double temp_threshold = 20., 
 				double time_online = 0., double time_in_standby = 0.,
 				double downtime = 0., double shutdown_capacity = 0.45, 
@@ -530,7 +530,7 @@ void PowerCycle::SetPlantAttributes(double maintenance_interval = 5000.,
     m_steplength = steplength;
     m_hours_to_maintenance = hours_to_maintenance;
     m_power_output = power_output;
-    m_standby = standby;
+    m_standby = current_standby;
     m_online = m_power_output > 0.;
 	m_capacity = capacity;
 	m_time_in_standby = time_in_standby;
@@ -1075,7 +1075,7 @@ void PowerCycle::Operate(double power_out, int t, std::string start, std::string
 
 }
 
-std::vector< double > PowerCycle::Simulate(bool reset_status)
+std::vector< double > PowerCycle::SingleScen(bool reset_status)
 {
 
     /*failure_file = open(
@@ -1097,7 +1097,7 @@ std::vector< double > PowerCycle::Simulate(bool reset_status)
     //outfile.close()
 }
 
-std::unordered_map < int, std::vector<double> > PowerCycle::RunScenarios()
+std::unordered_map < int, std::vector<double> > PowerCycle::Simulate()
 {
 	/*
 	Generates a collection of Monte Carlo realizations of failure and
@@ -1111,7 +1111,7 @@ std::unordered_map < int, std::vector<double> > PowerCycle::RunScenarios()
 		m_gen->assignStates(i);
 		GeneratePlantCyclingPenalties();
 		ResetPlant(*m_gen);
-		results[i] = Simulate(false);
+		results[i] = SingleScen(false);
 		m_gen->saveStates(i);
 	}
 	return results;

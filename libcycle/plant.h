@@ -133,7 +133,7 @@ public:
 		double maintenance_duration,
 		double downtime_threshold,
 		double steplength, double hours_to_maintenance,
-		double power_output, bool standby, double capacity,
+		double power_output, bool current_standby, double capacity,
 		double temp_threshold, double time_online, double time_in_standby,
 		double downtime, double shutdown_capacity, double no_restart_capacity
 	);
@@ -156,8 +156,8 @@ public:
 	std::string GetOperatingMode(int t);
 	std::vector< double > RunDispatch();
 	void Operate(double power_out, int t, std::string start, std::string mode);
-	std::vector< double > Simulate(bool reset_status);
-	std::unordered_map< int, std::vector< double > > RunScenarios();
+	std::vector< double > SingleScen(bool reset_status);
+	std::unordered_map< int, std::vector< double > > Simulate();
 	void ResetPlant(WELLFiveTwelve &gen);
 };
 
