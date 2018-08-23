@@ -32,6 +32,7 @@ class PowerCycle
 	bool m_standby;
 	double m_steplength;
 	int m_num_periods;
+	int m_num_scenarios;
 	double m_downtime_threshold;
 	double m_downtime;
 	double m_shutdown_capacity = 0.3;      //These represent a policy, and are 
@@ -66,7 +67,8 @@ public:
 	void InitializeCyclingDists();
 	void AssignGenerator(WELLFiveTwelve *gen);
 	void GeneratePlantCyclingPenalties();
-	void SetSimulationParameters(int read_periods, int num_periods, double epsilon = 1.E-10, bool print_output = false);
+	void SetSimulationParameters(int read_periods, int num_periods, 
+		double epsilon = 1.E-10, bool print_output = false, int num_scenarios = 1);
 	void SetCondenserEfficienciesCold(std::vector<double> eff_cold);
 	void SetCondenserEfficienciesHot(std::vector<double> eff_hot);
 	void ReadComponentStatus(std::unordered_map< std::string, ComponentStatus > dstat);
@@ -123,7 +125,9 @@ public:
 		int num_water_pumps,
 		int num_hi_pressure,
 		int num_mid_pressure,
-		int num_low_pressure
+		int num_low_pressure,
+		std::vector<double> condenser_eff_cold,
+		std::vector<double> condenser_eff_hot
 	);
 	void SetPlantAttributes(double maintenance_interval,
 		double maintenance_duration,
@@ -153,8 +157,7 @@ public:
 	std::vector< double > RunDispatch();
 	void Operate(double power_out, int t, std::string start, std::string mode);
 	std::vector< double > Simulate(bool reset_status);
-	std::unordered_map< int, std::vector< double > > RunScenarios(
-		int num_scenarios );
+	std::unordered_map< int, std::vector< double > > RunScenarios();
 	void ResetPlant(WELLFiveTwelve &gen);
 };
 

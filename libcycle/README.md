@@ -59,6 +59,9 @@ The power cycle composition should be defined by the user, but defaults are incl
 | num_hi_pressure |  Integer | Number of high-pressure turbines in power cycle | 1 |
 | num_mid_pressure |  Integer | Number of medium-pressure turbinesin power cycle | 1 |
 | num_low_pressure |  Integer | Number of low-pressure turbines in power cycle | 1 |
+| condenser_eff_cold | Vector of floating point numbers | Efficiency of condenser according to how many trains are operational for low ambient temperatures | {0,1,1} |
+| condenser_eff_hot | Vector of floating point numbers | Efficiency of condenser according to how many trains are operational for high ambient temperatures | {0,0.95,1} |
+
 
 ### Plant Parameters
 
@@ -74,12 +77,14 @@ Plant parameters are all scalars, so no sets are included in the table that foll
 | steplength	|	Floating point number	|	Time period length (h)	| 1 |
 | hours_to_maintenance | Floating point number | Operation duration before the next maintenance event (h) | 5,000 | 
 | power_output | Floating point number | Plant power cycle output at start of simulation (W) | 0 |
-| standby | Boolean | true if plant is currently on standby, false otherwise | 0 |
+| current_standby | Boolean | true if plant is currently on standby, false otherwise | false |
 | capacity | Floating point number | Upper bound for power cycle output (W) | 500,000 |
 | temp_threshold | Floating point number | Threshold for two condenser streams required for cooling the plant (Celsius) | 20 | 
 | time_online | Floating point number | Time elapsed since plant was last offline or in standby (h) | 0 |
 | time_in_standby | Floating point number | Time elapsed since plant was last offline or generating power (h) | 0 |
 | downtime | Floating point number | Time elapsed since plant was last in standby or generating power (h) | 0 |
+| shutdown_capacity | Floating point number | Capacity threshold for power cycle immediate shutdown (fraction) | 0.45 |
+| no_restart_capacity | Floating point number | Capacity threshold for power cycle immediate shutdown (fraction) | 0.9 |
 
 
 ### Simulation Parameters
@@ -90,8 +95,8 @@ Simulation parameters are all scalars, so no sets are included in the table that
 
 | Parameter | Data Type | Description (Units) | Default (if any) |
 | --- | --- | --- | --- | 
-| read_periods | Integer | Number of time periods that are read-only | NA |
-| num_periods | Integer | Length of simulation time horizon, in periods | NA | 
+| read_periods | Integer | Number of time periods that are read-only | 0 |
+| num_periods | Integer | Length of simulation time horizon, in periods | 48 | 
 | eps | Floating point number | Threshold on lifetimes for which a failure occurs | 1e-10 |
 | output | Boolean | True if information on failure events is printed to the console, false o.w. | false |
 | num_scenarios | Integer between 1 and 100 | Number of scenarios in simulation | 1 | 

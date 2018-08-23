@@ -31,12 +31,14 @@ void PowerCycle::GeneratePlantCyclingPenalties()
 	m_cold_start_penalty = m_cs_dist.GetInverseCDF(unif);
 }
 
-void PowerCycle::SetSimulationParameters( int read_periods, int num_periods, double epsilon, bool print_output)
+void PowerCycle::SetSimulationParameters( int read_periods, 
+	int num_periods, double epsilon, bool print_output, int num_scenarios)
 {
     m_read_periods = read_periods;
     m_num_periods = num_periods;
     m_output = print_output;
     m_eps = epsilon;
+	m_num_scenarios = num_scenarios;
 }
 
 void PowerCycle::SetCondenserEfficienciesCold(std::vector<double> eff_cold)
@@ -477,13 +479,20 @@ void PowerCycle::GeneratePlantComponents(
 	int num_water_pumps = 2,
 	int num_hi_pressure = 1, 
 	int num_mid_pressure = 1, 
-	int num_low_pressure = 1
+	int num_low_pressure = 1,
+	std::vector<double> condenser_eff_cold = {0.,1.,1.},
+	std::vector<double> condenser_eff_hot = {0.,0.95,1.}
 )
 {
 	/* 
 	Generates all the components in the plant.  Aggregates the other 
 	component-specific methods.
 	*/
+	if (condenser_eff_cold.size() != (num_condenser_trains+1) ||
+		condenser_eff_hot.size() != (num_condenser_trains+1))
+	{
+		throw std::exception("condenser efficiencies do not reconcile with number of trains.");
+	}
 	for (int i = 0; i < num_condenser_trains; i++)
 	{
 		AddCondenserTrain(fans_per_train, radiators_per_train);
@@ -1088,8 +1097,7 @@ std::vector< double > PowerCycle::Simulate(bool reset_status)
     //outfile.close()
 }
 
-std::unordered_map < int, std::vector<double> > PowerCycle::RunScenarios(
-	int num_scenarios = 1)
+std::unordered_map < int, std::vector<double> > PowerCycle::RunScenarios()
 {
 	/*
 	Generates a collection of Monte Carlo realizations of failure and
@@ -1098,7 +1106,7 @@ std::unordered_map < int, std::vector<double> > PowerCycle::RunScenarios(
 	InitializeCyclingDists();
 	std::vector< double > operating_periods;
 	std::unordered_map< int, std::vector< double > > results;
-	for (int i = 0; i < num_scenarios; i++)
+	for (int i = 0; i < m_num_scenarios; i++)
 	{
 		m_gen->assignStates(i);
 		GeneratePlantCyclingPenalties();
