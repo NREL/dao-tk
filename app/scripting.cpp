@@ -15,6 +15,13 @@
 #include "../libcluster/metrics.h"
 #include "../libcluster/clustersim.h"
 
+#include "../libcycle/component.h"
+#include "../libcycle/distributions.h"
+#include "../libcycle/failure.h"
+#include "../libcycle/lib_util.h"
+#include "../libcycle/plant.h"
+#include "../libcycle/well512.h"
+
 
 int set_array(ssc_data_t p_data, const char *name, const char* fn, int len)
 {
@@ -283,10 +290,223 @@ void _generate_solarfield(lk::invoke_t &cxt)
 
 void _power_cycle(lk::invoke_t &cxt)
 {
-	LK_DOC("power_cycle_avail", "Simulate a power cycle failure series.", "(vector:dispatch, int:nsim):table");
+	LK_DOC("power_cycle_avail", "Simulate the power cycle capacity over time, after accounting for maintenance and failures. "
+		"Table keys include: cycle_power, ambient_temperature, standby, "
+		"read_periods, num_periods, eps, output, num_scenarios, "
+		"maintenance_interval, maintenance_duration, downtime_threshold, "
+		"steplength, hours_to_maintenance, power_output, current_standby, "
+		"capacity, temp_threshold, time_online, time_in_standby, downtime, "
+		"shutdown_capacity, no_restart_capacity, num_condenser_trains, "
+		"fans_per_train, radiators_per_train, num_salt_steam_traoins, num_fwh, "
+		"num_salt_pumps, num_water_pumps, num_hi_pressure, num_mid_pressure, "
+		"num_low_pressure, condenser_eff_cold, condenser_eff_hot", 
+		"(table:cycle_inputs):table");
 
-	//do something
+	PowerCycle cycle;
+
+	lk::varhash_t *h = cxt.arg(0).hash();
+
+	// Plant attributes
+
+	double maintenance_interval = 5000.;
+	if (h->find("maintenance_interval") != h->end())
+		maintenance_interval = h->at("maintenance_interval")->as_number();
+
+	double maintenance_duration = 24.;
+	if (h->find("maintenance_duration") != h->end())
+		maintenance_duration = h->at("maintenance_duration")->as_number();
+
+	double downtime_threshold = 24.;
+	if (h->find("downtime_threshold") != h->end())
+		downtime_threshold = h->at("downtime_threshold")->as_number();
+
+	double steplength = 1.;
+	if (h->find("steplength") != h->end())
+		steplength = h->at("steplength")->as_number();
+
+	double hours_to_maintenance = 5000.;
+	if (h->find("hours_to_maintenance") != h->end())
+		hours_to_maintenance = h->at("hours_to_maintenance")->as_number();
+
+	double power_output = 0.;
+	if (h->find("power_output") != h->end())
+		power_output = h->at("power_output")->as_number();
+
+	bool standby = false;
+	if (h->find("current_standby") != h->end())
+		standby = h->at("current_standby")->as_boolean();
+
+	double capacity = 500000.;
+	if (h->find("capacity") != h->end())
+		capacity = h->at("capacity")->as_number();
+
+	double temp_threshold = 20.;
+	if (h->find("temp_threshold") != h->end())
+		temp_threshold = h->at("temp_threshold")->as_number();
+
+	double time_online = 0.;
+	if (h->find("time_online") != h->end())
+		time_online = h->at("time_online")->as_number();
+
+	double time_in_standby = 0.;
+	if (h->find("time_in_standby") != h->end())
+		time_in_standby = h->at("time_in_standby")->as_number();
+
+	double downtime = 0.;
+	if (h->find("downtime") != h->end())
+		downtime = h->at("downtime")->as_number();
+
+	double shutdown_capacity = 0.45;
+	if (h->find("shutdown_capacity") != h->end())
+		shutdown_capacity = h->at("shutdown_capacity")->as_number();
+
+	double no_restart_capacity = 0.9;
+	if (h->find("no_restart_capacity") != h->end())
+		no_restart_capacity = h->at("no_restart_capacity")->as_number();
+
+	cycle.SetPlantAttributes(maintenance_interval, maintenance_duration,
+		downtime_threshold, steplength, hours_to_maintenance, power_output,
+		standby, capacity, temp_threshold, time_online, time_in_standby, downtime,
+		shutdown_capacity, no_restart_capacity);
+
+	// Power cycle components
+
+	int num_condenser_trains = 2;
+	if (h->find("num_condenser_trains") != h->end())
+		num_condenser_trains = h->at("num_condenser_trains")->as_integer();
+
+	int fans_per_train = 30;
+	if (h->find("fans_per_train") != h->end())
+		fans_per_train = h->at("fans_per_train")->as_integer();
+
+	int radiators_per_train = 2;
+	if (h->find("radiators_per_train") != h->end())
+		radiators_per_train = h->at("radiators_per_train")->as_integer();
+
+	int num_salt_steam_trains = 2;
+	if (h->find("num_salt_steam_trains") != h->end())
+		num_salt_steam_trains = h->at("num_salt_steam_trains")->as_integer();
+
+	int num_fwh = 6;
+	if (h->find("num_fwh") != h->end())
+		num_fwh = h->at("num_fwh")->as_integer();
+
+	int num_salt_pumps = 2;
+	if (h->find("num_salt_pumps") != h->end())
+		num_salt_pumps = h->at("num_salt_pumps")->as_integer();
+
+	int num_water_pumps = 2;
+	if (h->find("num_water_pumps") != h->end())
+		num_water_pumps = h->at("num_water_pumps")->as_integer();
+
+	int num_hi_pressure = 1;
+	if (h->find("num_hi_pressure") != h->end())
+		num_hi_pressure = h->at("num_hi_pressure")->as_integer();
+
+	int num_mid_pressure = 1;
+	if (h->find("num_mid_pressure") != h->end())
+		num_mid_pressure = h->at("num_mid_pressure")->as_integer();
+
+	int num_low_pressure = 1;
+	if (h->find("num_low_pressure") != h->end())
+		num_low_pressure = h->at("num_low_pressure")->as_integer();
+
+	std::vector < double > condenser_eff_cold = { 0.,1.,1. };
+	if (h->find("condenser_eff_cold") != h->end())
+	{
+		std::vector<lk::vardata_t> *c_eff_cold = h->at("condenser_eff_cold")->vec();
+		lk::vardata_t q;
+		condenser_eff_cold.clear();
+		for (size_t i = 0; i < (num_condenser_trains + 1); i++)
+		{
+			q = c_eff_cold->at(i);
+			condenser_eff_cold.push_back(q.as_number());
+		}
+	}
+
+	std::vector < double > condenser_eff_hot = { 0.,1.,1. };
+	if (h->find("condenser_eff_hot") != h->end())
+	{
+		std::vector<lk::vardata_t> *c_eff_cold = h->at("condenser_eff_hot")->vec();
+		lk::vardata_t q;
+		condenser_eff_hot.clear();
+		for (size_t i = 0; i < (num_condenser_trains + 1); i++)
+		{
+			q = c_eff_cold->at(i);
+			condenser_eff_hot.push_back(q.as_number());
+		}
+	}
+		
+	cycle.GeneratePlantComponents(
+		num_condenser_trains,
+		fans_per_train,
+		radiators_per_train,
+		num_salt_steam_trains,
+		num_fwh,
+		num_salt_pumps,
+		num_water_pumps,
+		num_hi_pressure,
+		num_mid_pressure,
+		num_low_pressure,
+		condenser_eff_cold,
+		condenser_eff_hot
+	);
+
+	// Simulation parameters
+
+	int read_periods = 0;
+	if (h->find("read_periods") != h->end())
+		read_periods = h->at("read_periods")->as_integer();
+
+	int num_periods = 0;
+	if (h->find("num_periods") != h->end())
+		num_periods = h->at("num_periods")->as_integer();
+
+	double eps = 0;
+	if (h->find("eps") != h->end())
+		eps = h->at("eps")->as_number();
+
+	bool output = false;
+	if (h->find("output") != h->end())
+		output = h->at("output")->as_boolean();
+
+	int num_scenarios = 0;
+	if (h->find("num_scenarios") != h->end())
+		num_scenarios = h->at("num_scenarios")->as_integer();
+
+	cycle.SetSimulationParameters(read_periods, num_periods,
+		eps, output, num_scenarios);
+
+	// Dispatch parameters
+	// For now, we will assume that the dispatch parameters
+	// will be required inputs, i.e., no defaults.  These
+	// should come from a prior run of SAM. 
+
+	std::unordered_map<std::string, std::vector<double> > dispatch;
+	dispatch["cycle_power"] = {};
+	dispatch["ambient_temperature"] = {};
+	dispatch["standby"] = {};
+	std::vector<lk::vardata_t> *cycle_power = h->at("cycle_power")->vec();
+	std::vector<lk::vardata_t> *ambient_temperature = h->at("ambient_temperature")->vec();
+	std::vector<lk::vardata_t> *standby_by_hour = h->at("standby")->vec();
+	lk::vardata_t q;
+	for (int i = 0; i < num_periods; i++)
+	{
+		q = cycle_power->at(i);
+		dispatch.at("cycle_power").push_back(q.as_number());
+		q = ambient_temperature->at(i);
+		dispatch.at("ambient_temperature").push_back(q.as_number());
+		q = standby_by_hour->at(i);
+		dispatch.at("standby").push_back(q.as_number());
+	}
 	
+	cycle.SetDispatch(dispatch, true);
+	WELLFiveTwelve gen(0);
+	cycle.AssignGenerator(&gen);
+	cycle.Simulate();
+
+	return;
+
 }
 
 void _simulate_optical(lk::invoke_t &cxt)
