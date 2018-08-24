@@ -4,6 +4,16 @@
 #include <iostream>
 #include <fstream>
 
+cycle_results::cycle_results()
+{
+	cycle_capacity = {};
+	cycle_efficiency = {};
+	failure_events = {};
+	failure_event_labels = {};
+	component_status = {};
+	plant_status = {};
+}
+
 void PowerCycle::InitializeCyclingDists()
 {
 	m_hs_dist = BoundedJohnsonDist(0.995066, 0.252898, 4.139E-5, 4.489E-4, "BoundedJohnson");
@@ -122,6 +132,9 @@ void PowerCycle::SetStatus()
 		m_no_restart_capacity
 		);
 
+	m_hot_start_penalty = m_plant_status["hot_start_penalty"] * 1.0;
+	m_hot_start_penalty = m_plant_status["warm_start_penalty"] * 1.0;
+	m_hot_start_penalty = m_plant_status["cold_start_penalty"] * 1.0;
 }
 
 std::vector< Component > &PowerCycle::GetComponents()
@@ -368,11 +381,12 @@ void PowerCycle::AddCondenserTrain(int num_fans, int num_radiators)
 void PowerCycle::AddSaltToSteamTrains(int num_trains)
 {
 	std::string component_name;
+	double capacity_reduction = 1.0 / num_trains;
 	for (int i = 0; i < num_trains; i++)
 	{
 		m_num_salt_steam_trains += 1;
 		component_name = "SST" + std::to_string(m_num_salt_steam_trains);
-		AddComponent(component_name, "Salt-to-steam train", 2.14, 72, 0.5, 7.777, "A");
+		AddComponent(component_name, "Salt-to-steam train", 2.14, 72, capacity_reduction, 7.777, "A");
 		AddFailureType(component_name, "Boiler External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
 		AddFailureType(component_name, "Boiler External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
 		AddFailureType(component_name, "Boiler External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
@@ -630,7 +644,8 @@ void PowerCycle::TestForComponentFailures(double ramp_mult, int t, std::string s
 		hazard_increase = m_cold_start_penalty;
 	for (size_t i = 0; i < m_components.size(); i++)
 		m_components.at(i).TestForFailure(
-			m_steplength, ramp_mult, *m_gen, t - m_read_periods, hazard_increase, mode
+			m_steplength, ramp_mult, *m_gen, t - m_read_periods, hazard_increase, mode, 
+			m_current_scenario
 		);
 }
 
@@ -696,8 +711,8 @@ void PowerCycle::PlantMaintenanceShutdown(int t, bool reset_time, bool record,
 	if (record)
 	{
 		m_failure_events[
-			std::to_string(t) + label
-		] = failure_event(t, label, -1, duration, 0.);
+			"S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + label
+		] = failure_event(t, label, -1, duration, 0., m_current_scenario);
 			m_failure_event_labels.push_back(std::to_string(t) + label);
 	}
 
@@ -781,7 +796,8 @@ void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, s
 	{
 		if (m_components.at(i).IsOperational())
 			m_components.at(i).Operate(
-				m_steplength, ramp_mult, *m_gen, read_only, t - m_read_periods, hazard_increase, mode
+				m_steplength, ramp_mult, *m_gen, read_only, t - m_read_periods, 
+				hazard_increase, mode, m_current_scenario
 			);
 		else if (mode == "OFF" || mode == "SF" || mode == "SS" || mode == "SO")
 		{
@@ -830,6 +846,9 @@ void PowerCycle::StorePlantState()
 	m_plant_status["hours_running"] = m_time_online*1.0;
 	m_plant_status["hours_in_standby"] = m_time_in_standby*1.0;
 	m_plant_status["downtime"] = m_downtime*1.0;
+	m_plant_status["m_hot_start_penalty"] = m_hot_start_penalty;
+	m_plant_status["m_hot_start_penalty"] = m_warm_start_penalty;
+	m_plant_status["m_hot_start_penalty"] = m_cold_start_penalty;
 }
 
 void PowerCycle::StoreState()
@@ -889,7 +908,7 @@ std::string PowerCycle::GetOperatingMode(int t)
 	return "OFF";
 }
 
-std::vector< double > PowerCycle::RunDispatch()
+void PowerCycle::RunDispatch()
 {
 
     /*
@@ -900,7 +919,7 @@ std::vector< double > PowerCycle::RunDispatch()
         progress), and 0 otherwise.  This includes the read-in period.
     
 	*/
-    std::vector< double > operating_periods( m_num_periods, 0 );
+    std::vector< double > cycle_capacities( m_num_periods, 0 );
 	m_record_state_failure = true;
     for( int t=0; t<m_num_periods; t++)
     {
@@ -920,7 +939,7 @@ std::vector< double > PowerCycle::RunDispatch()
         }
 		//Read in planned maintenance events
 		if (
-			m_failure_events.find(std::to_string(t) + "MAINTENANCE")
+			m_failure_events.find("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + "MAINTENANCE")
 			!= m_failure_events.end()
 			)
 		{
@@ -928,13 +947,13 @@ std::vector< double > PowerCycle::RunDispatch()
 		}
 		//Read in unplanned maintenance events, if any
 		if (
-			m_failure_events.find(std::to_string(t) + "UNPLANNEDMAINTENANCE")
+			m_failure_events.find("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + "UNPLANNEDMAINTENANCE")
 			!= m_failure_events.end()
 			)
 		{
 			PlantMaintenanceShutdown(
 				t, false, false, 
-				m_failure_events[std::to_string(t) + "UNPLANNEDMAINTENANCE"].duration
+				m_failure_events["S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + "UNPLANNEDMAINTENANCE"].duration
 			);
 		}
 		//Read in any component failures, if in the read-only stage.
@@ -944,9 +963,9 @@ std::vector< double > PowerCycle::RunDispatch()
 			{
 				for (size_t k = 0; k < m_components.at(j).GetFailureTypes().size(); k++)
 				{
-					if (m_failure_events.find(std::to_string(t) + m_components.at(j).GetName() + std::to_string(k)) != m_failure_events.end())
+					if (m_failure_events.find("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + m_components.at(j).GetName() + std::to_string(k)) != m_failure_events.end())
 					{
-						std::string label = std::to_string(t) + m_components.at(j).GetName() + std::to_string(k);
+						std::string label = "S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + m_components.at(j).GetName() + std::to_string(k);
 						m_components.at(j).ReadFailure(
 							m_failure_events[label].duration,
 							m_failure_events[label].new_life,
@@ -1000,7 +1019,7 @@ std::vector< double > PowerCycle::RunDispatch()
 		}
 		power_output = std::min(power_output, cycle_capacity*m_capacity);
 		Operate(power_output, t, start, mode);
-		operating_periods[t] = cycle_capacity;
+		cycle_capacities[t] = cycle_capacity;
 
 		//std::cerr << "Period " << std::to_string(t) << " Capacity: " << std::to_string(cycle_capacity) << ".  Mode: " << mode <<"\n";
     }
@@ -1011,7 +1030,7 @@ std::vector< double > PowerCycle::RunDispatch()
 					   //record the state at the first full plant shutdown.
 	}
 
-	return operating_periods;                   
+	m_results.cycle_capacity[m_current_scenario] = cycle_capacities;                   
 }
 
 void PowerCycle::Operate(double power_out, int t, std::string start, std::string mode)
@@ -1075,46 +1094,42 @@ void PowerCycle::Operate(double power_out, int t, std::string start, std::string
 
 }
 
-std::vector< double > PowerCycle::SingleScen(bool reset_status)
+void PowerCycle::SingleScen(bool reset_plant)
 {
 
     /*failure_file = open(
         os.path.join(m_output_dir,"component_failures.csv"),'w'
         )*/
-    std::vector< double > operating_periods = RunDispatch();
-	if (reset_status)
+	if (reset_plant)
 	{
+		GeneratePlantCyclingPenalties();
+		ResetPlant(*m_gen);
+	}
+	else
+	{
+		m_plant_status = m_results.plant_status[m_current_scenario];
+		m_component_status = m_results.component_status[m_current_scenario];
 		SetStatus();
 	}
-
-	return operating_periods;
-    //outfile = open(
-    //    os.path.join(m_output_dir,"operating_periods.txt"),'w'
-    //    )
-    //for i in range(len(operating_periods)):
-    //    outfile.write(str(operating_periods[i])+",")
-    //failure_file.close()
-    //outfile.close()
+	RunDispatch();
+	m_results.plant_status[m_current_scenario] = m_plant_status;
+	m_results.component_status[m_current_scenario] = m_component_status;
 }
 
-std::unordered_map < int, std::vector<double> > PowerCycle::Simulate()
+void PowerCycle::Simulate(bool reset_plant)
 {
 	/*
 	Generates a collection of Monte Carlo realizations of failure and
 	maintenance events in the power block.  
 	*/
 	InitializeCyclingDists();
-	std::vector< double > operating_periods;
-	std::unordered_map< int, std::vector< double > > results;
 	for (int i = 0; i < m_num_scenarios; i++)
 	{
-		m_gen->assignStates(i);
-		GeneratePlantCyclingPenalties();
-		ResetPlant(*m_gen);
-		results[i] = SingleScen(false);
+		m_gen->assignStates(m_current_scenario);
+		m_current_scenario = i;
+		SingleScen(reset_plant);
 		m_gen->saveStates(i);
 	}
-	return results;
 }
 
 void PowerCycle::ResetPlant(WELLFiveTwelve &gen)

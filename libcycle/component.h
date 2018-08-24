@@ -18,10 +18,11 @@ struct failure_event
 	int fail_idx;
     double duration;
     double new_life;
+	int scen_index;
 
 	failure_event();
 	failure_event(int time, std::string component, int fail_idx, double duration,
-		double new_life);
+		double new_life, int scen_index);
 
     std::string print();
 };
@@ -114,18 +115,20 @@ public:
         
     double HoursToFailure(double ramp_mult, std::string mode);
 
-	void TestForBinaryFailure(std::string mode, int t, WELLFiveTwelve &gen);
+	void TestForBinaryFailure(std::string mode, int t, WELLFiveTwelve &gen,
+		int scen_index);
 	
 	void TestForFailure(double time, double ramp_mult, WELLFiveTwelve &gen, 
-		int t, double hazard_increase, std::string mode);
+		int t, double hazard_increase, std::string mode, int scen_index);
          
     void Operate(double time, double ramp_mult, WELLFiveTwelve &gen, 
-		bool read_only, int t, double hazard_increase, std::string mode);
+		bool read_only, int t, double hazard_increase, std::string mode,
+		int scen_index);
         
     void ReadFailure(double downtime, double life_remaining,
 		int fail_idx, bool reset_hazard);
                 
-    void GenerateFailure(WELLFiveTwelve &gen, int t, int j); 
+    void GenerateFailure(WELLFiveTwelve &gen, int t, int j, int scen_index); 
 
 	bool CanBeRepaired(std::string mode);
 

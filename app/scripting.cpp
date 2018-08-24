@@ -503,7 +503,7 @@ void _power_cycle(lk::invoke_t &cxt)
 	cycle.SetDispatch(dispatch, true);
 	WELLFiveTwelve gen(0);
 	cycle.AssignGenerator(&gen);
-	cycle.Simulate();
+	cycle.Simulate(true);
 
 	return;
 

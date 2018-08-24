@@ -9,6 +9,17 @@
 #include "well512.h"
 
 
+struct cycle_results
+{
+	std::unordered_map < int, std::vector < double > > cycle_capacity;
+	std::unordered_map < int, std::vector < double > > cycle_efficiency;
+	std::unordered_map< std::string, failure_event > failure_events;
+	std::vector <std::string> failure_event_labels;
+	std::unordered_map<int,  std::unordered_map< std::string, ComponentStatus > > component_status;
+	std::unordered_map<int, std::unordered_map< std::string, double > >  plant_status;
+	cycle_results();
+};
+
 class PowerCycle
 {
 	WELLFiveTwelve *m_gen;
@@ -33,6 +44,7 @@ class PowerCycle
 	double m_steplength;
 	int m_num_periods;
 	int m_num_scenarios;
+	int m_current_scenario;
 	double m_downtime_threshold;
 	double m_downtime;
 	double m_shutdown_capacity = 0.3;      //These represent a policy, and are 
@@ -63,6 +75,7 @@ class PowerCycle
 
 
 public:
+	cycle_results m_results;
 	std::vector< std::string > output_log;
 	void InitializeCyclingDists();
 	void AssignGenerator(WELLFiveTwelve *gen);
@@ -154,10 +167,10 @@ public:
 	void StoreState();
 	std::string GetStartMode(int t);
 	std::string GetOperatingMode(int t);
-	std::vector< double > RunDispatch();
+	void RunDispatch();
 	void Operate(double power_out, int t, std::string start, std::string mode);
-	std::vector< double > SingleScen(bool reset_status);
-	std::unordered_map< int, std::vector< double > > Simulate();
+	void SingleScen(bool reset_plant);
+	void Simulate(bool reset_plant);
 	void ResetPlant(WELLFiveTwelve &gen);
 };
 
