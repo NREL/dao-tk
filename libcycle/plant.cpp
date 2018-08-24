@@ -292,14 +292,15 @@ void PowerCycle::AddComponent( std::string name,
 		std::string type, 
 		double repair_rate, 
 		double repair_cooldown_time,
-        double Capacity_reduction,
+        double capacity_reduction,
+		double efficiency_reduction,
 		double repair_cost,
 		std::string repair_mode
 )
 {
     m_components.push_back( Component(name, type,  
 		repair_rate, repair_cooldown_time, &m_failure_events, 
-		Capacity_reduction, repair_cost, repair_mode, 
+		capacity_reduction, efficiency_reduction, repair_cost, repair_mode,
 		&m_failure_event_labels) );
 }
 
@@ -368,10 +369,10 @@ void PowerCycle::AddCondenserTrain(int num_fans, int num_radiators)
 	for (int i = 1; i <= num_fans; i++)
 	{
 		component_name = train_name + "-F" + std::to_string(i);
-		AddComponent(component_name, "Condenser fan", 35.5, 0, 0.01, 7.777, "S");
+		AddComponent(component_name, "Condenser fan", 35.5, 0, 0.01, 0.01, 7.777, "S");
 		AddFailureType(component_name, "Fan Failure", "O", "gamma", 1, 841188);
 	}
-	AddComponent(component_name + "-T", "Condenser train", 15.55, 0, 0.00, 7.777, "S");
+	AddComponent(component_name + "-T", "Condenser train", 15.55, 0, 0.00, 0.00, 7.777, "S");
 	for (int i = 1; i <= num_radiators; i++)
 	{
 		AddFailureType(component_name + "-T", "Radiator " + std::to_string(i) + " Failure", "O", "gamma", 1, 698976);
@@ -386,7 +387,7 @@ void PowerCycle::AddSaltToSteamTrains(int num_trains)
 	{
 		m_num_salt_steam_trains += 1;
 		component_name = "SST" + std::to_string(m_num_salt_steam_trains);
-		AddComponent(component_name, "Salt-to-steam train", 2.14, 72, capacity_reduction, 7.777, "A");
+		AddComponent(component_name, "Salt-to-steam train", 2.14, 72, capacity_reduction, 0., 7.777, "A");
 		AddFailureType(component_name, "Boiler External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
 		AddFailureType(component_name, "Boiler External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
 		AddFailureType(component_name, "Boiler External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
@@ -413,7 +414,7 @@ void PowerCycle::AddFeedwaterHeaters(int num_fwh)
 	{
 		m_num_feedwater_heaters += 1;
 		component_name = "FWH" + std::to_string(m_num_feedwater_heaters);
-		AddComponent(component_name, "Feedwater heater", 2.14, 48., 0.05, 7.777, "A");
+		AddComponent(component_name, "Feedwater heater", 2.14, 48., 0.05, 0.05, 7.777, "A");
 		AddFailureType(component_name, "External_Leak_Large_(shell)", "O", "gamma", 0.3, 75000000);
 		AddFailureType(component_name, "External_Leak_Large_(tube)", "O", "gamma", 0.3, 10000000);
 		AddFailureType(component_name, "External_Leak_Small_(shell)", "O", "gamma", 0.5, 10000000);
@@ -428,7 +429,7 @@ void PowerCycle::AddSaltPumps(int num_pumps)
 	{
 		m_num_salt_pumps += 1;
 		component_name = "SP" + std::to_string(m_num_salt_pumps);
-		AddComponent(component_name, "Molten salt pump", 0.5, 0., 1., 7.777, "D");
+		AddComponent(component_name, "Molten salt pump", 0.5, 0., 1., 1., 7.777, "D");
 		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
 		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
 		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "gamma", 1.5, 3750);
@@ -446,7 +447,7 @@ void PowerCycle::AddWaterPumps(int num_pumps)
 	{
 		m_num_water_pumps += 1;
 		component_name = "WP" + std::to_string(m_num_water_pumps);
-		AddComponent(component_name, "Water pump", 0.5, 0., 1., 7.777, "D");
+		AddComponent(component_name, "Water pump", 0.5, 0., 1., 1, 7.777, "D");
 		AddFailureType(component_name, "External_Leak_Large_(shell)", "O", "gamma", 0.3, 75000000);
 		AddFailureType(component_name, "External_Leak_Large_(tube)", "O", "gamma", 0.3, 10000000);
 		AddFailureType(component_name, "External_Leak_Small_(shell)", "O", "gamma", 0.5, 10000000);
@@ -464,21 +465,21 @@ Adds Hi-, Medium-, and Low-Pressure Turbines to the plant object.
 	{
 		m_num_hp_turbines += 1;
 		component_name = "HPT" + std::to_string(m_num_hp_turbines);
-		AddComponent(component_name, "High-pressure turbine", 32.7, 72, 1, 7.777, "D");
+		AddComponent(component_name, "High-pressure turbine", 32.7, 72, 1, 1, 7.777, "D");
 		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
 	}
 	for (int i = 0; i < num_mid_pressure; i++)
 	{
 		m_num_mp_turbines += 1;
 		component_name = "MPT" + std::to_string(m_num_mp_turbines);
-		AddComponent(component_name, "Medium-pressure turbine", 32.7, 72, 1, 7.777, "D");
+		AddComponent(component_name, "Medium-pressure turbine", 32.7, 72, 1, 1, 7.777, "D");
 		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
 	}
 	for (int i = 0; i < num_low_pressure; i++)
 	{
 		m_num_lp_turbines += 1;
 		component_name = "LPT" + std::to_string(m_num_lp_turbines);
-		AddComponent(component_name, "Low-pressure turbine", 32.7, 72, 1, 7.777, "D");
+		AddComponent(component_name, "Low-pressure turbine", 32.7, 72, 1, 1, 7.777, "D");
 		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
 	}
 }
@@ -628,6 +629,30 @@ double PowerCycle::GetCycleCapacity(double temp)
 	if (capacity < 0.0)
 		return 0.0;
 	return capacity;
+}
+
+double PowerCycle::GetCycleEfficiency(double temp)
+{
+	/*
+	Provides the cycles Capacity, based on components that
+	are operational.  Assumes that when multiple components are
+	down, the effect on cycle Capacity is additive
+
+	temp -- ambient temperature (affects condenser efficiency)
+	*/
+	if (!AirstreamOnline())
+		return 0.0;
+	if (!FWHOnline())
+		return 0.0;
+	double efficiency = GetCondenserEfficiency(temp);
+	for (size_t i = 0; i < m_components.size(); i++)
+		if (!m_components.at(i).IsOperational())
+			efficiency -= m_components.at(i).GetCapacityReduction();
+		else 
+			efficiency *= m_components.at(i).GetEfficiency();
+	if (efficiency < 0.0)
+		return 0.0;
+	return efficiency;
 }
 
 void PowerCycle::TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode)

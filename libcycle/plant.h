@@ -110,7 +110,8 @@ public:
 		std::string type, 
 		double repair_rate, 
 		double repair_cooldown_time,
-		double Capacity_reduction,
+		double capacity_reduction,
+		double efficicency_reduction,
 		double repair_cost, 
 		std::string repair_mode
 	);
@@ -154,6 +155,7 @@ public:
 	int NumberOfAirstreamsOnline();
 	double GetCondenserEfficiency(double temp);
 	double GetCycleCapacity(double temp);
+	double GetCycleEfficiency(double temp);
 	void TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode);
 	bool AllComponentsOperational();
 	double GetMaxComponentDowntime();

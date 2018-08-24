@@ -22,9 +22,9 @@ std::string failure_event::print()
 
 ComponentStatus::ComponentStatus(){}
 
-ComponentStatus::ComponentStatus(std::vector<double> lifes, double hazard, double downtime,
-		double repair_event_time)
-    : lifetimes(lifes), hazard_rate( hazard ), downtime_remaining( downtime ), repair_event_time( repair_event_time )
+ComponentStatus::ComponentStatus(std::vector<double> _lifes, double _hazard, double _downtime,
+		double _repair_event_time, double _efficiency)
+    : lifetimes(_lifes), hazard_rate( _hazard ), downtime_remaining( _downtime ), repair_event_time( _repair_event_time ), efficiency( _efficiency )
 {}
 
 //##################################################################################
@@ -33,12 +33,12 @@ Component::Component()
 {
 }
 
-Component::Component(  std::string name, std::string type, 
-			//std::string dist_type, double failure_alpha, double failure_beta, 
-			double repair_rate, double repair_cooldown_time,
-            std::unordered_map< std::string, failure_event > *failure_events, 
-			double capacity_reduction, double repair_cost, std::string repair_mode,
-			std::vector<std::string> *failure_event_labels)
+Component::Component(std::string name, std::string type,
+		//std::string dist_type, double failure_alpha, double failure_beta, 
+		double repair_rate, double repair_cooldown_time,
+		std::unordered_map< std::string, failure_event > *failure_events,
+		double capacity_reduction, double efficiency_reduction, double repair_cost, std::string repair_mode,
+		std::vector<std::string> *failure_event_labels)
 {
     /*
     Description of attributes:
@@ -46,9 +46,12 @@ Component::Component(  std::string name, std::string type,
     type -- component type description
     repair_rate -- rate at which repairs take place (events/h)
     repair_cooldown_time -- added required downtime for repair (h)
-    repair_cost -- dollar cost of repairs, not including revenue lost ($)
+	failure_events -- parent failure events dictionary 
 	capacity_reduction -- reduction in cycle capacity if component fails (fraction)
-
+	efficiency_reduction -- reduction in cycle capacity if component fails (fraction)
+    repair_cost -- dollar cost of repairs, not including revenue lost ($)
+    repair_mode -- indicator of in which modes the component may be repaired
+	failure_event_labels -- keys to parent failure events dictionary
     */
 
     if( name == "MAINTENANCE" )
@@ -59,6 +62,7 @@ Component::Component(  std::string name, std::string type,
     m_type = type;
     m_repair_cost = repair_cost;
 	m_capacity_reduction = capacity_reduction;
+	m_efficiency_reduction = efficiency_reduction;
 	m_cooldown_time = repair_cooldown_time;
 	m_repair_mode = repair_mode;
 
@@ -66,6 +70,7 @@ Component::Component(  std::string name, std::string type,
     m_status.downtime_remaining = 0.0;
 	m_status.operational = true;
 	m_status.repair_event_time = 0.0;
+	m_status.efficiency = 1.0;
 
 	Distribution *edist = new ExponentialDist(repair_rate, repair_cooldown_time, "exponential");
 	m_repair_dist = (ExponentialDist *) edist;
@@ -124,6 +129,11 @@ double Component::GetRepairCost()
 double Component::GetCapacityReduction()
 {
 	return m_capacity_reduction;
+}
+
+double Component::GetEfficiency()
+{
+	return m_status.efficiency;
 }
 
 double Component::GetCooldownTime()
@@ -446,7 +456,8 @@ ComponentStatus Component::GetState()
 	return (
 		ComponentStatus(
 			GetLifetimesAndProbs(), m_status.hazard_rate*1.0,
-			m_status.downtime_remaining*1.0, m_status.repair_event_time*1.0
+			m_status.downtime_remaining*1.0, m_status.repair_event_time*1.0,
+			m_status.efficiency * 1.0
 			)
 		); 
 }

@@ -37,10 +37,11 @@ struct ComponentStatus
     bool operational;
     bool running;
 	double repair_event_time;
+	double efficiency;
 
     ComponentStatus();
-    ComponentStatus( std::vector<double> lifes, double hazard, 
-			double downtime, double repair_event_time );
+    ComponentStatus( std::vector<double> _lifes, double _hazard, 
+			double _downtime, double _repair_event_time, double _efficiency );
 };
 
 
@@ -60,6 +61,7 @@ class Component
     std::string m_name;
     std::string m_type;
 	double m_capacity_reduction;
+	double m_efficiency_reduction;
 	double m_cooldown_time;
 	std::string m_repair_mode; // "A"=Anytime; "S"=standby or downtime; "D"=downtime only
     ComponentStatus m_status;
@@ -76,7 +78,8 @@ public:
     Component(std::string name, std::string type, //std::string dist_type, double failure_alpha, double failure_beta, 
 		double repair_rate, double repair_cooldown_time,
 		std::unordered_map< std::string, failure_event > *failure_events, 
-		double availability_reduction = 1.0, double repair_cost = 0.0,
+		double availability_reduction = 1.0, 
+		double efficiency_reduction = 1.0, double repair_cost = 0.0,
 		std::string repair_mode = "D", std::vector< std::string > *failure_eventlabels = {}
 		);
 
@@ -96,6 +99,8 @@ public:
     double GetRepairCost();
 
 	double GetCapacityReduction();
+
+	double GetEfficiency();
 
 	double GetCooldownTime();
         
