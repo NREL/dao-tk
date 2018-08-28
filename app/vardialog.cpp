@@ -1,4 +1,5 @@
 #include "vardialog.h"
+#include "daotk_app.h"
 
 #include <wx/wxhtml.h>
 #include <wx/combo.h>
@@ -166,6 +167,27 @@ void VariableDialog::UpdateHelp(const char* filter, const char* type)
 void VariableDialog::OnHtmlEvent(wxHtmlLinkEvent &evt)
 {
     wxString link = evt.GetLinkInfo().GetHref();
+
+    if( link.Find("id?") > -1 )
+    {
+        wxArrayString idparse = wxSplit(link.c_str(), '?') ;
+        if( idparse.size() != 2 )
+            return;
+        wxString var = idparse.at(1);
+
+        for( std::vector< lk::varhash_t* >::iterator vgroup = m_variable_data.begin(); 
+                                                     vgroup!= m_variable_data.end(); 
+                                                     vgroup ++ )
+        {
+            lk::varhash_t::iterator vfind = (*vgroup)->find(var);
+            if( vfind != (*vgroup)->end() )   
+            {
+                MainWindow::Instance().ScriptInsert( (wxString::Format("var(\"%s\")", vfind->first.c_str())).c_str() );
+                return;
+            }
+        }
+    }
+
     return;
 }
 

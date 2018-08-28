@@ -81,7 +81,7 @@ protected:
             "<tr><td>Type</td><td>%s%s</td></tr>"
             "</table>"
             "</font>"
-            "<p><font size=\"+1\">%s</font></p><a href=\"id?%s\">Add</a><hr>",
+            "<p><font size=\"+1\">%s</font></p><br><a href=\"id?%s\">Add</a><hr>",
             this->nice_name.c_str(),
             fmt_units.c_str(),
             this->name.c_str(), 

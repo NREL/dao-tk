@@ -244,6 +244,13 @@ bool MainWindow::LoadScript(const wxString &file)
 	return m_ScriptViewForm->Load(file);
 }
 
+void MainWindow::ScriptInsert(const char *text)
+{
+	wxLKScriptCtrl* editor = m_ScriptViewForm->GetEditor();
+	int curpos = editor->GetCurrentPos();
+	editor->InsertText(curpos, text);
+}
+
 void MainWindow::OnClose(wxCloseEvent &evt)
 {
 	Raise();
