@@ -580,6 +580,14 @@ void _simulate_optical(lk::invoke_t &cxt)
 
 void _simulate_solarfield(lk::invoke_t &cxt)
 {
+
+	LK_DOC("simulate_solarfield", "Simulates solar field availability from current project settings.", "([table:options]):table");
+	
+	MainWindow &mw = MainWindow::Instance();
+	mw.GetProject()->M();
+	mw.UpdateDataTable();
+
+	/*
 	LK_DOC("simulate_solarfield", "Simulate the solar field availability over time due to heliostat failures. "
 		"Table keys include: "
 		"weibull_shape_param, weibull_scale_param, rep_mean_downtime, rep_min_downtime, rep_max_downtime, rep_good_as_new,"
@@ -686,14 +694,12 @@ void _simulate_solarfield(lk::invoke_t &cxt)
 	SA.m_settings.helio_performance.assign(SA.m_settings.n_helio, 1.0);
 	SA.simulate();
 
-	/*
-	mw.Log(wxString::Format("Overall average availability: %0.3f ", SA.m_results.avg_avail));
-	mw.Log(wxString::Format("Minimum availability: %0.3f ", SA.m_results.min_avail));
+	//mw.Log(wxString::Format("Overall average availability: %0.3f ", SA.m_results.avg_avail));
+	//mw.Log(wxString::Format("Minimum availability: %0.3f ", SA.m_results.min_avail));
 
-	for (int c = 0; c < SA.m_settings.helio_components.size(); c++)
-		mw.Log(wxString::Format("Component %d failures / repairs: %0.1f / %0.1f ", c, SA.m_results.n_failures_per_component[c], SA.m_results.n_repairs_per_component[c]));
+	//for (int c = 0; c < SA.m_settings.helio_components.size(); c++)
+	//	mw.Log(wxString::Format("Component %d failures / repairs: %0.1f / %0.1f ", c, SA.m_results.n_failures_per_component[c], SA.m_results.n_repairs_per_component[c]));
 	*/
-
 
 	return;
 

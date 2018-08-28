@@ -129,7 +129,7 @@ public:
 
 	void fail(double timestep, std::default_random_engine &gen);
 	void operate(double timestep);
-	void repair(double timestep);
+	int repair(double timestep);
 
 	std::vector<int> get_failures_per_component();
 	std::vector<int> get_repairs_per_component();

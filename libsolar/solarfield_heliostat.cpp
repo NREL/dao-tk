@@ -315,11 +315,12 @@ void solarfield_heliostat::operate(double timestep)
 	return;
 }
 
-void solarfield_heliostat::repair(double timestep)
+int solarfield_heliostat::repair(double timestep)
 {
 
 	m_status = REPAIRING;
 	double time_remaining = timestep;
+	int comp_repairs_completed = 0;
 
 	if (m_is_track_repair_time)
 		m_repair_time_per_component.assign(m_n_components, 0.0);
@@ -338,7 +339,10 @@ void solarfield_heliostat::repair(double timestep)
 			m_repair_time_remaining -= repair_time;
 
 			if (m_components[c]->get_operational_state() == OPERATIONAL)
+			{
 				m_n_repairs[c] += 1;
+				comp_repairs_completed += 1;
+			}
 
 			if (m_is_track_repair_time)
 				m_repair_time_per_component[c] = repair_time;
@@ -349,7 +353,7 @@ void solarfield_heliostat::repair(double timestep)
 	if (m_repair_time_remaining <= 1.e-6)  
 		m_status = OPERATIONAL;
 
-	return;
+	return comp_repairs_completed;
 }
 
 

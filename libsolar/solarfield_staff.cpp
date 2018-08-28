@@ -222,13 +222,13 @@ void solarfield_repair_staff::repair(int staff_index, double repair_time)
 
 	if (hel != NULL)
 	{
-		hel->repair(repair_time);
+		int n_completed = hel->repair(repair_time);
+		st->m_n_repairs_completed += n_completed;
 		st->add_time_worked(repair_time);
 		m_total_repair_time -= repair_time;
 
 		if (hel->get_operational_state() == OPERATIONAL)
 		{
-			st->m_n_repairs_completed += 1;
 			st->m_helio_assigned = NULL;
 			m_total_repair_length -= 1;
 		}

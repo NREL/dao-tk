@@ -75,8 +75,8 @@ parameters::parameters()
 	om_staff_cost.set( 75, "om_staff_cost", lk::vardata_t::NUMBER, false, "O&M staff cost rate", "$/hr", "Financial parameters");
 	wash_crew_cost.set( 65. + 10. + 25, "wash_crew_cost", lk::vardata_t::NUMBER, false, "Wash crew cost rate", "$/hr", "Financial parameters" );
 	heliostat_refurbish_cost.set( 144. * 25 + 90 * 4., "heliostat_refurbish_cost", lk::vardata_t::NUMBER, false, "Mirror replacement cost", "$", "Optical degradation|Parameters" );
-	helio_mtf.set( 12000, "helio_mtf", lk::vardata_t::NUMBER, false, "Heliostat mean time to failure", "hr", "Heliostat availability|Parameters" );
-	heliostat_repair_cost.set( 300, "heliostat_repair_cost", lk::vardata_t::NUMBER, false, "Heliostat repair cost", "$", "Heliostat availability|Parameters" );
+	//helio_mtf.set( 12000, "helio_mtf", lk::vardata_t::NUMBER, false, "Heliostat mean time to failure", "hr", "Heliostat availability|Parameters" );
+	//heliostat_repair_cost.set( 300, "heliostat_repair_cost", lk::vardata_t::NUMBER, false, "Heliostat repair cost", "$", "Heliostat availability|Parameters" );
 	om_staff_max_hours_week.set( 35, "om_staff_max_hours_week", lk::vardata_t::NUMBER, false, "Max O&M staff hours per week", "hr", "Heliostat availability|Parameters" );
 	n_heliostats_sim.set( 8000, "n_heliostats_sim", lk::vardata_t::NUMBER, false, "Number of simulated heliostats", "-", "Heliostat availability|Parameters" );
 	wash_units_per_hour.set( 45., "wash_units_per_hour", lk::vardata_t::NUMBER, false, "Heliostat wash rate", "1/crew-hr", "Optical degradation|Parameters" );
@@ -103,6 +103,23 @@ parameters::parameters()
 	std::vector< double > pvalts(8760, 1.);
 	dispatch_factors_ts.set( pvalts, "dispatch_factors_ts", lk::vardata_t::VECTOR, false );
 	dispatch_factors_ts.set( pvalts, "user_sf_avail", lk::vardata_t::VECTOR, false );
+
+
+	helio_repair_priority.set("mean_repair_time", "helio_repair_priority", lk::vardata_t::STRING, false, "Heliostat repair priority", "-", "Heliostat availability|Parameters");
+	avail_model_timestep.set(24, "avail_model_timestep", lk::vardata_t::NUMBER, false, "Availability model timestep", "hr", "Heliostat availability|Parameters");
+
+	std::vector< double > shape = { 1. };
+	std::vector< double > scale = { 12000. };
+	std::vector< double > mtr = { 2. };
+	std::vector< double > repair_cost = { 300. };
+	helio_comp_weibull_shape.set(shape, "helio_comp_weibull_shape", lk::vardata_t::VECTOR, false, "Helio component Weibull shape params", "-", "Heliostat availability|Parameters");
+	helio_comp_weibull_scale.set(shape, "helio_comp_weibull_scale", lk::vardata_t::VECTOR, false, "Helio component Weibull scale params", "hr", "Heliostat availability|Parameters");
+	helio_comp_mtr.set(shape, "helio_comp_mtr", lk::vardata_t::VECTOR, false, "Helio component mean time to repair", "hr", "Heliostat availability|Parameters");
+	helio_comp_repair_cost.set(shape, "helio_comp_repair_cost", lk::vardata_t::VECTOR, false, "Helio component repair cost", "$", "Heliostat availability|Parameters");
+
+
+
+
 	
     (*this)["print_messages"] = &print_messages;
     (*this)["check_max_flux"] = &check_max_flux;
@@ -130,8 +147,8 @@ parameters::parameters()
     (*this)["om_staff_cost"] = &om_staff_cost;
     (*this)["wash_crew_cost"] = &wash_crew_cost;
     (*this)["heliostat_refurbish_cost"] = &heliostat_refurbish_cost;
-    (*this)["helio_mtf"] = &helio_mtf;
-    (*this)["heliostat_repair_cost"] = &heliostat_repair_cost;
+    //(*this)["helio_mtf"] = &helio_mtf;
+    //(*this)["heliostat_repair_cost"] = &heliostat_repair_cost;
     (*this)["om_staff_max_hours_week"] = &om_staff_max_hours_week;
     (*this)["n_heliostats_sim"] = &n_heliostats_sim;
     (*this)["wash_units_per_hour"] = &wash_units_per_hour;
@@ -154,6 +171,14 @@ parameters::parameters()
     (*this)["c_ces"] = &c_ces;
     (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
 	(*this)["user_sf_avail"] = &user_sf_avail;
+
+	(*this)["helio_repair_priority"] = &helio_repair_priority;
+	(*this)["avail_model_timestep"] = &avail_model_timestep;
+	(*this)["helio_comp_weibull_shape"] = &helio_comp_weibull_shape;
+	(*this)["helio_comp_weibull_scale"] = &helio_comp_weibull_scale;
+	(*this)["helio_comp_mtr"] = &helio_comp_mtr;
+	(*this)["helio_comp_repair_cost"] = &helio_comp_repair_cost;
+
 }
 
 design_outputs::design_outputs()
@@ -212,19 +237,25 @@ solarfield_outputs::solarfield_outputs()
 	*/
 
 	double nan = std::numeric_limits<double>::quiet_NaN();
-	n_repairs.set(nan, "n_repairs", lk::vardata_t::NUMBER, true, "Number of heliostat repairs", "-", "Heliostat availability|Outputs");
+	n_repairs.set(nan, "n_repairs", lk::vardata_t::NUMBER, true, "Average annual heliostat repairs", "-", "Heliostat availability|Outputs");
 	staff_utilization.set(nan, "staff_utilization", lk::vardata_t::NUMBER, true, "Staff utilization", "-", "Heliostat availability|Outputs");
-	heliostat_repair_cost_y1.set(nan, "heliostat_repair_cost_y1", lk::vardata_t::NUMBER, true, "Heliostat repair cost (year 1)", "$", "Heliostat availability|Outputs");
+	heliostat_repair_cost_y1.set(nan, "heliostat_repair_cost_y1", lk::vardata_t::NUMBER, true, "Average annual heliostat repair cost", "$", "Heliostat availability|Outputs");
 	heliostat_repair_cost.set(nan, "heliostat_repair_cost", lk::vardata_t::NUMBER, true);
+	avg_avail.set(nan, "avg_avail", lk::vardata_t::NUMBER, true, "Average lifetime availability", "-", "Heliostat availability|Outputs");
+
 
 	std::vector< double > empty_vec;
-	avail_schedule.set(empty_vec, "avail_schedule", lk::vardata_t::VECTOR, true);
+	avail_schedule.set(empty_vec, "avail_schedule", lk::vardata_t::VECTOR, true, "Availability time series", "-", "Heliostat availability|Outputs");
+	n_repairs_per_component.set(empty_vec, "n_repairs_per_component", lk::vardata_t::VECTOR, true, "Average annual heliostat component repairs", "-", "Heliostat availability|Outputs");
+
 
     (*this)["n_repairs"] = &n_repairs;
     (*this)["staff_utilization"] = &staff_utilization;
     (*this)["heliostat_repair_cost_y1"] = &heliostat_repair_cost_y1;
     (*this)["heliostat_repair_cost"] = &heliostat_repair_cost;
     (*this)["avail_schedule"] = &avail_schedule;
+	(*this)["avg_avail"] = &avg_avail;
+	(*this)["n_repairs_per_component"] = &n_repairs_per_component;
 
 }
 
@@ -1481,10 +1512,25 @@ bool Project::M()
 	heliostat_repair_cost_y1 Total "" in first year($ / year)
 	*/
 
+	// error if invalid design
+	std::string error_msg;
+	if (!Validate(Project::CALLING_SIM::HELIO_AVAIL, &error_msg))
+	{
+		message_handler(error_msg.c_str());
+		return false;
+	}
+
+	//error if trying to simulate with no heliostats
+	if (m_design_outputs.number_heliostats.as_integer() <= 1)
+	{
+		message_handler("Error: Empty layout in field availability simulation.");
+		return false;
+	}
+
 	solarfield_availability sfa;
 
 	sfa.m_settings.n_years = m_parameters.plant_lifetime.as_integer();
-	sfa.m_settings.step = 4.0;
+	sfa.m_settings.step = m_parameters.avail_model_timestep.as_number();
 	
 	sfa.m_settings.n_om_staff.assign(sfa.m_settings.n_years, m_variables.om_staff.as_number());
 	sfa.m_settings.max_hours_per_day = 9.;
@@ -1499,24 +1545,54 @@ bool Project::M()
 	s_location loc(weatherfile);
 	sfa.m_settings.location = loc;
 
-	sfa.m_settings.repair_order = MEAN_REPAIR_TIME;
-	sfa.m_settings.is_tracking = false;
 
-
-	sfa.m_settings.helio_performance.assign(sfa.m_settings.n_helio, 1.0);
-	helio_component_inputs comp(1.0, (double)m_parameters.helio_mtf.as_number(), 2.0, 1.0, 100.0, true, (double)m_parameters.heliostat_repair_cost.as_number());
-	sfa.m_settings.helio_components.push_back(comp);
-	
-
-
-	//error if trying to simulate with no heliostats
-	if (m_design_outputs.number_heliostats.as_integer() <= 1)
+	//-- Repair prioritization
+	std::string repair_priority = m_parameters.helio_repair_priority.as_string();
+	if (repair_priority == "failure_order")
+		sfa.m_settings.repair_order = FAILURE_ORDER;
+	//else if (repair_priority == "performance")
+	//	sfa.m_settings.repair_order = PERFORMANCE;
+	else if (repair_priority == "repair_time")
+		sfa.m_settings.repair_order = REPAIR_TIME;
+	else if (repair_priority == "mean_repair_time")
+		sfa.m_settings.repair_order = MEAN_REPAIR_TIME;
+	else if (repair_priority == "random")
+		sfa.m_settings.repair_order = RANDOM;
+	else
 	{
-		message_handler("Error: Empty layout in field availability simulation.");
+		message_handler("Specified helio_repair_priority not recognized. Valid inputs are 'random', 'failure_order', 'repair_time', 'mean_repair_time'");
 		return false;
 	}
 
+
+	//-- Heliostat components
+	bool good_as_new = true;
+	double min_rep = 0.;
+	double max_rep = 1000.;
+	sfa.m_settings.helio_components.clear();
+	int ncomp = (int) m_parameters.helio_comp_weibull_shape.vec()->size();
+
+	if ((int)m_parameters.helio_comp_weibull_scale.vec()->size() != ncomp || (int)m_parameters.helio_comp_mtr.vec()->size() != ncomp || (int)m_parameters.helio_comp_repair_cost.vec()->size() != ncomp)
+	{
+		message_handler("Unequal number of heliostat components are specified in helio_comp_weibull_scale, helio_comp_weibull_shape, helio_comp_mtr, and helio_comp_repair_cost.");
+		return false;
+	}
+
+	for (int c = 0; c < ncomp; c++)
+	{
+		double shape = m_parameters.helio_comp_weibull_shape.vec()->at(c).as_number();
+		double scale = m_parameters.helio_comp_weibull_scale.vec()->at(c).as_number();
+		double mtr = m_parameters.helio_comp_mtr.vec()->at(c).as_number();
+		double rep_cost = m_parameters.helio_comp_repair_cost.vec()->at(c).as_number();
+		helio_component_inputs comp(shape, scale, mtr, min_rep, max_rep, good_as_new, rep_cost);
+		sfa.m_settings.helio_components.push_back(comp);
+	}
+
+
+	sfa.m_settings.is_tracking = false;
+	sfa.m_settings.helio_performance.assign(sfa.m_settings.n_helio, 1.0);
 	sfa.simulate(sim_progress_handler);
+
 
 	//Calculate staff cost and repair cost
 	sfa.m_results.heliostat_repair_cost_y1 = 0.0;
@@ -1530,11 +1606,19 @@ bool Project::M()
 	sfa.m_results.heliostat_repair_cost = calc_real_dollars(total_cost);
 
     //assign outputs to project structure
-    m_solarfield_outputs.n_repairs.assign( sfa.m_results.n_repairs );
+    m_solarfield_outputs.n_repairs.assign( sfa.m_results.n_repairs / sfa.m_settings.n_years);
     m_solarfield_outputs.staff_utilization.assign( sfa.m_results.staff_utilization );
     m_solarfield_outputs.heliostat_repair_cost_y1.assign( sfa.m_results.heliostat_repair_cost_y1 );
     m_solarfield_outputs.heliostat_repair_cost.assign( sfa.m_results.heliostat_repair_cost );
+	m_solarfield_outputs.avg_avail.assign(sfa.m_results.avg_avail);
     m_solarfield_outputs.avail_schedule.assign_vector( sfa.m_results.avail_schedule);
+
+	std::vector<double> n_per_comp;
+	for (int c = 0; c < ncomp; c++)
+		n_per_comp.push_back( sfa.m_results.n_repairs_per_component[c] / sfa.m_settings.n_years );
+	
+	m_solarfield_outputs.n_repairs_per_component.assign_vector(n_per_comp);
+
 
 	is_sf_avail_valid = true;
 	return true;

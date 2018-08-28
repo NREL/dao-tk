@@ -203,6 +203,7 @@ struct parameters : public lk::varhash_t
     //strings
 	parameter ampl_data_dir;
 	parameter solar_resource_file;
+	parameter helio_repair_priority;
     //ints
 	parameter disp_steps_per_hour;
 	parameter avail_seed;
@@ -244,10 +245,15 @@ struct parameters : public lk::varhash_t
 	parameter startup_frac;
 	parameter v_wind_max;
 	parameter flux_max;
+	parameter avail_model_timestep;
     //vector-doubles
 	parameter c_ces;
 	parameter dispatch_factors_ts;
 	parameter user_sf_avail;
+	parameter helio_comp_weibull_shape;
+	parameter helio_comp_weibull_scale;
+	parameter helio_comp_mtr;
+	parameter helio_comp_repair_cost;
 	//-----------------------------------------------------------------------
 
 	parameters();
@@ -288,6 +294,9 @@ struct solarfield_outputs : public lk::varhash_t
 	parameter heliostat_repair_cost_y1;
 	parameter heliostat_repair_cost;
 	parameter avail_schedule;
+
+	parameter avg_avail;
+	parameter n_repairs_per_component;
 
 	solarfield_outputs();
 

@@ -372,7 +372,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 				// Repair assigned hleiostat
 				if (hel != NULL)
 				{
-					// Identify failed components and account for time waiting if other heliostats were repaired first
+					// Identify failed components
 					if (m_settings.is_tracking)
 						failed_components = hel->get_failed_components();
 
