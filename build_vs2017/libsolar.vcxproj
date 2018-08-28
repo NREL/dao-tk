@@ -30,6 +30,11 @@
     <ClInclude Include="..\libsolar\solarfield_staff.h" />
     <ClInclude Include="..\libsolar\solarfield_structures.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="libclearsky.vcxproj">
+      <Project>{809d27ce-1241-4503-a38a-4bf90b683612}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{03C32DFE-081B-4DA8-8944-776BA8EE0A10}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

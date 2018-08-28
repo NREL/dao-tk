@@ -601,7 +601,10 @@ void _simulate_solarfield(lk::invoke_t &cxt)
 	}
 
 	SA.m_settings.n_helio = mw.GetProject()->m_design_outputs.number_heliostats.as_integer();
-
+	
+	std::string weatherfile = mw.GetProject()->m_parameters.solar_resource_file.as_string();
+	s_location loc(weatherfile);
+	SA.m_settings.location = loc;
 
 	SA.m_settings.n_helio_sim = 8000;
 	if (H->find("n_helio_simulated") != H->end())
@@ -658,7 +661,6 @@ void _simulate_solarfield(lk::invoke_t &cxt)
 	helio_component_inputs component(beta, eta, rep_mean, rep_min, rep_max, good_as_new, 0.0);
 	SA.m_settings.helio_components.push_back(component);
 
-
 	//-- Repair ordering
 	SA.m_settings.repair_order = MEAN_REPAIR_TIME;
 
@@ -684,16 +686,13 @@ void _simulate_solarfield(lk::invoke_t &cxt)
 	SA.m_settings.helio_performance.assign(SA.m_settings.n_helio, 1.0);
 	SA.simulate();
 
-
+	/*
 	mw.Log(wxString::Format("Overall average availability: %0.3f ", SA.m_results.avg_avail));
 	mw.Log(wxString::Format("Minimum availability: %0.3f ", SA.m_results.min_avail));
 
 	for (int c = 0; c < SA.m_settings.helio_components.size(); c++)
 		mw.Log(wxString::Format("Component %d failures / repairs: %0.1f / %0.1f ", c, SA.m_results.n_failures_per_component[c], SA.m_results.n_repairs_per_component[c]));
-	
-
-
-
+	*/
 
 
 	return;

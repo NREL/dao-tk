@@ -6,6 +6,7 @@
 
 #include "solarfield_heliostat.h"
 #include "solarfield_staff.h"
+#include "../libclearsky/clearsky.h"
 
 struct solarfield_settings
 {
@@ -29,7 +30,7 @@ struct solarfield_settings
 	bool is_fix_hours;			// Fix operating hours?
 	double sunrise;				// Time [hr] at sunrise (applied to all days, only used if m_is_fixed_hours = true)
 	double sunset;				// Time [hr] at sunset (applied to all days, only used if m_is_fixed_hours = true)
-	//s_location location;		// Location (only used if m_is_fixed_hours = false)
+	s_location location;		// Location (only used if m_is_fixed_hours = false)
 
 
 	//-- Simulation options

@@ -160,12 +160,10 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	}
 	else
 	{
-		//clearsky csky(m_inputs.m_location);
-		//csky.calculate_sunrise_sunset();
-		//daily_sunrise = csky.m_sunrise;
-		//daily_sunset = csky.m_sunset;
-		daily_sunrise.assign(365, m_settings.sunrise);
-		daily_sunset.assign(365, m_settings.sunset);
+		clearsky csky(m_settings.location);
+		csky.calculate_sunrise_sunset();
+		daily_sunrise = csky.m_sunrise;
+		daily_sunset = csky.m_sunset;
 	}
 
 

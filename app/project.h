@@ -10,6 +10,7 @@
 #include "../libsolar/solarfield_avail.h"
 
 #include "../libcluster/clustersim.h"
+#include "../libclearsky/clearsky.h"
 
 /* 
 A class containing the aspects of the current project

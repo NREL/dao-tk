@@ -14,7 +14,7 @@ solarfield_settings::solarfield_settings()
 	n_helio = std::numeric_limits<int>::quiet_NaN();
 	n_helio_sim = 8000;
 
-	is_fix_hours = true;	
+	is_fix_hours = false;	
 	sunrise = 6.9;
 	sunset = 19.;
 

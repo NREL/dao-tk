@@ -40,6 +40,9 @@
     <ClInclude Include="..\app\treeselect.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="libclearsky.vcxproj">
+      <Project>{809d27ce-1241-4503-a38a-4bf90b683612}</Project>
+    </ProjectReference>
     <ProjectReference Include="libcluster.vcxproj">
       <Project>{d0b9a03f-f041-4108-9728-098275555c89}</Project>
     </ProjectReference>

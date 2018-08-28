@@ -1494,9 +1494,10 @@ bool Project::M()
 	sfa.m_settings.n_helio_sim = m_parameters.n_heliostats_sim.as_integer();
 	sfa.m_settings.seed = m_parameters.avail_seed.as_integer();
 
-	sfa.m_settings.is_fix_hours = true;
-	sfa.m_settings.sunrise = 6.9;
-	sfa.m_settings.sunset = 19.0;
+	sfa.m_settings.is_fix_hours = false;
+	std::string weatherfile = m_parameters.solar_resource_file.as_string();
+	s_location loc(weatherfile);
+	sfa.m_settings.location = loc;
 
 	sfa.m_settings.repair_order = MEAN_REPAIR_TIME;
 	sfa.m_settings.is_tracking = false;
