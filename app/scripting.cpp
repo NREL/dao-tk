@@ -298,9 +298,8 @@ void _power_cycle(lk::invoke_t &cxt)
 		"capacity, temp_threshold, time_online, time_in_standby, downtime, "
 		"shutdown_capacity, no_restart_capacity, num_condenser_trains, "
 		"fans_per_train, radiators_per_train, num_salt_steam_traoins, num_fwh, "
-		"num_salt_pumps, num_water_pumps, num_hi_pressure, num_mid_pressure, "
-		"num_low_pressure, condenser_eff_cold, condenser_eff_hot", 
-		"(table:cycle_inputs):table");
+		"num_salt_pumps, num_water_pumps, num_turbines, condenser_eff_cold, "
+		"condenser_eff_hot", "(table:cycle_inputs):table");
 
 	PowerCycle cycle;
 
@@ -399,17 +398,9 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("num_water_pumps") != h->end())
 		num_water_pumps = h->at("num_water_pumps")->as_integer();
 
-	int num_hi_pressure = 1;
-	if (h->find("num_hi_pressure") != h->end())
-		num_hi_pressure = h->at("num_hi_pressure")->as_integer();
-
-	int num_mid_pressure = 1;
-	if (h->find("num_mid_pressure") != h->end())
-		num_mid_pressure = h->at("num_mid_pressure")->as_integer();
-
-	int num_low_pressure = 1;
-	if (h->find("num_low_pressure") != h->end())
-		num_low_pressure = h->at("num_low_pressure")->as_integer();
+	int num_turbines = 1;
+	if (h->find("num_turbines") != h->end())
+		num_turbines = h->at("num_turbines")->as_integer();
 
 	std::vector < double > condenser_eff_cold = { 0.,1.,1. };
 	if (h->find("condenser_eff_cold") != h->end())
@@ -445,9 +436,7 @@ void _power_cycle(lk::invoke_t &cxt)
 		num_fwh,
 		num_salt_pumps,
 		num_water_pumps,
-		num_hi_pressure,
-		num_mid_pressure,
-		num_low_pressure,
+		num_turbines,
 		condenser_eff_cold,
 		condenser_eff_hot
 	);

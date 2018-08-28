@@ -455,32 +455,21 @@ void PowerCycle::AddWaterPumps(int num_pumps)
 	}
 }
 
-void PowerCycle::AddTurbines(int num_hi_pressure, int num_mid_pressure, int num_low_pressure)
+void PowerCycle::AddTurbines(int num_turbines)
 /*
 Adds Hi-, Medium-, and Low-Pressure Turbines to the plant object.
 */
 {
 	std::string component_name;
-	for (int i = 0; i < num_hi_pressure; i++)
+	double capacity_reduction = 1.0 / num_turbines;
+	for (int i = 0; i < num_turbines; i++)
 	{
-		m_num_hp_turbines += 1;
-		component_name = "HPT" + std::to_string(m_num_hp_turbines);
-		AddComponent(component_name, "High-pressure turbine", 32.7, 72, 1, 1, 7.777, "D");
-		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
-	}
-	for (int i = 0; i < num_mid_pressure; i++)
-	{
-		m_num_mp_turbines += 1;
-		component_name = "MPT" + std::to_string(m_num_mp_turbines);
-		AddComponent(component_name, "Medium-pressure turbine", 32.7, 72, 1, 1, 7.777, "D");
-		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
-	}
-	for (int i = 0; i < num_low_pressure; i++)
-	{
-		m_num_lp_turbines += 1;
-		component_name = "LPT" + std::to_string(m_num_lp_turbines);
-		AddComponent(component_name, "Low-pressure turbine", 32.7, 72, 1, 1, 7.777, "D");
-		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
+		m_num_turbines += 1;
+		component_name = "T" + std::to_string(m_num_turbines);
+		AddComponent(component_name, "Turbine", 32.7, 72, capacity_reduction, 0, 7.777, "D");
+		AddFailureType(component_name, "MBTF_High-pressure", "O", "gamma", 1, 51834.31953);
+		AddFailureType(component_name, "MBTF_Medium-pressure", "O", "gamma", 1, 51834.31953);
+		AddFailureType(component_name, "MBTF_Low-pressure", "O", "gamma", 1, 51834.31953);
 	}
 }
 
@@ -492,9 +481,7 @@ void PowerCycle::GeneratePlantComponents(
 	int num_fwh = 6,
 	int num_salt_pumps = 2,
 	int num_water_pumps = 2,
-	int num_hi_pressure = 1, 
-	int num_mid_pressure = 1, 
-	int num_low_pressure = 1,
+	int num_turbines = 1,
 	std::vector<double> condenser_eff_cold = {0.,1.,1.},
 	std::vector<double> condenser_eff_hot = {0.,0.95,1.}
 )
@@ -516,7 +503,7 @@ void PowerCycle::GeneratePlantComponents(
 	AddFeedwaterHeaters(num_fwh);
 	AddSaltPumps(num_salt_pumps);
 	AddWaterPumps(num_water_pumps);
-	AddTurbines(num_hi_pressure, num_mid_pressure, num_low_pressure);
+	AddTurbines(num_turbines);
 }
 
 void PowerCycle::SetPlantAttributes(double maintenance_interval = 5000.,

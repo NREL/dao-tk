@@ -68,9 +68,8 @@ class PowerCycle
 	int m_num_salt_steam_trains = 0;
 	int m_num_salt_pumps = 0;
 	int m_num_water_pumps = 0;
-	int m_num_hp_turbines = 0;
-	int m_num_mp_turbines = 0;
-	int m_num_lp_turbines = 0;
+	int m_num_turbines = 0; // HP, IP, LP turbines and generator count 
+							// as a single component
 	bool m_record_state_failure = true;
 
 
@@ -128,7 +127,7 @@ public:
 	void AddFeedwaterHeaters(int num_fwh);
 	void AddSaltPumps(int num_pumps);
 	void AddWaterPumps(int num_pumps);
-	void AddTurbines(int num_hi_pressure, int num_mid_pressure, int num_low_pressure);
+	void AddTurbines(int num_turbines);
 	void GeneratePlantComponents(
 		int num_condenser_trains,
 		int fans_per_train,
@@ -137,9 +136,7 @@ public:
 		int num_fwh,
 		int num_salt_pumps,
 		int num_water_pumps,
-		int num_hi_pressure,
-		int num_mid_pressure,
-		int num_low_pressure,
+		int num_turbines,
 		std::vector<double> condenser_eff_cold,
 		std::vector<double> condenser_eff_hot
 	);

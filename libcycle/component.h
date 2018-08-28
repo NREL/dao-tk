@@ -37,11 +37,11 @@ struct ComponentStatus
     bool operational;
     bool running;
 	double repair_event_time;
-	double efficiency;
+	double age;
 
     ComponentStatus();
     ComponentStatus( std::vector<double> _lifes, double _hazard, 
-			double _downtime, double _repair_event_time, double _efficiency );
+			double _downtime, double _repair_event_time, double _age);
 };
 
 
@@ -102,13 +102,15 @@ public:
 
 	double GetEfficiency();
 
+	double GetCapacity();
+
 	double GetCooldownTime();
         
     bool IsOperational();
         
     void Shutdown(double time);
         
-    void RestoreComponent();
+    void RestoreComponent(bool reset_age);
 
 	void GenerateTimeToRepair(WELLFiveTwelve &gen);
         
