@@ -78,7 +78,7 @@ parameters::parameters()
 	helio_mtf.set( 12000, "helio_mtf", lk::vardata_t::NUMBER, false, "Heliostat mean time to failure", "hr", "Heliostat availability|Parameters" );
 	heliostat_repair_cost.set( 300, "heliostat_repair_cost", lk::vardata_t::NUMBER, false, "Heliostat repair cost", "$", "Heliostat availability|Parameters" );
 	om_staff_max_hours_week.set( 35, "om_staff_max_hours_week", lk::vardata_t::NUMBER, false, "Max O&M staff hours per week", "hr", "Heliostat availability|Parameters" );
-	n_heliostats_sim.set( 1000, "n_heliostats_sim", lk::vardata_t::NUMBER, false, "Number of simulated heliostats", "-", "Heliostat availability|Parameters" );
+	n_heliostats_sim.set( 8000, "n_heliostats_sim", lk::vardata_t::NUMBER, false, "Number of simulated heliostats", "-", "Heliostat availability|Parameters" );
 	wash_units_per_hour.set( 45., "wash_units_per_hour", lk::vardata_t::NUMBER, false, "Heliostat wash rate", "1/crew-hr", "Optical degradation|Parameters" );
 	wash_crew_max_hours_week.set( 70., "wash_crew_max_hours_week", lk::vardata_t::NUMBER, false, "Wash crew max hours per week", "hr", "Optical degradation|Parameters" );
 	degr_per_hour.set( 1.e-7, "degr_per_hour", lk::vardata_t::NUMBER, false, "Reflectivity degradation rate", "1/hr", "Optical degradation|Parameters" );
@@ -1483,15 +1483,30 @@ bool Project::M()
 
 	solarfield_availability sfa;
 
-	sfa.m_settings.mf = m_parameters.helio_mtf.as_number();
-	sfa.m_settings.rep_min = 1.;
-	sfa.m_settings.rep_max = 100.;
+	sfa.m_settings.n_years = m_parameters.plant_lifetime.as_integer();
+	sfa.m_settings.step = 4.0;
+	
+	sfa.m_settings.n_om_staff.assign(sfa.m_settings.n_years, m_variables.om_staff.as_number());
+	sfa.m_settings.max_hours_per_day = 9.;
+	sfa.m_settings.max_hours_per_week = m_parameters.om_staff_max_hours_week.as_number();
+
 	sfa.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
-	sfa.m_settings.n_om_staff = m_variables.om_staff.as_integer();
-	sfa.m_settings.hr_prod = m_parameters.om_staff_max_hours_week.as_number();
-	sfa.m_settings.n_hr_sim = 8760 * 12;
+	sfa.m_settings.n_helio_sim = m_parameters.n_heliostats_sim.as_integer();
 	sfa.m_settings.seed = m_parameters.avail_seed.as_integer();
-	sfa.m_settings.n_helio_sim = 1000;
+
+	sfa.m_settings.is_fix_hours = true;
+	sfa.m_settings.sunrise = 6.9;
+	sfa.m_settings.sunset = 19.0;
+
+	sfa.m_settings.repair_order = MEAN_REPAIR_TIME;
+	sfa.m_settings.is_tracking = false;
+
+
+	sfa.m_settings.helio_performance.assign(sfa.m_settings.n_helio, 1.0);
+	helio_component_inputs comp(1.0, (double)m_parameters.helio_mtf.as_number(), 2.0, 1.0, 100.0, true, (double)m_parameters.heliostat_repair_cost.as_number());
+	sfa.m_settings.helio_components.push_back(comp);
+	
+
 
 	//error if trying to simulate with no heliostats
 	if (m_design_outputs.number_heliostats.as_integer() <= 1)
@@ -1503,21 +1518,22 @@ bool Project::M()
 	sfa.simulate(sim_progress_handler);
 
 	//Calculate staff cost and repair cost
-	double ann_fact = 8760. / (double)sfa.m_settings.n_hr_sim;
+	sfa.m_results.heliostat_repair_cost_y1 = 0.0;
+	for (int c = 0; c < sfa.m_settings.helio_components.size(); c++)
+		sfa.m_results.heliostat_repair_cost_y1 += sfa.m_settings.helio_components[c].m_repair_cost * ( sfa.m_results.n_repairs_per_component[c] / sfa.m_settings.n_years); // Average yearly repair cost
 
-	sfa.m_results.n_repairs *= ann_fact;	//annual repairs
-	sfa.m_results.heliostat_repair_cost_y1 = sfa.m_results.n_repairs * m_parameters.heliostat_repair_cost.as_number();
 	
 	//lifetime costs
 	//treat heliostat repair costs as consuming reserve equipment paid for at the project outset
-	sfa.m_results.heliostat_repair_cost = calc_real_dollars(sfa.m_results.heliostat_repair_cost_y1);
+	double total_cost = sfa.m_results.heliostat_repair_cost_y1 * sfa.m_settings.n_years;
+	sfa.m_results.heliostat_repair_cost = calc_real_dollars(total_cost);
 
     //assign outputs to project structure
     m_solarfield_outputs.n_repairs.assign( sfa.m_results.n_repairs );
     m_solarfield_outputs.staff_utilization.assign( sfa.m_results.staff_utilization );
     m_solarfield_outputs.heliostat_repair_cost_y1.assign( sfa.m_results.heliostat_repair_cost_y1 );
     m_solarfield_outputs.heliostat_repair_cost.assign( sfa.m_results.heliostat_repair_cost );
-    m_solarfield_outputs.avail_schedule.assign_vector( sfa.m_results.avail_schedule, sfa.m_results.n_avail_schedule );
+    m_solarfield_outputs.avail_schedule.assign_vector( sfa.m_results.avail_schedule);
 
 	is_sf_avail_valid = true;
 	return true;

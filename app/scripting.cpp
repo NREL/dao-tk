@@ -260,8 +260,8 @@ void _test(lk::invoke_t &cxt)
 	P->m_variables.n_wash_crews.assign( 3 );
 	P->m_variables.N_panels.assign( 16 );
 
-	P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
-
+	//P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+	P->m_parameters.solar_resource_file.assign("C:/Users/jmartine/Documents/Projects/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv");
 	P->D();
 	P->M();
 	P->O();
@@ -582,59 +582,119 @@ void _simulate_solarfield(lk::invoke_t &cxt)
 {
 	LK_DOC("simulate_solarfield", "Simulate the solar field availability over time due to heliostat failures. "
 		"Table keys include: "
-		"mean_time_to_failure, n_helio_actual, n_helio_simulated, n_om_staff, n_hr_sim, rng_seed, repair_min_downtime, "
-		"rep_max_downtime, staff_productive_hr_week."
+		"weibull_shape_param, weibull_scale_param, rep_mean_downtime, rep_min_downtime, rep_max_downtime, rep_good_as_new,"
+		"n_helio_simulated, n_om_staff, n_year_sim, rng_seed, staff_productive_hr_week, model_time_step, repair_order."
 		, "(table:inputs):table");
 
 	solarfield_availability SA;
 
 	lk::varhash_t *H = cxt.arg(0).hash();
 	
+	
 	std::string error_msg;
 	MainWindow &mw = MainWindow::Instance();
+
 	if( ! mw.GetProject()->Validate(Project::CALLING_SIM::HELIO_AVAIL, &error_msg) )
 	{
 		mw.Log( error_msg );
 		return;
 	}
 
-	SA.m_settings.mf = 12000;
-	if (H->find("mean_time_to_failure") != H->end())
-		SA.m_settings.mf = H->at("mean_time_to_failure")->as_integer();
+	SA.m_settings.n_helio = mw.GetProject()->m_design_outputs.number_heliostats.as_integer();
 
-	SA.m_settings.n_helio = 9264;
-	if (H->find("n_helio_actual") != H->end())
-		SA.m_settings.n_helio = H->at("n_helio_actual")->as_integer();
 
-	SA.m_settings.n_helio_sim = 1000;
+	SA.m_settings.n_helio_sim = 8000;
 	if (H->find("n_helio_simulated") != H->end())
 		SA.m_settings.n_helio_sim = H->at("n_helio_simulated")->as_integer();
 
-	SA.m_settings.n_om_staff = 5;
-	if (H->find("n_om_staff") != H->end())
-		SA.m_settings.n_om_staff = H->at("n_om_staff")->as_integer();
+	SA.m_settings.n_years = 30;
+	if (H->find("n_year_sim") != H->end())
+		SA.m_settings.n_years = H->at("n_year_sim")->as_integer();
 
-	SA.m_settings.n_hr_sim = 105120;
-	if (H->find("n_hr_sim") != H->end())
-		SA.m_settings.n_hr_sim = H->at("n_hr_sim")->as_integer();
+	double om_staff = 5;
+	if (H->find("n_om_staff") != H->end())
+		om_staff = H->at("n_om_staff")->as_integer();
+	SA.m_settings.n_om_staff.assign(SA.m_settings.n_years, om_staff);
 
 	SA.m_settings.seed = 123;
 	if (H->find("rng_seed") != H->end())
 		SA.m_settings.seed = H->at("rng_seed")->as_integer();
 
-	SA.m_settings.rep_min = 1; //[hr]
-	if (H->find("repair_min_downtime") != H->end())
-		SA.m_settings.rep_min = H->at("repair_min_downtime")->as_number();
 
-	SA.m_settings.rep_max = 100; //[hr]
-	if (H->find("rep_max_downtime") != H->end())
-		SA.m_settings.rep_max = H->at("rep_max_downtime")->as_number();
-
-	SA.m_settings.hr_prod = 35;
+	SA.m_settings.max_hours_per_week = 35;
 	if (H->find("staff_productive_hr_week") != H->end())
-		SA.m_settings.hr_prod = H->at("staff_productive_hr_week")->as_number();
-	
+		SA.m_settings.max_hours_per_week = H->at("staff_productive_hr_week")->as_number();
+
+	SA.m_settings.step = 4.;
+	if (H->find("model_time_step") != H->end())
+		SA.m_settings.step = H->at("model_time_step")->as_number();
+
+
+	//-- Heliostat component inputs
+	double beta = 1.0;
+	if (H->find("weibull_shape_param") != H->end())
+		beta = H->at("weibull_shape_param")->as_integer();
+
+	double eta = 12000; //[hr]
+	if (H->find("weibull_scale_param") != H->end())
+		eta = H->at("weibull_scale_param")->as_integer();
+
+	double rep_mean = 2.;
+	if (H->find("rep_mean_downtime") != H->end())
+		rep_mean = H->at("rep_mean_downtime")->as_number();
+
+	double rep_min = 1; //[hr]
+	if (H->find("rep_min_downtime") != H->end())
+		rep_min = H->at("rep_min_downtime")->as_number();
+
+	double rep_max = 100; //[hr]
+	if (H->find("rep_max_downtime") != H->end())
+		rep_max = H->at("rep_max_downtime")->as_number();
+
+	bool good_as_new = true; 
+	if (H->find("rep_good_as_new") != H->end())
+		good_as_new = H->at("rep_good_as_new")->as_boolean();
+
+	helio_component_inputs component(beta, eta, rep_mean, rep_min, rep_max, good_as_new, 0.0);
+	SA.m_settings.helio_components.push_back(component);
+
+
+	//-- Repair ordering
+	SA.m_settings.repair_order = MEAN_REPAIR_TIME;
+
+	if (H->find("repair_order") != H->end())
+	{
+		std::string ro = H->at("repair_order")->as_string();
+
+		if (ro == "failure_order")
+			SA.m_settings.repair_order = FAILURE_ORDER;
+		else if (ro == "performance")
+			SA.m_settings.repair_order = PERFORMANCE;
+		else if (ro == "repair_time")
+			SA.m_settings.repair_order = REPAIR_TIME;
+		else if (ro == "mean_repair_time")
+			SA.m_settings.repair_order = MEAN_REPAIR_TIME;
+		else if (ro == "random")
+			SA.m_settings.repair_order = RANDOM;
+		else
+			mw.Log("Specified repair order not recognized. Valid inputs are 'failure_order', 'performance', 'repair_time', 'mean_repair_time', 'random'");
+	}
+
+
+	SA.m_settings.helio_performance.assign(SA.m_settings.n_helio, 1.0);
 	SA.simulate();
+
+
+	mw.Log(wxString::Format("Overall average availability: %0.3f ", SA.m_results.avg_avail));
+	mw.Log(wxString::Format("Minimum availability: %0.3f ", SA.m_results.min_avail));
+
+	for (int c = 0; c < SA.m_settings.helio_components.size(); c++)
+		mw.Log(wxString::Format("Component %d failures / repairs: %0.1f / %0.1f ", c, SA.m_results.n_failures_per_component[c], SA.m_results.n_repairs_per_component[c]));
+	
+
+
+
+
 
 	return;
 
