@@ -1,8 +1,8 @@
 #include "metrics.h"
-#include "solpos00.h"
 
 #include <fstream>
 #include <sstream>
+
 
 clustering_metrics::clustering_metrics()
 {
@@ -212,95 +212,6 @@ bool clustering_metrics::read_weather(const std::string &weatherfile, double &la
 	return ok;
 }
 
-void clustering_metrics::approximate_clearsky(int model, double lat, double lon, double elev, int year, int tz, bool is_tmy, double tstephr, std::vector<double>&csky)
-{
-	// Calculate approximate clear sky DNI
-
-	int nperhr = int(1. / tstephr);
-	double tstep_sec = tstephr * 3600.;
-	csky.clear();
-	int days[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-
-	int doy = 1;
-	for (int m = 0; m < 12; m++)
-	{
-		for (int d = 0; d < days[m]; d++)
-		{
-			for (int h = 0; h < 24; h++)
-			{
-				for (int t = 0; t < nperhr; t++)
-				{
-
-					// Calculate sun position
-					double tsec = t * tstep_sec;
-					int min = int(tsec / 60.);
-					int sec = int(tsec - min * 60.);
-
-					struct posdata sp, *pdat;
-					pdat = &sp;
-					S_init(pdat);
-					pdat->latitude = float(lat);	//[deg] {float} North is positive
-					pdat->longitude = float(lon);	//[deg] {float} Degrees east. West is negative
-					pdat->timezone = float(tz);		//[hr] {float} Time zone, east pos. west negative. Mountain -7, Central -6, etc..
-					pdat->year = year;				//[year] {int} 4-digit year
-					pdat->month = m + 1;				//[mo] {int} (1-12)
-					pdat->day = d + 1;				//[day] {int} Day of the month
-					pdat->daynum = doy;				//[day] {int} Day of the year
-					pdat->hour = h + 1;				//[hr] {int} 0-23
-					pdat->minute = min;				//[min] {int} 0-59
-					pdat->second = sec;				//[sec]	{int} 0-59
-					pdat->interval = int(tstep_sec);	//[sec] {int} Measurement interval.  Note: input time is assumed to be at the end of the measurement interval, values are calculated at the midpoint of the interval
-
-					if (is_tmy)  // TMY files: dni at beginning of interval; Single year: dni at midpoint of interval
-						pdat->interval = 2 * int(tstep_sec);	// double the interval so that the midpoint is at the beginning of the TMY interval
-
-					long retcode = 0;
-					retcode = S_solpos(pdat);
-					S_decode(retcode, pdat);
-
-					double zen = sp.zenetr;   // [deg]
-
-											  // Estimate clear sky DNI
-					double cskypt, s0, beta, alt;
-					beta = 2 * 3.14159*(doy / 365.);
-					s0 = 1367 * (1.00011 + 0.034221*cos(beta) + 0.00128*sin(beta) + 0.000719*cos(2 * beta) + 0.000077*sin(2 * beta));
-					alt = elev / 1000.;   // convert to km
-
-					switch (model)
-					{
-					case MEINEL:
-					{
-						if (zen >= 90.0)
-							cskypt = 0.0;
-						else
-							cskypt = s0 * ((1.0 - 0.14*alt)*exp(-0.347*pow((1. / cos(zen*3.14159 / 180.)), 0.678)) + 0.14*alt);
-						break;
-					}
-
-					case HOTTEL:
-					{
-						double a = 0.4237 - 0.00821*pow((6.0 - alt), 2.0);
-						double b = 0.5055 + 0.00595*pow((6.5 - alt), 2.0);
-						double c = 0.2711 + 0.01858*pow((2.5 - alt), 2.0);
-						if (zen >= 90.0)
-							cskypt = 0.0;
-						else
-							cskypt = s0 * (a + b * exp(-c / cos(zen*3.14159 / 180.)));
-						break;
-					}
-					}
-
-					csky.push_back(cskypt);
-				}
-			}
-			doy += 1;
-		}
-
-	}
-
-	return;
-}
-
 void clustering_metrics::calc_metrics()
 {
 	clear_results();
@@ -308,7 +219,6 @@ void clustering_metrics::calc_metrics()
 	int tz, year, npts, nptsday, nptshr, day;
 	double lat, lon, elev, tstephr;
 	bool is_tmy;
-	std::vector<double> csky;
 	unordered_map<std::string, std::vector<double>> timeseries;
 
 	std::vector<int> visible_days; // Days "visible" within this simulation period
@@ -388,7 +298,10 @@ void clustering_metrics::calc_metrics()
 	nptsday = npts / 365;
 	nptshr = nptsday / 24;
 	tstephr = 8760. / (double)npts;
-	approximate_clearsky(inputs.cskymodel, lat, lon, elev, year, tz, is_tmy, tstephr, csky);
+
+	s_location loc(lat, lon, elev, tz);
+	clearsky clsky(loc);
+	clsky.calculate_clearsky(tstephr, inputs.cskymodel, year, is_tmy);
 
 	day = 172;
 	int summer_sunrise = 0;
@@ -397,7 +310,7 @@ void clustering_metrics::calc_metrics()
 	bool found_sunrise = false;
 	for (int i = 0; i<nptsday; i++)
 	{
-		if (csky[day*nptsday + i] >= daylight_cutoff)
+		if (clsky.m_csky[day*nptsday + i] >= daylight_cutoff)
 		{
 			summer_daylight_pts += 1;
 			if (!found_sunrise)
@@ -418,10 +331,10 @@ void clustering_metrics::calc_metrics()
 	{
 		//--- Read weather
 		read_weather(inputs.weather_files[y], lat, lon, elev, tz, year, is_tmy, timeseries["dni"], timeseries["wspd"], timeseries["tdry"]);
-		approximate_clearsky(inputs.cskymodel, lat, lon, elev, year, tz, is_tmy, tstephr, csky);
+		clsky.calculate_clearsky(tstephr, inputs.cskymodel, year, is_tmy);
 
 		//--- Replace DNI and wind speed above stow limit
-		timeseries["cskydiff"] = csky;
+		timeseries["cskydiff"] = clsky.m_csky;
 		for (int i = 0; i < timeseries["dni"].size(); i++)
 		{
 			if (timeseries["wspd"][i] > inputs.stowlimit)

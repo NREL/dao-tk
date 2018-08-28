@@ -74,8 +74,6 @@ matrix<double> cluster_alg::assign_means_from_exemplars(const matrix<double> &da
 
 	matrix<double> means(nc, nfeatures, 0.0);
 
-	double val = data.at(0, 0);
-
 	for (int j = 0; j < nc; j++)
 	{
 		int m = exemplars.at(j);

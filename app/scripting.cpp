@@ -260,8 +260,8 @@ void _test(lk::invoke_t &cxt)
 	P->m_variables.n_wash_crews.assign( 3 );
 	P->m_variables.N_panels.assign( 16 );
 
-	//P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
-	P->m_parameters.solar_resource_file.assign("C:/Users/jmartine/Documents/Projects/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv");
+	P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+
 	P->D();
 	P->M();
 	P->O();
@@ -797,7 +797,7 @@ void _simulate_performance(lk::invoke_t &cxt)
 				mw.Log("Specified clustering algorithm not recognized");
 		}
 		else
-			P->m_cluster_parameters.alg = KMEANS;
+			P->m_cluster_parameters.alg = AFFINITY_PROPAGATION;
 	}
 
 	//--- Price array from price file
