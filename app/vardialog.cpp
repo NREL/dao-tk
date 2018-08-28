@@ -61,13 +61,13 @@ void VariableDialog::OnCommand(wxCommandEvent &evt)
     {
         wxString filter = m_searchtext->GetValue();
         wxString filtertype = m_searchselect->GetValue();
-        UpdateHelp(filter, filtertype);
+        UpdateHelp(filter.c_str(), filtertype.c_str());
         break;
     }
     case ID_SEARCHCLEAR:
         m_searchtext->SetValue("");
         wxString filtertype = m_searchselect->GetValue();
-        UpdateHelp("", filtertype);
+        UpdateHelp("", filtertype.c_str());
         break;
     }
 

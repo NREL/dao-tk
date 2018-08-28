@@ -25,7 +25,9 @@ OBJECTS  = \
 	logview.o \
 	project.o \
 	scripting.o \
-	scriptview.o
+	scriptview.o \
+	vardocument.o \
+	vardialog.o
 
 TARGET = dao-tk
 
