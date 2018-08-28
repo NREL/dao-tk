@@ -16,6 +16,17 @@ Distribution::Distribution(double alpha, double beta, std::string type)
 	m_type = type;
 }
 
+bool Distribution::IsBinary()
+{
+	return false;
+}
+
+double Distribution::GetVariate(WELLFiveTwelve & gen)
+{
+	return -1.0;
+}
+
+
 std::string Distribution::GetType()
 {
 	return m_type;

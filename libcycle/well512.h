@@ -1,5 +1,6 @@
 #include <vector>
 #include <stdint.h>
+#include <unordered_map>
 
 #ifndef _WELL512_
 #define _WELL512_
@@ -17,6 +18,7 @@ class WELLFiveTwelve
 
     std::vector< uint32_t > state;
     int state_i;
+	
 
 
 public:
@@ -24,6 +26,7 @@ public:
     WELLFiveTwelve(int scen, int W=32, int R=16, int P=0, int M1=13, int M2=9, int M3=5);
 
     void assignStates(int scenario);
+	void saveStates(int scenario);
 
     int V0();
     int VM1();
@@ -39,7 +42,7 @@ public:
     uint32_t MAT3NEG(int t, uint32_t v);
     uint32_t MAT4NEG(int t, uint32_t b, uint32_t v);
     double getVariate();
-
+	std::unordered_map<int, std::vector< uint32_t > > m_stored_states;
 };
 
 

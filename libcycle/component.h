@@ -18,10 +18,11 @@ struct failure_event
 	int fail_idx;
     double duration;
     double new_life;
+	int scen_index;
 
 	failure_event();
 	failure_event(int time, std::string component, int fail_idx, double duration,
-		double new_life);
+		double new_life, int scen_index);
 
     std::string print();
 };
@@ -35,10 +36,12 @@ struct ComponentStatus
     double downtime_remaining;
     bool operational;
     bool running;
+	double repair_event_time;
+	double efficiency;
 
     ComponentStatus();
-    ComponentStatus( std::vector<double> lifes, double hazard, 
-			double downtime );
+    ComponentStatus( std::vector<double> _lifes, double _hazard, 
+			double _downtime, double _repair_event_time, double _efficiency );
 };
 
 
@@ -57,12 +60,14 @@ class Component
     double m_repair_cost;
     std::string m_name;
     std::string m_type;
-	double m_availability_reduction;
+	double m_capacity_reduction;
+	double m_efficiency_reduction;
 	double m_cooldown_time;
 	std::string m_repair_mode; // "A"=Anytime; "S"=standby or downtime; "D"=downtime only
     ComponentStatus m_status;
 
-    std::unordered_map< std::string, failure_event > *m_parent_failure_events;
+	std::unordered_map< std::string, failure_event > *m_parent_failure_events;
+	std::vector< std::string > *m_parent_failure_event_labels;
 
 	Distribution *m_repair_dist;
 
@@ -73,8 +78,9 @@ public:
     Component(std::string name, std::string type, //std::string dist_type, double failure_alpha, double failure_beta, 
 		double repair_rate, double repair_cooldown_time,
 		std::unordered_map< std::string, failure_event > *failure_events, 
-		double availability_reduction = 1.0, double repair_cost = 0.0,
-		std::string repair_mode = "D"
+		double availability_reduction = 1.0, 
+		double efficiency_reduction = 1.0, double repair_cost = 0.0,
+		std::string repair_mode = "D", std::vector< std::string > *failure_eventlabels = {}
 		);
 
     void ReadStatus( ComponentStatus &status );
@@ -92,7 +98,9 @@ public:
     
     double GetRepairCost();
 
-	double GetAvailabilityReduction();
+	double GetCapacityReduction();
+
+	double GetEfficiency();
 
 	double GetCooldownTime();
         
@@ -112,21 +120,25 @@ public:
         
     double HoursToFailure(double ramp_mult, std::string mode);
 
-	void TestForBinaryFailure(std::string mode, int t, WELLFiveTwelve &gen);
+	void TestForBinaryFailure(std::string mode, int t, WELLFiveTwelve &gen,
+		int scen_index);
 	
 	void TestForFailure(double time, double ramp_mult, WELLFiveTwelve &gen, 
-		int t, double hazard_increase, std::string mode);
+		int t, double hazard_increase, std::string mode, int scen_index);
          
     void Operate(double time, double ramp_mult, WELLFiveTwelve &gen, 
-		bool read_only, int t, double hazard_increase, std::string mode);
+		bool read_only, int t, double hazard_increase, std::string mode,
+		int scen_index);
         
     void ReadFailure(double downtime, double life_remaining,
 		int fail_idx, bool reset_hazard);
                 
-    void GenerateFailure(WELLFiveTwelve &gen, int t, int j); 
+    void GenerateFailure(WELLFiveTwelve &gen, int t, int j, int scen_index); 
 
 	bool CanBeRepaired(std::string mode);
-        
+
+	void ResetDowntime();
+
     void AdvanceDowntime(double time, std::string mode);
 
 	std::vector<double> GetLifetimesAndProbs();
@@ -134,6 +146,8 @@ public:
 	void GenerateInitialLifesAndProbs(WELLFiveTwelve &gen);
             
 	ComponentStatus GetState();
+
+	void Reset(WELLFiveTwelve &gen);
 
 };
 
