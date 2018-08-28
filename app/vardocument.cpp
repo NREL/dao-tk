@@ -21,10 +21,15 @@ void Project::add_documentation()
                                 "design conditions to the thermal power delivered to the power block at design conditions."
                                 "<br><sl>The larger the solar multiple, the more energy will be aviailable for thermal storage.</sl>");
     m_variables.tshours.doc.set("hr","The number of hours that the power block can operate at full load while drawing thermal power "
-                                 "exclusively from the thermeal storage system."
+                                 "exclusively from the thermal storage system."
                                  "<br><sl></sl>");
-    m_variables.degr_replace_limit.doc.set("","");
-    m_variables.om_staff.doc.set("","");
+    m_variables.degr_replace_limit.doc.set("-","The lower limit for individual heliostat reflectivity after long-term degradation "
+                                                "upon which the mirrors are replaced. The replacement occurs at the first time that "
+                                                "the mirror wash crew encounters the heliostat in question after its reflectivity is "
+                                                "below the limit. Upon replacement, a cost equal to the parameter 'heliostat_refurbish_cost' "
+                                                "is incurred.");
+    m_variables.om_staff.doc.set("-","The number of staff (continuous) available for addressing operations and maintenance events, "
+                                     "including:<br><ul><li>Heliostat failures</li><li>Cycle maintenance events</li></ul>");
     m_variables.n_wash_crews.doc.set("","");
     m_variables.N_panels.doc.set("","");
 

@@ -34,6 +34,8 @@ TARGET = dao-tk
 
 $(TARGET): $(OBJECTS) $(WEXLIB) 
 	$(CXX) -g -o $@ $^ $(LDFLAGS)
+	@mkdir -p $(@D)/../deploy/linux
+	mv $(TARGET) ../deploy/linux/$(TARGET)
 	
 clean:
 	rm -f $(TARGET) $(OBJECTS)

@@ -49,6 +49,8 @@ VariableDialog::VariableDialog(wxWindow *parent, std::vector< void* > vargroups,
     this->SetSizer(windowsizer);
 
     this->Layout();
+
+    m_searchtext->SetFocus();
 }
 
 
@@ -111,35 +113,31 @@ void VariableDialog::UpdateHelp(const char* filter, const char* type)
                 continue;
             }
 
+            wxString searchstring;
+
             if (stype == "Name")
             {
-                if (v->name.find(sfilter.c_str(), 0) != std::string::npos)
-                    filtered_group_items.append(v->doc.formatted_doc);
+                searchstring = v->name;
             }
             else if (stype == "Description")
             {
-                if (v->doc.description.find(sfilter.c_str(), 0) != std::string::npos)
-                    filtered_group_items.append(v->doc.formatted_doc);
+                searchstring = v->doc.description;
             }
             else if (stype == "Type")
             {
                 switch (v->type())
                 {
                 case data_base::NUMBER:
-                    if (wxString("number double float integer long").Find(sfilter) != wxNOT_FOUND)
-                        filtered_group_items.append(v->doc.formatted_doc);
+                    searchstring = wxString("number double float integer long");
                     break;
                 case data_base::STRING:
-                    if (wxString("string character text").Find(sfilter) != wxNOT_FOUND)
-                        filtered_group_items.append(v->doc.formatted_doc);
+                    searchstring = wxString("string character text");
                     break;
                 case data_base::VECTOR:
-                    if (wxString("vector array matrix list").Find(sfilter) != wxNOT_FOUND)
-                        filtered_group_items.append(v->doc.formatted_doc);
+                    searchstring = wxString("vector array matrix list");
                     break;
                 case data_base::HASH:
-                    if (wxString("table hash map").Find(sfilter) != wxNOT_FOUND)
-                        filtered_group_items.append(v->doc.formatted_doc);
+                    searchstring = wxString("table hash map");
                     break;
                 default:
                     break;
@@ -147,9 +145,23 @@ void VariableDialog::UpdateHelp(const char* filter, const char* type)
             }
             else // (stype == "" || stype == "All")
             {
-                if (v->doc.formatted_doc.find(sfilter.c_str(), 0) != std::string::npos)
-                    filtered_group_items.append(v->doc.formatted_doc);
+                searchstring = v->doc.formatted_doc;
             }
+            
+            //make sure all terms are included in the listed items
+            wxArrayString sfilter_terms = wxSplit(sfilter, ' ');
+            bool all_ok = true;
+            for(int si=0; si<sfilter_terms.size(); si++)
+            {
+                if (searchstring.MakeLower().Find(sfilter_terms[si]) == wxNOT_FOUND)
+                {
+                    all_ok = false;
+                    break;
+                }
+            }
+            if( all_ok )
+                filtered_group_items.append(v->doc.formatted_doc);
+            
         }
 
         if ( ! filtered_group_items.empty() )
