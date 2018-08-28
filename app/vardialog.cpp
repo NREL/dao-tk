@@ -90,19 +90,19 @@ void VariableDialog::UpdateHelp(const char* filter, const char* type)
 
         for (lk::varhash_t::iterator vit = (*grit)->begin(); vit != (*grit)->end(); vit++)
         {
-            if (vit == (*grit)->begin())
+            data_base* v = static_cast<data_base*>(vit->second);
+
+            if( v->nice_name.empty() )
+                continue;
+
+            if ( group_formatted.empty() )
             {
-                std::string groupname = (static_cast<data_base*>((*grit)->begin()->second)->group);
+                std::string groupname = v->group;
                 std::string groupfirst = wxSplit(groupname, '|').front();
                 group_formatted.append("<table style=\"width:100%;background-color:#444;fontsize:+3;\"><tr><td><font size=\"+4\" color=\"#fff\">");
                 group_formatted.append(groupfirst);
                 group_formatted.append("</font></td></tr></table>");
             }
-
-            data_base* v = static_cast<data_base*>(vit->second);
-
-            if( v->nice_name.empty() )
-                continue;
 
             if (sfilter.empty())
             {

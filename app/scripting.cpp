@@ -506,9 +506,9 @@ void _power_cycle(lk::invoke_t &cxt)
 	cycle.AssignGenerator(&gen);
 	cycle.Simulate(true);
 
-	return;
-
 	MainWindow::Instance().SetProgress(0.);
+
+	return;
 }
 
 void _simulate_optical(lk::invoke_t &cxt)

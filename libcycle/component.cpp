@@ -55,7 +55,7 @@ Component::Component(std::string name, std::string type,
     */
 
     if( name == "MAINTENANCE" )
-        throw std::exception("cannot name a component 'MAINTENANCE'");
+        throw std::invalid_argument("cannot name a component 'MAINTENANCE'");
     
 	m_failure_types = {};
     m_name = name;
@@ -304,7 +304,7 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
     retval -- None
     */
     if( ! IsOperational() )
-        throw std::exception("can't operate a plant in downtime.");
+        throw std::runtime_error("can't operate a plant in downtime.");
 	m_status.hazard_rate += hazard_increase;
 	std::string opmode;
 	//if starting a mode, operate as if
@@ -329,13 +329,13 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
 		if (m_failure_types.at(j).GetFailureMode() == opmode || (opmode != "OFF" && m_failure_types.at(j).GetFailureMode() == "ALL"))
 		{
 			if (time * m_status.hazard_rate * ramp_mult > m_failure_types.at(j).GetLifeRemaining() && !read_only)
-				throw std::exception("failure should be thrown.");
+				throw std::runtime_error("failure should be thrown.");
 			m_failure_types.at(j).ReduceLifeRemaining(time * m_status.hazard_rate * ramp_mult);
 		}
 		if (m_failure_types.at(j).GetFailureMode() == "O" && (opmode == "OO" || opmode == "OF"))
 		{
 			if (time * m_status.hazard_rate * ramp_mult > m_failure_types.at(j).GetLifeRemaining() && !read_only)
-				throw std::exception("failure should be thrown.");
+				throw std::runtime_error("failure should be thrown.");
 			m_failure_types.at(j).ReduceLifeRemaining(time * m_status.hazard_rate * ramp_mult);
 		}
 	}		

@@ -1,24 +1,24 @@
-VPATH=../src
+VPATH=../libcycle
 
 CXX = g++
-CFLAGS = -g -D__UNIX__ -fPIC -Wall
-LDFLAGS = -std=c++11 -lm -lstdc++ 
-CXXFLAGS= -std=c++11 $(CFLAGS)
+CFLAGS = -g -D__64BIT__ -fPIC -Wall -O3
+CXXFLAGS= -std=c++0x $(CFLAGS)
 
 CFLAGS += -D__64BIT__
-TARGET = cycle_avail_model.so
 
 
 OBJECTS = \
 	lib_util.o\
 	well512.o\
+	distributions.o \
+	failure.o \
 	component.o\
 	plant.o
 
+TARGET = libcycle.a
 
 $(TARGET) : $(OBJECTS)
-	$(CXX) -shared -o $@ $^ $(LDFLAGS)
-
+	ar rs $(TARGET) $(OBJECTS)
 
 clean:
 	rm -rf $(TARGET) $(OBJECTS)
