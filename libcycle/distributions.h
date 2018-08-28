@@ -12,16 +12,8 @@ class Distribution
 public:
 	Distribution();
 	Distribution(double alpha, double beta, std::string type);
-	virtual bool IsBinary()
-	{
-		throw std::exception("undefined distribution.");
-		return false;
-	}
-	virtual double GetVariate(WELLFiveTwelve &gen)
-	{
-		throw std::exception("undefined distribution.");
-		return -1;
-	}
+	virtual bool IsBinary();
+	virtual double GetVariate(WELLFiveTwelve &gen);
 	std::string GetType();
 	double GetAlpha();
 	double GetBeta();
@@ -30,9 +22,7 @@ public:
 
 //##################################################################################
 /*
-this is an object that performs inverse CDF's of the exponential
-distribution, and is intended to remove a dependency from the scipy
-library.
+This is an object that performs inverse CDF's of the exponential distribution.
 */
 class ExponentialDist : public Distribution
 {
@@ -45,8 +35,8 @@ public:
 };
 //##################################################################################
 /*
-this is an object that performs inverse CDF's of the gamma
-distribution using an algorithm found in Fishman's book 'Monte Carlo...'.
+This is an object that performs inverse CDF's of the gamma
+distribution, using an algorithm found in Fishman's book 'Monte Carlo...'.
 */
 class GammaDist : public Distribution
 {
@@ -61,7 +51,7 @@ public:
 
 //##################################################################################
 /*
-this is an object that performs inverse CDF's of the bounded Johnson
+This is an object that performs inverse CDF's of the bounded Johnson
 distribution, using an algorithm for the normal inverse CDF and translation for
 the normal.
 */
