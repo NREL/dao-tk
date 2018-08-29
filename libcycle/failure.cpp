@@ -28,7 +28,7 @@ FailureType::FailureType(std::string component, std::string id,
 		m_failure_dist = (ExponentialDist *) edist;
 	}
 	else
-		throw std::exception("invalid distribution type provided as input.");
+		throw std::runtime_error("invalid distribution type provided as input.");
 	m_life_remaining = 0.0; 
 	m_probability = 0.0;
 }
@@ -106,7 +106,7 @@ void FailureType::GenerateTimeToFailure(WELLFiveTwelve &gen)
 
 	//For Gamma or Exponentially distributed failure distribution
 	if (m_failure_dist->IsBinary())
-		throw std::exception("lifetime generated with binary distribution.");
+		throw std::runtime_error("lifetime generated with binary distribution.");
 	m_life_remaining = m_failure_dist->GetVariate(gen);
 }
 
@@ -119,7 +119,7 @@ void FailureType::GenerateFailureProbability(WELLFiveTwelve &gen)
 
 	//For Beta distributed failure probability distribution
 	if (!(m_failure_dist->IsBinary()))
-		throw std::exception("fail probability generated with non-beta distribution.");
+		throw std::runtime_error("fail probability generated with non-beta distribution.");
 	m_probability = m_failure_dist->GetVariate(gen);
 }
 

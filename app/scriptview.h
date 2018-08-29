@@ -31,6 +31,7 @@ public:
 	bool Load(const wxString &file);
 	void Exec();
 	void SyntaxText(const wxString &);
+	void CreateVariableDialog();
 
 
 	wxLKScriptCtrl *GetEditor() { return m_editor; }

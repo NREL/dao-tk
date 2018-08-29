@@ -8,67 +8,74 @@
 
 failure_event::failure_event(){}
 
-failure_event::failure_event(int _time, std::string _component, int _fail_idx, double _duration, double _new_life)
-    : time( _time ), component( _component ), fail_idx( _fail_idx), duration( _duration ), new_life( _new_life )
+failure_event::failure_event(int _time, std::string _component, int _fail_idx, double _duration, double _new_life, int _scen_index)
+    : time( _time ), component( _component ), fail_idx( _fail_idx), duration( _duration ), new_life( _new_life ), scen_index(_scen_index)
 {}
 
 
 std::string failure_event::print()
 {
-    return "<" + component + ", " + std::to_string(duration) + ", " + std::to_string(new_life);
+    return "<" + component + ", " + std::to_string(duration) + ", " + std::to_string(new_life) + ", scenario " + std::to_string(scen_index) + ", period " + std::to_string(time);
 }
 
 //##################################################################################
 
 ComponentStatus::ComponentStatus(){}
 
-ComponentStatus::ComponentStatus(std::vector<double> lifes, double hazard, double downtime )
-    : lifetimes(lifes), hazard_rate( hazard ), downtime_remaining( downtime )
+ComponentStatus::ComponentStatus(std::vector<double> _lifes, double _hazard, 
+	double _downtime, double _repair_event_time, double _age)
+    : lifetimes(_lifes), hazard_rate( _hazard ), downtime_remaining( _downtime ), repair_event_time( _repair_event_time ), age( _age )
 {}
 
 //##################################################################################
 
 Component::Component()
-{
-}
+{}
 
-Component::Component(  std::string name, std::string type, 
-			//std::string dist_type, double failure_alpha, double failure_beta, 
-			double repair_rate, double repair_cooldown_time,
-            std::unordered_map< std::string, failure_event > *failure_events, 
-			double availability_reduction, double repair_cost, std::string repair_mode)
+Component::Component(std::string name, std::string type,
+		//std::string dist_type, double failure_alpha, double failure_beta, 
+		double repair_rate, double repair_cooldown_time,
+		std::unordered_map< std::string, failure_event > *failure_events,
+		double capacity_reduction, double efficiency_reduction, double repair_cost, std::string repair_mode,
+		std::vector<std::string> *failure_event_labels)
 {
     /*
     Description of attributes:
     name -- component identifer
-    component_type -- component type description
-	dist_type -- failure distribution type (Gamma or Beta)  Note:  Exponential is Gamma(1, lambda)
-    failure_alpha -- alpha for Gamma or Beta distribution
-	failure_beta -- beta for Gamma or Beta distribution
+    type -- component type description
     repair_rate -- rate at which repairs take place (events/h)
     repair_cooldown_time -- added required downtime for repair (h)
+	failure_events -- parent failure events dictionary 
+	capacity_reduction -- reduction in cycle capacity if component fails (fraction)
+	efficiency_reduction -- reduction in cycle capacity if component fails (fraction)
     repair_cost -- dollar cost of repairs, not including revenue lost ($)
+    repair_mode -- indicator of in which modes the component may be repaired
+	failure_event_labels -- keys to parent failure events dictionary
     */
 
     if( name == "MAINTENANCE" )
-        throw std::exception("cannot name a component 'MAINTENANCE'");
+        throw std::invalid_argument("cannot name a component 'MAINTENANCE'");
     
 	m_failure_types = {};
     m_name = name;
     m_type = type;
     m_repair_cost = repair_cost;
-	m_availability_reduction = availability_reduction;
+	m_capacity_reduction = capacity_reduction;
+	m_efficiency_reduction = efficiency_reduction;
 	m_cooldown_time = repair_cooldown_time;
 	m_repair_mode = repair_mode;
 
 	m_status.hazard_rate = 1.0;
     m_status.downtime_remaining = 0.0;
 	m_status.operational = true;
+	m_status.repair_event_time = 0.0;
+	m_status.age = 0.0;
 
 	Distribution *edist = new ExponentialDist(repair_rate, repair_cooldown_time, "exponential");
 	m_repair_dist = (ExponentialDist *) edist;
 
     m_parent_failure_events = failure_events;
+	m_parent_failure_event_labels = failure_event_labels;
 }
 
 
@@ -77,6 +84,8 @@ void Component::ReadStatus( ComponentStatus &status )
 	m_status.hazard_rate =  status.hazard_rate;
     m_status.downtime_remaining = status.downtime_remaining;
 	m_status.operational = (m_status.downtime_remaining < 1e-8);
+	m_status.repair_event_time = status.repair_event_time;
+	m_status.age = status.age;
 	for (size_t j = 0; j < m_failure_types.size(); j++)
 	{
 		m_failure_types.at(j).SetLifeOrProb(status.lifetimes.at(j));
@@ -117,9 +126,36 @@ double Component::GetRepairCost()
 	return m_repair_cost;
 }
 
-double Component::GetAvailabilityReduction()
+double Component::GetCapacityReduction()
 {
-	return m_availability_reduction;
+	return m_capacity_reduction;
+}
+
+double Component::GetEfficiency()
+{
+	/*
+	returns impact of turbine aging on efficiency.  Source:
+	Staffel 2014 (notes that previous studies and techincal 
+	reports indicate a decrease in efficiency of 0.15%-0.55%
+	per year of operation.)  This will be updated wth better
+	data, but the linear model is likely to apply.
+	*/
+	if (!IsOperational())
+		throw std::runtime_error("Efficiency checked for a non-operating component");
+	return 1.0 - (m_status.age * 0.002 / 5000);  //source: anecdotal; Staffel 2014 cites 0.15%-0.55% decline in efficiency per year.
+}
+
+double Component::GetCapacity()
+{
+	/*
+	returns impact of turbine aging on capacity.  Source:
+	Diakunchuk 1992; this is for gas engines, but cites
+	a 1% decrease in efficiency = ~2.5% decrease in power.
+	Need to verify if this makes sense for a steam turbine too.
+	*/
+	if (!IsOperational())
+		throw std::runtime_error("Capacity checked for a non-operating component");
+	return 1.0 - (m_status.age * 0.005 / 5000); 
 }
 
 double Component::GetCooldownTime()
@@ -144,13 +180,17 @@ void Component::Shutdown(double time)
     */
 	m_status.operational = false;
     m_status.downtime_remaining = time;
+	m_status.repair_event_time = time;
 }
 
         
-void Component::RestoreComponent()
+void Component::RestoreComponent(bool reset_age = true)
 {
 	m_status.operational = true;
 	m_status.downtime_remaining = 0.0;
+	m_status.repair_event_time = 0.0;
+	if (reset_age)
+		m_status.age = 0.0;
 }
 
         
@@ -182,6 +222,7 @@ void Component::GenerateTimeToRepair(WELLFiveTwelve &gen)
     retval -- lifetime in adjusted hours of operation
     */
     m_status.downtime_remaining = m_repair_dist->GetVariate(gen);
+	m_status.repair_event_time = m_status.downtime_remaining*1.0;
 	//std::cerr << "NEW FAILURE - DOWNTIME: " << std::to_string(m_status.downtime_remaining) << "\n";
 }
 
@@ -213,7 +254,8 @@ double Component::HoursToFailure(double ramp_mult, std::string mode)
 }
 
 
-void Component::TestForBinaryFailure(std::string mode, int t, WELLFiveTwelve &gen)
+void Component::TestForBinaryFailure(std::string mode, int t, 
+	WELLFiveTwelve &gen, int scen_index)
 {
 	double var = 0.0;
 	for (size_t j = 0; j < m_failure_types.size(); j++)
@@ -221,15 +263,18 @@ void Component::TestForBinaryFailure(std::string mode, int t, WELLFiveTwelve &ge
 		if (m_failure_types.at(j).GetFailureMode() == mode)
 		{
 			var = gen.getVariate();
-			if (var*m_status.hazard_rate <= m_failure_types.at(j).GetFailureProbability())
-				GenerateFailure(gen, t, j);
+			if ( var <= m_failure_types.at(j).GetFailureProbability() *m_status.hazard_rate )
+				GenerateFailure(gen, t, j, scen_index);
 		}
 	}
 }
 
 void Component::TestForFailure(double time, double ramp_mult,
-	WELLFiveTwelve &gen, int t, double hazard_increase, std::string mode)
+	WELLFiveTwelve &gen, int t, double hazard_increase, std::string mode, 
+	int scen_index)
 {
+	if (mode == "OFF")
+		return;
 	/*
 	Generates failure events under the provided dispatch, if there is not sufficient life
 	remaining in the component, or the RNG generates a failure on start.
@@ -240,12 +285,12 @@ void Component::TestForFailure(double time, double ramp_mult,
 	// then operate as if in the first hour of that mode to test
 	// for failures during the time period.
 	{
-		TestForBinaryFailure(mode, t, gen);
+		TestForBinaryFailure(mode, t, gen, scen_index);
 		opmode = "OF";
 	}
 	else if (mode == "SS")
 	{
-		TestForBinaryFailure(mode, t, gen);
+		TestForBinaryFailure(mode, t, gen, scen_index);
 		opmode = "SF";
 	}
 	else
@@ -255,12 +300,12 @@ void Component::TestForFailure(double time, double ramp_mult,
 		if (m_failure_types.at(j).GetFailureMode() == opmode || m_failure_types.at(j).GetFailureMode() == "ALL")
 		{
 			if (time * (m_status.hazard_rate + hazard_increase) * ramp_mult > m_failure_types.at(j).GetLifeRemaining())
-				GenerateFailure(gen, t, j);
+				GenerateFailure(gen, t, j, scen_index);
 		}
 		if (m_failure_types.at(j).GetFailureMode() == "O" && (opmode == "OO" || opmode == "OF" ) )
 		{
 			if (time * (m_status.hazard_rate + hazard_increase) * ramp_mult > m_failure_types.at(j).GetLifeRemaining())
-				GenerateFailure(gen, t, j);
+				GenerateFailure(gen, t, j, scen_index);
 		}
 	}
 	
@@ -268,7 +313,8 @@ void Component::TestForFailure(double time, double ramp_mult,
 
          
 void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen, 
-		bool read_only, int t, double hazard_increase, std::string mode)
+		bool read_only, int t, double hazard_increase, std::string mode,
+		int scen_index)
 {
     /* 
     assumes operation for a given period of time, with 
@@ -278,12 +324,11 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
     gen -- random U[0,1] variate generator object
     read_only -- indicates whether to generate a failure event if 
         life_remaining falls below 0 during operation
-    failure_file -- output file to record failures
     t -- period index
     retval -- None
     */
     if( ! IsOperational() )
-        throw std::exception("can't operate a plant in downtime.");
+        throw std::runtime_error("can't operate a plant in downtime.");
 	m_status.hazard_rate += hazard_increase;
 	std::string opmode;
 	//if starting a mode, operate as if
@@ -293,42 +338,44 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
 		// then operate as if in the first hour of that mode to test
 		// for failures during the time period.
 	{
-		TestForBinaryFailure(mode, t, gen);
+		TestForBinaryFailure(mode, t, gen, scen_index);
 		opmode = "OF";
 	}
 	else if (mode == "SS")
 	{
-		TestForBinaryFailure(mode, t, gen);
+		TestForBinaryFailure(mode, t, gen, scen_index);
 		opmode = "SF";
 	}
 	else
 		opmode = mode;
 	for (size_t j = 0; j < m_failure_types.size(); j++)
 	{
-		if (m_failure_types.at(j).GetFailureMode() == opmode || m_failure_types.at(j).GetFailureMode() == "ALL")
+		if (m_failure_types.at(j).GetFailureMode() == opmode || (opmode != "OFF" && m_failure_types.at(j).GetFailureMode() == "ALL"))
 		{
 			if (time * m_status.hazard_rate * ramp_mult > m_failure_types.at(j).GetLifeRemaining() && !read_only)
-				throw std::exception("failure should be thrown.");
+				throw std::runtime_error("failure should be thrown.");
 			m_failure_types.at(j).ReduceLifeRemaining(time * m_status.hazard_rate * ramp_mult);
 		}
 		if (m_failure_types.at(j).GetFailureMode() == "O" && (opmode == "OO" || opmode == "OF"))
 		{
 			if (time * m_status.hazard_rate * ramp_mult > m_failure_types.at(j).GetLifeRemaining() && !read_only)
-				throw std::exception("failure should be thrown.");
+				throw std::runtime_error("failure should be thrown.");
 			m_failure_types.at(j).ReduceLifeRemaining(time * m_status.hazard_rate * ramp_mult);
 		}
 	}		
+	if (opmode == "OO" || opmode == "OF")
+		m_status.age += time;
 }
          
 void Component::ReadFailure(double downtime, double life_remaining, 
-	int fail_idx, bool reset_hazard = true)
+	int fail_idx, bool reset_hazard=true)
 {
     /*
     reads a failure event.  This executes the failure without the 
     randomly generated failures.
     downtime -- downtime to apply to the failure
     life_remaining -- operational lifetime of component once online again
-	rest_hazard -- true if the repair resets the hazard rate, false o.w.
+	reset_hazard -- true if the repair resets the hazard rate, false o.w.
     retval -- none
     */
 	m_status.operational = false;
@@ -341,7 +388,7 @@ void Component::ReadFailure(double downtime, double life_remaining,
 }
 
                 
-void Component::GenerateFailure(WELLFiveTwelve &gen, int t, int fail_idx)
+void Component::GenerateFailure(WELLFiveTwelve &gen, int t, int fail_idx, int scen_index)
 {
     /*
     creates a failure event, shutting down the plant for a period of time.
@@ -357,11 +404,12 @@ void Component::GenerateFailure(WELLFiveTwelve &gen, int t, int fail_idx)
     ResetHazardRate();
     
     //add a new failure to the parent (CSPPlant) failure queue
-	std::string label = std::to_string(t)+GetName()+std::to_string(fail_idx);
+	std::string label = "S"+std::to_string(scen_index)+"T"+std::to_string(t)+GetName()+std::to_string(fail_idx);
     (*m_parent_failure_events)[label] = failure_event(
 		t, GetName(), fail_idx, m_status.downtime_remaining, 
-		m_failure_types.at(fail_idx).GetLifeOrProb()
+		m_failure_types.at(fail_idx).GetLifeOrProb(), scen_index
 		);
+	(*m_parent_failure_event_labels).push_back(label);
 	//std::cerr << "FAILURE EVENT GENERATED. downtime: " << std::to_string(m_status.downtime_remaining) << " life_rem: " << std::to_string(m_failure_types.at(fail_idx).GetLifeOrProb()) << " fail idx: " << std::to_string(fail_idx) << " reset hazard rate: " << std::to_string(true) << "\n";
 
 }
@@ -382,6 +430,11 @@ bool Component::CanBeRepaired(std::string mode)
 		return true;
 	}		
 	return false;
+}
+
+void Component::ResetDowntime()
+{
+	m_status.downtime_remaining = m_status.repair_event_time*1.0;
 }
         
 void Component::AdvanceDowntime(double time, std::string mode)
@@ -429,7 +482,19 @@ ComponentStatus Component::GetState()
 	return (
 		ComponentStatus(
 			GetLifetimesAndProbs(), m_status.hazard_rate*1.0,
-			m_status.downtime_remaining*1.0
+			m_status.downtime_remaining*1.0, m_status.repair_event_time*1.0,
+			m_status.age * 1.0
 			)
 		); 
+}
+
+void Component::Reset(WELLFiveTwelve &gen)
+{
+	m_cooldown_time = 0.;
+	m_status.downtime_remaining = 0.;
+	m_status.hazard_rate = 1.;
+	m_status.operational = true;
+	m_status.repair_event_time = 0.;
+	m_status.age = 0.;
+	GenerateInitialLifesAndProbs(gen);
 }

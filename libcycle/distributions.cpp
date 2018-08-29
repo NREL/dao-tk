@@ -16,6 +16,17 @@ Distribution::Distribution(double alpha, double beta, std::string type)
 	m_type = type;
 }
 
+bool Distribution::IsBinary()
+{
+	return false;
+}
+
+double Distribution::GetVariate(WELLFiveTwelve & gen)
+{
+	return -1.0;
+}
+
+
 std::string Distribution::GetType()
 {
 	return m_type;
@@ -187,7 +198,7 @@ double GammaDist::GetVariate(WELLFiveTwelve &gen)
 BoundedJohnsonDist ::BoundedJohnsonDist () {}
 
 BoundedJohnsonDist ::BoundedJohnsonDist (double gamma, double delta, double xi, double lambda, 
-		std::string type) : Distribution::Distribution(0, 0, type)
+		std::string type) : Distribution(0, 0, type)
 {
 	m_gamma = gamma;
 	m_delta = delta;
@@ -250,10 +261,10 @@ double BoundedJohnsonDist ::GetVariate(WELLFiveTwelve &gen)
 BetaDist::BetaDist() {}
 
 BetaDist::BetaDist(double alpha, double beta, std::string type = "beta") :
-	Distribution::Distribution(alpha, beta, type)
+	Distribution(alpha, beta, type)
 {
-	m_alpha_dist = GammaDist::GammaDist(GetAlpha(), 1, "gamma");
-	m_beta_dist = GammaDist::GammaDist(GetBeta(), 1, "gamma");
+	m_alpha_dist = GammaDist(GetAlpha(), 1, "gamma");
+	m_beta_dist = GammaDist(GetBeta(), 1, "gamma");
 }
 
 bool BetaDist::IsBinary()

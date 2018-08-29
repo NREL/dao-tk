@@ -76,6 +76,7 @@ public:
 	void SyntaxLog(const wxString &);
 
 	bool LoadScript(const wxString &file);
+	void ScriptInsert(const char *text);
 
 	void Save();
 	void SaveAs();
