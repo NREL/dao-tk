@@ -141,7 +141,7 @@ double Component::GetEfficiency()
 	data, but the linear model is likely to apply.
 	*/
 	if (!IsOperational())
-		throw std::exception("Efficiency checked for a non-operating component");
+		throw std::runtime_error("Efficiency checked for a non-operating component");
 	return 1.0 - (m_status.age * 0.002 / 5000);  //source: anecdotal; Staffel 2014 cites 0.15%-0.55% decline in efficiency per year.
 }
 
@@ -154,7 +154,7 @@ double Component::GetCapacity()
 	Need to verify if this makes sense for a steam turbine too.
 	*/
 	if (!IsOperational())
-		throw std::exception("Capacity checked for a non-operating component");
+		throw std::runtime_error("Capacity checked for a non-operating component");
 	return 1.0 - (m_status.age * 0.005 / 5000); 
 }
 
