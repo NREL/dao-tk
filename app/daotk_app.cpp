@@ -15,6 +15,9 @@
 
 #include "../app/menu.cpng"
 #include "../app/notes_white.cpng"
+#ifndef __WXMSW__
+#include "../deploy/linux/app.xpm"
+#endif
 
 #include <wex/easycurl.h>
 #include <wex/metro.h>
@@ -151,7 +154,10 @@ MainWindow::MainWindow()
 {
 #ifdef __WXMSW__
 	SetIcon(wxICON(appicon));
+#else
+	SetIcon(app_128_xpm);
 #endif
+
 
 	if (g_mainWindow != 0)
 		wxMessageBox("internal error - only one main window can exist!");
@@ -338,7 +344,7 @@ void MainWindow::Save()
 		
 		rjs::Value jdata;
 
-		switch(v->type)
+		switch(v->type())
 		{
 			case lk::vardata_t::NUMBER:
 			{
@@ -553,7 +559,7 @@ bool MainWindow::Load(const wxString &file)
 
 			rjs::Value &jv = D[v->name.c_str()];
 
-			switch(v->type)
+			switch(v->type())
 			{
 				case lk::vardata_t::NUMBER:
 				{
