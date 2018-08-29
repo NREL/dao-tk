@@ -158,12 +158,12 @@ void _var(lk::invoke_t &cxt)
     if (cxt.arg_count() == 2) //set
     {
 		//validate data type
-		if( cxt.arg(1).type() != dat->type )
+		if( cxt.arg(1).type() != dat->type() )
 		{
 			std::string expected_type;
 			std::string given_type;
 
-			switch( dat->type )
+			switch( dat->type() )
 			{
 				case lk::vardata_t::STRING: expected_type = "string"; break;
 				case lk::vardata_t::NUMBER: expected_type = "number"; break;
@@ -188,7 +188,7 @@ void _var(lk::invoke_t &cxt)
 			return;
 		}
 		//assign data type
-		switch( dat->type )
+		switch( dat->type() )
 		{
 			case lk::vardata_t::STRING:
 				dat->assign( cxt.arg(1).as_string() );
@@ -207,7 +207,7 @@ void _var(lk::invoke_t &cxt)
 	}
 	else if (cxt.arg_count() == 1) //get
 	{
-		switch( dat->type )
+		switch( dat->type() )
 		{
 			case lk::vardata_t::STRING:
 				cxt.result().assign( dat->as_string() );
@@ -285,6 +285,7 @@ void _generate_solarfield(lk::invoke_t &cxt)
 	LK_DOC("generate_solarfield", "Creates a new solar field layout and geometry from current project settings.", "([table:options]):table");
 
 	MainWindow::Instance().GetProject()->D();
+	MainWindow::Instance().SetProgress(0.);
 	
 }
 
@@ -494,8 +495,9 @@ void _power_cycle(lk::invoke_t &cxt)
 	cycle.AssignGenerator(&gen);
 	cycle.Simulate(true);
 
-	return;
+	MainWindow::Instance().SetProgress(0.);
 
+	return;
 }
 
 void _simulate_optical(lk::invoke_t &cxt)
@@ -563,6 +565,7 @@ void _simulate_optical(lk::invoke_t &cxt)
 
 	OD.simulate();
 
+	mw.SetProgress(0.);
 	return;
 
 }
@@ -625,6 +628,7 @@ void _simulate_solarfield(lk::invoke_t &cxt)
 	
 	SA.simulate();
 
+	mw.SetProgress(0.);
 	return;
 
 }
@@ -782,6 +786,7 @@ void _simulate_performance(lk::invoke_t &cxt)
 	//--- Run simulation
 	P->S();
 	
+	mw.SetProgress(0.);
 	mw.UpdateDataTable();
 
 	return;

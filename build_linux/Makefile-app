@@ -13,8 +13,8 @@ LKLIB = $(LKDIR)/lkuxwx3.a
 CC = gcc
 CXX = g++
 WARNINGS=-Wall -Wno-unknown-pragmas #-Werror
-CFLAGS =  -g -O0 -I. -I$(WEXDIR)/include -I$(LKDIR)/include -I$(SSCDIR) -I$(HOME)/libsolar -I$(HOME)/liboptical -I$(HOME)/libcluster -DLK_USE_WXWIDGETS `wx-config-3 --cflags` $(WARNINGS)
-LDFLAGS = -std=c++0x -no-pie -I.. ./ssc.so $(WEXLIB) $(LKLIB) liboptical.a libsolar.a libcluster.a `wx-config-3 --libs stc` `wx-config-3 --libs aui` `wx-config-3 --libs` -lm  -lfontconfig -ldl -lcurl 
+CFLAGS =  -g -O0 -I. -I$(WEXDIR)/include -I$(LKDIR)/include -I$(SSCDIR) -I$(HOME)/libsolar -I$(HOME)/liboptical -I$(HOME)/libcluster -I$(HOME)/libcycle -DLK_USE_WXWIDGETS `wx-config-3 --cflags` $(WARNINGS)
+LDFLAGS = -std=c++0x -no-pie -I.. ./ssc.so $(WEXLIB) $(LKLIB) liboptical.a libsolar.a libcluster.a libcycle.a `wx-config-3 --libs stc` `wx-config-3 --libs aui` `wx-config-3 --libs` -lm  -lfontconfig -ldl -lcurl 
 CXXFLAGS=-std=c++0x $(CFLAGS)
 
 
@@ -23,14 +23,19 @@ OBJECTS  = \
 	dataview.o \
 	treeselect.o \
 	logview.o \
+	project_init.o \
 	project.o \
 	scripting.o \
-	scriptview.o
+	scriptview.o \
+	vardocument.o \
+	vardialog.o
 
 TARGET = dao-tk
 
 $(TARGET): $(OBJECTS) $(WEXLIB) 
 	$(CXX) -g -o $@ $^ $(LDFLAGS)
+	@mkdir -p $(@D)/../deploy/linux
+	mv $(TARGET) ../deploy/linux/$(TARGET)
 	
 clean:
 	rm -f $(TARGET) $(OBJECTS)

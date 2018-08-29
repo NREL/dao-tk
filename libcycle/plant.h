@@ -7,6 +7,7 @@
 
 #include "component.h"
 #include "well512.h"
+#include "distributions.h"
 
 
 struct cycle_results

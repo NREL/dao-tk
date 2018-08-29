@@ -1,8 +1,9 @@
-#include "plant.h"
-#include "lib_util.h"
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <fstream>
+#include "plant.h"
+#include "lib_util.h"
 
 cycle_results::cycle_results()
 {
@@ -70,10 +71,10 @@ void PowerCycle::SetCondenserEfficienciesCold(std::vector<double> eff_cold)
 	}
 	if (num_streams != m_num_condenser_trains)
 	{
-		throw std::exception("condenser trains not created correctly");
+		throw std::runtime_error("condenser trains not created correctly");
 	}
 	if (eff_cold.size() != num_streams + 1)
-		throw std::exception("efficiencies must be equal to one plus number of streams"); 
+		throw std::runtime_error("efficiencies must be equal to one plus number of streams"); 
 	m_condenser_efficiencies_cold = eff_cold;
 }
 
@@ -90,7 +91,7 @@ void PowerCycle::SetCondenserEfficienciesHot(std::vector<double> eff_hot)
 			num_streams++;
 	}
 	if (eff_hot.size() != num_streams+1)
-		throw std::exception("efficiencies must be equal to one plus number of streams");
+		throw std::runtime_error("efficiencies must be equal to one plus number of streams");
 	m_condenser_efficiencies_hot = eff_hot;
 }
 
@@ -356,7 +357,7 @@ void PowerCycle::CreateComponentsFromFile(std::string component_data)
         std::vector< std::string > entry = util::split( entries.at(i), "," );
 
         if( entry.size() != 8 )
-            throw std::exception( "Mal-formed cycle Capacity model table. Component table must contain 8 entries per row (comma separated values), with each entry separated by a ';'." );
+            throw std::runtime_error( "Mal-formed cycle Capacity model table. Component table must contain 8 entries per row (comma separated values), with each entry separated by a ';'." );
 
         std::vector< double > dat(6);
 
@@ -506,7 +507,7 @@ void PowerCycle::GeneratePlantComponents(
 	if (condenser_eff_cold.size() != (num_condenser_trains+1) ||
 		condenser_eff_hot.size() != (num_condenser_trains+1))
 	{
-		throw std::exception("condenser efficiencies do not reconcile with number of trains.");
+		throw std::runtime_error("condenser efficiencies do not reconcile with number of trains.");
 	}
 	for (int i = 0; i < num_condenser_trains; i++)
 	{
@@ -1187,7 +1188,7 @@ void PowerCycle::Operate(double power_out, int t, std::string start, std::string
 		m_hours_to_maintenance -= m_steplength;
 	}
 	else
-		throw std::exception("invalid operating mode.");
+		throw std::runtime_error("invalid operating mode.");
 	OperateComponents(ramp_mult, t, start, mode); 
 
 }
