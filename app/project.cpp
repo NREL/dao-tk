@@ -457,11 +457,17 @@ void Project::Initialize()
 	is_sf_avail_valid = false;
 	is_sf_optical_valid = false;
 	is_simulation_valid = false;
+	is_explicit_valid = false;
 
 	initialize_ssc_project();
 
-    ssc_to_lk_hash(m_ssc_data, m_parameters);
+    //ssc_to_lk_hash(m_ssc_data, m_parameters);
     ssc_to_lk_hash(m_ssc_data, m_variables);
+
+	parameters default_params;
+	lk_hash_to_ssc(m_ssc_data, default_params);
+	ssc_to_lk_hash(m_ssc_data, m_parameters);
+
 }
 
 Project::Project()
@@ -1474,7 +1480,7 @@ bool Project::D()
 
 	update_calculated_system_values();
 	ssc_data_set_matrix(m_ssc_data, "heliostat_positions_in", (ssc_number_t*)0, 0, 0);
-	
+
     lk_hash_to_ssc(m_ssc_data, m_variables);
     lk_hash_to_ssc(m_ssc_data, m_parameters);
 
