@@ -132,6 +132,7 @@ double Component::GetCapacityReduction()
 }
 
 double Component::GetEfficiency()
+{
 	/*
 	returns impact of turbine aging on efficiency.  Source:
 	Staffel 2014 (notes that previous studies and techincal 
@@ -139,12 +140,9 @@ double Component::GetEfficiency()
 	per year of operation.)  This will be updated wth better
 	data, but the linear model is likely to apply.
 	*/
-{
-	if (m_type != "Turbine")
-	{
-		return 1.0;
-	}
-	return 1.0 - (m_status.age * 0.0035 / 8760);  //source: Staffel 2014, cites 0.15%-0.55% decline in efficiency with age.
+	if (!IsOperational())
+		throw std::exception("Efficiency checked for a non-operating component");
+	return 1.0 - (m_status.age * 0.002 / 5000);  //source: anecdotal; Staffel 2014 cites 0.15%-0.55% decline in efficiency per year.
 }
 
 double Component::GetCapacity()
@@ -152,14 +150,12 @@ double Component::GetCapacity()
 	/*
 	returns impact of turbine aging on capacity.  Source:
 	Diakunchuk 1992; this is for gas engines, but cites
-	a 1% decrease in efficiency = 2.5% decrease in power.
+	a 1% decrease in efficiency = ~2.5% decrease in power.
 	Need to verify if this makes sense for a steam turbine too.
 	*/
-	if (m_type != "Turbine")
-	{
-		return 1.0;
-	}
-	return 1.0 - (m_status.age * 0.0035 * 2.5 / 8760); 
+	if (!IsOperational())
+		throw std::exception("Capacity checked for a non-operating component");
+	return 1.0 - (m_status.age * 0.005 / 5000); 
 }
 
 double Component::GetCooldownTime()

@@ -24,6 +24,9 @@ class PowerCycle
 {
 	WELLFiveTwelve *m_gen;
 	std::vector< Component > m_components;
+	std::vector< size_t > m_turbine_idx;  //turbine indices of component vector
+ 	std::vector< size_t > m_sst_idx;   //salt-to-steam train indices of component vector
+	std::vector< size_t > m_condenser_idx; //condenser train indices of component vector
 	std::unordered_map<std::string, std::vector<double> > m_dispatch;
 	std::unordered_map< std::string, failure_event > m_failure_events;
 	std::vector <std::string> m_failure_event_labels;
@@ -71,7 +74,10 @@ class PowerCycle
 	int m_num_turbines = 0; // HP, IP, LP turbines and generator count 
 							// as a single component
 	bool m_record_state_failure = true;
-
+	double m_eff_loss_per_fan = 0.01;
+	int m_fans_per_condenser_train;
+	double m_cycle_efficiency;
+	double m_cycle_capacity;
 
 public:
 	cycle_results m_results;
@@ -151,8 +157,10 @@ public:
 	void SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing = false);
 	int NumberOfAirstreamsOnline();
 	double GetCondenserEfficiency(double temp);
-	double GetCycleCapacity(double temp);
-	double GetCycleEfficiency(double temp);
+	double GetTurbineEfficiency();
+	double GetTurbineCapacity();
+	double GetSaltSteamTrainCapacity();
+	void SetCycleCapacityAndEfficiency(double temp);
 	void TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode);
 	bool AllComponentsOperational();
 	double GetMaxComponentDowntime();
@@ -166,6 +174,8 @@ public:
 	void StoreState();
 	std::string GetStartMode(int t);
 	std::string GetOperatingMode(int t);
+	void ReadInComponentFailures(int t);
+	void ReadInMaintenanceEvents(int t);
 	void RunDispatch();
 	void Operate(double power_out, int t, std::string start, std::string mode);
 	void SingleScen(bool reset_plant);
