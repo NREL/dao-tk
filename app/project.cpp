@@ -104,8 +104,8 @@ parameters::parameters()
 	dispatch_factors_ts.set( pvalts, "dispatch_factors_ts", lk::vardata_t::VECTOR, false );
 	dispatch_factors_ts.set( pvalts, "user_sf_avail", lk::vardata_t::VECTOR, false );
 
-
-	helio_repair_priority.set("mean_repair_time", "helio_repair_priority", lk::vardata_t::STRING, false, "Heliostat repair priority", "-", "Heliostat availability|Parameters");
+	std::string rp = "mean_repair_time";
+	helio_repair_priority.set(rp, "helio_repair_priority", lk::vardata_t::STRING, false, "Heliostat repair priority", "-", "Heliostat availability|Parameters");
 	avail_model_timestep.set(24, "avail_model_timestep", lk::vardata_t::NUMBER, false, "Availability model timestep", "hr", "Heliostat availability|Parameters");
 
 	std::vector< double > shape = { 1. };
@@ -309,6 +309,10 @@ simulation_outputs::simulation_outputs()
 	annual_generation.set(nan, "annual_generation", lk::vardata_t::NUMBER, true, "Annual total generation", "GWhe", "Simulation|Outputs");
 	annual_revenue.set(nan, "annual_revenue", lk::vardata_t::NULLVAL, true, "Annual revenue units", "-", "Simulation|Outputs");
 
+	annual_rec_starts.set(nan, "annual_rec_starts", lk::vardata_t::NUMBER, true, "Annual receiver starts", "-", "Simulation|Outputs");
+	annual_cycle_starts.set(nan, "annual_cycle_starts", lk::vardata_t::NUMBER, true, "Annual cycle starts", "-", "Simulation|Outputs");
+	annual_cycle_ramp.set(nan, "annual_cycle_ramp", lk::vardata_t::NUMBER, true, "Annual cycle ramping", "GWe", "Simulation|Outputs");
+
 	(*this)["generation_arr"] = &generation_arr;
 	(*this)["solar_field_power_arr"] = &solar_field_power_arr;
 	(*this)["tes_charge_state"] = &tes_charge_state;
@@ -318,6 +322,10 @@ simulation_outputs::simulation_outputs()
 	(*this)["price_templates"] = &price_templates;
 	(*this)["annual_generation"] = &annual_generation;
 	(*this)["annual_revenue"] = &annual_revenue;
+	(*this)["annual_rec_starts"] = &annual_rec_starts;
+	(*this)["annual_cycle_starts"] = &annual_cycle_starts;
+	(*this)["annual_cycle_ramp"] = &annual_cycle_ramp;
+
 }
 
 explicit_outputs::explicit_outputs()
@@ -341,6 +349,25 @@ explicit_outputs::explicit_outputs()
 	(*this)["heliostat_om_labor"] = &heliostat_om_labor;
 	(*this)["heliostat_wash_cost_y1"] = &heliostat_wash_cost_y1;
 	(*this)["heliostat_wash_cost"] = &heliostat_wash_cost;
+}
+
+financial_outputs::financial_outputs()
+{
+	double nan = std::numeric_limits<double>::quiet_NaN();
+
+	lcoe_nom.set(nan, "lcoe_nom", lk::vardata_t::NUMBER, true);
+	lcoe_real.set(nan, "lcoe_real", lk::vardata_t::NUMBER, true);
+	ppa.set(nan, "ppa", lk::vardata_t::NUMBER, true);
+	project_return_aftertax_npv.set(nan, "project_return_aftertax_npv", lk::vardata_t::NUMBER, true);
+	project_return_aftertax_irr.set(nan, "project_return_aftertax_irr", lk::vardata_t::NUMBER, true);
+	total_installed_cost.set(nan, "total_installed_cost", lk::vardata_t::NUMBER, true);
+
+	(*this)["lcoe_nom"] = &lcoe_nom;
+	(*this)["lcoe_real"] = &lcoe_real;
+	(*this)["ppa"] = &ppa;
+	(*this)["project_return_aftertax_npv"] = &project_return_aftertax_npv;
+	(*this)["project_return_aftertax_irr"] = &project_return_aftertax_irr;
+	(*this)["total_installed_cost"] = &total_installed_cost;
 }
 
 /* 
@@ -432,12 +459,18 @@ bool Project::Validate(Project::CALLING_SIM::E sim_type, std::string *error_msg)
 			}
 			break;
 		case CALLING_SIM::FINANCE:
-			if( !( is_design_valid && is_simulation_valid ) )
+			if( !( is_design_valid && is_simulation_valid && is_explicit_valid) )
 			{
 				(*error_msg).append(wxString::Format( "Error: Cannot calculate system financial metrics without a valid %s.\n",
-													is_design_valid ? "plant performance simulation" : "solar field design").c_str() );
-
+													is_design_valid ? (is_simulation_valid ? "cost simulation" : "plant performance simulation") : "solar field design").c_str() );
+				return false;
 			}
+
+			if (!is_sf_avail_valid)
+				(*error_msg).append("Notice: Calculating O&M costs without valid solar field availability model output.\n");
+			if (!is_sf_optical_valid)
+				(*error_msg).append("Notice:  Calculating O&M costs without valid solar field soiling/degradation model output.\n");
+
 			break;
 		case CALLING_SIM::OBJECTIVE:
 
@@ -458,6 +491,7 @@ void Project::Initialize()
 	is_sf_optical_valid = false;
 	is_simulation_valid = false;
 	is_explicit_valid = false;
+	is_financial_valid = false;
 
 	initialize_ssc_project();
 
@@ -1770,6 +1804,82 @@ bool Project::E()
 	return is_explicit_valid;
 }
 
+bool Project::F()
+{
+	// error if invalid design or simulation
+	std::string error_msg;
+	bool ok = Validate(Project::CALLING_SIM::FINANCE, &error_msg);
+	message_handler(error_msg.c_str());
+	if (!ok)
+		return false;
+
+	// Set ssc generation array from simulation outputs
+	size_t n = m_simulation_outputs.generation_arr.vec()->size();
+	ssc_number_t *p_gen = new ssc_number_t[n];
+	for (size_t i = 0; i < n; i++)
+		p_gen[i] = m_simulation_outputs.generation_arr.vec()->at(i).as_number();
+	ssc_data_set_array(m_ssc_data, "gen", p_gen, n);
+	delete[] p_gen;
+
+
+	// om_costs
+	double om_cost = 0.0;
+	om_cost += m_explicit_outputs.heliostat_om_labor_y1.as_number();
+	om_cost += m_explicit_outputs.heliostat_wash_cost_y1.as_number();
+
+	om_cost += m_simulation_outputs.annual_rec_starts.as_number() * m_parameters.disp_rsu_cost.as_number();
+	om_cost += m_simulation_outputs.annual_cycle_starts.as_number() * m_parameters.disp_csu_cost.as_number();
+	om_cost += m_simulation_outputs.annual_cycle_ramp.as_number() * 1.e6 * m_parameters.disp_pen_delta_w.as_number();
+
+	if (is_sf_avail_valid)
+		om_cost += m_solarfield_outputs.heliostat_repair_cost_y1.as_number();
+	if (is_sf_optical_valid)
+		om_cost += m_optical_outputs.heliostat_refurbish_cost_y1.as_number();
+
+	ssc_number_t *p_om = new ssc_number_t[1];
+	p_om[0] = om_cost;
+	ssc_data_set_array(m_ssc_data, "om_fixed", p_om, 1);
+	delete[] p_om;
+
+
+	// run financial model
+	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean());
+	ssc_module_t mod_fin = ssc_module_create("singleowner");
+
+	if (!ssc_module_exec_with_handler(mod_fin, m_ssc_data, ssc_progress_handler, 0))
+	{
+		message_handler("Financial simulation failed");
+		ssc_module_free(mod_fin);
+		return false;
+	}
+
+	// collect outputs
+	ssc_number_t val;
+	ssc_data_get_number(m_ssc_data, "lcoe_nom", &val);
+	m_financial_outputs.lcoe_nom.assign(val);
+
+	ssc_data_get_number(m_ssc_data, "lcoe_real", &val);
+	m_financial_outputs.lcoe_real.assign(val);
+
+	ssc_data_get_number(m_ssc_data, "ppa", &val);
+	m_financial_outputs.ppa.assign(val);
+
+	ssc_data_get_number(m_ssc_data, "project_return_aftertax_npv", &val);
+	m_financial_outputs.project_return_aftertax_npv.assign(val);
+
+	ssc_data_get_number(m_ssc_data, "project_return_aftertax_irr", &val);
+	m_financial_outputs.project_return_aftertax_irr.assign(val);
+
+	ssc_data_get_number(m_ssc_data, "total_installed_cost", &val);
+	m_financial_outputs.total_installed_cost.assign(val);
+
+	ssc_module_free(mod_fin);
+
+	is_financial_valid = true;
+
+	return is_financial_valid;
+}
+
 
 void Project::setup_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail, s_metric_outputs &metric_results, s_cluster_outputs &cluster_results)
 {
@@ -1887,7 +1997,7 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 	
 
 	//--- Initialize results
-	double annual_generation, revenue_units, total_installed_cost, system_capacity;
+	double annual_generation, revenue_units, rec_starts, cycle_starts, cycle_ramp;
 	int n_hourly_keys = 5;
 	std::string hourly_keys[] = { "gen",  "Q_thermal", "e_ch_tes", "beam", "pricing_mult" };
 	unordered_map < std::string, std::vector<double>> collect_ssc_data, full_data;
@@ -2134,6 +2244,23 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 	message_handler(wxString::Format("Annual generation (GWhe) = %.4f",annual_generation / 1.e6).c_str());
 	message_handler(wxString::Format("Annual revenue (GWhe) = %.4f", revenue_units / 1.e6).c_str());
 
+	//--- Calculate annual receiver starts, cycle starts, and cycle ramping
+	rec_starts = 0.0;
+	cycle_starts = 0.0;
+	cycle_ramp = 0.0;
+	for (int i = 1; i < (int)full_data["gen"].size(); i++)
+	{
+		if (full_data["Q_thermal"][i] > 0.0 && full_data["Q_thermal"][i - 1] <= 0.0)
+			rec_starts += 1;
+
+		if (full_data["gen"][i] > 0.0 && full_data["gen"][i - 1] <= 0.0)
+			cycle_starts += 1;
+
+		if (full_data["gen"][i] > 0.0 && full_data["gen"][i] > full_data["gen"][i - 1])
+			cycle_ramp += full_data["gen"][i] - full_data["gen"][i - 1]; //kWe
+	}
+
+
 	//"gen",  "Q_thermal", "annual_energy", "e_ch_tes", "beam", "pricing_mult" 
 	
 	m_simulation_outputs.generation_arr.assign_vector( full_data["gen"] );
@@ -2144,6 +2271,9 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 
 	m_simulation_outputs.annual_generation.assign( annual_generation );
 	m_simulation_outputs.annual_revenue.assign( revenue_units );
+	m_simulation_outputs.annual_rec_starts.assign(rec_starts);
+	m_simulation_outputs.annual_cycle_starts.assign(cycle_starts);
+	m_simulation_outputs.annual_cycle_ramp.assign(cycle_ramp*1.e-6);
 
 	return true;
 }

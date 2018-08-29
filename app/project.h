@@ -335,6 +335,9 @@ struct simulation_outputs : public lk::varhash_t
 	parameter price_templates;
 	parameter annual_generation;
 	parameter annual_revenue;
+	parameter annual_rec_starts;
+	parameter annual_cycle_starts;
+	parameter annual_cycle_ramp;
 
 	simulation_outputs();
 };
@@ -353,6 +356,19 @@ struct explicit_outputs : public lk::varhash_t
 	parameter heliostat_wash_cost;
 
 	explicit_outputs();
+};
+
+
+struct financial_outputs : public lk::varhash_t 
+{
+	parameter lcoe_nom;
+	parameter lcoe_real;
+	parameter ppa;
+	parameter project_return_aftertax_npv;
+	parameter project_return_aftertax_irr;
+	parameter total_installed_cost;
+
+	financial_outputs();
 };
 
 
@@ -389,6 +405,7 @@ class Project
 	bool is_sf_optical_valid;
 	bool is_simulation_valid;
 	bool is_explicit_valid;
+	bool is_financial_valid;
 
 	ssc_data_t m_ssc_data;
 	
@@ -415,6 +432,7 @@ public:
 	cycle_outputs m_cycle_outputs;
 	simulation_outputs m_simulation_outputs;
 	explicit_outputs m_explicit_outputs;
+	financial_outputs m_financial_outputs;
 
 	Project();
 	~Project();
@@ -429,7 +447,7 @@ public:
 	bool O();
 	bool S();
 	bool E();
-	int F();
+	bool F();
 	int Z();
 
 
