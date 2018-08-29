@@ -339,6 +339,22 @@ struct simulation_outputs : public lk::varhash_t
 	simulation_outputs();
 };
 
+struct explicit_outputs : public lk::varhash_t
+{
+
+	parameter cost_receiver;
+	parameter cost_tower;
+	parameter cost_plant;
+	parameter cost_tes;
+
+	parameter heliostat_om_labor_y1;
+	parameter heliostat_om_labor;
+	parameter heliostat_wash_cost_y1;
+	parameter heliostat_wash_cost;
+
+	explicit_outputs();
+};
+
 
 struct project_cluster_inputs
 {
@@ -372,6 +388,7 @@ class Project
 	bool is_sf_avail_valid;
 	bool is_sf_optical_valid;
 	bool is_simulation_valid;
+	bool is_explicit_valid;
 
 	ssc_data_t m_ssc_data;
 	
@@ -397,6 +414,7 @@ public:
 	optical_outputs m_optical_outputs;
 	cycle_outputs m_cycle_outputs;
 	simulation_outputs m_simulation_outputs;
+	explicit_outputs m_explicit_outputs;
 
 	Project();
 	~Project();
@@ -410,7 +428,7 @@ public:
 	bool M();
 	bool O();
 	bool S();
-	int E();
+	bool E();
 	int F();
 	int Z();
 

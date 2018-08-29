@@ -320,6 +320,29 @@ simulation_outputs::simulation_outputs()
 	(*this)["annual_revenue"] = &annual_revenue;
 }
 
+explicit_outputs::explicit_outputs()
+{
+	double nan = std::numeric_limits<double>::quiet_NaN();
+	cost_receiver.set(nan, "cost_receiver", lk::vardata_t::NUMBER, true);
+	cost_tower.set(nan, "cost_tower", lk::vardata_t::NUMBER, true);
+	cost_plant.set(nan, "cost_plant", lk::vardata_t::NUMBER, true);
+	cost_tes.set(nan, "cost_tes", lk::vardata_t::NUMBER, true);
+
+	heliostat_om_labor_y1.set(nan, "heliostat_om_labor_y1", lk::vardata_t::NUMBER, true);
+	heliostat_om_labor.set(nan, "heliostat_om_labor", lk::vardata_t::NUMBER, true);
+	heliostat_wash_cost_y1.set(nan, "heliostat_wash_cost_y1", lk::vardata_t::NUMBER, true);
+	heliostat_wash_cost.set(nan, "heliostat_wash_cost", lk::vardata_t::NUMBER, true);
+
+	(*this)["cost_receiver"] = &cost_receiver;
+	(*this)["cost_tower"] = &cost_tower;
+	(*this)["cost_plant"] = &cost_plant;
+	(*this)["cost_tes"] = &cost_tes;
+	(*this)["heliostat_om_labor_y1"] = &heliostat_om_labor_y1;
+	(*this)["heliostat_om_labor"] = &heliostat_om_labor;
+	(*this)["heliostat_wash_cost_y1"] = &heliostat_wash_cost_y1;
+	(*this)["heliostat_wash_cost"] = &heliostat_wash_cost;
+}
+
 /* 
 ---------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------
@@ -1691,6 +1714,56 @@ bool Project::S()
 	
 	return is_simulation_valid;
 }
+
+bool Project::E()
+{
+	// Receiver cost
+	double arec = m_variables.D_rec.as_number() * 3.14159 * m_variables.rec_height.as_number();
+	double e_rec = m_parameters.rec_ref_cost.as_number() * pow(arec / m_parameters.rec_ref_area.as_number(), 0.7);
+	double e_rec_real = calc_real_dollars(e_rec);
+	
+	// Tower cost
+	double e_tower = m_parameters.tower_fixed_cost.as_number() * exp(m_parameters.tower_exp.as_number() * m_variables.h_tower.as_number());
+	double e_tower_real = calc_real_dollars(e_tower);
+
+	// Plant cost
+	double del_eff = m_variables.design_eff.as_number() - 0.412;
+	double effscale = 0.0;
+	for (int i = 0; i < m_parameters.c_ces.vec()->size(); i++)
+		effscale += m_parameters.c_ces.vec()->at(i).as_number() * pow(del_eff, i);
+
+	double e_plant = (m_parameters.c_cps0.as_number() + m_parameters.c_cps1.as_number() * m_variables.P_ref.as_number()*1000.) *(1.0 + effscale);
+	double e_plant_real = calc_real_dollars(e_plant);
+
+	// TES cost
+	double e_tes = m_parameters.tes_spec_cost.as_number() * m_variables.tshours.as_number() * (m_variables.P_ref.as_number() * 1000. / m_variables.design_eff.as_number());
+	double e_tes_real = calc_real_dollars(e_tes);
+
+	// OM labor costs
+	double heliostat_om_labor_y1 = m_parameters.om_staff_cost.as_number() * m_variables.om_staff.as_number() * m_parameters.om_staff_max_hours_week.as_number()*52.;
+	double heliostat_om_labor = calc_real_dollars(heliostat_om_labor_y1, false, true);
+
+	// Washing labor costs
+	double heliostat_wash_cost_y1 = m_parameters.wash_crew_cost.as_number() * m_variables.n_wash_crews.as_number() * m_parameters.wash_crew_max_hours_week.as_number()*52.;
+	double heliostat_wash_cost = calc_real_dollars(heliostat_wash_cost_y1, false, true);
+
+
+	m_explicit_outputs.cost_receiver.assign(e_rec_real);
+	m_explicit_outputs.cost_tower.assign(e_tower_real);
+	m_explicit_outputs.cost_plant.assign(e_plant_real);
+	m_explicit_outputs.cost_tes.assign(e_tes_real);
+
+	m_explicit_outputs.heliostat_om_labor_y1.assign(heliostat_om_labor_y1);
+	m_explicit_outputs.heliostat_om_labor.assign(heliostat_om_labor);
+
+	m_explicit_outputs.heliostat_wash_cost_y1.assign(heliostat_wash_cost_y1);
+	m_explicit_outputs.heliostat_wash_cost.assign(heliostat_wash_cost);
+
+	is_explicit_valid = true;
+
+	return is_explicit_valid;
+}
+
 
 void Project::setup_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail, s_metric_outputs &metric_results, s_cluster_outputs &cluster_results)
 {
