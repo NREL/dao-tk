@@ -323,6 +323,17 @@ optical_outputs::optical_outputs()
 
 }
 
+cycle_outputs::cycle_outputs()
+{
+	std::vector< double > empty_vec;
+
+	cycle_efficiency.set(empty_vec, "cycle_efficiency", true, "Cycle efficiency time series", "-", "Cycle|Outputs");
+	cycle_capacity.set(empty_vec, "cycle_capacity", true, "Cycle capacity time series", "-", "Cycle|Outputs");
+
+	(*this)["cycle_efficiency"] = &cycle_efficiency;
+	(*this)["cycle_capacity"] = &cycle_capacity;
+}
+
 simulation_outputs::simulation_outputs()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();

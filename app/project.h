@@ -426,9 +426,9 @@ struct optical_outputs : public lk::varhash_t
 
 struct cycle_outputs : public lk::varhash_t
 {
-	parameter cycle_efficency;
+	parameter cycle_efficiency;
 	parameter cycle_capacity;
-	cycle_outputs() {};
+	cycle_outputs();
 };
 
 struct simulation_outputs : public lk::varhash_t
