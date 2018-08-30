@@ -56,9 +56,7 @@ The power cycle composition should be defined by the user, but defaults are incl
 | num_fwh | Integer | Number of feedwater heaters in power cycle | 6 |
 | num_salt_pumps | Integer | Number of molten salt pumps in power cycle | 2 |
 | num_water_pumps | Integer | Number of water pumps in power cycle | 2 |
-| num_hi_pressure |  Integer | Number of high-pressure turbines in power cycle | 1 |
-| num_mid_pressure |  Integer | Number of medium-pressure turbinesin power cycle | 1 |
-| num_low_pressure |  Integer | Number of low-pressure turbines in power cycle | 1 |
+| num_turbines |  Integer | Number of turbine-generator shafts in power cycle | 1 |
 | condenser_eff_cold | Vector of floating point numbers | Efficiency of condenser according to how many trains are operational for low ambient temperatures | {0,1,1} |
 | condenser_eff_hot | Vector of floating point numbers | Efficiency of condenser according to how many trains are operational for high ambient temperatures | {0,0.95,1} |
 
@@ -94,7 +92,10 @@ Simulation parameters are all scalars, so no sets are included in the table that
 | Parameter | Data Type | Description (Units) | Default (if any) |
 | --- | --- | --- | --- | 
 | read_periods | Integer | Number of time periods that are read-only | 0 |
-| num_periods | Integer | Length of simulation time horizon, in periods | 48 | 
+| sim_length | Integer | Length of simulation time horizon, in periods | 48 | 
+| start_period | Integer | Index of starting period to use from dispatch inputs | 0 |
+| next_start_period | Integer | Index of next starting period to use from dispatch inputs (in rolling horizon) | 0 |
+| write_interval | Integer | Number of time periods for which failure events are recorded | 48 |
 | eps | Floating point number | Threshold on lifetimes for which a failure occurs | 1e-10 |
 | output | Boolean | True if information on failure events is printed to the console, false o.w. | false |
 | num_scenarios | Integer between 1 and 100 | Number of scenarios in simulation | 1 | 

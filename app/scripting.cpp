@@ -293,12 +293,13 @@ void _power_cycle(lk::invoke_t &cxt)
 {
 	LK_DOC("power_cycle_avail", "Simulate the power cycle capacity over time, after accounting for maintenance and failures. "
 		"Table keys include: cycle_power, ambient_temperature, standby, "
-		"read_periods, num_periods, eps, output, num_scenarios, "
+		"read_periods, sim_length, start_period, next_start_period, "
+		"write_interval, eps, output, num_scenarios, "
 		"maintenance_interval, maintenance_duration, downtime_threshold, "
 		"steplength, hours_to_maintenance, power_output, current_standby, "
 		"capacity, temp_threshold, time_online, time_in_standby, downtime, "
 		"shutdown_capacity, no_restart_capacity, num_condenser_trains, "
-		"fans_per_train, radiators_per_train, num_salt_steam_traoins, num_fwh, "
+		"fans_per_train, radiators_per_train, num_salt_steam_trains, num_fwh, "
 		"num_salt_pumps, num_water_pumps, num_turbines, condenser_eff_cold, "
 		"condenser_eff_hot", "(table:cycle_inputs):table");
 
@@ -448,9 +449,21 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("read_periods") != h->end())
 		read_periods = h->at("read_periods")->as_integer();
 
-	int num_periods = 0;
-	if (h->find("num_periods") != h->end())
-		num_periods = h->at("num_periods")->as_integer();
+	int sim_length = 48;
+	if (h->find("sim_length") != h->end())
+		sim_length = h->at("sim_length")->as_integer();
+
+	int start_period = 0;
+	if (h->find("start_period") != h->end())
+		start_period = h->at("start_period")->as_integer();
+
+	int next_start_period = 0;
+	if (h->find("next_start_period") != h->end())
+		next_start_period = h->at("next_start_period")->as_integer();
+
+	int write_interval = 48;
+	if (h->find("write_interval") != h->end())
+		write_interval = h->at("write_interval")->as_integer();
 
 	double eps = 0;
 	if (h->find("eps") != h->end())
@@ -464,8 +477,9 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("num_scenarios") != h->end())
 		num_scenarios = h->at("num_scenarios")->as_integer();
 
-	cycle.SetSimulationParameters(read_periods, num_periods,
-		eps, output, num_scenarios);
+	cycle.SetSimulationParameters(read_periods, sim_length,
+		start_period, next_start_period, write_interval, eps, 
+		output, num_scenarios);
 
 	// Dispatch parameters
 	// For now, we will assume that the dispatch parameters
@@ -480,13 +494,13 @@ void _power_cycle(lk::invoke_t &cxt)
 	std::vector<lk::vardata_t> *ambient_temperature = h->at("ambient_temperature")->vec();
 	std::vector<lk::vardata_t> *standby_by_hour = h->at("standby")->vec();
 	lk::vardata_t q;
-	for (int i = 0; i < num_periods; i++)
+	for (int i = 0; i < sim_length; i++)
 	{
-		q = cycle_power->at(i);
+		q = cycle_power->at(start_period + i);
 		dispatch.at("cycle_power").push_back(q.as_number());
-		q = ambient_temperature->at(i);
+		q = ambient_temperature->at(start_period + i);
 		dispatch.at("ambient_temperature").push_back(q.as_number());
-		q = standby_by_hour->at(i);
+		q = standby_by_hour->at(start_period + i);
 		dispatch.at("standby").push_back(q.as_number());
 	}
 	

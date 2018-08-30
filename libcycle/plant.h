@@ -33,7 +33,6 @@ class PowerCycle
 	std::vector <std::string> m_failure_event_labels;
 	std::unordered_map< std::string, ComponentStatus > m_component_status;
 	std::unordered_map< std::string, double > m_plant_status;
-	int m_read_periods;
 	double m_maintenance_interval;
 	double m_maintenance_duration;
 	double m_ramp_threshold;
@@ -44,9 +43,13 @@ class PowerCycle
 	double m_hours_to_maintenance;
 	bool m_online;
 	double m_power_output;
-	bool m_standby;
+	bool m_standby;   
 	double m_steplength;
-	int m_num_periods;
+	int m_sim_length;   // length of simulation (number of periods)
+	int m_start_period;  // starting period for simulation
+	int m_read_periods;  // length of read-only periods
+	int m_next_start_period; // starting point of next simulation (for rolling horizon)
+	int m_write_interval; //interval over which to write failure events for future runs
 	int m_num_scenarios;
 	int m_current_scenario;
 	double m_downtime_threshold;
@@ -86,8 +89,16 @@ public:
 	void InitializeCyclingDists();
 	void AssignGenerator(WELLFiveTwelve *gen);
 	void GeneratePlantCyclingPenalties();
-	void SetSimulationParameters(int read_periods, int num_periods, 
-		double epsilon = 1.E-10, bool print_output = false, int num_scenarios = 1);
+	void SetSimulationParameters(
+		int read_periods = 0, 
+		int sim_length = 48,
+		int start_period = 0, 
+		int next_start_period = 48,
+		int write_interval = 0,
+		double epsilon = 1.E-10, 
+		bool print_output = false, 
+		int num_scenarios = 1
+	);
 	void SetCondenserEfficienciesCold(std::vector<double> eff_cold);
 	void SetCondenserEfficienciesHot(std::vector<double> eff_hot);
 	void ReadComponentStatus(std::unordered_map< std::string, ComponentStatus > dstat);
@@ -147,13 +158,21 @@ public:
 		std::vector<double> condenser_eff_cold,
 		std::vector<double> condenser_eff_hot
 	);
-	void SetPlantAttributes(double maintenance_interval,
+	void SetPlantAttributes(
+		double maintenance_interval,
 		double maintenance_duration,
 		double downtime_threshold,
-		double steplength, double hours_to_maintenance,
-		double power_output, bool current_standby, double capacity,
-		double temp_threshold, double time_online, double time_in_standby,
-		double downtime, double shutdown_capacity, double no_restart_capacity
+		double steplength, 
+		double hours_to_maintenance,
+		double power_output, 
+		bool current_standby,
+		double capacity,
+		double temp_threshold, 
+		double time_online, 
+		double time_in_standby,
+		double downtime, 
+		double shutdown_capacity,
+		double no_restart_capacity
 	);
 	void SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing = false);
 	int NumberOfAirstreamsOnline();

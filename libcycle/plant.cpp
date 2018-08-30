@@ -48,10 +48,15 @@ void PowerCycle::GeneratePlantCyclingPenalties()
 }
 
 void PowerCycle::SetSimulationParameters( int read_periods, 
-	int num_periods, double epsilon, bool print_output, int num_scenarios)
+	int sim_length, int start_period, int next_start_period,
+	int write_interval,
+	double epsilon, bool print_output, int num_scenarios)
 {
     m_read_periods = read_periods;
-    m_num_periods = num_periods;
+    m_sim_length = sim_length;
+	m_start_period = start_period;
+	m_next_start_period = next_start_period;
+	m_write_interval = write_interval;
     m_output = print_output;
     m_eps = epsilon;
 	m_num_scenarios = num_scenarios;
@@ -1051,24 +1056,25 @@ void PowerCycle::RunDispatch()
         progress), and 0 otherwise.  This includes the read-in period.
     
 	*/
-    std::vector< double > cycle_capacities( m_num_periods, 0 );
-	std::vector< double > cycle_efficiencies(m_num_periods, 0);
+    std::vector< double > cycle_capacities( m_sim_length, 0 );
+	std::vector< double > cycle_efficiencies(m_sim_length, 0);
 	m_record_state_failure = true;
-    for( int t=0; t<m_num_periods; t++)
+    for( int t = m_start_period; t < m_start_period + m_sim_length; t++)
     {
-		if ( t == m_read_periods )
+		if ( t == m_start_period + m_read_periods + m_write_interval )
 		{
 			StoreState();
-			//ajz: I moved the failure events removal to the point at which 
-			//we stop reading old failure events and start writing new ones.
-			m_failure_events.clear();
-			m_failure_event_labels.clear();
+			//ajz: Keeping failure events from previous runs in rolling horizon
+			//m_failure_events.clear();
+			//m_failure_event_labels.clear();
 		}
 		//Shut all components down for maintenance if such an event is 
 		//read in inputs, or the hours to maintenance is <= zero.
-		if( m_hours_to_maintenance <= 0 && t >= m_read_periods )
+		//record the event at the period to be read in next.
+		if( m_hours_to_maintenance <= 0 && t >= m_start_period+m_read_periods )
         {
-            PlantMaintenanceShutdown(t-m_read_periods,true,true);
+            PlantMaintenanceShutdown(m_next_start_period + t - m_start_period, true,
+				t < m_start_period + m_read_periods + m_write_interval);
         }
 		
 		//Read in any component failures, if in the read-only stage.
