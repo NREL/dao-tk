@@ -313,7 +313,7 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("maintenance_interval") != h->end())
 		maintenance_interval = h->at("maintenance_interval")->as_number();
 
-	double maintenance_duration = 24.;
+	double maintenance_duration = 168.;
 	if (h->find("maintenance_duration") != h->end())
 		maintenance_duration = h->at("maintenance_duration")->as_number();
 
@@ -333,9 +333,9 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("power_output") != h->end())
 		power_output = h->at("power_output")->as_number();
 
-	bool standby = false;
+	bool current_standby = false;
 	if (h->find("current_standby") != h->end())
-		standby = h->at("current_standby")->as_boolean();
+		current_standby = h->at("current_standby")->as_boolean();
 
 	double capacity = 500000.;
 	if (h->find("capacity") != h->end())
@@ -367,7 +367,7 @@ void _power_cycle(lk::invoke_t &cxt)
 
 	cycle.SetPlantAttributes(maintenance_interval, maintenance_duration,
 		downtime_threshold, steplength, hours_to_maintenance, power_output,
-		standby, capacity, temp_threshold, time_online, time_in_standby, downtime,
+		current_standby, capacity, temp_threshold, time_online, time_in_standby, downtime,
 		shutdown_capacity, no_restart_capacity);
 
 	// Power cycle components
