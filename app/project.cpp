@@ -102,8 +102,9 @@ parameters::parameters()
 
 	std::vector< double > pvalts(8760, 1.);
 	dispatch_factors_ts.set( pvalts, "dispatch_factors_ts", lk::vardata_t::VECTOR, false );
-	dispatch_factors_ts.set( pvalts, "user_sf_avail", lk::vardata_t::VECTOR, false );
 
+
+	// Availability parameters
 	std::string rp = "mean_repair_time";
 	helio_repair_priority.set(rp, "helio_repair_priority", lk::vardata_t::STRING, false, "Heliostat repair priority", "-", "Heliostat availability|Parameters");
 	avail_model_timestep.set(24, "avail_model_timestep", lk::vardata_t::NUMBER, false, "Availability model timestep", "hr", "Heliostat availability|Parameters");
@@ -117,7 +118,20 @@ parameters::parameters()
 	helio_comp_mtr.set(shape, "helio_comp_mtr", lk::vardata_t::VECTOR, false, "Helio component mean time to repair", "hr", "Heliostat availability|Parameters");
 	helio_comp_repair_cost.set(shape, "helio_comp_repair_cost", lk::vardata_t::VECTOR, false, "Helio component repair cost", "$", "Heliostat availability|Parameters");
 
+	// Clustering parameters
+	is_use_clusters.set(false, "is_use_clusters", lk::vardata_t::NUMBER, false, "Use clusters?", "-", "Settings");
+	n_clusters.set(30, "n_clusters", lk::vardata_t::NUMBER, false, "Number of clusters", "-", "Settings");
 
+	cluster_ndays.set(2, "cluster_ndays", lk::vardata_t::NUMBER, false);
+	cluster_nprev.set(1, "cluster_nprev", lk::vardata_t::NUMBER, false);
+	is_hard_partitions.set(true, "is_hard_partitions", lk::vardata_t::NUMBER, false);
+	is_run_continuous.set(true, "is_run_continuous", lk::vardata_t::NUMBER, false);
+	std::string ca = "affinity_propagation";
+	cluster_algorithm.set(ca, "cluster_algorithm", lk::vardata_t::NUMBER, false);
+
+
+	
+	
 
 
 	
@@ -178,6 +192,15 @@ parameters::parameters()
 	(*this)["helio_comp_weibull_scale"] = &helio_comp_weibull_scale;
 	(*this)["helio_comp_mtr"] = &helio_comp_mtr;
 	(*this)["helio_comp_repair_cost"] = &helio_comp_repair_cost;
+
+	(*this)["is_use_clusters"] = &is_use_clusters;
+	(*this)["n_clusters"] = &n_clusters;
+	(*this)["cluster_ndays"] = &cluster_ndays;
+	(*this)["cluster_nprev"] = &cluster_nprev;
+	(*this)["is_hard_partitions"] = &is_hard_partitions;
+	(*this)["is_run_continuous"] = &is_run_continuous;
+	(*this)["cluster_algorithm"] = &cluster_algorithm;
+
 
 }
 
@@ -1742,15 +1765,87 @@ bool Project::O()
 
 bool Project::S()
 {
-	/* 
-	
-	*/
+	//--- error if invalid design
+	std::string error_msg;
+	bool ok = Validate(Project::CALLING_SIM::SIMULATION, &error_msg);
+	message_handler(error_msg.c_str());
+	if (!ok)
+		return false;
 
-	std::vector<double> sfavail(m_parameters.user_sf_avail.vec()->size());
-	for(int i=0; i<sfavail.size(); i++)
-		sfavail.at(i) = m_parameters.user_sf_avail.vec()->at(i).as_number();
 
-	is_simulation_valid = simulate_system(m_cluster_parameters, sfavail );
+	//--- Set time step size from weather file
+	int nrec = 0;
+	FILE *fp = fopen(m_parameters.solar_resource_file.as_string().c_str(), "r");
+	char *line;
+	char buffer[1024];
+	while ((line = fgets(buffer, sizeof(buffer), fp)) != NULL)
+		nrec += 1;
+	fclose(fp);
+	nrec -= 3;
+	int wf_steps_per_hour = nrec / 8760;
+
+	ssc_data_set_number(m_ssc_data, "time_steps_per_hour", wf_steps_per_hour);
+
+
+	//--- Set the solar field availability schedule
+	double avg_avail = 1.0;
+	double avg_soil = 1.0;
+	double avg_degr = 1.0;
+
+	if (is_sf_avail_valid)
+		avg_avail = m_solarfield_outputs.avg_avail.as_number();
+	if (is_sf_optical_valid)
+	{
+		avg_soil = m_optical_outputs.avg_soil.as_number();
+		avg_degr = m_optical_outputs.avg_degr.as_number();
+	}
+
+	double sf_adjust = avg_avail * avg_degr * avg_soil;
+
+	ssc_number_t *p_sf = new ssc_number_t[nrec];
+	for (int i = 0; i<nrec; i++)
+		p_sf[i] = 100.*(1. - sf_adjust);
+	ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sf, nrec);
+	delete p_sf;
+
+
+	//--- Set ssc parameters
+	ssc_number_t val, nhel, helio_height, helio_width, dens_mirror;
+	ssc_data_set_number(m_ssc_data, "flux_max", 1000.0);
+	ssc_data_set_number(m_ssc_data, "field_model_type", 3);
+	ssc_data_set_number(m_ssc_data, "is_ampl_engine", m_parameters.is_ampl_engine.as_boolean());
+	if (m_parameters.is_ampl_engine.as_boolean())
+		ssc_data_set_string(m_ssc_data, "ampl_data_dir", m_parameters.ampl_data_dir.as_string().c_str());
+	else
+		ssc_data_set_string(m_ssc_data, "ampl_data_dir", (const char*)(""));
+
+	ssc_data_get_number(m_ssc_data, "helio_height", &helio_height);
+	ssc_data_get_number(m_ssc_data, "helio_width", &helio_width);
+	ssc_data_get_number(m_ssc_data, "dens_mirror", &dens_mirror);
+	ssc_data_get_number(m_ssc_data, "number_heliostats", &nhel);
+	ssc_data_set_number(m_ssc_data, "A_sf_in", helio_height*helio_width*dens_mirror*nhel);
+	ssc_data_set_number(m_ssc_data, "N_hel", nhel);
+	ssc_data_get_number(m_ssc_data, "base_land_area", &val);
+	ssc_data_set_number(m_ssc_data, "land_area_base", val);
+
+	int nr, nc;
+	ssc_number_t *p_fluxmap = ssc_data_get_matrix(m_ssc_data, "flux_table", &nr, &nc);
+	ssc_data_set_matrix(m_ssc_data, "flux_maps", p_fluxmap, nr, nc);
+
+	ssc_number_t *p_opt = ssc_data_get_matrix(m_ssc_data, "opteff_table", &nr, &nc);
+	ssc_number_t *p_fluxpos = new ssc_number_t[nr * 2];
+	for (int r = 0; r < nr; r++)
+	{
+		p_opt[r*nc] += 180;
+		p_fluxpos[r * 2] = p_opt[r*nc];
+		p_fluxpos[r * 2 + 1] = p_opt[r*nc + 1];
+	}
+	ssc_data_set_matrix(m_ssc_data, "eta_map", p_opt, nr, nc);
+	ssc_data_set_matrix(m_ssc_data, "flux_positions", p_fluxpos, nr, 2);
+
+
+	//--- Run simultion
+	is_simulation_valid = simulate_system();
 	
 	return is_simulation_valid;
 }
@@ -1881,16 +1976,15 @@ bool Project::F()
 }
 
 
-void Project::setup_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail, s_metric_outputs &metric_results, s_cluster_outputs &cluster_results)
+bool Project::setup_clusters(s_metric_outputs &metric_results, s_cluster_outputs &cluster_results)
 {
 
-	//--- Set default inputs for all parameters
-	clustering_metrics metrics;
-	cluster_alg cluster;
+	//-- Set up metrics for cluster creation
+	clustering_metrics metrics; 
 	metrics.set_default_inputs();
-	cluster.set_default_inputs();
+	metrics.inputs.nsimdays = m_parameters.cluster_ndays.as_integer();
+	metrics.inputs.stowlimit = m_parameters.v_wind_max.as_number();
 
-	//--- Set weather / price / solar field availability inputs
 	metrics.inputs.weather_files.clear();
 	std::string weatherfile = m_parameters.solar_resource_file.as_string();
 	metrics.inputs.weather_files.push_back(weatherfile);
@@ -1900,23 +1994,33 @@ void Project::setup_clusters(const project_cluster_inputs &user_inputs, const st
     for (size_t i = 0; i < m_parameters.dispatch_factors_ts.vec()->size(); i++)
         metrics.inputs.prices.at(i) = m_parameters.dispatch_factors_ts.vec()->at(i).as_number();
 
-	metrics.inputs.sfavail = sfavail;
-	metrics.inputs.stowlimit = m_parameters.v_wind_max.as_number();
 
+	//--- Get the solar field availability
+	int nrec;
+	ssc_number_t *p_sf = ssc_data_get_array(m_ssc_data, "sf_adjust:hourly", &nrec);
+	metrics.inputs.sfavail.clear();
+	for (int i = 0; i < nrec; i++)
+		metrics.inputs.sfavail.push_back(1. - p_sf[i] / 100.);
 
-	//--- Update user-specified inputs if defined
-	if (user_inputs.nsim >-1)
-		metrics.inputs.nsimdays = user_inputs.nsim;
+	
+	//-- Set up clustering parameters
+	cluster_alg cluster;
+	cluster.set_default_inputs();
+	cluster.inputs.ncluster = m_parameters.n_clusters.as_integer();
+	cluster.inputs.hard_partitions = m_parameters.is_hard_partitions.as_boolean();
 
-	if (user_inputs.ncluster >-1)
-		cluster.inputs.ncluster = user_inputs.ncluster;
-
-	if (user_inputs.alg >-1)
-		cluster.inputs.alg = user_inputs.alg;
-
-	if (!user_inputs.hard_partitions)
-		cluster.inputs.hard_partitions = user_inputs.hard_partitions;
-
+	std::string ca = m_parameters.cluster_algorithm.as_string();
+	if (ca == "affinity_propagation")
+		cluster.inputs.alg = AFFINITY_PROPAGATION;
+	else if (ca == "kmeans")
+		cluster.inputs.alg = KMEANS;
+	else if (ca == "random")
+		cluster.inputs.alg = RANDOM_SELECTION;
+	else
+	{
+		message_handler("Cluster setup failed because algorithm is not recognized. Valid inputs are 'affinity_propagation', 'kmeans', or 'random'. Suggested input is 'affinity_propagation'");
+		return false;
+	}
 
 	//--- Calculate metrics and create clusters
 	metrics.calc_metrics();
@@ -1925,76 +2029,23 @@ void Project::setup_clusters(const project_cluster_inputs &user_inputs, const st
 	cluster.create_clusters(metrics.results.data);
 	cluster_results = cluster.results;
 
-
-	return;
+	return true;
 }
 
 
-bool Project::simulate_system(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail)
+bool Project::simulate_system()
 {
+	int nr;
 
-	int nr, nc;
-
-	//--- Set time step size from weather file
-	int nrec = 0;
-	FILE *fp = fopen(m_parameters.solar_resource_file.as_string().c_str(), "r");
-	char *line;
-	char buffer[1024];
-	while ((line = fgets(buffer, sizeof(buffer), fp)) != NULL)
-		nrec += 1;
-	fclose(fp);
-	nrec -= 3;
-	int wf_steps_per_hour = nrec / 8760;
-	int nperday = wf_steps_per_hour * 24;
-
-	//--- Set solar field availability
-	nr = (int)sfavail.size();
-	ssc_number_t *p_sf = new ssc_number_t[nr];
-	for (int i = 0; i<nr; i++)
-		p_sf[i] = 100.*(1. - sfavail.at(i));
-	ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sf, nr);
-
-	//--- Set ssc parameters
-	ssc_number_t val, nhel, helio_height, helio_width, dens_mirror;
-	ssc_data_set_number(m_ssc_data, "flux_max", 1000.0);
-	ssc_data_set_number(m_ssc_data, "field_model_type", 3);
-	ssc_data_set_number(m_ssc_data, "is_ampl_engine", m_parameters.is_ampl_engine.as_boolean());
-	if (m_parameters.is_ampl_engine.as_boolean())
-		ssc_data_set_string(m_ssc_data, "ampl_data_dir", m_parameters.ampl_data_dir.as_string().c_str());
-	else
-		ssc_data_set_string(m_ssc_data, "ampl_data_dir", (const char*)(""));		
-
-	ssc_data_get_number(m_ssc_data, "helio_height", &helio_height);
-	ssc_data_get_number(m_ssc_data, "helio_width", &helio_width);
-	ssc_data_get_number(m_ssc_data, "dens_mirror", &dens_mirror);
-	ssc_data_get_number(m_ssc_data, "number_heliostats", &nhel);
-	ssc_data_set_number(m_ssc_data, "A_sf_in", helio_height*helio_width*dens_mirror*nhel);
-	ssc_data_set_number(m_ssc_data, "N_hel", nhel);
-	
-
-	ssc_data_get_number(m_ssc_data, "base_land_area", &val);
-	ssc_data_set_number(m_ssc_data, "land_area_base", val);
-
-	ssc_number_t *p_fluxmap = ssc_data_get_matrix(m_ssc_data, "flux_table", &nr, &nc);
-	ssc_data_set_matrix(m_ssc_data, "flux_maps", p_fluxmap, nr, nc);
-
-	ssc_number_t *p_opt = ssc_data_get_matrix(m_ssc_data, "opteff_table", &nr, &nc);
-	ssc_number_t *p_fluxpos = new ssc_number_t[nr * 2];
-	for (int r = 0; r < nr; r++)
-	{
-		p_opt[r*nc] += 180;
-		p_fluxpos[r * 2] = p_opt[r*nc];
-		p_fluxpos[r * 2 + 1] = p_opt[r*nc + 1];
-	}
-	ssc_data_set_matrix(m_ssc_data, "eta_map", p_opt, nr, nc);
-	ssc_data_set_matrix(m_ssc_data, "flux_positions", p_fluxpos, nr, 2);
-
-
-	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean()); 
+	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean());
 	ssc_module_t mod_mspt = ssc_module_create("tcsmolten_salt");
 
+	//--- Get time step size from current ssc inputs
+	ssc_number_t wf_steps_per_hour;
+	ssc_data_get_number(m_ssc_data, "time_steps_per_hour", &wf_steps_per_hour);
+	int nperday = (int)wf_steps_per_hour * 24;
+	int nrec = (int)wf_steps_per_hour * 8760;
 
-	
 
 	//--- Initialize results
 	double annual_generation, revenue_units, rec_starts, cycle_starts, cycle_ramp;
@@ -2009,9 +2060,14 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 	}
 
 	//--- Run full simulation
-	if (user_inputs.is_run_full)
+	if (!m_parameters.is_use_clusters.as_boolean())
 	{
-		ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0);
+		if (!ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0))
+		{
+			message_handler("SSC simulation failed");
+			ssc_module_free(mod_mspt);
+			return false;
+		}
 
 		for (int i = 0; i < n_hourly_keys; i++)
 		{
@@ -2027,25 +2083,29 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 	else
 	{
 
-		//--- Set default inputs for all clustering parameters
+		//--- Set cluster simulation parameters
 		s_metric_outputs metric_results;
 		cluster_sim csim;
 		csim.set_default_inputs();
 		csim.inputs.days.nnext = int(m_parameters.is_dispatch.as_boolean());
-
-		//--- Update with user-defined inputs if defined
-		csim.inputs.is_run_continuous = user_inputs.is_run_continuous;
-		if (user_inputs.nsim > -1)
-			csim.inputs.days.ncount = user_inputs.nsim;
-
-		if (user_inputs.nprev > -1)
-			csim.inputs.days.nprev = user_inputs.nprev;
+		csim.inputs.is_run_continuous = m_parameters.is_run_continuous.as_boolean();
+		csim.inputs.days.ncount = m_parameters.cluster_ndays.as_integer();
+		csim.inputs.days.nprev = m_parameters.cluster_nprev.as_integer();
 
 
 		//--- Set up clusters
-		setup_clusters(user_inputs, sfavail, metric_results, csim.inputs.cluster_results);
+		if (!setup_clusters(metric_results, csim.inputs.cluster_results))
+			return false;
+
 		csim.assign_first_last(metric_results);
 		int ncl = csim.inputs.cluster_results.ncluster;
+
+
+		//--- Get the solar field availability
+		ssc_number_t *p_sf = ssc_data_get_array(m_ssc_data, "sf_adjust:hourly", &nr);
+		std::vector<double>sfavail;
+		for (int i = 0; i < nr; i++)
+			sfavail.push_back(1. - p_sf[i]/100.);
 
 
 		//--- Calculate cluster-average solar-field availability
@@ -2121,7 +2181,13 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 
 
 			// Run simulation and collect results
-			ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0);
+			if (!ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0))
+			{
+				message_handler("SSC simulation failed");
+				ssc_module_free(mod_mspt);
+				return false;
+			}
+
 			for (int i = 0; i < n_hourly_keys; i++)
 			{
 				std::string key = hourly_keys[i];
@@ -2241,8 +2307,9 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 		annual_generation += full_data["gen"].at(i) / (double)wf_steps_per_hour;
 		revenue_units += full_data["gen"].at(i) * m_parameters.dispatch_factors_ts.vec()->at(i).as_number() / (double)wf_steps_per_hour;
 	}
-	message_handler(wxString::Format("Annual generation (GWhe) = %.4f",annual_generation / 1.e6).c_str());
-	message_handler(wxString::Format("Annual revenue (GWhe) = %.4f", revenue_units / 1.e6).c_str());
+	//message_handler(wxString::Format("Annual generation (GWhe) = %.4f",annual_generation / 1.e6).c_str());
+	//message_handler(wxString::Format("Annual revenue units (GWhe) = %.4f", revenue_units / 1.e6).c_str());
+
 
 	//--- Calculate annual receiver starts, cycle starts, and cycle ramping
 	rec_starts = 0.0;
@@ -2261,8 +2328,7 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 	}
 
 
-	//"gen",  "Q_thermal", "annual_energy", "e_ch_tes", "beam", "pricing_mult" 
-	
+	//--- Set simulation outputs
 	m_simulation_outputs.generation_arr.assign_vector( full_data["gen"] );
 	m_simulation_outputs.solar_field_power_arr.assign_vector( full_data["Q_thermal"]);
 	m_simulation_outputs.tes_charge_state.assign_vector( full_data["e_ch_tes"] );

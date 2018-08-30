@@ -246,7 +246,7 @@ void _test(lk::invoke_t &cxt)
 	MainWindow &mw = MainWindow::Instance();
 
 	Project *P = mw.GetProject();
-
+	
 	P->m_variables.h_tower.assign( 100. );
 	P->m_variables.rec_height.assign( 15. );
 	P->m_variables.D_rec.assign( 12. );
@@ -261,7 +261,7 @@ void _test(lk::invoke_t &cxt)
 	P->m_variables.N_panels.assign( 16 );
 
 	P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
-
+	
 	P->D();
 	P->M();
 	P->O();
@@ -708,6 +708,21 @@ void _simulate_solarfield(lk::invoke_t &cxt)
 void _simulate_performance(lk::invoke_t &cxt)
 {
 
+	LK_DOC("simulate_performance", "Simulates annual performance from current project settings.", "([table:options]):table");
+
+	MainWindow &mw = MainWindow::Instance();
+	Project* P = mw.GetProject();
+
+	std::string error_msg;
+	if (!P->Validate(Project::CALLING_SIM::SIMULATION, &error_msg))
+	{
+		mw.Log(error_msg);
+		return;
+	}
+	P->S();
+	mw.UpdateDataTable();
+
+	/*
 	LK_DOC("simulate_performance", "Test creation/simulation of clusters."
 		"Table keys for clustering include: "
 		"is_clustering_used, n_cluster, n_sim_days, n_prev, weather_file, price_file, "
@@ -746,8 +761,6 @@ void _simulate_performance(lk::invoke_t &cxt)
 	// P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_weather.csv" );	
 	// std::string price_file = "/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_price.csv";
 
-	//--- User inputs for clustering
-	P->m_cluster_parameters.initialize();
 
 	if (H->find("weather_file") != H->end())
 		P->m_parameters.solar_resource_file.assign( H->at("weather_file")->as_string() );
@@ -853,13 +866,30 @@ void _simulate_performance(lk::invoke_t &cxt)
 		sfavail.resize(8760, 1.);
 	}
 	P->m_parameters.user_sf_avail.assign_vector( sfavail );
-
+	
 
 	//--- Run simulation
 	P->S();
 	
 	mw.UpdateDataTable();
-
+	*/
 	return;
 
+}
+
+void _simulate_financial(lk::invoke_t &cxt)
+{
+
+	LK_DOC("simulate_financial", "Simulates financial performance from current project settings.", "([table:options]):table");
+
+	MainWindow &mw = MainWindow::Instance();
+	Project* P = mw.GetProject();
+	P->E();
+	P->F();
+	mw.UpdateDataTable();
+
+	mw.Log(wxString::Format("PPA price (year 1) (c/kWh): %0.3f ", P->m_financial_outputs.ppa.as_number()));
+
+
+	return;
 }

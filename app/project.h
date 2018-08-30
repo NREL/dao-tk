@@ -200,16 +200,23 @@ struct parameters : public lk::varhash_t
 	parameter is_dispatch;
 	parameter is_ampl_engine;
 	parameter is_stochastic_disp;
+	parameter is_use_clusters;
+	parameter is_run_continuous;
+	parameter is_hard_partitions;
     //strings
 	parameter ampl_data_dir;
 	parameter solar_resource_file;
 	parameter helio_repair_priority;
+	parameter cluster_algorithm;
     //ints
 	parameter disp_steps_per_hour;
 	parameter avail_seed;
 	parameter plant_lifetime;
 	parameter finance_period;
 	parameter ppa_multiplier_model;
+	parameter n_clusters;
+	parameter cluster_ndays;
+	parameter cluster_nprev;
     //doubles
 	parameter rec_ref_cost;
 	parameter rec_ref_area;
@@ -372,30 +379,6 @@ struct financial_outputs : public lk::varhash_t
 };
 
 
-struct project_cluster_inputs
-{
-	int ncluster;
-	int nsim;
-	int nprev;
-	int alg;
-	bool hard_partitions;
-	bool is_run_continuous;
-	bool is_run_full;
-
-	project_cluster_inputs()
-	{
-		initialize();
-	};
-	
-	void initialize()
-	{
-		ncluster = nsim = nprev = alg = -1;
-		hard_partitions = true;
-		is_run_continuous = false;
-		is_run_full = false;
-	};
-
-};
 
 //main class
 class Project
@@ -418,14 +401,13 @@ class Project
 	void update_calculated_values_post_layout();
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
 	
-	void setup_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail, s_metric_outputs &metric_results, s_cluster_outputs &cluster_results);
-	bool simulate_system(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail);
+	bool setup_clusters(s_metric_outputs &metric_results, s_cluster_outputs &cluster_results);
+	bool simulate_system();
 
 public:
 
 	variables m_variables;
 	parameters m_parameters;
-	project_cluster_inputs m_cluster_parameters;
 	design_outputs m_design_outputs;
 	solarfield_outputs m_solarfield_outputs;
 	optical_outputs m_optical_outputs;
