@@ -1783,30 +1783,34 @@ bool Project::S()
 	fclose(fp);
 	nrec -= 3;
 	int wf_steps_per_hour = nrec / 8760;
+	double sim_ts = 1. / (double)wf_steps_per_hour;
 
 	ssc_data_set_number(m_ssc_data, "time_steps_per_hour", wf_steps_per_hour);
 
 
 	//--- Set the solar field availability schedule
-	double avg_avail = 1.0;
-	double avg_soil = 1.0;
-	double avg_degr = 1.0;
+	std::vector<double> avail(nrec, 1.);
+	std::vector<double> soil(nrec, 1.);
+	std::vector<double> degr(nrec, 1.);
 
 	if (is_sf_avail_valid)
-		avg_avail = m_solarfield_outputs.avg_avail.as_number();
+	{
+		int avail_ts = m_parameters.avail_model_timestep.as_integer();
+		calc_avg_annual_schedule(avail_ts, sim_ts, m_solarfield_outputs.avail_schedule, avail);
+	}
 	if (is_sf_optical_valid)
 	{
-		avg_soil = m_optical_outputs.avg_soil.as_number();
-		avg_degr = m_optical_outputs.avg_degr.as_number();
+		int op_ts = 1.0;  // assume 1hr time step in optical model
+		calc_avg_annual_schedule(op_ts, sim_ts, m_optical_outputs.soil_schedule, soil);
+		calc_avg_annual_schedule(op_ts, sim_ts, m_optical_outputs.degr_schedule, degr);
 	}
-
-	double sf_adjust = avg_avail * avg_degr * avg_soil;
 
 	ssc_number_t *p_sf = new ssc_number_t[nrec];
 	for (int i = 0; i<nrec; i++)
-		p_sf[i] = 100.*(1. - sf_adjust);
+		p_sf[i] = 100.*(1. - avail[i]*soil[i]*degr[i]);
 	ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sf, nrec);
 	delete p_sf;
+
 
 
 	//--- Set ssc parameters
@@ -1844,7 +1848,7 @@ bool Project::S()
 	ssc_data_set_matrix(m_ssc_data, "flux_positions", p_fluxpos, nr, 2);
 
 
-	//--- Run simultion
+	//--- Run simulation
 	is_simulation_valid = simulate_system();
 	
 	return is_simulation_valid;
@@ -2345,3 +2349,46 @@ bool Project::simulate_system()
 }
 
 
+void Project::calc_avg_annual_schedule(double original_ts, double new_ts, const parameter &full_sch, std::vector<double> &output_sch)
+{
+	// Convert full multiple-year availability, soiling, or degradation schedule into avg annual schedule for simulation
+	// original_ts = timestep used in availability model
+	// new_ts = timestep needed for simulation
+
+	int nsteps = full_sch.vec()->size();
+	int ny = (int)floor(original_ts * nsteps / 8760);
+	double n = ceil(8760. / (double)original_ts);  // number points per year
+	int n_int = (int)floor(n);
+
+	// Calculate annual availability schedule averaged over all simulated years
+	std::vector<double> avg_avail_sched(n_int, 0.0);
+	for (int y = 0; y < ny; y++)
+	{
+		int p1 = (int)floor(y*n);
+		for (int p = 0; p < n_int; p++)
+		{
+			double avail_pt;
+			if (p1 + p <= nsteps - 1)
+				avail_pt = m_solarfield_outputs.avail_schedule.vec()->at(p1 + p).as_number();
+			else
+				avail_pt = m_solarfield_outputs.avail_schedule.vec()->at(nsteps - 1).as_number();
+
+			avg_avail_sched[p] += avail_pt / (double)ny;
+		}
+	}
+
+	// Translate to new time step
+	output_sch.clear();
+	int nrec = (int)ceil(8760. / new_ts);
+	for (int i = 0; i < nrec; i++)
+	{
+		int j = floor(i*new_ts / original_ts);
+
+		if (j <= avg_avail_sched.size() - 1)
+			output_sch.push_back(avg_avail_sched[j]);
+		else
+			output_sch.push_back(avg_avail_sched.back());
+	}
+
+	return;
+}

@@ -403,6 +403,7 @@ class Project
 	
 	bool setup_clusters(s_metric_outputs &metric_results, s_cluster_outputs &cluster_results);
 	bool simulate_system();
+	void calc_avg_annual_schedule(double original_ts, double new_ts, const parameter &full_sch, std::vector<double> &output_sch);
 
 public:
 
