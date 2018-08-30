@@ -114,9 +114,9 @@ parameters::parameters()
 	std::vector< double > mtr = { 2. };
 	std::vector< double > repair_cost = { 300. };
 	helio_comp_weibull_shape.set(shape, "helio_comp_weibull_shape", lk::vardata_t::VECTOR, false, "Helio component Weibull shape params", "-", "Heliostat availability|Parameters");
-	helio_comp_weibull_scale.set(shape, "helio_comp_weibull_scale", lk::vardata_t::VECTOR, false, "Helio component Weibull scale params", "hr", "Heliostat availability|Parameters");
-	helio_comp_mtr.set(shape, "helio_comp_mtr", lk::vardata_t::VECTOR, false, "Helio component mean time to repair", "hr", "Heliostat availability|Parameters");
-	helio_comp_repair_cost.set(shape, "helio_comp_repair_cost", lk::vardata_t::VECTOR, false, "Helio component repair cost", "$", "Heliostat availability|Parameters");
+	helio_comp_weibull_scale.set(scale, "helio_comp_weibull_scale", lk::vardata_t::VECTOR, false, "Helio component Weibull scale params", "hr", "Heliostat availability|Parameters");
+	helio_comp_mtr.set(mtr, "helio_comp_mtr", lk::vardata_t::VECTOR, false, "Helio component mean time to repair", "hr", "Heliostat availability|Parameters");
+	helio_comp_repair_cost.set(repair_cost, "helio_comp_repair_cost", lk::vardata_t::VECTOR, false, "Helio component repair cost", "$", "Heliostat availability|Parameters");
 
 	// Clustering parameters
 	is_use_clusters.set(false, "is_use_clusters", lk::vardata_t::NUMBER, false, "Use clusters?", "-", "Settings");
@@ -330,7 +330,7 @@ simulation_outputs::simulation_outputs()
 	price_templates.set(empty_vec, "price_templates", lk::vardata_t::VECTOR, true, "Price clusters", "-", "Simulation|Outputs");
 
 	annual_generation.set(nan, "annual_generation", lk::vardata_t::NUMBER, true, "Annual total generation", "GWhe", "Simulation|Outputs");
-	annual_revenue.set(nan, "annual_revenue", lk::vardata_t::NULLVAL, true, "Annual revenue units", "-", "Simulation|Outputs");
+	annual_revenue.set(nan, "annual_revenue", lk::vardata_t::NULLVAL, true, "Annual revenue units", "GWhe", "Simulation|Outputs");
 
 	annual_rec_starts.set(nan, "annual_rec_starts", lk::vardata_t::NUMBER, true, "Annual receiver starts", "-", "Simulation|Outputs");
 	annual_cycle_starts.set(nan, "annual_cycle_starts", lk::vardata_t::NUMBER, true, "Annual cycle starts", "-", "Simulation|Outputs");
@@ -2335,8 +2335,8 @@ bool Project::simulate_system()
 	m_simulation_outputs.dni_arr.assign_vector( full_data["beam"] );
 	m_simulation_outputs.price_arr.assign_vector( full_data["pricing_mult"] );
 
-	m_simulation_outputs.annual_generation.assign( annual_generation );
-	m_simulation_outputs.annual_revenue.assign( revenue_units );
+	m_simulation_outputs.annual_generation.assign( annual_generation*1.e-6 );
+	m_simulation_outputs.annual_revenue.assign( revenue_units*1.e-6);
 	m_simulation_outputs.annual_rec_starts.assign(rec_starts);
 	m_simulation_outputs.annual_cycle_starts.assign(cycle_starts);
 	m_simulation_outputs.annual_cycle_ramp.assign(cycle_ramp*1.e-6);
