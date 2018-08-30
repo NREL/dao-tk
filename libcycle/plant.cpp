@@ -527,15 +527,20 @@ void PowerCycle::GeneratePlantComponents(
 }
 
 void PowerCycle::SetPlantAttributes(double maintenance_interval = 5000.,
-				double maintenance_duration = 24.,
-				double downtime_threshold = 24., 
-				double steplength = 1., double hours_to_maintenance = 5000.,
-				double power_output = 0., bool current_standby = false, double capacity = 500000.,
-				double temp_threshold = 20., 
-				double time_online = 0., double time_in_standby = 0.,
-				double downtime = 0., double shutdown_capacity = 0.45, 
-				double no_restart_capacity = 0.9
-	)
+	double maintenance_duration = 168.,
+	double downtime_threshold = 24., 
+	double steplength = 1., 
+	double hours_to_maintenance = 5000.,
+	double power_output = 0., 
+	bool current_standby = false, 
+	double capacity = 500000.,
+	double temp_threshold = 20., 
+	double time_online = 0., 
+	double time_in_standby = 0.,
+	double downtime = 0.,
+	double shutdown_capacity = 0.45, 
+	double no_restart_capacity = 0.9
+)
 {
     /*
 	Initializes plant attributes.
