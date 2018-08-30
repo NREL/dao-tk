@@ -185,7 +185,7 @@ void VariableDialog::OnHtmlEvent(wxHtmlLinkEvent &evt)
         wxArrayString idparse = wxSplit(link.c_str(), '?') ;
         if( idparse.size() != 2 )
             return;
-        wxString var = idparse.at(1);
+        wxString var = idparse.back();
 
         for( std::vector< lk::varhash_t* >::iterator vgroup = m_variable_data.begin(); 
                                                      vgroup!= m_variable_data.end(); 
