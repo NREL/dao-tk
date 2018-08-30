@@ -519,6 +519,10 @@ void Project::ssc_to_lk_hash(ssc_data_t &cxt, lk::varhash_t &vars)
     }
 }
 
+void Project::initialize_ssc_project()
+{
+}
+
 void Project::lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars)
 {
     for( lk::varhash_t::iterator v = vars.begin(); v != vars.end(); v++ )
