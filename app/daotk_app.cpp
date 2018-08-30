@@ -15,7 +15,7 @@
 
 #include "../app/menu.cpng"
 #include "../app/notes_white.cpng"
-#ifndef __WXMSW__
+#ifdef __linux__
 #include "../deploy/linux/app.xpm"
 #endif
 
@@ -154,7 +154,8 @@ MainWindow::MainWindow()
 {
 #ifdef __WXMSW__
 	SetIcon(wxICON(appicon));
-#else
+#endif
+#ifdef __linux__
 	SetIcon(app_128_xpm);
 #endif
 
