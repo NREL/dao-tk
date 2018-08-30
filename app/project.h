@@ -285,6 +285,7 @@ struct parameters : public lk::varhash_t
 	parameter is_dispatch;
 	parameter is_ampl_engine;
 	parameter is_stochastic_disp;
+	parameter current_standby;
     //strings
 	parameter ampl_data_dir;
 	parameter solar_resource_file;
@@ -294,6 +295,20 @@ struct parameters : public lk::varhash_t
 	parameter plant_lifetime;
 	parameter finance_period;
 	parameter ppa_multiplier_model;
+	parameter num_condenser_trains;
+	parameter fans_per_train;
+	parameter radiators_per_train;
+	parameter num_salt_steam_trains;
+	parameter num_fwh;
+	parameter num_salt_pumps;
+	parameter num_water_pumps;
+	parameter num_turbines;
+	parameter read_periods;
+	parameter sim_length;
+	parameter start_period;
+	parameter next_start_period;
+	parameter write_interval;
+	parameter num_scenarios;
     //doubles
 	parameter rec_ref_cost;
 	parameter rec_ref_area;
@@ -329,10 +344,24 @@ struct parameters : public lk::varhash_t
 	parameter startup_frac;
 	parameter v_wind_max;
 	parameter flux_max;
+	parameter maintenance_interval;
+	parameter maintenance_duration;
+	parameter steplength;
+	parameter hours_to_maintenance;
+	parameter power_output;
+	parameter capacity;
+	parameter temp_threshold;
+	parameter time_online;
+	parameter time_in_standby;
+	parameter downtime;
+	parameter shutdown_capacity;
+	parameter no_restart_capacity;
     //vector-doubles
 	parameter c_ces;
 	parameter dispatch_factors_ts;
 	parameter user_sf_avail;
+	parameter condenser_eff_cold;
+	parameter condenser_eff_hot;
 	//-----------------------------------------------------------------------
 
 	parameters();
@@ -397,6 +426,8 @@ struct optical_outputs : public lk::varhash_t
 
 struct cycle_outputs : public lk::varhash_t
 {
+	parameter cycle_efficency;
+	parameter cycle_capacity;
 	cycle_outputs() {};
 };
 

@@ -52,6 +52,7 @@ parameters::parameters()
 	is_dispatch.set( false, "is_dispatch", false, "Optimize dispatch", "-", "Settings" );
 	is_ampl_engine.set( false, "is_ampl_engine", false, "Use AMPL optimizer", "-", "Settings");
 	is_stochastic_disp.set( false, "is_stochastic_disp", false, "Run stochastic dispatch", "-", "Settings" );
+	current_standby.set(false, "current_standby", false, "Start power cycle in standby", "-", "Cycle|Parameters");
 
 	ampl_data_dir.set( "", "ampl_data_dir", false, "AMPL data folder", "-", "Settings" );
 	solar_resource_file.set( "", "solar_resource_file", false, "Solar resource file", "-", "Settings" );
@@ -61,6 +62,20 @@ parameters::parameters()
 	plant_lifetime.set( 30, "plant_lifetime", false, "Plant lifetime", "yr", "Financial parameters" );
 	finance_period.set( 25, "finance_period", false, "Finance period", "yr", "Financial parameters" );
 	ppa_multiplier_model.set( 1, "ppa_multiplier_model", false, "PPA multiplier model", "-", "Financial parameters" );
+	num_condenser_trains.set(2, "num_condenser_trains", false, "Number of condenser trains", "-", "Cycle|Parameters");
+	fans_per_train.set(30, "fans_per_train", false, "Number of fans per condenser train", "-", "Cycle|Parameters");
+	radiators_per_train.set(2, "radiators_per_train", false, "Number of radiators per condenser train", "-", "Cycle|Parameters");
+	num_salt_steam_trains.set(2, "num_salt_steam_trains", false, "Number of salt-to-steam trains", "-", "Cycle|Parameters");
+	num_fwh.set(6, "num_fwh", false, "Number of feedwater heaters", "-", "Cycle|Parameters");
+	num_salt_pumps.set(2, "num_salt_pumps", false, "Number of hot salt pumps", "-", "Cycle|Parameters");
+	num_water_pumps.set(2, "num_water_pumps", false, "Number of boiler and water pumps", "-", "Cycle|Parameters");
+	num_turbines.set(1, "num_turbines", false, "Number of turbine-generator shafts", "-", "Cycle|Parameters");
+	read_periods.set(0, "read_periods", false, "Number of read-only periods", "-", "Cycle|Parameters");
+	sim_length.set(48, "sim_length", false, "Number of periods in cycle simulation", "-", "Cycle|Parameters");
+	start_period.set(0, "start_period", false, "Cycle simuilation starting period", "-", "Cycle|Parameters");
+	next_start_period.set(0, "next_start_period", false, "Next cycle simuilation starting period", "-", "Cycle|Parameters");
+	write_interval.set(48, "write_interval", false, "Number of periods in rolling horizon interval", "-", "Cycle|Parameters");
+	num_scenarios.set(1, "num_scenarios", false, "Number of scenarios", "-", "Cycle|Parameters");
 
 	rec_ref_cost.set( 1.03e+008, "rec_ref_cost", false, "Receiver reference cost", "$", "Financial parameters" );
 	rec_ref_area.set( 1571., "rec_ref_area", false, "Receiver reference area", "m2", "Financial parameters");
@@ -96,6 +111,18 @@ parameters::parameters()
 	startup_frac.set( 0.5, "startup_frac", false, "Power block startup energy", "MWh/MWh", "Simulation|Parameters" );
 	v_wind_max.set( 15., "v_wind_max", false, "Max operational wind velocity", "m/s", "Simulation|Parameters" );
 	flux_max.set(1000., "flux_max", false, "Maximum receiver flux", "kW/m2", "Simulation|Parameters");
+	maintenance_interval.set(5000., "maintenance_interval", false, "Runtime duration betwwen maintenance events", "h", "Cycle|Parameters");
+	maintenance_duration.set(168., "maintenance_duration", false, "Duration of maintenance events", "h", "Cycle|Parameters");
+	steplength.set(1., "steplength", false, "Simulation time period length", "h", "Cycle|Parameters");
+	hours_to_maintenance.set(5000., "hours_to_maintenance", false, "Runtime duration before next maintenance event", "h", "Cycle|Parameters");
+	power_output.set(0., "power_output", false, "Initial power cycle output", "W", "Cycle|Parameters");
+	capacity.set(500000., "capacity", false, "Power cycle capacity", "W", "Cycle|Parameters");
+	temp_threshold.set(20., "temp_threshold", false, "Ambient temperature threshold for condensers", "Celsius", "Cycle|Parameters");
+	time_online.set(0., "time_online", false, "Initial power cycle output duration", "h", "Cycle|Parameters");
+	time_in_standby.set(0., "time_in_standby", false, "Initial power cycle time in stndby", "h", "Cycle|Parameters");
+	downtime.set(0., "downtime", false, "Initial power cycle downtime", "h", "Cycle|Parameters");
+	shutdown_capacity.set(0.3, "shutdown_capacity", false, "Threshold capacity to shut plant down", "h", "Cycle|Parameters");
+	no_restart_capacity.set(0.9, "no_restart_capacity", false, "Threshold capacity to perform maintenance on shutdown", "h", "Cycle|Parameters");
 	
 	std::vector< double > pval = { 0., 7., 200., 12000. };
 	c_ces.set( pval, "c_ces", false );
@@ -103,6 +130,12 @@ parameters::parameters()
 	std::vector< double > pvalts(8760, 1.);
 	dispatch_factors_ts.set( pvalts, "dispatch_factors_ts", false );
 	dispatch_factors_ts.set( pvalts, "user_sf_avail", false );
+
+	std::vector< double > c_eff_cold = { 0., 1., 1. };
+	condenser_eff_cold.set(c_eff_cold, "condenser_eff_cold", false);
+
+	std::vector< double > c_eff_hot = { 0., 0.95, 1. };
+	condenser_eff_hot.set(c_eff_hot, "condenser_eff_hot", false );
 	
     (*this)["print_messages"] = &print_messages;
     (*this)["check_max_flux"] = &check_max_flux;
@@ -110,6 +143,7 @@ parameters::parameters()
     (*this)["is_dispatch"] = &is_dispatch;
     (*this)["is_ampl_engine"] = &is_ampl_engine;
     (*this)["is_stochastic_disp"] = &is_stochastic_disp;
+	(*this)["current_standby"] = &current_standby;
     (*this)["ampl_data_dir"] = &ampl_data_dir;
     (*this)["solar_resource_file"] = &solar_resource_file;
     (*this)["disp_steps_per_hour"] = &disp_steps_per_hour;
@@ -117,6 +151,20 @@ parameters::parameters()
     (*this)["plant_lifetime"] = &plant_lifetime;
     (*this)["finance_period"] = &finance_period;
     (*this)["ppa_multiplier_model"] = &ppa_multiplier_model;
+	(*this)["num_condenser_trains"] = &num_condenser_trains;
+	(*this)["fans_per_train"] = &fans_per_train;
+	(*this)["radiators_per_train"] = &radiators_per_train;
+	(*this)["num_salt_steam_trains"] = &num_salt_steam_trains;
+	(*this)["num_fwh"] = &num_fwh;
+	(*this)["num_salt_pumps"] = &num_salt_pumps;
+	(*this)["num_water_pumps"] = &num_water_pumps;
+	(*this)["num_turbines"] = &num_turbines;
+	(*this)["read_periods"] = &read_periods;
+	(*this)["sim_length"] = &sim_length;
+	(*this)["start_period"] = &start_period;
+	(*this)["next_start_period"] = &next_start_period;
+	(*this)["write_interval"] = &write_interval;
+	(*this)["num_scenarios"] = &num_scenarios;
     (*this)["rec_ref_cost"] = &rec_ref_cost;
     (*this)["rec_ref_area"] = &rec_ref_area;
     (*this)["tes_spec_cost"] = &tes_spec_cost;
@@ -151,9 +199,23 @@ parameters::parameters()
     (*this)["startup_frac"] = &startup_frac;
     (*this)["v_wind_max"] = &v_wind_max;
     (*this)["flux_max"] = &flux_max;
+	(*this)["maintenance_interval"] = &maintenance_interval;
+	(*this)["maintenance_duration"] = &maintenance_duration;
+	(*this)["steplength"] = &steplength;
+	(*this)["hours_to_maintenance"] = &hours_to_maintenance;
+	(*this)["power_output"] = &power_output;
+	(*this)["capacity"] = &capacity;
+	(*this)["temp_threshold"] = &temp_threshold;
+	(*this)["time_online"] = &time_online;
+	(*this)["time_in_standby"] = &time_in_standby;
+	(*this)["downtime"] = &downtime;
+	(*this)["shutdown_capacity"] = &shutdown_capacity;
+	(*this)["no_restart_capacity"] = &no_restart_capacity;
     (*this)["c_ces"] = &c_ces;
     (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
 	(*this)["user_sf_avail"] = &user_sf_avail;
+	(*this)["condenser_eff_cold"] = &condenser_eff_cold;
+	(*this)["condenser_eff_hot"] = &condenser_eff_hot;
 }
 
 design_outputs::design_outputs()
