@@ -26,6 +26,7 @@
     <ClCompile Include="..\app\dataview.cpp" />
     <ClCompile Include="..\app\logview.cpp" />
     <ClCompile Include="..\app\project.cpp" />
+    <ClCompile Include="..\app\project_init.cpp" />
     <ClCompile Include="..\app\scripting.cpp" />
     <ClCompile Include="..\app\scriptview.cpp" />
     <ClCompile Include="..\app\treeselect.cpp" />
