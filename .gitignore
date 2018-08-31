@@ -300,3 +300,4 @@ __pycache__/
 
 # Specific DAO-Tk build ignores
 build_linux/dao-tk
+deploy/samples/clustering/*

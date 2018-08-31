@@ -158,12 +158,12 @@ void _var(lk::invoke_t &cxt)
     if (cxt.arg_count() == 2) //set
     {
 		//validate data type
-		if( cxt.arg(1).type() != dat->type )
+		if( cxt.arg(1).type() != dat->type() )
 		{
 			std::string expected_type;
 			std::string given_type;
 
-			switch( dat->type )
+			switch( dat->type() )
 			{
 				case lk::vardata_t::STRING: expected_type = "string"; break;
 				case lk::vardata_t::NUMBER: expected_type = "number"; break;
@@ -188,7 +188,7 @@ void _var(lk::invoke_t &cxt)
 			return;
 		}
 		//assign data type
-		switch( dat->type )
+		switch( dat->type() )
 		{
 			case lk::vardata_t::STRING:
 				dat->assign( cxt.arg(1).as_string() );
@@ -207,7 +207,7 @@ void _var(lk::invoke_t &cxt)
 	}
 	else if (cxt.arg_count() == 1) //get
 	{
-		switch( dat->type )
+		switch( dat->type() )
 		{
 			case lk::vardata_t::STRING:
 				cxt.result().assign( dat->as_string() );
@@ -285,6 +285,7 @@ void _generate_solarfield(lk::invoke_t &cxt)
 	LK_DOC("generate_solarfield", "Creates a new solar field layout and geometry from current project settings.", "([table:options]):table");
 
 	MainWindow::Instance().GetProject()->D();
+	MainWindow::Instance().SetProgress(0.);
 	
 }
 
@@ -292,15 +293,15 @@ void _power_cycle(lk::invoke_t &cxt)
 {
 	LK_DOC("power_cycle_avail", "Simulate the power cycle capacity over time, after accounting for maintenance and failures. "
 		"Table keys include: cycle_power, ambient_temperature, standby, "
-		"read_periods, num_periods, eps, output, num_scenarios, "
+		"read_periods, sim_length, start_period, next_start_period, "
+		"write_interval, eps, output, num_scenarios, "
 		"maintenance_interval, maintenance_duration, downtime_threshold, "
 		"steplength, hours_to_maintenance, power_output, current_standby, "
 		"capacity, temp_threshold, time_online, time_in_standby, downtime, "
 		"shutdown_capacity, no_restart_capacity, num_condenser_trains, "
-		"fans_per_train, radiators_per_train, num_salt_steam_traoins, num_fwh, "
-		"num_salt_pumps, num_water_pumps, num_hi_pressure, num_mid_pressure, "
-		"num_low_pressure, condenser_eff_cold, condenser_eff_hot", 
-		"(table:cycle_inputs):table");
+		"fans_per_train, radiators_per_train, num_salt_steam_trains, num_fwh, "
+		"num_salt_pumps, num_water_pumps, num_turbines, condenser_eff_cold, "
+		"condenser_eff_hot", "(table:cycle_inputs):table");
 
 	PowerCycle cycle;
 
@@ -312,7 +313,7 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("maintenance_interval") != h->end())
 		maintenance_interval = h->at("maintenance_interval")->as_number();
 
-	double maintenance_duration = 24.;
+	double maintenance_duration = 168.;
 	if (h->find("maintenance_duration") != h->end())
 		maintenance_duration = h->at("maintenance_duration")->as_number();
 
@@ -332,9 +333,9 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("power_output") != h->end())
 		power_output = h->at("power_output")->as_number();
 
-	bool standby = false;
+	bool current_standby = false;
 	if (h->find("current_standby") != h->end())
-		standby = h->at("current_standby")->as_boolean();
+		current_standby = h->at("current_standby")->as_boolean();
 
 	double capacity = 500000.;
 	if (h->find("capacity") != h->end())
@@ -366,7 +367,7 @@ void _power_cycle(lk::invoke_t &cxt)
 
 	cycle.SetPlantAttributes(maintenance_interval, maintenance_duration,
 		downtime_threshold, steplength, hours_to_maintenance, power_output,
-		standby, capacity, temp_threshold, time_online, time_in_standby, downtime,
+		current_standby, capacity, temp_threshold, time_online, time_in_standby, downtime,
 		shutdown_capacity, no_restart_capacity);
 
 	// Power cycle components
@@ -399,17 +400,9 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("num_water_pumps") != h->end())
 		num_water_pumps = h->at("num_water_pumps")->as_integer();
 
-	int num_hi_pressure = 1;
-	if (h->find("num_hi_pressure") != h->end())
-		num_hi_pressure = h->at("num_hi_pressure")->as_integer();
-
-	int num_mid_pressure = 1;
-	if (h->find("num_mid_pressure") != h->end())
-		num_mid_pressure = h->at("num_mid_pressure")->as_integer();
-
-	int num_low_pressure = 1;
-	if (h->find("num_low_pressure") != h->end())
-		num_low_pressure = h->at("num_low_pressure")->as_integer();
+	int num_turbines = 1;
+	if (h->find("num_turbines") != h->end())
+		num_turbines = h->at("num_turbines")->as_integer();
 
 	std::vector < double > condenser_eff_cold = { 0.,1.,1. };
 	if (h->find("condenser_eff_cold") != h->end())
@@ -445,9 +438,7 @@ void _power_cycle(lk::invoke_t &cxt)
 		num_fwh,
 		num_salt_pumps,
 		num_water_pumps,
-		num_hi_pressure,
-		num_mid_pressure,
-		num_low_pressure,
+		num_turbines,
 		condenser_eff_cold,
 		condenser_eff_hot
 	);
@@ -458,9 +449,21 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("read_periods") != h->end())
 		read_periods = h->at("read_periods")->as_integer();
 
-	int num_periods = 0;
-	if (h->find("num_periods") != h->end())
-		num_periods = h->at("num_periods")->as_integer();
+	int sim_length = 48;
+	if (h->find("sim_length") != h->end())
+		sim_length = h->at("sim_length")->as_integer();
+
+	int start_period = 0;
+	if (h->find("start_period") != h->end())
+		start_period = h->at("start_period")->as_integer();
+
+	int next_start_period = 0;
+	if (h->find("next_start_period") != h->end())
+		next_start_period = h->at("next_start_period")->as_integer();
+
+	int write_interval = 48;
+	if (h->find("write_interval") != h->end())
+		write_interval = h->at("write_interval")->as_integer();
 
 	double eps = 0;
 	if (h->find("eps") != h->end())
@@ -474,8 +477,9 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("num_scenarios") != h->end())
 		num_scenarios = h->at("num_scenarios")->as_integer();
 
-	cycle.SetSimulationParameters(read_periods, num_periods,
-		eps, output, num_scenarios);
+	cycle.SetSimulationParameters(read_periods, sim_length,
+		start_period, next_start_period, write_interval, eps, 
+		output, num_scenarios);
 
 	// Dispatch parameters
 	// For now, we will assume that the dispatch parameters
@@ -490,13 +494,13 @@ void _power_cycle(lk::invoke_t &cxt)
 	std::vector<lk::vardata_t> *ambient_temperature = h->at("ambient_temperature")->vec();
 	std::vector<lk::vardata_t> *standby_by_hour = h->at("standby")->vec();
 	lk::vardata_t q;
-	for (int i = 0; i < num_periods; i++)
+	for (int i = 0; i < sim_length; i++)
 	{
-		q = cycle_power->at(i);
+		q = cycle_power->at(start_period + i);
 		dispatch.at("cycle_power").push_back(q.as_number());
-		q = ambient_temperature->at(i);
+		q = ambient_temperature->at(start_period + i);
 		dispatch.at("ambient_temperature").push_back(q.as_number());
-		q = standby_by_hour->at(i);
+		q = standby_by_hour->at(start_period + i);
 		dispatch.at("standby").push_back(q.as_number());
 	}
 	
@@ -505,8 +509,9 @@ void _power_cycle(lk::invoke_t &cxt)
 	cycle.AssignGenerator(&gen);
 	cycle.Simulate(true);
 
-	return;
+	MainWindow::Instance().SetProgress(0.);
 
+	return;
 }
 
 void _simulate_optical(lk::invoke_t &cxt)
@@ -574,6 +579,7 @@ void _simulate_optical(lk::invoke_t &cxt)
 
 	OD.simulate();
 
+	mw.SetProgress(0.);
 	return;
 
 }
@@ -694,11 +700,7 @@ void _simulate_solarfield(lk::invoke_t &cxt)
 	SA.m_settings.helio_performance.assign(SA.m_settings.n_helio, 1.0);
 	SA.simulate();
 
-	//mw.Log(wxString::Format("Overall average availability: %0.3f ", SA.m_results.avg_avail));
-	//mw.Log(wxString::Format("Minimum availability: %0.3f ", SA.m_results.min_avail));
-
-	//for (int c = 0; c < SA.m_settings.helio_components.size(); c++)
-	//	mw.Log(wxString::Format("Component %d failures / repairs: %0.1f / %0.1f ", c, SA.m_results.n_failures_per_component[c], SA.m_results.n_repairs_per_component[c]));
+	mw.SetProgress(0.);
 	*/
 
 	return;
@@ -871,6 +873,7 @@ void _simulate_performance(lk::invoke_t &cxt)
 	//--- Run simulation
 	P->S();
 	
+	mw.SetProgress(0.);
 	mw.UpdateDataTable();
 	*/
 	return;

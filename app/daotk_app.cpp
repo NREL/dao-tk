@@ -147,8 +147,8 @@ MainWindow::MainWindow()
     m_install_dir.RemoveLastDir();
 
     m_image_dir.SetPath( m_install_dir.GetPath() ); 
-	m_image_dir.AppendDir("deploy");
-    m_image_dir.AppendDir("rs");
+	std::string show_string = m_image_dir.GetPath();
+	m_image_dir.AppendDir("rs");
     m_help_dir.SetPath( m_install_dir.GetPath() );
     m_help_dir.AppendDir("rs");
     m_help_dir.AppendDir("help");
@@ -242,6 +242,13 @@ void MainWindow::ClearLog()
 bool MainWindow::LoadScript(const wxString &file)
 {
 	return m_ScriptViewForm->Load(file);
+}
+
+void MainWindow::ScriptInsert(const char *text)
+{
+	wxLKScriptCtrl* editor = m_ScriptViewForm->GetEditor();
+	int curpos = editor->GetCurrentPos();
+	editor->InsertText(curpos, text);
 }
 
 void MainWindow::OnClose(wxCloseEvent &evt)

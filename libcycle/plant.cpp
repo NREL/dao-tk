@@ -1,8 +1,9 @@
-#include "plant.h"
-#include "lib_util.h"
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <fstream>
+#include "plant.h"
+#include "lib_util.h"
 
 cycle_results::cycle_results()
 {
@@ -23,6 +24,11 @@ void PowerCycle::InitializeCyclingDists()
 
 void PowerCycle::AssignGenerator( WELLFiveTwelve *gen )
 {
+	/*
+	Assigns an RNG object to the plant, which is used to generate component
+	lifetimes, failure probabilities, tests fo binary failures, and repair times.
+	Here, we use the WELL512 implementation by Panneton et al. (2006).
+	*/
     m_gen = gen;
 }
 
@@ -42,10 +48,15 @@ void PowerCycle::GeneratePlantCyclingPenalties()
 }
 
 void PowerCycle::SetSimulationParameters( int read_periods, 
-	int num_periods, double epsilon, bool print_output, int num_scenarios)
+	int sim_length, int start_period, int next_start_period,
+	int write_interval,
+	double epsilon, bool print_output, int num_scenarios)
 {
     m_read_periods = read_periods;
-    m_num_periods = num_periods;
+    m_sim_length = sim_length;
+	m_start_period = start_period;
+	m_next_start_period = next_start_period;
+	m_write_interval = write_interval;
     m_output = print_output;
     m_eps = epsilon;
 	m_num_scenarios = num_scenarios;
@@ -65,10 +76,10 @@ void PowerCycle::SetCondenserEfficienciesCold(std::vector<double> eff_cold)
 	}
 	if (num_streams != m_num_condenser_trains)
 	{
-		throw std::exception("condenser trains not created correctly");
+		throw std::runtime_error("condenser trains not created correctly");
 	}
 	if (eff_cold.size() != num_streams + 1)
-		throw std::exception("efficiencies must be equal to one plus number of streams"); 
+		throw std::runtime_error("efficiencies must be equal to one plus number of streams"); 
 	m_condenser_efficiencies_cold = eff_cold;
 }
 
@@ -85,7 +96,7 @@ void PowerCycle::SetCondenserEfficienciesHot(std::vector<double> eff_hot)
 			num_streams++;
 	}
 	if (eff_hot.size() != num_streams+1)
-		throw std::exception("efficiencies must be equal to one plus number of streams");
+		throw std::runtime_error("efficiencies must be equal to one plus number of streams");
 	m_condenser_efficiencies_hot = eff_hot;
 }
 
@@ -288,20 +299,26 @@ void PowerCycle::SetNoRestartCapacity(double capacity)
 }
 
 
-void PowerCycle::AddComponent( std::string name, 
-		std::string type, 
-		double repair_rate, 
-		double repair_cooldown_time,
-        double capacity_reduction,
-		double efficiency_reduction,
-		double repair_cost,
-		std::string repair_mode
+void PowerCycle::AddComponent(std::string name,
+	std::string type,
+	double repair_rate,
+	double repair_cooldown_time,
+	double capacity_reduction,
+	double efficiency_reduction,
+	double repair_cost,
+	std::string repair_mode
 )
 {
-    m_components.push_back( Component(name, type,  
-		repair_rate, repair_cooldown_time, &m_failure_events, 
+	m_components.push_back(Component(name, type,
+		repair_rate, repair_cooldown_time, &m_failure_events,
 		capacity_reduction, efficiency_reduction, repair_cost, repair_mode,
-		&m_failure_event_labels) );
+		&m_failure_event_labels));
+	if (type == "Turbine")
+		m_turbine_idx.push_back(m_components.size() - 1);
+	if (type == "Condenser train")
+		m_condenser_idx.push_back(m_components.size() - 1);
+	if (type == "Salt-to-steam train")
+		m_sst_idx.push_back(m_components.size() - 1);
 }
 
 void PowerCycle::AddFailureType(std::string component, std::string id, std::string failure_mode,
@@ -315,7 +332,6 @@ void PowerCycle::AddFailureType(std::string component, std::string id, std::stri
 				id, failure_mode, dist_type, alpha, beta);
 			return;
 		}
-
 	}
 }
 
@@ -346,7 +362,7 @@ void PowerCycle::CreateComponentsFromFile(std::string component_data)
         std::vector< std::string > entry = util::split( entries.at(i), "," );
 
         if( entry.size() != 8 )
-            throw std::exception( "Mal-formed cycle Capacity model table. Component table must contain 8 entries per row (comma separated values), with each entry separated by a ';'." );
+            throw std::runtime_error( "Mal-formed cycle Capacity model table. Component table must contain 8 entries per row (comma separated values), with each entry separated by a ';'." );
 
         std::vector< double > dat(6);
 
@@ -369,10 +385,10 @@ void PowerCycle::AddCondenserTrain(int num_fans, int num_radiators)
 	for (int i = 1; i <= num_fans; i++)
 	{
 		component_name = train_name + "-F" + std::to_string(i);
-		AddComponent(component_name, "Condenser fan", 35.5, 0, 0.01, 0.01, 7.777, "S");
+		AddComponent(component_name, "Condenser fan", 35.5, 0, 0, 0, 7.777, "S");
 		AddFailureType(component_name, "Fan Failure", "O", "gamma", 1, 841188);
 	}
-	AddComponent(component_name + "-T", "Condenser train", 15.55, 0, 0.00, 0.00, 7.777, "S");
+	AddComponent(component_name + "-T", "Condenser train", 15.55, 0, 0, 0, 7.777, "S");
 	for (int i = 1; i <= num_radiators; i++)
 	{
 		AddFailureType(component_name + "-T", "Radiator " + std::to_string(i) + " Failure", "O", "gamma", 1, 698976);
@@ -448,39 +464,29 @@ void PowerCycle::AddWaterPumps(int num_pumps)
 		m_num_water_pumps += 1;
 		component_name = "WP" + std::to_string(m_num_water_pumps);
 		AddComponent(component_name, "Water pump", 0.5, 0., 1., 1, 7.777, "D");
-		AddFailureType(component_name, "External_Leak_Large_(shell)", "O", "gamma", 0.3, 75000000);
-		AddFailureType(component_name, "External_Leak_Large_(tube)", "O", "gamma", 0.3, 10000000);
-		AddFailureType(component_name, "External_Leak_Small_(shell)", "O", "gamma", 0.5, 10000000);
-		AddFailureType(component_name, "External_Leak_Small_(tube)", "O", "gamma", 0.3, 1200000);
+		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
+		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
+		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "gamma", 1.5, 3750);
+		AddFailureType(component_name, "Fail_to_Run_>_1_hour_(standby)", "OO", "gamma", 0.5, 83300);
+		AddFailureType(component_name, "Fail_to_Start_(standby)", "OS", "beta", 0.9, 599);
 	}
 }
 
-void PowerCycle::AddTurbines(int num_hi_pressure, int num_mid_pressure, int num_low_pressure)
+void PowerCycle::AddTurbines(int num_turbines)
 /*
 Adds Hi-, Medium-, and Low-Pressure Turbines to the plant object.
 */
 {
 	std::string component_name;
-	for (int i = 0; i < num_hi_pressure; i++)
+	double capacity_reduction = 1.0 / num_turbines;
+	for (int i = 0; i < num_turbines; i++)
 	{
-		m_num_hp_turbines += 1;
-		component_name = "HPT" + std::to_string(m_num_hp_turbines);
-		AddComponent(component_name, "High-pressure turbine", 32.7, 72, 1, 1, 7.777, "D");
-		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
-	}
-	for (int i = 0; i < num_mid_pressure; i++)
-	{
-		m_num_mp_turbines += 1;
-		component_name = "MPT" + std::to_string(m_num_mp_turbines);
-		AddComponent(component_name, "Medium-pressure turbine", 32.7, 72, 1, 1, 7.777, "D");
-		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
-	}
-	for (int i = 0; i < num_low_pressure; i++)
-	{
-		m_num_lp_turbines += 1;
-		component_name = "LPT" + std::to_string(m_num_lp_turbines);
-		AddComponent(component_name, "Low-pressure turbine", 32.7, 72, 1, 1, 7.777, "D");
-		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
+		m_num_turbines += 1;
+		component_name = "T" + std::to_string(m_num_turbines);
+		AddComponent(component_name, "Turbine", 32.7, 72, capacity_reduction, 0, 7.777, "D");
+		AddFailureType(component_name, "MBTF_High-pressure", "O", "gamma", 1, 51834.31953);
+		AddFailureType(component_name, "MBTF_Medium-pressure", "O", "gamma", 1, 51834.31953);
+		AddFailureType(component_name, "MBTF_Low-pressure", "O", "gamma", 1, 51834.31953);
 	}
 }
 
@@ -492,43 +498,49 @@ void PowerCycle::GeneratePlantComponents(
 	int num_fwh = 6,
 	int num_salt_pumps = 2,
 	int num_water_pumps = 2,
-	int num_hi_pressure = 1, 
-	int num_mid_pressure = 1, 
-	int num_low_pressure = 1,
+	int num_turbines = 1,
 	std::vector<double> condenser_eff_cold = {0.,1.,1.},
 	std::vector<double> condenser_eff_hot = {0.,0.95,1.}
 )
 {
 	/* 
 	Generates all the components in the plant.  Aggregates the other 
-	component-specific methods.
+	component-specific methods.  Starts by clearing any existing components,
+	i.e., assumes that the plant specification in the arguments is complete.
 	*/
+	m_components.clear();
 	if (condenser_eff_cold.size() != (num_condenser_trains+1) ||
 		condenser_eff_hot.size() != (num_condenser_trains+1))
 	{
-		throw std::exception("condenser efficiencies do not reconcile with number of trains.");
+		throw std::runtime_error("condenser efficiencies do not reconcile with number of trains.");
 	}
 	for (int i = 0; i < num_condenser_trains; i++)
 	{
 		AddCondenserTrain(fans_per_train, radiators_per_train);
 	}
+	m_fans_per_condenser_train = fans_per_train;
 	AddSaltToSteamTrains(num_salt_steam_trains);
 	AddFeedwaterHeaters(num_fwh);
 	AddSaltPumps(num_salt_pumps);
 	AddWaterPumps(num_water_pumps);
-	AddTurbines(num_hi_pressure, num_mid_pressure, num_low_pressure);
+	AddTurbines(num_turbines);
 }
 
 void PowerCycle::SetPlantAttributes(double maintenance_interval = 5000.,
-				double maintenance_duration = 24.,
-				double downtime_threshold = 24., 
-				double steplength = 1., double hours_to_maintenance = 5000.,
-				double power_output = 0., bool current_standby = false, double capacity = 500000.,
-				double temp_threshold = 20., 
-				double time_online = 0., double time_in_standby = 0.,
-				double downtime = 0., double shutdown_capacity = 0.45, 
-				double no_restart_capacity = 0.9
-	)
+	double maintenance_duration = 168.,
+	double downtime_threshold = 24., 
+	double steplength = 1., 
+	double hours_to_maintenance = 5000.,
+	double power_output = 0., 
+	bool current_standby = false, 
+	double capacity = 500000.,
+	double temp_threshold = 20., 
+	double time_online = 0., 
+	double time_in_standby = 0.,
+	double downtime = 0.,
+	double shutdown_capacity = 0.45, 
+	double no_restart_capacity = 0.9
+)
 {
     /*
 	Initializes plant attributes.
@@ -603,56 +615,116 @@ int PowerCycle::NumberOfAirstreamsOnline()
 
 double PowerCycle::GetCondenserEfficiency(double temp)
 {
-	int num_streams = NumberOfAirstreamsOnline();
+	double baseline_efficiency;
+	int num_streams = 0;
+	int num_online_fans_down = 0;
+	for (size_t i : m_condenser_idx)
+		if (m_components.at(i).IsOperational())
+		{
+			num_streams++;
+			for (size_t j = 1; j <= m_fans_per_condenser_train; j++)
+			{
+				if (!m_components.at(i+j).IsOperational())
+				{
+					num_online_fans_down++;
+				}
+			}
+		}
 	if (temp < m_condenser_temp_threshold)
-		return m_condenser_efficiencies_cold[num_streams];
-	return m_condenser_efficiencies_hot[num_streams];
+		baseline_efficiency = m_condenser_efficiencies_cold[num_streams];
+	else
+		baseline_efficiency = m_condenser_efficiencies_hot[num_streams];
+	return baseline_efficiency - num_online_fans_down * m_eff_loss_per_fan;
 }
 
-double PowerCycle::GetCycleCapacity(double temp)
-{
-	/* 
-	Provides the cycles Capacity, based on components that
-	are operational.  Assumes that when multiple components are
-	down, the effect on cycle Capacity is additive
-
-	temp -- ambient temperature (affects condenser efficiency)
-	*/
-	if (!AirstreamOnline())
-		return 0.0; 
-	if (!FWHOnline())
-		return 0.0;
-	double capacity = GetCondenserEfficiency(temp);
-	for (size_t i = 0; i<m_components.size(); i++)
-		if (!m_components.at(i).IsOperational())
-			capacity -= m_components.at(i).GetCapacityReduction();
-	if (capacity < 0.0)
-		return 0.0;
-	return capacity;
-}
-
-double PowerCycle::GetCycleEfficiency(double temp)
+double PowerCycle::GetTurbineEfficiency()
 {
 	/*
-	Provides the cycles Capacity, based on components that
-	are operational.  Assumes that when multiple components are
-	down, the effect on cycle Capacity is additive
+	Returns a weighted average of the efficiencies of all turbines, 
+	in which the weights are the relative capacity of each turbine to 
+	the plant capacity.
+	*/
+	double eff = 0.0;
+	double total_cap = 0.0;
+	for (size_t i : m_turbine_idx)
+	{
+		if (m_components.at(i).IsOperational())
+		{
+			eff += m_components.at(i).GetEfficiency() * m_components.at(i).GetCapacityReduction();
+			total_cap += m_components.at(i).GetCapacityReduction();
+		}
+	}
+	return eff / total_cap;
+}
+
+double PowerCycle::GetTurbineCapacity()
+{
+	/*
+	Returns the capacity of all turbines.
+	*/
+	double cap = 0.0;
+	for (size_t i : m_turbine_idx)
+	{
+		if (m_components.at(i).IsOperational())
+		{
+			//The first component is an age-weighted index, while the second is baseline 
+			//relative capacity vs. that of all turbines in the system.
+			cap += m_components.at(i).GetCapacity() * m_components.at(i).GetCapacityReduction();
+		}
+	}
+	return cap;
+}
+
+double PowerCycle::GetSaltSteamTrainCapacity()
+{
+	/*
+	Returns the relative capacity of all salt-to-steam trains that
+	are operational.
+	*/
+	double cap = 0.0;
+	for (size_t i : m_sst_idx)
+	{
+		if (m_components.at(i).IsOperational())
+		{
+			cap += m_components.at(i).GetCapacityReduction();
+		}
+	}
+	return cap;
+}
+
+void PowerCycle::SetCycleCapacityAndEfficiency(double temp)
+{
+	/* 
+	Provides the power cycle's capacity, which is limited by components that 
+	are not operational.  Turbines and Heat exchangers may have parallel 
+	trains, and so the effecitve capacity starts with the minimum of the 
+	capacities accounting for failures of those components.
+	Assumes that when multiple other components are
+	down, the effect on cycle capacity is additive. 
 
 	temp -- ambient temperature (affects condenser efficiency)
 	*/
-	if (!AirstreamOnline())
-		return 0.0;
-	if (!FWHOnline())
-		return 0.0;
-	double efficiency = GetCondenserEfficiency(temp);
-	for (size_t i = 0; i < m_components.size(); i++)
+	//if no condensers are online or no feedwater heaters are online,
+	//assume the plant is shut down.
+	if (!AirstreamOnline() || !FWHOnline())
+	{
+		m_cycle_capacity = 0.;
+		m_cycle_efficiency = 0.;
+		return;
+	}
+	double condenser_eff = GetCondenserEfficiency(temp);
+	double turbine_eff = GetTurbineEfficiency();
+	double turbine_cap = GetTurbineCapacity();
+	double sst_cap = GetSaltSteamTrainCapacity();
+	double rem_eff = 1.0;
+	for (size_t i = 0; i<m_components.size(); i++)
 		if (!m_components.at(i).IsOperational())
-			efficiency -= m_components.at(i).GetCapacityReduction();
-		else 
-			efficiency *= m_components.at(i).GetEfficiency();
-	if (efficiency < 0.0)
-		return 0.0;
-	return efficiency;
+			rem_eff -= m_components.at(i).GetCapacityReduction();
+	//efficiency and capacity reductions assumed equal for all components but
+	//turbines and salt-to-steam trains
+	m_cycle_capacity = std::max(0., std::min(turbine_cap,sst_cap)*condenser_eff*rem_eff);
+	//salt
+	m_cycle_efficiency = std::max(0., turbine_eff*condenser_eff*rem_eff); 
 }
 
 void PowerCycle::TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode)
@@ -669,8 +741,8 @@ void PowerCycle::TestForComponentFailures(double ramp_mult, int t, std::string s
 		hazard_increase = m_cold_start_penalty;
 	for (size_t i = 0; i < m_components.size(); i++)
 		m_components.at(i).TestForFailure(
-			m_steplength, ramp_mult, *m_gen, t - m_read_periods, hazard_increase, mode, 
-			m_current_scenario
+			m_steplength, ramp_mult, *m_gen, t - m_read_periods, 
+			hazard_increase, mode, m_current_scenario
 		);
 }
 
@@ -764,7 +836,6 @@ void PowerCycle::AdvanceDowntime(std::string mode)
 		if (!m_components.at(i).IsOperational())
 			m_components.at(i).AdvanceDowntime(m_steplength, mode);
 	}
-
 }
 
 double PowerCycle::GetRampMult(double power_out)
@@ -837,9 +908,8 @@ void PowerCycle::ResetHazardRates()
     /*
 	resets the plant (restores component lifetimes)
 	*/
-    for( size_t i=0; i<m_components.size(); i++ )
-        m_components.at(i).ResetHazardRate();
-        
+	for (size_t i = 0; i < m_components.size(); i++)
+		m_components.at(i).ResetHazardRate();
 }
 
 void PowerCycle::StoreComponentState()
@@ -933,6 +1003,53 @@ std::string PowerCycle::GetOperatingMode(int t)
 	return "OFF";
 }
 
+void PowerCycle::ReadInComponentFailures(int t)
+{
+	for (size_t j = 0; j < m_components.size(); j++)
+	{
+		for (size_t k = 0; k < m_components.at(j).GetFailureTypes().size(); k++)
+		{
+			if (m_failure_events.find("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + m_components.at(j).GetName() + std::to_string(k)) != m_failure_events.end())
+			{
+				std::string label = "S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + m_components.at(j).GetName() + std::to_string(k);
+				m_components.at(j).ReadFailure(
+					m_failure_events[label].duration,
+					m_failure_events[label].new_life,
+					m_failure_events[label].fail_idx,
+					true //This indicates that we reset all hazard rates after repair; may want to revisit
+				);
+
+				if (m_output)
+					output_log.push_back(util::format("Failure Read: %d, %d, %s", t, m_read_periods, m_failure_events[label].print()));
+			}
+		}
+	}
+}
+
+void PowerCycle::ReadInMaintenanceEvents(int t)
+{
+	//Read in planned maintenance events
+	if (
+		m_failure_events.find("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + "MAINTENANCE")
+		!= m_failure_events.end()
+		)
+	{
+		PlantMaintenanceShutdown(t, true, false);
+	}
+	//Read in unplanned maintenance events, if any
+	if (
+		m_failure_events.find("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + "UNPLANNEDMAINTENANCE")
+		!= m_failure_events.end()
+		)
+	{
+		PlantMaintenanceShutdown(
+			t, false, false,
+			m_failure_events["S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + "UNPLANNEDMAINTENANCE"].duration
+		);
+	}
+}
+
+
 void PowerCycle::RunDispatch()
 {
 
@@ -944,74 +1061,41 @@ void PowerCycle::RunDispatch()
         progress), and 0 otherwise.  This includes the read-in period.
     
 	*/
-    std::vector< double > cycle_capacities( m_num_periods, 0 );
+    std::vector< double > cycle_capacities( m_sim_length, 0 );
+	std::vector< double > cycle_efficiencies(m_sim_length, 0);
 	m_record_state_failure = true;
-    for( int t=0; t<m_num_periods; t++)
+    for( int t = m_start_period; t < m_start_period + m_sim_length; t++)
     {
-		if ( t == m_read_periods )
+		if ( t == m_start_period + m_read_periods + m_write_interval )
 		{
 			StoreState();
-			//ajz: I moved the failure events removal to the point at which 
-			//we stop reading old failure events and start writing new ones.
-			m_failure_events.clear();
-			m_failure_event_labels.clear();
+			//ajz: Keeping failure events from previous runs in rolling horizon
+			//m_failure_events.clear();
+			//m_failure_event_labels.clear();
 		}
 		//Shut all components down for maintenance if such an event is 
 		//read in inputs, or the hours to maintenance is <= zero.
-		if( m_hours_to_maintenance <= 0 && t >= m_read_periods )
+		//record the event at the period to be read in next.
+		if( m_hours_to_maintenance <= 0 && t >= m_start_period+m_read_periods )
         {
-            PlantMaintenanceShutdown(t-m_read_periods,true,true);
+            PlantMaintenanceShutdown(m_next_start_period + t - m_start_period, true,
+				t < m_start_period + m_read_periods + m_write_interval);
         }
-		//Read in planned maintenance events
-		if (
-			m_failure_events.find("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + "MAINTENANCE")
-			!= m_failure_events.end()
-			)
-		{
-			PlantMaintenanceShutdown(t, true, false);
-		}
-		//Read in unplanned maintenance events, if any
-		if (
-			m_failure_events.find("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + "UNPLANNEDMAINTENANCE")
-			!= m_failure_events.end()
-			)
-		{
-			PlantMaintenanceShutdown(
-				t, false, false, 
-				m_failure_events["S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + "UNPLANNEDMAINTENANCE"].duration
-			);
-		}
+		
 		//Read in any component failures, if in the read-only stage.
 		if (t < m_read_periods)
 		{
-			for (size_t j = 0; j < m_components.size(); j++)
-			{
-				for (size_t k = 0; k < m_components.at(j).GetFailureTypes().size(); k++)
-				{
-					if (m_failure_events.find("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + m_components.at(j).GetName() + std::to_string(k)) != m_failure_events.end())
-					{
-						std::string label = "S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + m_components.at(j).GetName() + std::to_string(k);
-						m_components.at(j).ReadFailure(
-							m_failure_events[label].duration,
-							m_failure_events[label].new_life,
-							m_failure_events[label].fail_idx,
-							true //This indicates that we reset all hazard rates after repair; may want to revisit
-						);
-
-						if (m_output)
-							output_log.push_back(util::format("Failure Read: %d, %d, %s", t, m_read_periods, m_failure_events[label].print()));
-					}
-				}
-			}
+			ReadInMaintenanceEvents(t);
+			ReadInComponentFailures(t);
 		}
 		// If cycle Capacity is zero or there is no power output, advance downtime.  
 		// Otherwise, check for failures, and operate if there is still Capacity.
 		double power_output = m_dispatch.at("cycle_power").at(t);
-		double cycle_capacity = GetCycleCapacity(m_dispatch.at("ambient_temperature").at(t));
+		SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
 		std::string start = GetStartMode(t);
 		std::string mode = GetOperatingMode(t);
 		
-		if (cycle_capacity < m_eps)
+		if (m_cycle_capacity < m_eps)
 		{
 			power_output = 0.0;
 			mode = "OFF";
@@ -1020,10 +1104,10 @@ void PowerCycle::RunDispatch()
 		{
 			double ramp_mult = GetRampMult(power_output);
 			TestForComponentFailures(ramp_mult, t, start, mode);
-			cycle_capacity = GetCycleCapacity(m_dispatch.at("ambient_temperature").at(t));
+			SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
 			//if the cycle Capacity is set to zero, this means the plant is in maintenace
 			//or a critical failure has occurred, so shut the plant down.
-			if (cycle_capacity < m_eps)
+			if (m_cycle_capacity < m_eps)
 			{
 				power_output = 0.0;
 				if (mode != "OFF" && m_record_state_failure)
@@ -1033,18 +1117,19 @@ void PowerCycle::RunDispatch()
 				}
 				mode = "OFF";
 			}
-			else if (cycle_capacity < m_shutdown_capacity)
+			else if (m_cycle_capacity < m_shutdown_capacity)
 			{
 				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
 			}
-			else if (cycle_capacity < m_no_restart_capacity && mode == "OFF")
+			else if (m_cycle_capacity < m_no_restart_capacity && mode == "OFF")
 			{
 				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
 			}
 		}
-		power_output = std::min(power_output, cycle_capacity*m_capacity);
+		power_output = std::min(power_output, m_cycle_capacity*m_capacity);
 		Operate(power_output, t, start, mode);
-		cycle_capacities[t] = cycle_capacity;
+		cycle_capacities[t] = m_cycle_capacity;
+		cycle_efficiencies[t] = m_cycle_efficiency;
 
 		//std::cerr << "Period " << std::to_string(t) << " Capacity: " << std::to_string(cycle_capacity) << ".  Mode: " << mode <<"\n";
     }
@@ -1054,7 +1139,7 @@ void PowerCycle::RunDispatch()
 		StoreState();  //if no failures have occurred, save final plant state. otherwise, 
 					   //record the state at the first full plant shutdown.
 	}
-
+	m_results.cycle_efficiency[m_current_scenario] = cycle_efficiencies;
 	m_results.cycle_capacity[m_current_scenario] = cycle_capacities;                   
 }
 
@@ -1114,7 +1199,7 @@ void PowerCycle::Operate(double power_out, int t, std::string start, std::string
 		m_hours_to_maintenance -= m_steplength;
 	}
 	else
-		throw std::exception("invalid operating mode.");
+		throw std::runtime_error("invalid operating mode.");
 	OperateComponents(ramp_mult, t, start, mode); 
 
 }

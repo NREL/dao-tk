@@ -22,16 +22,15 @@ std::string failure_event::print()
 
 ComponentStatus::ComponentStatus(){}
 
-ComponentStatus::ComponentStatus(std::vector<double> _lifes, double _hazard, double _downtime,
-		double _repair_event_time, double _efficiency)
-    : lifetimes(_lifes), hazard_rate( _hazard ), downtime_remaining( _downtime ), repair_event_time( _repair_event_time ), efficiency( _efficiency )
+ComponentStatus::ComponentStatus(std::vector<double> _lifes, double _hazard, 
+	double _downtime, double _repair_event_time, double _age)
+    : lifetimes(_lifes), hazard_rate( _hazard ), downtime_remaining( _downtime ), repair_event_time( _repair_event_time ), age( _age )
 {}
 
 //##################################################################################
 
 Component::Component()
-{
-}
+{}
 
 Component::Component(std::string name, std::string type,
 		//std::string dist_type, double failure_alpha, double failure_beta, 
@@ -55,7 +54,7 @@ Component::Component(std::string name, std::string type,
     */
 
     if( name == "MAINTENANCE" )
-        throw std::exception("cannot name a component 'MAINTENANCE'");
+        throw std::invalid_argument("cannot name a component 'MAINTENANCE'");
     
 	m_failure_types = {};
     m_name = name;
@@ -70,7 +69,7 @@ Component::Component(std::string name, std::string type,
     m_status.downtime_remaining = 0.0;
 	m_status.operational = true;
 	m_status.repair_event_time = 0.0;
-	m_status.efficiency = 1.0;
+	m_status.age = 0.0;
 
 	Distribution *edist = new ExponentialDist(repair_rate, repair_cooldown_time, "exponential");
 	m_repair_dist = (ExponentialDist *) edist;
@@ -86,6 +85,7 @@ void Component::ReadStatus( ComponentStatus &status )
     m_status.downtime_remaining = status.downtime_remaining;
 	m_status.operational = (m_status.downtime_remaining < 1e-8);
 	m_status.repair_event_time = status.repair_event_time;
+	m_status.age = status.age;
 	for (size_t j = 0; j < m_failure_types.size(); j++)
 	{
 		m_failure_types.at(j).SetLifeOrProb(status.lifetimes.at(j));
@@ -133,7 +133,29 @@ double Component::GetCapacityReduction()
 
 double Component::GetEfficiency()
 {
-	return m_status.efficiency;
+	/*
+	returns impact of turbine aging on efficiency.  Source:
+	Staffel 2014 (notes that previous studies and techincal 
+	reports indicate a decrease in efficiency of 0.15%-0.55%
+	per year of operation.)  This will be updated wth better
+	data, but the linear model is likely to apply.
+	*/
+	if (!IsOperational())
+		throw std::runtime_error("Efficiency checked for a non-operating component");
+	return 1.0 - (m_status.age * 0.002 / 5000);  //source: anecdotal; Staffel 2014 cites 0.15%-0.55% decline in efficiency per year.
+}
+
+double Component::GetCapacity()
+{
+	/*
+	returns impact of turbine aging on capacity.  Source:
+	Diakunchuk 1992; this is for gas engines, but cites
+	a 1% decrease in efficiency = ~2.5% decrease in power.
+	Need to verify if this makes sense for a steam turbine too.
+	*/
+	if (!IsOperational())
+		throw std::runtime_error("Capacity checked for a non-operating component");
+	return 1.0 - (m_status.age * 0.005 / 5000); 
 }
 
 double Component::GetCooldownTime()
@@ -162,11 +184,13 @@ void Component::Shutdown(double time)
 }
 
         
-void Component::RestoreComponent()
+void Component::RestoreComponent(bool reset_age = true)
 {
 	m_status.operational = true;
 	m_status.downtime_remaining = 0.0;
 	m_status.repair_event_time = 0.0;
+	if (reset_age)
+		m_status.age = 0.0;
 }
 
         
@@ -304,7 +328,7 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
     retval -- None
     */
     if( ! IsOperational() )
-        throw std::exception("can't operate a plant in downtime.");
+        throw std::runtime_error("can't operate a plant in downtime.");
 	m_status.hazard_rate += hazard_increase;
 	std::string opmode;
 	//if starting a mode, operate as if
@@ -329,16 +353,18 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
 		if (m_failure_types.at(j).GetFailureMode() == opmode || (opmode != "OFF" && m_failure_types.at(j).GetFailureMode() == "ALL"))
 		{
 			if (time * m_status.hazard_rate * ramp_mult > m_failure_types.at(j).GetLifeRemaining() && !read_only)
-				throw std::exception("failure should be thrown.");
+				throw std::runtime_error("failure should be thrown.");
 			m_failure_types.at(j).ReduceLifeRemaining(time * m_status.hazard_rate * ramp_mult);
 		}
 		if (m_failure_types.at(j).GetFailureMode() == "O" && (opmode == "OO" || opmode == "OF"))
 		{
 			if (time * m_status.hazard_rate * ramp_mult > m_failure_types.at(j).GetLifeRemaining() && !read_only)
-				throw std::exception("failure should be thrown.");
+				throw std::runtime_error("failure should be thrown.");
 			m_failure_types.at(j).ReduceLifeRemaining(time * m_status.hazard_rate * ramp_mult);
 		}
 	}		
+	if (opmode == "OO" || opmode == "OF")
+		m_status.age += time;
 }
          
 void Component::ReadFailure(double downtime, double life_remaining, 
@@ -457,7 +483,7 @@ ComponentStatus Component::GetState()
 		ComponentStatus(
 			GetLifetimesAndProbs(), m_status.hazard_rate*1.0,
 			m_status.downtime_remaining*1.0, m_status.repair_event_time*1.0,
-			m_status.efficiency * 1.0
+			m_status.age * 1.0
 			)
 		); 
 }
@@ -469,5 +495,6 @@ void Component::Reset(WELLFiveTwelve &gen)
 	m_status.hazard_rate = 1.;
 	m_status.operational = true;
 	m_status.repair_event_time = 0.;
+	m_status.age = 0.;
 	GenerateInitialLifesAndProbs(gen);
 }

@@ -72,6 +72,7 @@ public:
 	void Log(const wxString &, bool wnl = true);
 
 	bool LoadScript(const wxString &file);
+	void ScriptInsert(const char *text);
 
 	void Save();
 	void SaveAs();

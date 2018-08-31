@@ -214,17 +214,6 @@ public:
 				}
 			}
 
-			// else if (v->type == SSC_TABLE && (unsigned int)row < v->table.size())
-			// {
-			// 	int k = 0;
-			// 	const char *key = v->table.first();
-			// 	while (key != 0)
-			// 	{
-			// 		if (k++ == row) break;
-			// 		key = v->table.next();
-			// 	}
-			// 	return ".{'" + wxString(key) + "'}";
-			// }
 		}
 		
 		return wxEmptyString;
@@ -559,11 +548,11 @@ void DataView::UpdateView()
 				// for (int j=0;j< padto-(int)label.length();j++)
 				// 	label += " ";
 				
-				if (dv->type == lk::vardata_t::NUMBER)
+				if (dv->type() == lk::vardata_t::NUMBER)
 					label += "number " + wxString::Format("%lg", v->as_number() );				
-				else if (dv->type == lk::vardata_t::STRING)
+				else if (dv->type() == lk::vardata_t::STRING)
 					label += "string " + wxString(v->as_string().c_str());
-				else if (dv->type == lk::vardata_t::VECTOR)
+				else if (dv->type() == lk::vardata_t::VECTOR)
 					if( v->vec()->empty() )
 						label += wxString::Format( "array [%d]", (int)v->vec()->size() );
 					else
@@ -614,6 +603,12 @@ void DataView::OnCommand(wxCommandEvent &evt)
 		break;
 	case ID_DVIEW:
 		{
+			if( m_selections.size() == 0)
+			{
+				wxMessageBox("Please select one or more variables.");
+				return;
+			}
+
 			wxDialog dlg(this, -1, "Timeseries Viewer", wxDefaultPosition, wxSize(900,600), wxRESIZE_BORDER|wxDEFAULT_DIALOG_STYLE);
 			wxDVPlotCtrl *dv = new wxDVPlotCtrl( &dlg );
 			wxBoxSizer *sz = new wxBoxSizer(wxVERTICAL);
@@ -778,19 +773,30 @@ wxString DataView::GetSelection()
 
 void DataView::ShowStats( wxString name )
 {
-	if (name.IsEmpty()) name = GetSelection();
-	if (name.IsEmpty()) return;
+	wxString usename = name;
+	if (name.IsEmpty()) 
+	{
+		if( m_selections.size() == 0 )
+		{
+			wxMessageBox("Please select a variable.");
+			return;
+		}
+		else
+		{
+			usename = m_selections.back();
+		}
+	}
 
 	if (m_vt)
 	{
-		lk::vardata_t *v = m_vt->at((const char*) name.c_str() );
+		lk::vardata_t *v = m_vt->at((const char*) usename.c_str() );
 		if (!v || v->type() != lk::vardata_t::VECTOR)
 		{
 			wxMessageBox("variable not found or not of array type.");
 			return;
 		}
 
-		StatDialog dlg(this, "Stats for: " + name);
+		StatDialog dlg(this, "Stats for: " + usename);
 		dlg.Compute( *v->vec() );
 		dlg.ShowModal();
 	}
@@ -968,6 +974,8 @@ static int nday[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
 	}
 
 	mean = sum/((double)len);
+	if( mean != mean )
+		mean = (min+max)/2.;
 
 	numMin->SetValue( min );
 	numMax->SetValue( max );

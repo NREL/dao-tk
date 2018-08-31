@@ -15,6 +15,7 @@
 #include <lk/stdlib.h>
 
 #include "scripting.h"
+#include "vardialog.h"
 
 void Output(const wxString &text)
 {
@@ -61,7 +62,7 @@ static lk::fcall_t *daotk_functions()
 //----------------------------------------------------------------
 
 
-enum { ID_CODEEDITOR = wxID_HIGHEST + 1, ID_RUN, ID_HELP };
+enum { ID_CODEEDITOR = wxID_HIGHEST + 1, ID_RUN, ID_HELP, ID_VARS };
 
 class MyScriptCtrl : public wxLKScriptCtrl
 {
@@ -95,6 +96,7 @@ ScriptView::ScriptView(wxWindow *parent)
 	szdoc->Add(new wxButton(this, wxID_FORWARD, "Find next", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
 	szdoc->Add(new wxButton(this, ID_HELP, "Help", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
 	szdoc->Add(new wxButton(this, ID_RUN, "Run", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
+    szdoc->Add(new wxButton(this, ID_VARS, "Variables", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
 	szdoc->Add(m_stopButton = new wxButton(this, wxID_STOP, "Stop", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
 	szdoc->AddStretchSpacer();
 	m_stopButton->SetForegroundColour(*wxRED);
@@ -150,6 +152,8 @@ void ScriptView::OnCommand(wxCommandEvent &evt)
 	case ID_RUN:
 		Exec();
 		break;
+    case ID_VARS:
+        CreateVariableDialog();
 	case wxID_STOP:
 		m_editor->Stop();
 		m_stopButton->Hide();
@@ -281,6 +285,15 @@ void ScriptView::Exec()
 	}
 }
 
+void ScriptView::CreateVariableDialog()
+{
+    VariableDialog *dlg = new VariableDialog(this, MainWindow::Instance().GetProject()->GetDataObjects(), wxID_ANY, 
+                                    wxDEFAULT_FRAME_STYLE, MainWindow::Instance().GetSize() );
+    dlg->Show();
+    
+    return;
+}
+
 BEGIN_EVENT_TABLE(ScriptView, wxPanel)
 EVT_BUTTON(wxID_NEW, ScriptView::OnCommand)
 EVT_BUTTON(wxID_OPEN, ScriptView::OnCommand)
@@ -293,6 +306,7 @@ EVT_BUTTON(wxID_FORWARD, ScriptView::OnCommand)
 
 
 EVT_BUTTON(ID_RUN, ScriptView::OnCommand)
+EVT_BUTTON(ID_VARS, ScriptView::OnCommand)
 
 EVT_BUTTON(wxID_STOP, ScriptView::OnCommand)
 EVT_BUTTON(ID_RUN, ScriptView::OnCommand)

@@ -26,9 +26,12 @@
     <ClCompile Include="..\app\dataview.cpp" />
     <ClCompile Include="..\app\logview.cpp" />
     <ClCompile Include="..\app\project.cpp" />
+    <ClCompile Include="..\app\project_init.cpp" />
     <ClCompile Include="..\app\scripting.cpp" />
     <ClCompile Include="..\app\scriptview.cpp" />
     <ClCompile Include="..\app\treeselect.cpp" />
+    <ClCompile Include="..\app\vardialog.cpp" />
+    <ClCompile Include="..\app\vardocument.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\app\daotk_app.h" />
@@ -38,6 +41,7 @@
     <ClInclude Include="..\app\scripting.h" />
     <ClInclude Include="..\app\scriptview.h" />
     <ClInclude Include="..\app\treeselect.h" />
+    <ClInclude Include="..\app\vardialog.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="libclearsky.vcxproj">
@@ -106,28 +110,28 @@
     <_ProjectFileVersion>11.0.50727.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)..\deploy\$(Platform)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
     <GenerateManifest>true</GenerateManifest>
-    <TargetName>dao-tk</TargetName>
+    <TargetName>dao-tkd</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)..\deploy\$(Platform)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
     <GenerateManifest>true</GenerateManifest>
-    <TargetName>dao-tk</TargetName>
+    <TargetName>dao-tkd</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)..\deploy\$(Platform)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>true</GenerateManifest>
     <TargetName>dao-tk</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)..\deploy\$(Platform)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>true</GenerateManifest>

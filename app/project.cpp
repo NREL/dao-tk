@@ -12,18 +12,18 @@ variables::variables()
 	double dmax = -std::numeric_limits<double>::infinity();
 	double dmin = -dmax;
 	
-    h_tower.set(dnan, dmin, dmax, "h_tower", lk::vardata_t::NUMBER, "Tower height", "m", "Variables");
-	rec_height.set(dnan, dmin, dmax, "rec_height", lk::vardata_t::NUMBER, "Receiver height", "m", "Variables");
-	D_rec.set(dnan, dmin, dmax, "D_rec", lk::vardata_t::NUMBER, "Receiver diameter", "m", "Variables");
-	design_eff.set(dnan, dmin, dmax, "design_eff", lk::vardata_t::NUMBER, "Design efficiency", "-", "Variables");
-	dni_des.set(dnan, dmin, dmax, "dni_des", lk::vardata_t::NUMBER, "Design point DNI", "W/m2", "Variables");
-	P_ref.set(dnan, dmin, dmax, "P_ref", lk::vardata_t::NUMBER, "Design gross power", "kW", "Variables");
-	solarm.set(dnan, dmin, dmax, "solarm", lk::vardata_t::NUMBER, "Solar multiple", "-", "Variables");
-	tshours.set(dnan, dmin, dmax, "tshours", lk::vardata_t::NUMBER, "Hours stored at full load operation", "hr", "Variables");
-	degr_replace_limit.set(dnan, dmin, dmax, "degr_replace_limit", lk::vardata_t::NUMBER, "Mirror degradation replacement limit", "-", "Variables");
-	om_staff.set(-1, -999, 999, "om_staff", lk::vardata_t::NUMBER, "Number of o&m staff", "-", "Variables");
-	n_wash_crews.set(-1, -999, 999, "n_wash_crews", lk::vardata_t::NUMBER, "Number of wash crews", "-", "Variables");
-	N_panels.set(-1, -999, 999, "N_panels", lk::vardata_t::NUMBER, "Number of receiver panels", "-", "Variables");
+    h_tower.set(dnan, dmin, dmax, "h_tower", "Tower height", "m", "Variables");
+	rec_height.set(dnan, dmin, dmax, "rec_height", "Receiver height", "m", "Variables");
+	D_rec.set(dnan, dmin, dmax, "D_rec", "Receiver diameter", "m", "Variables");
+	design_eff.set(dnan, dmin, dmax, "design_eff", "Design efficiency", "-", "Variables");
+	dni_des.set(dnan, dmin, dmax, "dni_des", "Design point DNI", "W/m2", "Variables");
+	P_ref.set(dnan, dmin, dmax, "P_ref", "Design gross power", "kW", "Variables");
+	solarm.set(dnan, dmin, dmax, "solarm", "Solar multiple", "-", "Variables");
+	tshours.set(dnan, dmin, dmax, "tshours", "Hours stored at full load operation", "hr", "Variables");
+	degr_replace_limit.set(dnan, dmin, dmax, "degr_replace_limit", "Mirror degradation replacement limit", "-", "Variables");
+	om_staff.set(-1, -999, 999, "om_staff", "Number of o&m staff", "-", "Variables");
+	n_wash_crews.set(-1, -999, 999, "n_wash_crews", "Number of wash crews", "-", "Variables");
+	N_panels.set(-1, -999, 999, "N_panels", "Number of receiver panels", "-", "Variables");
 
     (*this)["h_tower"] = &h_tower;
     (*this)["rec_height"] = &rec_height;
@@ -46,101 +46,130 @@ parameters::parameters()
 	Initialize members
 	*/
 
-	print_messages.set( true, "print_messages", lk::vardata_t::NUMBER, false, "Print full output", "-", "Settings" );
-	check_max_flux.set( true, "check_max_flux", lk::vardata_t::NUMBER, false, "Check max flux", "-", "Settings" );
-	is_optimize.set( false, "is_optimize", lk::vardata_t::NUMBER, false );
-	is_dispatch.set( false, "is_dispatch", lk::vardata_t::NUMBER, false, "Optimize dispatch", "-", "Settings" );
-	is_ampl_engine.set( false, "is_ampl_engine", lk::vardata_t::NUMBER, false, "Use AMPL optimizer", "-", "Settings");
-	is_stochastic_disp.set( false, "is_stochastic_disp", lk::vardata_t::NUMBER, false, "Run stochastic dispatch", "-", "Settings" );
+	print_messages.set( true, "print_messages", false, "Print full output", "-", "Settings" );
+	check_max_flux.set( true, "check_max_flux", false, "Check max flux", "-", "Settings" );
+	is_optimize.set( false, "is_optimize", false );
+	is_dispatch.set( false, "is_dispatch", false, "Optimize dispatch", "-", "Settings" );
+	is_ampl_engine.set( false, "is_ampl_engine", false, "Use AMPL optimizer", "-", "Settings");
+	is_stochastic_disp.set( false, "is_stochastic_disp", false, "Run stochastic dispatch", "-", "Settings" );
+	current_standby.set(false, "current_standby", false, "Start power cycle in standby", "-", "Cycle|Parameters");
 
-	ampl_data_dir.set( "", "ampl_data_dir", lk::vardata_t::STRING, false, "AMPL data folder", "-", "Settings" );
-	solar_resource_file.set( "", "solar_resource_file", lk::vardata_t::STRING, false, "Solar resource file", "-", "Settings" );
+	ampl_data_dir.set( "", "ampl_data_dir", false, "AMPL data folder", "-", "Settings" );
+	solar_resource_file.set( "", "solar_resource_file", false, "Solar resource file", "-", "Settings" );
 
-	disp_steps_per_hour.set( 1, "disp_steps_per_hour", lk::vardata_t::NUMBER, false, "Dispatch time steps per hour", "-", "Settings" );
-	avail_seed.set( 123, "avail_seed", lk::vardata_t::NUMBER, false, "Random number generator seed", "-", "Heliostat availability|Parameters" );
-	plant_lifetime.set( 30, "plant_lifetime", lk::vardata_t::NUMBER, false, "Plant lifetime", "yr", "Financial parameters" );
-	finance_period.set( 25, "finance_period", lk::vardata_t::NUMBER, false, "Finance period", "yr", "Financial parameters" );
-	ppa_multiplier_model.set( 1, "ppa_multiplier_model", lk::vardata_t::NUMBER, false, "PPA multiplier model", "-", "Financial parameters" );
+	disp_steps_per_hour.set( 1, "disp_steps_per_hour", false, "Dispatch time steps per hour", "-", "Settings" );
+	avail_seed.set( 123, "avail_seed", false, "Random number generator seed", "-", "Heliostat availability|Parameters" );
+	plant_lifetime.set( 30, "plant_lifetime", false, "Plant lifetime", "yr", "Financial parameters" );
+	finance_period.set( 25, "finance_period", false, "Finance period", "yr", "Financial parameters" );
+	ppa_multiplier_model.set( 1, "ppa_multiplier_model", false, "PPA multiplier model", "-", "Financial parameters" );
+	num_condenser_trains.set(2, "num_condenser_trains", false, "Number of condenser trains", "-", "Cycle|Parameters");
+	fans_per_train.set(30, "fans_per_train", false, "Number of fans per condenser train", "-", "Cycle|Parameters");
+	radiators_per_train.set(2, "radiators_per_train", false, "Number of radiators per condenser train", "-", "Cycle|Parameters");
+	num_salt_steam_trains.set(2, "num_salt_steam_trains", false, "Number of salt-to-steam trains", "-", "Cycle|Parameters");
+	num_fwh.set(6, "num_fwh", false, "Number of feedwater heaters", "-", "Cycle|Parameters");
+	num_salt_pumps.set(2, "num_salt_pumps", false, "Number of hot salt pumps", "-", "Cycle|Parameters");
+	num_water_pumps.set(2, "num_water_pumps", false, "Number of boiler and water pumps", "-", "Cycle|Parameters");
+	num_turbines.set(1, "num_turbines", false, "Number of turbine-generator shafts", "-", "Cycle|Parameters");
+	read_periods.set(0, "read_periods", false, "Number of read-only periods", "-", "Cycle|Parameters");
+	sim_length.set(48, "sim_length", false, "Number of periods in cycle simulation", "-", "Cycle|Parameters");
+	start_period.set(0, "start_period", false, "Cycle simuilation starting period", "-", "Cycle|Parameters");
+	next_start_period.set(0, "next_start_period", false, "Next cycle simuilation starting period", "-", "Cycle|Parameters");
+	write_interval.set(48, "write_interval", false, "Number of periods in rolling horizon interval", "-", "Cycle|Parameters");
+	num_scenarios.set(1, "num_scenarios", false, "Number of scenarios", "-", "Cycle|Parameters");
 
-	rec_ref_cost.set( 1.03e+008, "rec_ref_cost", lk::vardata_t::NUMBER, false, "Receiver reference cost", "$", "Financial parameters" );
-	rec_ref_area.set( 1571., "rec_ref_area", lk::vardata_t::NUMBER, false, "Receiver reference area", "m2", "Financial parameters");
-	tes_spec_cost.set( 24., "tes_spec_cost", lk::vardata_t::NUMBER, false, "TES specific cost", "$/kWht", "Financial parameters" );
-	tower_fixed_cost.set( 3.e6, "tower_fixed_cost", lk::vardata_t::NUMBER, false, "Tower fixed cost", "$", "Financial parameters");
-	tower_exp.set( 0.0113, "tower_exp", lk::vardata_t::NUMBER, false, "Tower cost scaling exponent", "-", "Financial parameters");
-	heliostat_spec_cost.set( 145., "heliostat_spec_cost", lk::vardata_t::NUMBER, false, "Heliostat specific cost", "$/m2", "Financial parameters" );
-	site_spec_cost.set( 16., "site_spec_cost", lk::vardata_t::NUMBER, false, "Site specific cost", "$/m2", "Financial parameters");
-	land_spec_cost.set( 10000, "land_spec_cost", lk::vardata_t::NUMBER, false, "Land specific cost", "$/acre", "Financial parameters" );
-	c_cps0.set( 0., "c_cps0", lk::vardata_t::NUMBER, false, "Power cycle cost coef - const", "-", "Financial parameters" );
-	c_cps1.set( 1440., "c_cps1", lk::vardata_t::NUMBER, false, "Power cycle cost coef - slope", "-", "Financial parameters" );
-	om_staff_cost.set( 75, "om_staff_cost", lk::vardata_t::NUMBER, false, "O&M staff cost rate", "$/hr", "Financial parameters");
-	wash_crew_cost.set( 65. + 10. + 25, "wash_crew_cost", lk::vardata_t::NUMBER, false, "Wash crew cost rate", "$/hr", "Financial parameters" );
-	heliostat_refurbish_cost.set( 144. * 25 + 90 * 4., "heliostat_refurbish_cost", lk::vardata_t::NUMBER, false, "Mirror replacement cost", "$", "Optical degradation|Parameters" );
-	//helio_mtf.set( 12000, "helio_mtf", lk::vardata_t::NUMBER, false, "Heliostat mean time to failure", "hr", "Heliostat availability|Parameters" );
-	//heliostat_repair_cost.set( 300, "heliostat_repair_cost", lk::vardata_t::NUMBER, false, "Heliostat repair cost", "$", "Heliostat availability|Parameters" );
-	om_staff_max_hours_week.set( 35, "om_staff_max_hours_week", lk::vardata_t::NUMBER, false, "Max O&M staff hours per week", "hr", "Heliostat availability|Parameters" );
-	n_heliostats_sim.set( 8000, "n_heliostats_sim", lk::vardata_t::NUMBER, false, "Number of simulated heliostats", "-", "Heliostat availability|Parameters" );
-	wash_units_per_hour.set( 45., "wash_units_per_hour", lk::vardata_t::NUMBER, false, "Heliostat wash rate", "1/crew-hr", "Optical degradation|Parameters" );
-	wash_crew_max_hours_week.set( 70., "wash_crew_max_hours_week", lk::vardata_t::NUMBER, false, "Wash crew max hours per week", "hr", "Optical degradation|Parameters" );
-	degr_per_hour.set( 1.e-7, "degr_per_hour", lk::vardata_t::NUMBER, false, "Reflectivity degradation rate", "1/hr", "Optical degradation|Parameters" );
-	degr_accel_per_year.set( 0.125, "degr_accel_per_year", lk::vardata_t::NUMBER, false, "Refl. degradation acceleration", "1/yr", "Optical degradation|Parameters" );
-	degr_seed.set( 123, "degr_seed", lk::vardata_t::NUMBER, false, "Random number generator seed", "-", "Optical degradation|Parameters" );
-	soil_per_hour.set( 6.e-4, "soil_per_hour", lk::vardata_t::NUMBER, false, "Mean soiling rate", "1/hr", "Optical degradation|Parameters" );
-	adjust_constant.set( 4, "adjust:constant", lk::vardata_t::NUMBER, false, "Misc fixed power loss", "%", "Financial parameters" );
-	helio_reflectance.set( 0.95, "helio_reflectance", lk::vardata_t::NUMBER, false, "Initial mirror reflectance", "-", "Optical degradation|Parameters" );
-	disp_rsu_cost.set( 950., "disp_rsu_cost", lk::vardata_t::NUMBER, false, "Receiver startup cost", "$", "Simulation|Parameters" );
-	disp_csu_cost.set( 10000., "disp_csu_cost", lk::vardata_t::NUMBER, false, "Power block startup cost", "$", "Simulation|Parameters");
-	disp_pen_delta_w.set( 0.1, "disp_pen_delta_w", lk::vardata_t::NUMBER, false, "Power block ramp penalty", "$/delta-kW", "Simulation|Parameters" );
-	rec_su_delay.set( 0.2, "rec_su_delay", lk::vardata_t::NUMBER, false, "Receiver min startup time", "hr", "Simulation|Parameters" );
-	rec_qf_delay.set( 0.25, "rec_qf_delay", lk::vardata_t::NUMBER, false, "Receiver min startup energy", "MWh/MWh", "Simulation|Parameters" );
-	startup_time.set( 0.5, "startup_time", lk::vardata_t::NUMBER, false, "Power block min startup time", "hr", "Simulation|Parameters" );
-	startup_frac.set( 0.5, "startup_frac", lk::vardata_t::NUMBER, false, "Power block startup energy", "MWh/MWh", "Simulation|Parameters" );
-	v_wind_max.set( 15., "v_wind_max", lk::vardata_t::NUMBER, false, "Max operational wind velocity", "m/s", "Simulation|Parameters" );
-	flux_max.set(1000., "flux_max", lk::vardata_t::NUMBER, false, "Maximum receiver flux", "kW/m2", "Simulation|Parameters");
-	
+	rec_ref_cost.set( 1.03e+008, "rec_ref_cost", false, "Receiver reference cost", "$", "Financial parameters" );
+	rec_ref_area.set( 1571., "rec_ref_area", false, "Receiver reference area", "m2", "Financial parameters");
+	tes_spec_cost.set( 24., "tes_spec_cost", false, "TES specific cost", "$/kWht", "Financial parameters" );
+	tower_fixed_cost.set( 3.e6, "tower_fixed_cost", false, "Tower fixed cost", "$", "Financial parameters");
+	tower_exp.set( 0.0113, "tower_exp", false, "Tower cost scaling exponent", "-", "Financial parameters");
+	heliostat_spec_cost.set( 145., "heliostat_spec_cost", false, "Heliostat specific cost", "$/m2", "Financial parameters" );
+	site_spec_cost.set( 16., "site_spec_cost", false, "Site specific cost", "$/m2", "Financial parameters");
+	land_spec_cost.set( 10000, "land_spec_cost", false, "Land specific cost", "$/acre", "Financial parameters" );
+	c_cps0.set( 0., "c_cps0", false, "Power cycle cost coef - const", "-", "Financial parameters" );
+	c_cps1.set( 1440., "c_cps1", false, "Power cycle cost coef - slope", "-", "Financial parameters" );
+	om_staff_cost.set( 75, "om_staff_cost", false, "O&M staff cost rate", "$/hr", "Financial parameters");
+	wash_crew_cost.set( 65. + 10. + 25, "wash_crew_cost", false, "Wash crew cost rate", "$/hr", "Financial parameters" );
+	heliostat_refurbish_cost.set( 144. * 25 + 90 * 4., "heliostat_refurbish_cost", false, "Mirror replacement cost", "$", "Optical degradation|Parameters" );
+	om_staff_max_hours_week.set( 35, "om_staff_max_hours_week", false, "Max O&M staff hours per week", "hr", "Heliostat availability|Parameters" );
+	n_heliostats_sim.set( 1000, "n_heliostats_sim", false, "Number of simulated heliostats", "-", "Heliostat availability|Parameters" );
+	wash_units_per_hour.set( 45., "wash_units_per_hour", false, "Heliostat wash rate", "1/crew-hr", "Optical degradation|Parameters" );
+	wash_crew_max_hours_week.set( 70., "wash_crew_max_hours_week", false, "Wash crew max hours per week", "hr", "Optical degradation|Parameters" );
+	degr_per_hour.set( 1.e-7, "degr_per_hour", false, "Reflectivity degradation rate", "1/hr", "Optical degradation|Parameters" );
+	degr_accel_per_year.set( 0.125, "degr_accel_per_year", false, "Refl. degradation acceleration", "1/yr", "Optical degradation|Parameters" );
+	degr_seed.set( 123, "degr_seed", false, "Random number generator seed", "-", "Optical degradation|Parameters" );
+	soil_per_hour.set( 6.e-4, "soil_per_hour", false, "Mean soiling rate", "1/hr", "Optical degradation|Parameters" );
+	adjust_constant.set( 4, "adjust:constant", false, "Misc fixed power loss", "%", "Financial parameters" );
+	helio_reflectance.set( 0.95, "helio_reflectance", false, "Initial mirror reflectance", "-", "Optical degradation|Parameters" );
+	disp_rsu_cost.set( 950., "disp_rsu_cost", false, "Receiver startup cost", "$", "Simulation|Parameters" );
+	disp_csu_cost.set( 10000., "disp_csu_cost", false, "Power block startup cost", "$", "Simulation|Parameters");
+	disp_pen_delta_w.set( 0.1, "disp_pen_delta_w", false, "Power block ramp penalty", "$/delta-kW", "Simulation|Parameters" );
+	rec_su_delay.set( 0.2, "rec_su_delay", false, "Receiver min startup time", "hr", "Simulation|Parameters" );
+	rec_qf_delay.set( 0.25, "rec_qf_delay", false, "Receiver min startup energy", "MWh/MWh", "Simulation|Parameters" );
+	startup_time.set( 0.5, "startup_time", false, "Power block min startup time", "hr", "Simulation|Parameters" );
+	startup_frac.set( 0.5, "startup_frac", false, "Power block startup energy", "MWh/MWh", "Simulation|Parameters" );
+	v_wind_max.set( 15., "v_wind_max", false, "Max operational wind velocity", "m/s", "Simulation|Parameters" );
+	flux_max.set(1000., "flux_max", false, "Maximum receiver flux", "kW/m2", "Simulation|Parameters");
+	maintenance_interval.set(5000., "maintenance_interval", false, "Runtime duration betwwen maintenance events", "h", "Cycle|Parameters");
+	maintenance_duration.set(168., "maintenance_duration", false, "Duration of maintenance events", "h", "Cycle|Parameters");
+	steplength.set(1., "steplength", false, "Simulation time period length", "h", "Cycle|Parameters");
+	hours_to_maintenance.set(5000., "hours_to_maintenance", false, "Runtime duration before next maintenance event", "h", "Cycle|Parameters");
+	power_output.set(0., "power_output", false, "Initial power cycle output", "W", "Cycle|Parameters");
+	capacity.set(500000., "capacity", false, "Power cycle capacity", "W", "Cycle|Parameters");
+	temp_threshold.set(20., "temp_threshold", false, "Ambient temperature threshold for condensers", "Celsius", "Cycle|Parameters");
+	time_online.set(0., "time_online", false, "Initial power cycle output duration", "h", "Cycle|Parameters");
+	time_in_standby.set(0., "time_in_standby", false, "Initial power cycle time in stndby", "h", "Cycle|Parameters");
+	downtime.set(0., "downtime", false, "Initial power cycle downtime", "h", "Cycle|Parameters");
+	shutdown_capacity.set(0.3, "shutdown_capacity", false, "Threshold capacity to shut plant down", "h", "Cycle|Parameters");
+	no_restart_capacity.set(0.9, "no_restart_capacity", false, "Threshold capacity to perform maintenance on shutdown", "h", "Cycle|Parameters");
+
 	std::vector< double > pval = { 0., 7., 200., 12000. };
-	c_ces.set( pval, "c_ces", lk::vardata_t::VECTOR, false );
+	c_ces.set( pval, "c_ces", false );
 
 	std::vector< double > pvalts(8760, 1.);
-	dispatch_factors_ts.set( pvalts, "dispatch_factors_ts", lk::vardata_t::VECTOR, false );
+	dispatch_factors_ts.set(pvalts, "dispatch_factors_ts", false);
+
+	std::vector< double > c_eff_cold = { 0., 1., 1. };
+	condenser_eff_cold.set(c_eff_cold, "condenser_eff_cold", false);
+
+	std::vector< double > c_eff_hot = { 0., 0.95, 1. };
+	condenser_eff_hot.set(c_eff_hot, "condenser_eff_hot", false);
 
 
 	// Availability parameters
 	std::string rp = "mean_repair_time";
-	helio_repair_priority.set(rp, "helio_repair_priority", lk::vardata_t::STRING, false, "Heliostat repair priority", "-", "Heliostat availability|Parameters");
-	avail_model_timestep.set(24, "avail_model_timestep", lk::vardata_t::NUMBER, false, "Availability model timestep", "hr", "Heliostat availability|Parameters");
+	helio_repair_priority.set(rp, "helio_repair_priority", false, "Heliostat repair priority", "-", "Heliostat availability|Parameters");
+	avail_model_timestep.set(24, "avail_model_timestep", false, "Availability model timestep", "hr", "Heliostat availability|Parameters");
 
 	std::vector< double > shape = { 1. };
 	std::vector< double > scale = { 12000. };
 	std::vector< double > mtr = { 2. };
 	std::vector< double > repair_cost = { 300. };
-	helio_comp_weibull_shape.set(shape, "helio_comp_weibull_shape", lk::vardata_t::VECTOR, false, "Helio component Weibull shape params", "-", "Heliostat availability|Parameters");
-	helio_comp_weibull_scale.set(scale, "helio_comp_weibull_scale", lk::vardata_t::VECTOR, false, "Helio component Weibull scale params", "hr", "Heliostat availability|Parameters");
-	helio_comp_mtr.set(mtr, "helio_comp_mtr", lk::vardata_t::VECTOR, false, "Helio component mean time to repair", "hr", "Heliostat availability|Parameters");
-	helio_comp_repair_cost.set(repair_cost, "helio_comp_repair_cost", lk::vardata_t::VECTOR, false, "Helio component repair cost", "$", "Heliostat availability|Parameters");
+	helio_comp_weibull_shape.set(shape, "helio_comp_weibull_shape", false, "Helio component Weibull shape params", "-", "Heliostat availability|Parameters");
+	helio_comp_weibull_scale.set(scale, "helio_comp_weibull_scale", false, "Helio component Weibull scale params", "hr", "Heliostat availability|Parameters");
+	helio_comp_mtr.set(mtr, "helio_comp_mtr", false, "Helio component mean time to repair", "hr", "Heliostat availability|Parameters");
+	helio_comp_repair_cost.set(repair_cost, "helio_comp_repair_cost", false, "Helio component repair cost", "$", "Heliostat availability|Parameters");
 
 	// Clustering parameters
-	is_use_clusters.set(false, "is_use_clusters", lk::vardata_t::NUMBER, false, "Use clusters?", "-", "Settings");
-	n_clusters.set(30, "n_clusters", lk::vardata_t::NUMBER, false, "Number of clusters", "-", "Settings");
+	is_use_clusters.set(false, "is_use_clusters", false, "Use clusters?", "-", "Settings");
+	n_clusters.set(30, "n_clusters", false, "Number of clusters", "-", "Settings");
 
-	cluster_ndays.set(2, "cluster_ndays", lk::vardata_t::NUMBER, false);
-	cluster_nprev.set(1, "cluster_nprev", lk::vardata_t::NUMBER, false);
-	is_hard_partitions.set(true, "is_hard_partitions", lk::vardata_t::NUMBER, false);
-	is_run_continuous.set(true, "is_run_continuous", lk::vardata_t::NUMBER, false);
+	cluster_ndays.set(2, "cluster_ndays", false);
+	cluster_nprev.set(1, "cluster_nprev", false);
+	is_hard_partitions.set(true, "is_hard_partitions", false);
+	is_run_continuous.set(true, "is_run_continuous", false);
 	std::string ca = "affinity_propagation";
-	cluster_algorithm.set(ca, "cluster_algorithm", lk::vardata_t::NUMBER, false);
+	cluster_algorithm.set(ca, "cluster_algorithm", false);
 
 
 	
-	
 
-
-	
     (*this)["print_messages"] = &print_messages;
     (*this)["check_max_flux"] = &check_max_flux;
     (*this)["is_optimize"] = &is_optimize;
     (*this)["is_dispatch"] = &is_dispatch;
     (*this)["is_ampl_engine"] = &is_ampl_engine;
     (*this)["is_stochastic_disp"] = &is_stochastic_disp;
+	(*this)["current_standby"] = &current_standby;
     (*this)["ampl_data_dir"] = &ampl_data_dir;
     (*this)["solar_resource_file"] = &solar_resource_file;
     (*this)["disp_steps_per_hour"] = &disp_steps_per_hour;
@@ -148,6 +177,20 @@ parameters::parameters()
     (*this)["plant_lifetime"] = &plant_lifetime;
     (*this)["finance_period"] = &finance_period;
     (*this)["ppa_multiplier_model"] = &ppa_multiplier_model;
+	(*this)["num_condenser_trains"] = &num_condenser_trains;
+	(*this)["fans_per_train"] = &fans_per_train;
+	(*this)["radiators_per_train"] = &radiators_per_train;
+	(*this)["num_salt_steam_trains"] = &num_salt_steam_trains;
+	(*this)["num_fwh"] = &num_fwh;
+	(*this)["num_salt_pumps"] = &num_salt_pumps;
+	(*this)["num_water_pumps"] = &num_water_pumps;
+	(*this)["num_turbines"] = &num_turbines;
+	(*this)["read_periods"] = &read_periods;
+	(*this)["sim_length"] = &sim_length;
+	(*this)["start_period"] = &start_period;
+	(*this)["next_start_period"] = &next_start_period;
+	(*this)["write_interval"] = &write_interval;
+	(*this)["num_scenarios"] = &num_scenarios;
     (*this)["rec_ref_cost"] = &rec_ref_cost;
     (*this)["rec_ref_area"] = &rec_ref_area;
     (*this)["tes_spec_cost"] = &tes_spec_cost;
@@ -161,8 +204,7 @@ parameters::parameters()
     (*this)["om_staff_cost"] = &om_staff_cost;
     (*this)["wash_crew_cost"] = &wash_crew_cost;
     (*this)["heliostat_refurbish_cost"] = &heliostat_refurbish_cost;
-    //(*this)["helio_mtf"] = &helio_mtf;
-    //(*this)["heliostat_repair_cost"] = &heliostat_repair_cost;
+
     (*this)["om_staff_max_hours_week"] = &om_staff_max_hours_week;
     (*this)["n_heliostats_sim"] = &n_heliostats_sim;
     (*this)["wash_units_per_hour"] = &wash_units_per_hour;
@@ -182,9 +224,23 @@ parameters::parameters()
     (*this)["startup_frac"] = &startup_frac;
     (*this)["v_wind_max"] = &v_wind_max;
     (*this)["flux_max"] = &flux_max;
+	(*this)["maintenance_interval"] = &maintenance_interval;
+	(*this)["maintenance_duration"] = &maintenance_duration;
+	(*this)["steplength"] = &steplength;
+	(*this)["hours_to_maintenance"] = &hours_to_maintenance;
+	(*this)["power_output"] = &power_output;
+	(*this)["capacity"] = &capacity;
+	(*this)["temp_threshold"] = &temp_threshold;
+	(*this)["time_online"] = &time_online;
+	(*this)["time_in_standby"] = &time_in_standby;
+	(*this)["downtime"] = &downtime;
+	(*this)["shutdown_capacity"] = &shutdown_capacity;
+	(*this)["no_restart_capacity"] = &no_restart_capacity;
     (*this)["c_ces"] = &c_ces;
     (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
 	(*this)["user_sf_avail"] = &user_sf_avail;
+	(*this)["condenser_eff_cold"] = &condenser_eff_cold;
+	(*this)["condenser_eff_hot"] = &condenser_eff_hot;
 
 	(*this)["helio_repair_priority"] = &helio_repair_priority;
 	(*this)["avail_model_timestep"] = &avail_model_timestep;
@@ -201,7 +257,6 @@ parameters::parameters()
 	(*this)["is_run_continuous"] = &is_run_continuous;
 	(*this)["cluster_algorithm"] = &cluster_algorithm;
 
-
 }
 
 design_outputs::design_outputs()
@@ -211,26 +266,26 @@ design_outputs::design_outputs()
 	*/
 
 	double nan = std::numeric_limits<double>::quiet_NaN();
-	number_heliostats.set(-1, "number_heliostats", lk::vardata_t::NUMBER, true, "Heliostat count", "-", "Design|Outputs");
-	area_sf.set(nan, "area_sf", lk::vardata_t::NUMBER, true, "Total heliostat area", "m2", "Design|Outputs");
-	base_land_area.set(nan, "base_land_area", lk::vardata_t::NUMBER, true, "Solar field land area", "acre", "Design|Outputs");
-	land_area.set(nan, "land_area", lk::vardata_t::NUMBER, true, "Total land area", "acre", "Design|Outputs");
-	flux_max_observed.set(nan, "flux_max_observed", lk::vardata_t::NUMBER, true, "Max observed flux", "kW/m2", "Design|Outputs");
-	cost_rec_tot.set(nan, "cost_rec_tot", lk::vardata_t::NUMBER, true, "Receiver cost", "$", "Design|Costs");
-	cost_sf_tot.set(nan, "cost_sf_tot", lk::vardata_t::NUMBER, true, "Solar field cost", "$", "Design|Costs");
-	cost_sf_real.set(nan, "", lk::vardata_t::NUMBER, true, "Solar field cost (real)", "$", "Design|Costs");
-	cost_tower_tot.set(nan, "cost_tower_tot", lk::vardata_t::NUMBER, true, "Tower cost", "$", "Design|Costs");
-	cost_land_tot.set(nan, "cost_land_tot", lk::vardata_t::NUMBER, true, "Land cost", "$", "Design|Costs");
-	cost_land_real.set(nan, "", lk::vardata_t::NUMBER, true, "Land cost (real)", "$", "Design|Costs");
-	cost_site_tot.set(nan, "cost_site_tot", lk::vardata_t::NUMBER, true, "Site cost", "$", "Design|Costs");
-	h_tower_opt.set(nan, "h_tower_opt", lk::vardata_t::NUMBER, true);
-	rec_height_opt.set(nan, "rec_height_opt", lk::vardata_t::NUMBER, true);
-	rec_aspect_opt.set(nan, "rec_aspect_opt", lk::vardata_t::NUMBER, true);
+	number_heliostats.set(-1, "number_heliostats", true, "Heliostat count", "-", "Design|Outputs");
+	area_sf.set(nan, "area_sf", true, "Total heliostat area", "m2", "Design|Outputs");
+	base_land_area.set(nan, "base_land_area", true, "Solar field land area", "acre", "Design|Outputs");
+	land_area.set(nan, "land_area", true, "Total land area", "acre", "Design|Outputs");
+	flux_max_observed.set(nan, "flux_max_observed", true, "Max observed flux", "kW/m2", "Design|Outputs");
+	cost_rec_tot.set(nan, "cost_rec_tot", true, "Receiver cost", "$", "Design|Costs");
+	cost_sf_tot.set(nan, "cost_sf_tot", true, "Solar field cost", "$", "Design|Costs");
+	cost_sf_real.set(nan, "", true, "Solar field cost (real)", "$", "Design|Costs");
+	cost_tower_tot.set(nan, "cost_tower_tot", true, "Tower cost", "$", "Design|Costs");
+	cost_land_tot.set(nan, "cost_land_tot", true, "Land cost", "$", "Design|Costs");
+	cost_land_real.set(nan, "", true, "Land cost (real)", "$", "Design|Costs");
+	cost_site_tot.set(nan, "cost_site_tot", true, "Site cost", "$", "Design|Costs");
+	h_tower_opt.set(nan, "h_tower_opt", true);
+	rec_height_opt.set(nan, "rec_height_opt", true);
+	rec_aspect_opt.set(nan, "rec_aspect_opt", true);
 
 	std::vector< std::vector< double > > empty_mat;
-	opteff_table.set(empty_mat, "opteff_table", lk::vardata_t::VECTOR, true);
-	flux_table.set(empty_mat, "flux_table", lk::vardata_t::VECTOR, true);
-	heliostat_positions.set(empty_mat, "heliostat_positions", lk::vardata_t::VECTOR, true);
+	opteff_table.set(empty_mat, "opteff_table", true);
+	flux_table.set(empty_mat, "flux_table", true);
+	heliostat_positions.set(empty_mat, "heliostat_positions", true);
 
     (*this)["number_heliostats"] = &number_heliostats;
     (*this)["area_sf"] = &area_sf;
@@ -260,17 +315,16 @@ solarfield_outputs::solarfield_outputs()
 	*/
 
 	double nan = std::numeric_limits<double>::quiet_NaN();
-	n_repairs.set(nan, "n_repairs", lk::vardata_t::NUMBER, true, "Average annual heliostat repairs", "-", "Heliostat availability|Outputs");
-	staff_utilization.set(nan, "staff_utilization", lk::vardata_t::NUMBER, true, "Staff utilization", "-", "Heliostat availability|Outputs");
-	heliostat_repair_cost_y1.set(nan, "heliostat_repair_cost_y1", lk::vardata_t::NUMBER, true, "Average annual heliostat repair cost", "$", "Heliostat availability|Outputs");
-	heliostat_repair_cost_real.set(nan, "heliostat_repair_cost_real", lk::vardata_t::NUMBER, true);
-	avg_avail.set(nan, "avg_avail", lk::vardata_t::NUMBER, true, "Average lifetime availability", "-", "Heliostat availability|Outputs");
 
+	n_repairs.set(nan, "n_repairs", true, "Number of heliostat repairs", "-", "Heliostat availability|Outputs");
+	staff_utilization.set(nan, "staff_utilization", true, "Staff utilization", "-", "Heliostat availability|Outputs");
+	heliostat_repair_cost_y1.set(nan, "heliostat_repair_cost_y1", true, "Heliostat repair cost (year 1)", "$", "Heliostat availability|Outputs");
+	heliostat_repair_cost_real.set(nan, "heliostat_repair_cost", true);
+	avg_avail.set(nan, "avg_avail", true, "Average lifetime availability", "-", "Heliostat availability|Outputs");
 
 	std::vector< double > empty_vec;
-	avail_schedule.set(empty_vec, "avail_schedule", lk::vardata_t::VECTOR, true, "Availability time series", "-", "Heliostat availability|Outputs");
-	n_repairs_per_component.set(empty_vec, "n_repairs_per_component", lk::vardata_t::VECTOR, true, "Average annual heliostat component repairs", "-", "Heliostat availability|Outputs");
-
+	avail_schedule.set(empty_vec, "avail_schedule", true);
+	n_repairs_per_component.set(empty_vec, "n_repairs_per_component", true, "Average annual heliostat component repairs", "-", "Heliostat availability|Outputs");
 
     (*this)["n_repairs"] = &n_repairs;
     (*this)["staff_utilization"] = &staff_utilization;
@@ -291,16 +345,16 @@ optical_outputs::optical_outputs()
 	double nan = std::numeric_limits<double>::quiet_NaN();
 	std::vector< double > empty_vec;
 	
-	n_replacements.set(nan, "n_replacements", lk::vardata_t::NUMBER, true, "Mirror replacements", "-", "Optical degradation|Outputs" );
-	heliostat_refurbish_cost_real.set(nan, "heliostat_refurbish_cost_real", lk::vardata_t::NUMBER, true, "Mirror replacement cost", "$", "Optical degradation|Outputs" );
-	heliostat_refurbish_cost_y1.set(nan, "heliostat_refurbish_cost_y1", lk::vardata_t::NUMBER, true, "Mirror replacement cost (year 1)", "$", "Optical degradation|Outputs" );
-	avg_soil.set(nan, "avg_soil", lk::vardata_t::NUMBER, true, "Average lifetime soiling", "-", "Optical degradation|Outputs" );
-	avg_degr.set(nan, "avg_degr", lk::vardata_t::NUMBER, true, "Average lifetime degradation", "-", "Optical degradation|Outputs" );
+	n_replacements.set(nan, "n_replacements", true, "Mirror replacements", "-", "Optical degradation|Outputs" );
+	heliostat_refurbish_cost_real.set(nan, "heliostat_refurbish_cost", true, "Mirror replacement cost", "$", "Optical degradation|Outputs" );
+	heliostat_refurbish_cost_y1.set(nan, "heliostat_refurbish_cost_y1", true, "Mirror replacement cost (year 1)", "$", "Optical degradation|Outputs" );
+	avg_soil.set(nan, "avg_soil", true, "Average lifetime soiling", "-", "Optical degradation|Outputs" );
+	avg_degr.set(nan, "avg_degr", true, "Average lifetime degradation", "-", "Optical degradation|Outputs" );
 
-	soil_schedule.set(empty_vec, "soil_schedule", lk::vardata_t::VECTOR, true, "Soiling time series", "-", "Optical degradation|Outputs" );
-	degr_schedule.set(empty_vec, "degr_schedule", lk::vardata_t::VECTOR, true, "Degradation time series", "-", "Optical degradation|Outputs" );
-	repl_schedule.set(empty_vec, "repl_schedule", lk::vardata_t::VECTOR, true, "Mirror repl. time series", "-", "Optical degradation|Outputs" );
-	repl_total.set(empty_vec, "repl_total", lk::vardata_t::VECTOR, true );
+	soil_schedule.set(empty_vec, "soil_schedule", true, "Soiling time series", "-", "Optical degradation|Outputs" );
+	degr_schedule.set(empty_vec, "degr_schedule", true, "Degradation time series", "-", "Optical degradation|Outputs" );
+	repl_schedule.set(empty_vec, "repl_schedule", true, "Mirror repl. time series", "-", "Optical degradation|Outputs" );
+	repl_total.set(empty_vec, "repl_total", true );
 
     (*this)["n_replacements"] = &n_replacements;
     (*this)["heliostat_refurbish_cost_real"] = &heliostat_refurbish_cost_real;
@@ -315,26 +369,39 @@ optical_outputs::optical_outputs()
 
 }
 
+cycle_outputs::cycle_outputs()
+{
+	std::vector< double > empty_vec;
+
+	cycle_efficiency.set(empty_vec, "cycle_efficiency", true, "Cycle efficiency time series", "-", "Cycle|Outputs");
+	cycle_capacity.set(empty_vec, "cycle_capacity", true, "Cycle capacity time series", "-", "Cycle|Outputs");
+
+	(*this)["cycle_efficiency"] = &cycle_efficiency;
+	(*this)["cycle_capacity"] = &cycle_capacity;
+}
+
 simulation_outputs::simulation_outputs()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();
 	std::vector< double > empty_vec;
 
-	generation_arr.set(empty_vec, "generation_arr", lk::vardata_t::VECTOR, true, "Net power generation", "kWe", "Simulation|Outputs");
-	solar_field_power_arr.set(empty_vec, "solar_field_power_arr", lk::vardata_t::VECTOR, true, "Solarfield thermal power", "kWt", "Simulation|Outputs");
-	tes_charge_state.set(empty_vec, "e_ch_tes", lk::vardata_t::VECTOR, true, "Thermal storage charge state", "MWht", "Simulation|Outputs");
-	dni_arr.set(empty_vec, "dni_arr", lk::vardata_t::VECTOR, true, "Direct normal irradiation", "W/m2", "Simulation|Outputs");
-	price_arr.set(empty_vec, "price_arr", lk::vardata_t::VECTOR, true, "Price signal", "-", "Simulation|Outputs");
+	generation_arr.set(empty_vec, "generation_arr", true, "Net power generation", "kWe", "Simulation|Outputs");
+	solar_field_power_arr.set(empty_vec, "solar_field_power_arr", true, "Solarfield thermal power", "kWt", "Simulation|Outputs");
+	tes_charge_state.set(empty_vec, "e_ch_tes", true, "Thermal storage charge state", "MWht", "Simulation|Outputs");
+	dni_arr.set(empty_vec, "dni_arr", true, "Direct normal irradiation", "W/m2", "Simulation|Outputs");
+	price_arr.set(empty_vec, "price_arr", true, "Price signal", "-", "Simulation|Outputs");
 	
-	dni_templates.set(empty_vec, "dni_templates", lk::vardata_t::VECTOR, true, "DNI clusters", "W/m2", "Simulation|Outputs");
-	price_templates.set(empty_vec, "price_templates", lk::vardata_t::VECTOR, true, "Price clusters", "-", "Simulation|Outputs");
+	dni_templates.set(empty_vec, "dni_templates", true, "DNI clusters", "W/m2", "Simulation|Outputs");
+	price_templates.set(empty_vec, "price_templates", true, "Price clusters", "-", "Simulation|Outputs");
 
-	annual_generation.set(nan, "annual_generation", lk::vardata_t::NUMBER, true, "Annual total generation", "GWhe", "Simulation|Outputs");
-	annual_revenue_units.set(nan, "annual_revenue_units", lk::vardata_t::NULLVAL, true, "Annual revenue units", "GWhe", "Simulation|Outputs");
 
-	annual_rec_starts.set(nan, "annual_rec_starts", lk::vardata_t::NUMBER, true, "Annual receiver starts", "-", "Simulation|Outputs");
-	annual_cycle_starts.set(nan, "annual_cycle_starts", lk::vardata_t::NUMBER, true, "Annual cycle starts", "-", "Simulation|Outputs");
-	annual_cycle_ramp.set(nan, "annual_cycle_ramp", lk::vardata_t::NUMBER, true, "Annual cycle ramping", "GWe", "Simulation|Outputs");
+	annual_generation.set(nan, "annual_generation", true, "Annual total generation", "GWhe", "Simulation|Outputs");
+	annual_revenue_units.set(nan, "annual_revenue_units", true, "Annual revenue units", "-", "Simulation|Outputs");
+
+	annual_rec_starts.set(nan, "annual_rec_starts", true, "Annual receiver starts", "-", "Simulation|Outputs");
+	annual_cycle_starts.set(nan, "annual_cycle_starts", true, "Annual cycle starts", "-", "Simulation|Outputs");
+	annual_cycle_ramp.set(nan, "annual_cycle_ramp", true, "Annual cycle ramping", "GWe", "Simulation|Outputs");
+
 
 	(*this)["generation_arr"] = &generation_arr;
 	(*this)["solar_field_power_arr"] = &solar_field_power_arr;
@@ -354,15 +421,15 @@ simulation_outputs::simulation_outputs()
 explicit_outputs::explicit_outputs()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();
-	cost_receiver_real.set(nan, "cost_receiver_real", lk::vardata_t::NUMBER, true);
-	cost_tower_real.set(nan, "cost_tower_real", lk::vardata_t::NUMBER, true);
-	cost_plant_real.set(nan, "cost_plant_real", lk::vardata_t::NUMBER, true);
-	cost_tes_real.set(nan, "cost_tes_real", lk::vardata_t::NUMBER, true);
+	cost_receiver_real.set(nan, "cost_receiver_real", true);
+	cost_tower_real.set(nan, "cost_tower_real", true);
+	cost_plant_real.set(nan, "cost_plant_real", true);
+	cost_tes_real.set(nan, "cost_tes_real", true);
 
-	heliostat_om_labor_y1.set(nan, "heliostat_om_labor_y1", lk::vardata_t::NUMBER, true);
-	heliostat_om_labor_real.set(nan, "heliostat_om_labor", lk::vardata_t::NUMBER, true);
-	heliostat_wash_cost_y1.set(nan, "heliostat_wash_cost_y1", lk::vardata_t::NUMBER, true);
-	heliostat_wash_cost_real.set(nan, "heliostat_wash_cost", lk::vardata_t::NUMBER, true);
+	heliostat_om_labor_y1.set(nan, "heliostat_om_labor_y1", true);
+	heliostat_om_labor_real.set(nan, "heliostat_om_labor", true);
+	heliostat_wash_cost_y1.set(nan, "heliostat_wash_cost_y1", true);
+	heliostat_wash_cost_real.set(nan, "heliostat_wash_cost", true);
 
 	(*this)["cost_receiver_real"] = &cost_receiver_real;
 	(*this)["cost_tower_real"] = &cost_tower_real;
@@ -378,12 +445,12 @@ financial_outputs::financial_outputs()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();
 
-	lcoe_nom.set(nan, "lcoe_nom", lk::vardata_t::NUMBER, true);
-	lcoe_real.set(nan, "lcoe_real", lk::vardata_t::NUMBER, true);
-	ppa.set(nan, "ppa", lk::vardata_t::NUMBER, true);
-	project_return_aftertax_npv.set(nan, "project_return_aftertax_npv", lk::vardata_t::NUMBER, true);
-	project_return_aftertax_irr.set(nan, "project_return_aftertax_irr", lk::vardata_t::NUMBER, true);
-	total_installed_cost.set(nan, "total_installed_cost", lk::vardata_t::NUMBER, true);
+	lcoe_nom.set(nan, "lcoe_nom", true);
+	lcoe_real.set(nan, "lcoe_real", true);
+	ppa.set(nan, "ppa", true);
+	project_return_aftertax_npv.set(nan, "project_return_aftertax_npv", true);
+	project_return_aftertax_irr.set(nan, "project_return_aftertax_irr", true);
+	total_installed_cost.set(nan, "total_installed_cost", true);
 
 	(*this)["lcoe_nom"] = &lcoe_nom;
 	(*this)["lcoe_real"] = &lcoe_real;
@@ -397,28 +464,28 @@ objective_outputs::objective_outputs()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();
 
-	cost_receiver_real.set(nan, "cost_receiver_real", lk::vardata_t::NUMBER, true); // from E
-	cost_tower_real.set(nan, "cost_tower_real", lk::vardata_t::NUMBER, true);		// from E
-	cost_plant_real.set(nan, "cost_plant_real", lk::vardata_t::NUMBER, true);		// from E
-	cost_tes_real.set(nan, "cost_tes_real", lk::vardata_t::NUMBER, true);			// from E
-	cost_land_real.set(nan, "cost_land_real", lk::vardata_t::NUMBER, true);			// from D
-	cost_sf_real.set(nan, "cost_sf_real", lk::vardata_t::NUMBER, true);				// from D
-	cap_cost_real.set(nan, "cap_cost_real", lk::vardata_t::NUMBER, true);
+	cost_receiver_real.set(nan, "cost_receiver_real", true); // from E
+	cost_tower_real.set(nan, "cost_tower_real", true);		// from E
+	cost_plant_real.set(nan, "cost_plant_real", true);		// from E
+	cost_tes_real.set(nan, "cost_tes_real", true);			// from E
+	cost_land_real.set(nan, "cost_land_real", true);			// from D
+	cost_sf_real.set(nan, "cost_sf_real", true);				// from D
+	cap_cost_real.set(nan, "cap_cost_real", true);
 
-	rec_start_cost_real.set(nan, "rec_start_cost_real", lk::vardata_t::NUMBER, true);
-	cycle_start_cost_real.set(nan, "cycle_start_cost_real", lk::vardata_t::NUMBER, true);
-	cycle_ramp_cost_real.set(nan, "cycle_ramp_cost_real", lk::vardata_t::NUMBER, true);
-	heliostat_repair_cost_real.set(nan, "heliostat_repair_cost_real", lk::vardata_t::NUMBER, true);		  // from M
-	heliostat_om_labor_real.set(nan, "heliostat_om_labor_real", lk::vardata_t::NUMBER, true);			  // from E
-	heliostat_wash_cost_real.set(nan, "heliostat_wash_cost_real", lk::vardata_t::NUMBER, true);			  // from E
-	heliostat_refurbish_cost_real.set(nan, "heliostat_refurbish_cost_real", lk::vardata_t::NUMBER, true); // from O
-	om_cost_real.set(nan, "om_cost_real", lk::vardata_t::NUMBER, true);
+	rec_start_cost_real.set(nan, "rec_start_cost_real", true);
+	cycle_start_cost_real.set(nan, "cycle_start_cost_real", true);
+	cycle_ramp_cost_real.set(nan, "cycle_ramp_cost_real", true);
+	heliostat_repair_cost_real.set(nan, "heliostat_repair_cost_real", true);		  // from M
+	heliostat_om_labor_real.set(nan, "heliostat_om_labor_real", true);			  // from E
+	heliostat_wash_cost_real.set(nan, "heliostat_wash_cost_real", true);			  // from E
+	heliostat_refurbish_cost_real.set(nan, "heliostat_refurbish_cost_real", true); // from O
+	om_cost_real.set(nan, "om_cost_real", true);
 	
-	sales.set(nan, "sales", lk::vardata_t::NUMBER, true);
-	cash_flow.set(nan, "cash_flow", lk::vardata_t::NUMBER, true);
-	ppa.set(nan, "ppa", lk::vardata_t::NUMBER, true);				// from F
-	lcoe_nom.set(nan, "lcoe_nom", lk::vardata_t::NUMBER, true);		// from F
-	lcoe_real.set(nan, "lcoe_real", lk::vardata_t::NUMBER, true);	// from F
+	sales.set(nan, "sales", true);
+	cash_flow.set(nan, "cash_flow", true);
+	ppa.set(nan, "ppa", true);				// from F
+	lcoe_nom.set(nan, "lcoe_nom", true);		// from F
+	lcoe_real.set(nan, "lcoe_real", true);	// from F
 	
 	(*this)["cap_cost_real"] = &cap_cost_real;
 	(*this)["rec_start_cost_real"] = &rec_start_cost_real;
@@ -448,7 +515,7 @@ bool Project::Validate(Project::CALLING_SIM::E sim_type, std::string *error_msg)
 		bool valid_flag = true;
 		if( !v->IsInvalidAllowed() )
 		{
-			switch(v->type)
+			switch(v->type() )
 			{
 				case lk::vardata_t::NUMBER:
 					if( v->as_number() != v->as_number() )
@@ -570,7 +637,7 @@ Project::Project()
 
 	//construct the merged data map
 	std::vector<lk::varhash_t*> struct_pointers = { &m_variables, &m_parameters, &m_design_outputs,
-		&m_solarfield_outputs, &m_optical_outputs, &m_cycle_outputs, &m_simulation_outputs };
+		&m_solarfield_outputs, &m_optical_outputs, /*&m_cycle_outputs,*/ &m_simulation_outputs };
 
 	_merged_data.clear();
 
@@ -584,6 +651,7 @@ Project::Project()
 		}
 	}
 
+    add_documentation();
 }
 
 Project::~Project()
@@ -595,6 +663,16 @@ Project::~Project()
 lk::varhash_t *Project::GetMergedData()
 {
 	return &_merged_data;
+}
+
+std::vector< void* > Project::GetDataObjects()
+{
+    std::vector< void* > rvec = {
+        (void*)&m_variables, (void*)&m_parameters, //(void*)&m_cluster_parameters,
+        (void*)&m_design_outputs, (void*)&m_optical_outputs, (void*)&m_solarfield_outputs,
+        (void*)&m_simulation_outputs }; // , (void*)&m_cycle_outputs
+
+    return rvec;
 }
 
 data_base *Project::GetVarPtr(const char *name)
@@ -945,538 +1023,6 @@ void Project::update_calculated_values_post_layout()
 
 }
 
-void Project::initialize_ssc_project()
-{
-	//free data structures if already allocated
-	if (m_ssc_data)
-		ssc_data_free(m_ssc_data);
-
-	//create a new data structures
-	m_ssc_data = ssc_data_create();
-
-	//set project initial and default values
-
-	ssc_number_t smax = std::numeric_limits<ssc_number_t>::max();
-	//-----------------------------------------------------------------------------
-	//-----------------------------------------------------------------------------
-	//       MSPT parameters and defaults
-	//-----------------------------------------------------------------------------
-	//-----------------------------------------------------------------------------
-	
-	//initialize some of the variables here. They aren't actually SSC variables..
-	ssc_data_set_number( m_ssc_data, "om_staff", 5);
-	ssc_data_set_number( m_ssc_data, "n_wash_crews", 5);
-	ssc_data_set_number( m_ssc_data, "degr_replace_limit", 0.7);
-	//parameters
-	ssc_data_set_string( m_ssc_data, "ampl_data_dir", " ");
-	ssc_data_set_number( m_ssc_data, "is_stochastic_disp", 0 );
-	ssc_data_set_number( m_ssc_data, "q_rec_standby",  9e9 );
-	ssc_data_set_number( m_ssc_data, "eta_map_aod_format",  0 );
-	ssc_data_set_number( m_ssc_data, "eta_map_aod_format",  0 );
-	ssc_data_set_number( m_ssc_data, "ppa_multiplier_model",  0 );
-	ssc_data_set_number( m_ssc_data, "field_model_type",  2 );
-	ssc_data_set_number( m_ssc_data, "gross_net_conversion_factor",  0.90 );
-	ssc_data_set_number( m_ssc_data, "helio_width",  12.2 );
-	ssc_data_set_number( m_ssc_data, "helio_height",  12.2 );
-	ssc_data_set_number( m_ssc_data, "helio_optical_error_mrad",  1.523 );
-	ssc_data_set_number( m_ssc_data, "helio_active_fraction",  0.99 );
-	ssc_data_set_number( m_ssc_data, "dens_mirror",  0.97 );
-	ssc_data_set_number( m_ssc_data, "helio_reflectance",  0.9 );
-	ssc_data_set_number( m_ssc_data, "rec_absorptance",  0.94 );
-	ssc_data_set_number( m_ssc_data, "rec_hl_perm2",  30 );
-	ssc_data_set_number( m_ssc_data, "land_max",  9.5 );
-	ssc_data_set_number( m_ssc_data, "land_min",  0.75 );
-	ssc_data_set_number( m_ssc_data, "dni_des",  950 );
-	ssc_data_set_number( m_ssc_data, "p_start",  0.025 );
-	ssc_data_set_number( m_ssc_data, "p_track",  0.055 );
-	ssc_data_set_number( m_ssc_data, "hel_stow_deploy",  8 );
-	ssc_data_set_number( m_ssc_data, "v_wind_max",  15 );
-	ssc_data_set_number( m_ssc_data, "c_atm_0",  0.006789 );
-	ssc_data_set_number( m_ssc_data, "c_atm_1",  0.1046 );
-	ssc_data_set_number( m_ssc_data, "c_atm_2",  -0.017 );
-	ssc_data_set_number( m_ssc_data, "c_atm_3",  0.002845 );
-	ssc_data_set_number( m_ssc_data, "n_facet_x",  2 );
-	ssc_data_set_number( m_ssc_data, "n_facet_y",  8 );
-	ssc_data_set_number( m_ssc_data, "focus_type",  1 );
-	ssc_data_set_number( m_ssc_data, "cant_type",  1 );
-	ssc_data_set_number( m_ssc_data, "n_flux_days",  8 );
-	ssc_data_set_number( m_ssc_data, "delta_flux_hrs",  2 );
-	ssc_data_set_number( m_ssc_data, "water_usage_per_wash",  0.7 );
-	ssc_data_set_number( m_ssc_data, "washing_frequency",  63 );
-	ssc_data_set_number( m_ssc_data, "check_max_flux",  0 );
-	ssc_data_set_number( m_ssc_data, "sf_excess",  1 );
-	ssc_data_set_number( m_ssc_data, "tower_fixed_cost",  3000000 );
-	ssc_data_set_number( m_ssc_data, "tower_exp",  0.0113 );
-	ssc_data_set_number( m_ssc_data, "rec_ref_cost",  103000000 );
-	ssc_data_set_number( m_ssc_data, "rec_ref_area",  1571 );
-	ssc_data_set_number( m_ssc_data, "rec_cost_exp",  0.7 );
-	ssc_data_set_number( m_ssc_data, "site_spec_cost",  16 );
-	ssc_data_set_number( m_ssc_data, "heliostat_spec_cost",  145 );
-	ssc_data_set_number( m_ssc_data, "plant_spec_cost",  1100 );
-	ssc_data_set_number( m_ssc_data, "bop_spec_cost",  340 );
-	ssc_data_set_number( m_ssc_data, "tes_spec_cost",  24 );
-	ssc_data_set_number( m_ssc_data, "land_spec_cost",  10000 );
-	ssc_data_set_number( m_ssc_data, "contingency_rate",  7 );
-	ssc_data_set_number( m_ssc_data, "sales_tax_rate",  5 );
-	ssc_data_set_number( m_ssc_data, "sales_tax_frac",  80 );
-	ssc_data_set_number( m_ssc_data, "cost_sf_fixed",  0 );
-	ssc_data_set_number( m_ssc_data, "fossil_spec_cost",  0 );
-	ssc_data_set_number( m_ssc_data, "is_optimize",  0 );
-	ssc_data_set_number( m_ssc_data, "opt_init_step",  0.06 );
-	ssc_data_set_number( m_ssc_data, "opt_max_iter",  200 );
-	ssc_data_set_number( m_ssc_data, "opt_conv_tol",  0.001 );
-	ssc_data_set_number( m_ssc_data, "opt_flux_penalty",  0.25 );
-	ssc_data_set_number( m_ssc_data, "opt_algorithm",  1 );
-	ssc_data_set_number( m_ssc_data, "csp.pt.cost.epc.per_acre",  0 );
-	ssc_data_set_number( m_ssc_data, "csp.pt.cost.epc.percent",  13 );
-	ssc_data_set_number( m_ssc_data, "csp.pt.cost.epc.per_watt",  0 );
-	ssc_data_set_number( m_ssc_data, "csp.pt.cost.epc.fixed",  0 );
-	ssc_data_set_number( m_ssc_data, "csp.pt.cost.plm.percent",  0 );
-	ssc_data_set_number( m_ssc_data, "csp.pt.cost.plm.per_watt",  0 );
-	ssc_data_set_number( m_ssc_data, "csp.pt.cost.plm.fixed",  0 );
-	ssc_data_set_number( m_ssc_data, "csp.pt.sf.fixed_land_area",  45 );
-	ssc_data_set_number( m_ssc_data, "csp.pt.sf.land_overhead_factor",  1 );
-	ssc_data_set_number( m_ssc_data, "T_htf_cold_des",  290 );
-	ssc_data_set_number( m_ssc_data, "T_htf_hot_des",  574 );
-	ssc_data_set_number( m_ssc_data, "P_ref",  115 );
-	ssc_data_set_number( m_ssc_data, "design_eff",  0.412 );
-	ssc_data_set_number( m_ssc_data, "tshours",  10 );
-	ssc_data_set_number( m_ssc_data, "solarm",  2.4 );
-	ssc_data_set_number( m_ssc_data, "receiver_type",  0 );
-	ssc_data_set_number( m_ssc_data, "N_panels",  20 );
-	ssc_data_set_number( m_ssc_data, "d_tube_out",  40 );
-	ssc_data_set_number( m_ssc_data, "th_tube",  1.25 );
-	ssc_data_set_number( m_ssc_data, "mat_tube",  2 );
-	ssc_data_set_number( m_ssc_data, "rec_htf",  17 );
-	ssc_data_set_number( m_ssc_data, "Flow_type",  1 );
-	ssc_data_set_number( m_ssc_data, "epsilon",  0.88 );
-	ssc_data_set_number( m_ssc_data, "hl_ffact",  1 );
-	ssc_data_set_number( m_ssc_data, "f_rec_min",  0.25 );
-	ssc_data_set_number( m_ssc_data, "rec_su_delay",  0.2 );
-	ssc_data_set_number( m_ssc_data, "rec_qf_delay",  0.25 );
-	ssc_data_set_number( m_ssc_data, "csp.pt.rec.max_oper_frac",  1.2 );
-	ssc_data_set_number( m_ssc_data, "eta_pump",  0.85 );
-	ssc_data_set_number( m_ssc_data, "piping_loss",  10200 );
-	ssc_data_set_number( m_ssc_data, "piping_length_mult",  2.6 );
-	ssc_data_set_number( m_ssc_data, "piping_length_const",  0 );
-	ssc_data_set_number( m_ssc_data, "rec_d_spec",  15 );
-	ssc_data_set_number( m_ssc_data, "csp.pt.tes.init_hot_htf_percent",  30 );
-	ssc_data_set_number( m_ssc_data, "h_tank",  20 );
-	ssc_data_set_number( m_ssc_data, "cold_tank_max_heat",  15 );
-	ssc_data_set_number( m_ssc_data, "u_tank",  0.4 );
-	ssc_data_set_number( m_ssc_data, "tank_pairs",  1 );
-	ssc_data_set_number( m_ssc_data, "cold_tank_Thtr",  280 );
-	ssc_data_set_number( m_ssc_data, "h_tank_min",  1 );
-	ssc_data_set_number( m_ssc_data, "hot_tank_Thtr",  500 );
-	ssc_data_set_number( m_ssc_data, "hot_tank_max_heat",  30 );
-	ssc_data_set_number( m_ssc_data, "tc_fill",  8 );
-	ssc_data_set_number( m_ssc_data, "tc_void",  0.25 );
-	ssc_data_set_number( m_ssc_data, "t_dis_out_min",  500 );
-	ssc_data_set_number( m_ssc_data, "t_ch_out_max",  400 );
-	ssc_data_set_number( m_ssc_data, "nodes",  100 );
-	ssc_data_set_number( m_ssc_data, "pc_config",  0 );
-	ssc_data_set_number( m_ssc_data, "pb_pump_coef",  0.55 );
-	ssc_data_set_number( m_ssc_data, "startup_time",  0.5 );
-	ssc_data_set_number( m_ssc_data, "startup_frac",  0.5 );
-	ssc_data_set_number( m_ssc_data, "cycle_max_frac",  1.05 );
-	ssc_data_set_number( m_ssc_data, "cycle_cutoff_frac",  0.2 );
-	ssc_data_set_number( m_ssc_data, "q_sby_frac",  0.2 );
-	ssc_data_set_number( m_ssc_data, "dT_cw_ref",  10 );
-	ssc_data_set_number( m_ssc_data, "T_amb_des",  42 );
-	ssc_data_set_number( m_ssc_data, "P_boil",  100 );
-	ssc_data_set_number( m_ssc_data, "CT",  2 );
-	ssc_data_set_number( m_ssc_data, "T_approach",  5 );
-	ssc_data_set_number( m_ssc_data, "T_ITD_des",  16 );
-	ssc_data_set_number( m_ssc_data, "P_cond_ratio",  1.0028 );
-	ssc_data_set_number( m_ssc_data, "pb_bd_frac",  0.02 );
-	ssc_data_set_number( m_ssc_data, "P_cond_min",  2 );
-	ssc_data_set_number( m_ssc_data, "n_pl_inc",  8 );
-	ssc_data_set_number( m_ssc_data, "tech_type",  1 );
-	ssc_data_set_number( m_ssc_data, "time_start",  0 );
-	ssc_data_set_number( m_ssc_data, "time_stop",  31536000 );
-	ssc_data_set_number( m_ssc_data, "pb_fixed_par",  0.0055 );
-	ssc_data_set_number( m_ssc_data, "aux_par",  0.023 );
-	ssc_data_set_number( m_ssc_data, "aux_par_f",  1 );
-	ssc_data_set_number( m_ssc_data, "aux_par_0",  0.483 );
-	ssc_data_set_number( m_ssc_data, "aux_par_1",  0.571 );
-	ssc_data_set_number( m_ssc_data, "aux_par_2",  0 );
-	ssc_data_set_number( m_ssc_data, "bop_par",  0 );
-	ssc_data_set_number( m_ssc_data, "bop_par_f",  1 );
-	ssc_data_set_number( m_ssc_data, "bop_par_0",  0 );
-	ssc_data_set_number( m_ssc_data, "bop_par_1",  0.483 );
-	ssc_data_set_number( m_ssc_data, "bop_par_2",  0 );
-	ssc_data_set_number( m_ssc_data, "is_dispatch",  0 );
-	ssc_data_set_number( m_ssc_data, "disp_horizon",  48 );
-	ssc_data_set_number( m_ssc_data, "disp_frequency",  24 );
-	ssc_data_set_number( m_ssc_data, "disp_max_iter",  35000 );
-	ssc_data_set_number( m_ssc_data, "disp_timeout",  5 );
-	ssc_data_set_number( m_ssc_data, "disp_mip_gap",  0.001 );
-	ssc_data_set_number( m_ssc_data, "disp_time_weighting",  0.99 );
-	ssc_data_set_number( m_ssc_data, "disp_rsu_cost",  950 );
-	ssc_data_set_number( m_ssc_data, "disp_csu_cost",  10000 );
-	ssc_data_set_number( m_ssc_data, "disp_pen_delta_w",  0.1 );
-	ssc_data_set_number( m_ssc_data, "is_wlim_series",  0 );
-	ssc_data_set_number( m_ssc_data, "dispatch_factor1",  2.064 );
-	ssc_data_set_number( m_ssc_data, "dispatch_factor2",  1.2 );
-	ssc_data_set_number( m_ssc_data, "dispatch_factor3",  1 );
-	ssc_data_set_number( m_ssc_data, "dispatch_factor4",  1.1 );
-	ssc_data_set_number( m_ssc_data, "dispatch_factor5",  0.8 );
-	ssc_data_set_number( m_ssc_data, "dispatch_factor6",  0.7 );
-	ssc_data_set_number( m_ssc_data, "dispatch_factor7",  1 );
-	ssc_data_set_number( m_ssc_data, "dispatch_factor8",  1 );
-	ssc_data_set_number( m_ssc_data, "dispatch_factor9",  1 );
-	ssc_data_set_number( m_ssc_data, "is_dispatch_series",  0 );
-	ssc_data_set_number( m_ssc_data, "rec_height",  21.6 );
-	ssc_data_set_number( m_ssc_data, "D_rec",  17.65 );
-	ssc_data_set_number( m_ssc_data, "h_tower",  193.46 );
-	ssc_data_set_number( m_ssc_data, "land_area_base",  1847.037 );
-	ssc_data_set_number( m_ssc_data, "const_per_interest_rate1",  4 );
-	ssc_data_set_number( m_ssc_data, "const_per_interest_rate2",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_interest_rate3",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_interest_rate4",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_interest_rate5",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_months1",  24 );
-	ssc_data_set_number( m_ssc_data, "const_per_months2",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_months3",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_months4",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_months5",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_percent1",  100 );
-	ssc_data_set_number( m_ssc_data, "const_per_percent2",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_percent3",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_percent4",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_percent5",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_upfront_rate1",  1 );
-	ssc_data_set_number( m_ssc_data, "const_per_upfront_rate2",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_upfront_rate3",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_upfront_rate4",  0 );
-	ssc_data_set_number( m_ssc_data, "const_per_upfront_rate5",  0 );
-	ssc_data_set_number( m_ssc_data, "adjust:constant",  4 );
-	ssc_data_set_number( m_ssc_data, "sf_adjust:constant",  0 );
-	ssc_data_set_number( m_ssc_data, "ud_T_amb_des",  43 );
-	ssc_data_set_number( m_ssc_data, "ud_f_W_dot_cool_des",  0 );
-	ssc_data_set_number( m_ssc_data, "ud_m_dot_water_cool_des",  0 );
-	ssc_data_set_number( m_ssc_data, "ud_T_htf_low",  500 );
-	ssc_data_set_number( m_ssc_data, "ud_T_htf_high",  580 );
-	ssc_data_set_number( m_ssc_data, "ud_T_amb_low",  0 );
-	ssc_data_set_number( m_ssc_data, "ud_T_amb_high",  55 );
-	ssc_data_set_matrix(m_ssc_data, "fc_dni_scenarios", 0, 0, 0 );
-	ssc_data_set_matrix(m_ssc_data, "fc_price_scenarios", 0, 0, 0 );
-	ssc_data_set_matrix(m_ssc_data, "fc_tamb_scenarios", 0, 0, 0 );
-	ssc_number_t p_F_wc[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	ssc_data_set_array(m_ssc_data, "F_wc", p_F_wc, 9 );
-	ssc_number_t p_field_fl_props[9] = { 1, 7, 0, 0, 0, 0, 0, 0, 0 };
-	ssc_data_set_matrix(m_ssc_data, "field_fl_props", p_field_fl_props, 1, 9 );
-	ssc_number_t p_f_turb_tou_periods[9] = { 1.05, 1, 1, 1, 1, 1, 1, 1, 1 };
-	ssc_data_set_array(m_ssc_data, "f_turb_tou_periods", p_f_turb_tou_periods, 9 );
-	ssc_number_t p_weekday_schedule[288] = 
-	{ 
-		6, 6, 6, 6, 6, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 
-		6, 6, 6, 6, 6, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 
-		6, 6, 6, 6, 6, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 
-		6, 6, 6, 6, 6, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 
-		6, 6, 6, 6, 6, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 
-		3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 
-		3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 
-		3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 
-		3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 
-		6, 6, 6, 6, 6, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 
-		6, 6, 6, 6, 6, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 
-		6, 6, 6, 6, 6, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5 
-	};
-	ssc_number_t p_weekend_schedule[288] =
-	{
-		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-		6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5
-	};
-	ssc_data_set_matrix(m_ssc_data, "weekday_schedule", p_weekday_schedule, 12, 24 );
-	ssc_data_set_matrix(m_ssc_data, "weekend_schedule", p_weekend_schedule, 12, 24 );
-	ssc_data_set_matrix(m_ssc_data, "dispatch_sched_weekday", p_weekday_schedule, 12, 24);
-	ssc_data_set_matrix(m_ssc_data, "dispatch_sched_weekend", p_weekend_schedule, 12, 24);
-	ssc_number_t p_dispatch_series[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "dispatch_series", p_dispatch_series, 1 );
-	ssc_data_set_number(m_ssc_data, "sf_adjust:constant", 0 );
-	ssc_number_t p_sf_adjustperiods[1] = { 0 };
-	ssc_data_set_matrix(m_ssc_data, "sf_adjust:periods", p_sf_adjustperiods, 1, 1 );
-	ssc_number_t p_sf_adjusthourly[8760];
-	for (size_t ii = 0; ii < 8760; ii++)
-		p_sf_adjusthourly[ii] = 0.;
-	ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sf_adjusthourly, 8760 );
-	ssc_number_t p_dispatch_factors_ts[8760];
-	for (size_t ii = 0; ii < 8760; ii++)
-		p_dispatch_factors_ts[ii] = 1.;
-	ssc_data_set_array(m_ssc_data, "dispatch_factors_ts", p_dispatch_factors_ts, 8760 );
-	ssc_number_t p_wlim_series[8760];
-	for (size_t ii = 0; ii < 8760; ii++)
-		p_wlim_series[ii] = 1.e37;
-	ssc_data_set_array(m_ssc_data, "wlim_series", p_wlim_series, 8760 );
-	ssc_number_t p_helio_positions[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "helio_positions", p_helio_positions, 1 );
-
-
-	//-----------------------------------------------------------------------------
-	//-----------------------------------------------------------------------------
-	//		       Financial parameters and defaults
-	//-----------------------------------------------------------------------------
-	//-----------------------------------------------------------------------------
-
-	ssc_data_set_number(m_ssc_data, "analysis_period", 25 );
-	ssc_number_t p_federal_tax_rate[1] = { 35 };
-	ssc_data_set_array(m_ssc_data, "federal_tax_rate", p_federal_tax_rate, 1 );
-	ssc_number_t p_state_tax_rate[1] = { 7 };
-	ssc_data_set_array(m_ssc_data, "state_tax_rate", p_state_tax_rate, 1 );
-	ssc_data_set_number(m_ssc_data, "property_tax_rate", 0 );
-	ssc_data_set_number(m_ssc_data, "prop_tax_cost_assessed_percent", 100 );
-	ssc_data_set_number(m_ssc_data, "prop_tax_assessed_decline", 0 );
-	ssc_data_set_number(m_ssc_data, "real_discount_rate", 5.5 );
-	ssc_data_set_number(m_ssc_data, "inflation_rate", 2.5 );
-	ssc_data_set_number(m_ssc_data, "insurance_rate", 0.5 );
-	ssc_data_set_number(m_ssc_data, "system_capacity", 103500 );
-	ssc_number_t p_om_fixed[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "om_fixed", p_om_fixed, 1 );
-	ssc_data_set_number(m_ssc_data, "om_fixed_escal", 0 );
-	ssc_number_t p_om_production[1] = { 3.5 };
-	ssc_data_set_array(m_ssc_data, "om_production", p_om_production, 1 );
-	ssc_data_set_number(m_ssc_data, "om_production_escal", 0 );
-	ssc_number_t p_om_capacity[1] = { 66 };
-	ssc_data_set_array(m_ssc_data, "om_capacity", p_om_capacity, 1 );
-	ssc_data_set_number(m_ssc_data, "om_capacity_escal", 0 );
-	ssc_number_t p_om_fuel_cost[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "om_fuel_cost", p_om_fuel_cost, 1 );
-	ssc_data_set_number(m_ssc_data, "om_fuel_cost_escal", 0 );
-	ssc_data_set_number(m_ssc_data, "itc_fed_amount", 0 );
-	ssc_data_set_number(m_ssc_data, "itc_fed_amount_deprbas_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "itc_fed_amount_deprbas_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "itc_sta_amount", 0 );
-	ssc_data_set_number(m_ssc_data, "itc_sta_amount_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "itc_sta_amount_deprbas_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "itc_fed_percent", 30 );
-	ssc_data_set_number(m_ssc_data, "itc_fed_percent_maxvalue", smax );
-	ssc_data_set_number(m_ssc_data, "itc_fed_percent_deprbas_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "itc_fed_percent_deprbas_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "itc_sta_percent", 0 );
-	ssc_data_set_number(m_ssc_data, "itc_sta_percent_maxvalue", smax );
-	ssc_data_set_number(m_ssc_data, "itc_sta_percent_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "itc_sta_percent_deprbas_sta", 0 );
-	ssc_number_t p_ptc_fed_amount[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "ptc_fed_amount", p_ptc_fed_amount, 1 );
-	ssc_data_set_number(m_ssc_data, "ptc_fed_term", 10 );
-	ssc_data_set_number(m_ssc_data, "ptc_fed_escal", 0 );
-	ssc_number_t p_ptc_sta_amount[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "ptc_sta_amount", p_ptc_sta_amount, 1 );
-	ssc_data_set_number(m_ssc_data, "ptc_sta_term", 10 );
-	ssc_data_set_number(m_ssc_data, "ptc_sta_escal", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_fed_amount", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_fed_amount_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_fed_amount_tax_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_fed_amount_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_fed_amount_deprbas_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_sta_amount", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_sta_amount_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_sta_amount_tax_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_sta_amount_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_sta_amount_deprbas_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_uti_amount", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_uti_amount_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_uti_amount_tax_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_uti_amount_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_uti_amount_deprbas_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_oth_amount", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_oth_amount_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_oth_amount_tax_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_oth_amount_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_oth_amount_deprbas_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_fed_percent", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_fed_percent_maxvalue", smax );
-	ssc_data_set_number(m_ssc_data, "ibi_fed_percent_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_fed_percent_tax_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_fed_percent_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_fed_percent_deprbas_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_sta_percent", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_sta_percent_maxvalue", smax );
-	ssc_data_set_number(m_ssc_data, "ibi_sta_percent_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_sta_percent_tax_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_sta_percent_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_sta_percent_deprbas_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_uti_percent", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_uti_percent_maxvalue", smax );
-	ssc_data_set_number(m_ssc_data, "ibi_uti_percent_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_uti_percent_tax_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_uti_percent_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_uti_percent_deprbas_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_oth_percent", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_oth_percent_maxvalue", smax );
-	ssc_data_set_number(m_ssc_data, "ibi_oth_percent_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_oth_percent_tax_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "ibi_oth_percent_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "ibi_oth_percent_deprbas_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "cbi_fed_amount", 0 );
-	ssc_data_set_number(m_ssc_data, "cbi_fed_maxvalue", smax );
-	ssc_data_set_number(m_ssc_data, "cbi_fed_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "cbi_fed_tax_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "cbi_fed_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "cbi_fed_deprbas_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "cbi_sta_amount", 0 );
-	ssc_data_set_number(m_ssc_data, "cbi_sta_maxvalue", smax );
-	ssc_data_set_number(m_ssc_data, "cbi_sta_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "cbi_sta_tax_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "cbi_sta_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "cbi_sta_deprbas_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "cbi_uti_amount", 0 );
-	ssc_data_set_number(m_ssc_data, "cbi_uti_maxvalue", smax );
-	ssc_data_set_number(m_ssc_data, "cbi_uti_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "cbi_uti_tax_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "cbi_uti_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "cbi_uti_deprbas_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "cbi_oth_amount", 0 );
-	ssc_data_set_number(m_ssc_data, "cbi_oth_maxvalue", smax );
-	ssc_data_set_number(m_ssc_data, "cbi_oth_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "cbi_oth_tax_sta", 1 );
-	ssc_data_set_number(m_ssc_data, "cbi_oth_deprbas_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "cbi_oth_deprbas_sta", 0 );
-	ssc_number_t p_pbi_fed_amount[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "pbi_fed_amount", p_pbi_fed_amount, 1 );
-	ssc_data_set_number(m_ssc_data, "pbi_fed_term", 0 );
-	ssc_data_set_number(m_ssc_data, "pbi_fed_escal", 0 );
-	ssc_data_set_number(m_ssc_data, "pbi_fed_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "pbi_fed_tax_sta", 1 );
-	ssc_number_t p_pbi_sta_amount[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "pbi_sta_amount", p_pbi_sta_amount, 1 );
-	ssc_data_set_number(m_ssc_data, "pbi_sta_term", 0 );
-	ssc_data_set_number(m_ssc_data, "pbi_sta_escal", 0 );
-	ssc_data_set_number(m_ssc_data, "pbi_sta_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "pbi_sta_tax_sta", 1 );
-	ssc_number_t p_pbi_uti_amount[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "pbi_uti_amount", p_pbi_uti_amount, 1 );
-	ssc_data_set_number(m_ssc_data, "pbi_uti_term", 0 );
-	ssc_data_set_number(m_ssc_data, "pbi_uti_escal", 0 );
-	ssc_data_set_number(m_ssc_data, "pbi_uti_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "pbi_uti_tax_sta", 1 );
-	ssc_number_t p_pbi_oth_amount[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "pbi_oth_amount", p_pbi_oth_amount, 1 );
-	ssc_data_set_number(m_ssc_data, "pbi_oth_term", 0 );
-	ssc_data_set_number(m_ssc_data, "pbi_oth_escal", 0 );
-	ssc_data_set_number(m_ssc_data, "pbi_oth_tax_fed", 1 );
-	ssc_data_set_number(m_ssc_data, "pbi_oth_tax_sta", 1 );
-	ssc_number_t p_degradation[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "degradation", p_degradation, 1 );
-	ssc_number_t p_roe_input[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "roe_input", p_roe_input, 1 );
-	ssc_data_set_number(m_ssc_data, "loan_moratorium", 0 );
-	ssc_data_set_number(m_ssc_data, "system_use_recapitalization", 0 );
-	ssc_data_set_number(m_ssc_data, "system_use_lifetime_output", 0 );
-	ssc_data_set_number(m_ssc_data, "total_installed_cost", 704234496 );
-	ssc_data_set_number(m_ssc_data, "reserves_interest", 1.75 );
-	ssc_data_set_number(m_ssc_data, "equip1_reserve_cost", 0 );
-	ssc_data_set_number(m_ssc_data, "equip1_reserve_freq", 12 );
-	ssc_data_set_number(m_ssc_data, "equip2_reserve_cost", 0 );
-	ssc_data_set_number(m_ssc_data, "equip2_reserve_freq", 15 );
-	ssc_data_set_number(m_ssc_data, "equip3_reserve_cost", 0 );
-	ssc_data_set_number(m_ssc_data, "equip3_reserve_freq", 3 );
-	ssc_data_set_number(m_ssc_data, "equip_reserve_depr_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "equip_reserve_depr_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "salvage_percentage", 0 );
-	ssc_data_set_number(m_ssc_data, "ppa_soln_mode", 0 );
-	ssc_data_set_number(m_ssc_data, "ppa_price_input", 0.12999999523162842 );
-	ssc_data_set_number(m_ssc_data, "ppa_escalation", 1 );
-	ssc_data_set_number(m_ssc_data, "construction_financing_cost", 35211724 );
-	ssc_data_set_number(m_ssc_data, "term_tenor", 18 );
-	ssc_data_set_number(m_ssc_data, "term_int_rate", 7 );
-	ssc_data_set_number(m_ssc_data, "dscr", 1.2999999523162842 );
-	ssc_data_set_number(m_ssc_data, "dscr_reserve_months", 6 );
-	ssc_data_set_number(m_ssc_data, "debt_percent", 50 );
-	ssc_data_set_number(m_ssc_data, "debt_option", 1 );
-	ssc_data_set_number(m_ssc_data, "payment_option", 0 );
-	ssc_data_set_number(m_ssc_data, "cost_debt_closing", 450000 );
-	ssc_data_set_number(m_ssc_data, "cost_debt_fee", 2.75 );
-	ssc_data_set_number(m_ssc_data, "months_working_reserve", 6 );
-	ssc_data_set_number(m_ssc_data, "months_receivables_reserve", 0 );
-	ssc_data_set_number(m_ssc_data, "cost_other_financing", 0 );
-	ssc_data_set_number(m_ssc_data, "flip_target_percent", 11 );
-	ssc_data_set_number(m_ssc_data, "flip_target_year", 20 );
-	ssc_data_set_number(m_ssc_data, "depr_alloc_macrs_5_percent", 90 );
-	ssc_data_set_number(m_ssc_data, "depr_alloc_macrs_15_percent", 1.5 );
-	ssc_data_set_number(m_ssc_data, "depr_alloc_sl_5_percent", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_alloc_sl_15_percent", 2.5 );
-	ssc_data_set_number(m_ssc_data, "depr_alloc_sl_20_percent", 3 );
-	ssc_data_set_number(m_ssc_data, "depr_alloc_sl_39_percent", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_alloc_custom_percent", 0 );
-	ssc_number_t p_depr_custom_schedule[1] = { 0 };
-	ssc_data_set_array(m_ssc_data, "depr_custom_schedule", p_depr_custom_schedule, 1 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_sta", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_sta_macrs_5", 1 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_sta_macrs_15", 1 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_sta_sl_5", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_sta_sl_15", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_sta_sl_20", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_sta_sl_39", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_sta_custom", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_fed", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_fed_macrs_5", 1 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_fed_macrs_15", 1 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_fed_sl_5", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_fed_sl_15", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_fed_sl_20", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_fed_sl_39", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_bonus_fed_custom", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_sta_macrs_5", 1 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_sta_macrs_15", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_sta_sl_5", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_sta_sl_15", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_sta_sl_20", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_sta_sl_39", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_sta_custom", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_fed_macrs_5", 1 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_fed_macrs_15", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_fed_sl_5", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_fed_sl_15", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_fed_sl_20", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_fed_sl_39", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_itc_fed_custom", 0 );
-	ssc_data_set_number(m_ssc_data, "pbi_fed_for_ds", 0 );
-	ssc_data_set_number(m_ssc_data, "pbi_sta_for_ds", 0 );
-	ssc_data_set_number(m_ssc_data, "pbi_uti_for_ds", 0 );
-	ssc_data_set_number(m_ssc_data, "pbi_oth_for_ds", 0 );
-	ssc_data_set_number(m_ssc_data, "depr_stabas_method", 1 );
-	ssc_data_set_number(m_ssc_data, "depr_fedbas_method", 1 );
-
-	//-----------------------------------------------------------------------------
-	//-----------------------------------------------------------------------------
-	//		       Construction financing parameters and defaults
-	//-----------------------------------------------------------------------------
-	//-----------------------------------------------------------------------------
-	ssc_data_set_number(m_ssc_data, "total_installed_cost", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_interest_rate1", 4. );
-	ssc_data_set_number(m_ssc_data, "const_per_interest_rate2", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_interest_rate3", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_interest_rate4", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_interest_rate5", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_months1", 24 );
-	ssc_data_set_number(m_ssc_data, "const_per_months2", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_months3", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_months4", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_months5", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_percent1", 100. );
-	ssc_data_set_number(m_ssc_data, "const_per_percent2", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_percent3", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_percent4", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_percent5", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_upfront_rate1", 1. );
-	ssc_data_set_number(m_ssc_data, "const_per_upfront_rate2", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_upfront_rate3", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_upfront_rate4", 0. );
-	ssc_data_set_number(m_ssc_data, "const_per_upfront_rate5", 0. );
-
-}
 
 double Project::calc_real_dollars(const double &dollars, bool is_revenue, bool is_labor)
 {
