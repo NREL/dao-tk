@@ -52,6 +52,7 @@ static lk::fcall_t *daotk_functions()
 		_simulate_solarfield,
 		_simulate_performance,
 		_simulate_financial,
+		_simulate_objective,
 		_var,
 		0 };
 

@@ -888,7 +888,51 @@ void _simulate_financial(lk::invoke_t &cxt)
 	P->F();
 	mw.UpdateDataTable();
 
-	mw.Log(wxString::Format("PPA price (year 1) (c/kWh): %0.3f ", P->m_financial_outputs.ppa.as_number()));
+	return;
+}
+
+void _simulate_objective(lk::invoke_t &cxt)
+{
+	LK_DOC("simulate_objective", "Simulates full objective function from current project settings.", "([table:options]):table");
+	MainWindow &mw = MainWindow::Instance();
+	Project* P = mw.GetProject();
+	P->Z();
+
+	mw.UpdateDataTable();
+
+	mw.Log(wxString::Format("Mirror replacements per year: %0.1f ", P->m_optical_outputs.n_replacements.as_number()));
+	mw.Log(wxString::Format("Heliostat repairs per year: %0.1f ", P->m_solarfield_outputs.n_repairs.as_number()));
+	mw.Log(wxString::Format("Average degradation loss: %0.3f ", P->m_optical_outputs.avg_degr.as_number()));
+	mw.Log(wxString::Format("Average soiling loss: %0.3f ", P->m_optical_outputs.avg_soil.as_number()));
+	mw.Log(wxString::Format("Average availability loss: %0.3f ", P->m_solarfield_outputs.avg_avail.as_number()));	
+
+	mw.Log(wxString::Format("Average generation (GWhe): %0.2f ", P->m_simulation_outputs.annual_generation.as_number()));
+	mw.Log(wxString::Format("Receiver starts: %d ", P->m_simulation_outputs.annual_rec_starts.as_integer()));
+	mw.Log(wxString::Format("Cycle starts: %d ", P->m_simulation_outputs.annual_cycle_starts.as_integer()));
+	mw.Log(wxString::Format("Total cycle ramping (GW): %0.2f ", P->m_simulation_outputs.annual_cycle_ramp.as_number()));
+
+	mw.Log(wxString::Format("Heliostat cost ($): %0.0f ", P->m_objective_outputs.cost_sf_real.as_number()));
+	mw.Log(wxString::Format("Land cost ($): %0.0f ", P->m_objective_outputs.cost_land_real.as_number()));
+	mw.Log(wxString::Format("Tower cost ($): %0.0f ", P->m_objective_outputs.cost_tower_real.as_number()));
+	mw.Log(wxString::Format("Receiver cost ($): %0.0f ", P->m_objective_outputs.cost_receiver_real.as_number()));
+	mw.Log(wxString::Format("TES cost ($): %0.0f ", P->m_objective_outputs.cost_tes_real.as_number()));
+	mw.Log(wxString::Format("Plant cost ($): %0.0f ", P->m_objective_outputs.cost_plant_real.as_number()));
+
+	mw.Log(wxString::Format("Cycle ramp cost ($): %0.0f ", P->m_objective_outputs.cycle_ramp_cost_real.as_number()));
+	mw.Log(wxString::Format("Cycle start cost ($): %0.0f ", P->m_objective_outputs.cycle_start_cost_real.as_number()));
+	mw.Log(wxString::Format("Receiver start cost ($): %0.0f ", P->m_objective_outputs.rec_start_cost_real.as_number()));
+
+	mw.Log(wxString::Format("Heliostat O&M labor cost ($): %0.0f ", P->m_objective_outputs.heliostat_om_labor_real.as_number()));
+	mw.Log(wxString::Format("Heliostat repair cost ($): %0.0f ", P->m_objective_outputs.heliostat_repair_cost_real.as_number()));
+	mw.Log(wxString::Format("Heliostat wash labor cost ($): %0.0f ", P->m_objective_outputs.heliostat_wash_cost_real.as_number()));
+	mw.Log(wxString::Format("Heliostat refurbish cost ($): %0.0f ", P->m_objective_outputs.heliostat_refurbish_cost_real.as_number()));
+
+	mw.Log(wxString::Format("Total Capital costs ($): %0.0f ", P->m_objective_outputs.cap_cost_real.as_number()));
+	mw.Log(wxString::Format("Total O&M costs ($): %0.0f ", P->m_objective_outputs.om_cost_real.as_number()));
+	mw.Log(wxString::Format("Sales ($): %0.0f ", P->m_objective_outputs.sales.as_number()));
+
+	mw.Log(wxString::Format("Total cash flow ($): %0.0f ", P->m_objective_outputs.cash_flow.as_number()));
+	mw.Log(wxString::Format("PPA price (c/kWhe): %0.3f ", P->m_objective_outputs.ppa.as_number()));
 
 
 	return;

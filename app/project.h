@@ -299,7 +299,7 @@ struct solarfield_outputs : public lk::varhash_t
 	parameter n_repairs;
 	parameter staff_utilization;
 	parameter heliostat_repair_cost_y1;
-	parameter heliostat_repair_cost;
+	parameter heliostat_repair_cost_real;
 	parameter avail_schedule;
 
 	parameter avg_avail;
@@ -312,7 +312,7 @@ struct solarfield_outputs : public lk::varhash_t
 struct optical_outputs : public lk::varhash_t
 {
 	parameter n_replacements;
-	parameter heliostat_refurbish_cost;
+	parameter heliostat_refurbish_cost_real;
 	parameter heliostat_refurbish_cost_y1;
 	parameter avg_soil;
 	parameter avg_degr;
@@ -341,7 +341,7 @@ struct simulation_outputs : public lk::varhash_t
 	parameter dni_templates;
 	parameter price_templates;
 	parameter annual_generation;
-	parameter annual_revenue;
+	parameter annual_revenue_units;
 	parameter annual_rec_starts;
 	parameter annual_cycle_starts;
 	parameter annual_cycle_ramp;
@@ -352,19 +352,18 @@ struct simulation_outputs : public lk::varhash_t
 struct explicit_outputs : public lk::varhash_t
 {
 
-	parameter cost_receiver;
-	parameter cost_tower;
-	parameter cost_plant;
-	parameter cost_tes;
+	parameter cost_receiver_real;
+	parameter cost_tower_real;
+	parameter cost_plant_real;
+	parameter cost_tes_real;
 
 	parameter heliostat_om_labor_y1;
-	parameter heliostat_om_labor;
+	parameter heliostat_om_labor_real;
 	parameter heliostat_wash_cost_y1;
-	parameter heliostat_wash_cost;
+	parameter heliostat_wash_cost_real;
 
 	explicit_outputs();
 };
-
 
 struct financial_outputs : public lk::varhash_t 
 {
@@ -378,7 +377,33 @@ struct financial_outputs : public lk::varhash_t
 	financial_outputs();
 };
 
+struct objective_outputs : public lk::varhash_t
+{
+	parameter cost_receiver_real;
+	parameter cost_tower_real;
+	parameter cost_plant_real;
+	parameter cost_tes_real;
+	parameter cost_land_real;
+	parameter cost_sf_real;
+	parameter cap_cost_real;
 
+	parameter rec_start_cost_real;
+	parameter cycle_start_cost_real;
+	parameter cycle_ramp_cost_real;
+	parameter heliostat_repair_cost_real;
+	parameter heliostat_om_labor_real;
+	parameter heliostat_wash_cost_real;
+	parameter heliostat_refurbish_cost_real;
+	parameter om_cost_real;
+
+	parameter sales;
+	parameter cash_flow;
+	parameter ppa;
+	parameter lcoe_nom;
+	parameter lcoe_real;
+
+	objective_outputs();
+};
 
 //main class
 class Project
@@ -416,6 +441,7 @@ public:
 	simulation_outputs m_simulation_outputs;
 	explicit_outputs m_explicit_outputs;
 	financial_outputs m_financial_outputs;
+	objective_outputs m_objective_outputs;
 
 	Project();
 	~Project();
@@ -431,7 +457,7 @@ public:
 	bool S();
 	bool E();
 	bool F();
-	int Z();
+	bool Z();
 
 
 
