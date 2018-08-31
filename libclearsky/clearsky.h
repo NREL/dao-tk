@@ -2,6 +2,7 @@
 #define _CSKYH_
 
 #include <vector>
+#include <string> 
 
 #include "solpos00.h"
 

@@ -2,7 +2,8 @@
 #include "clearsky.h"
 #include <fstream>
 #include <sstream>
-
+#include <limits>
+#include <cmath>
 
 
 s_location::s_location()
