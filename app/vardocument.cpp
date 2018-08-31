@@ -128,7 +128,7 @@ void Project::add_documentation()
     m_simulation_outputs.dni_templates.doc.set("","");
     m_simulation_outputs.price_templates.doc.set("","");
     m_simulation_outputs.annual_generation.doc.set("","");
-    m_simulation_outputs.annual_revenue.doc.set("","");
+    m_simulation_outputs.annual_revenue_units.doc.set("","");
 
 
     for (lk::varhash_t::iterator vit = _merged_data.begin(); vit != _merged_data.end(); vit++)

@@ -54,8 +54,9 @@ parameters::parameters()
 	is_stochastic_disp.set( false, "is_stochastic_disp", false, "Run stochastic dispatch", "-", "Settings" );
 	current_standby.set(false, "current_standby", false, "Start power cycle in standby", "-", "Cycle|Parameters");
 
-	ampl_data_dir.set( "", "ampl_data_dir", false, "AMPL data folder", "-", "Settings" );
-	solar_resource_file.set( "", "solar_resource_file", false, "Solar resource file", "-", "Settings" );
+	std::string empty_string = "";
+	ampl_data_dir.set(empty_string, "ampl_data_dir", false, "AMPL data folder", "-", "Settings" );
+	solar_resource_file.set(empty_string, "solar_resource_file", false, "Solar resource file", "-", "Settings" );
 
 	disp_steps_per_hour.set( 1, "disp_steps_per_hour", false, "Dispatch time steps per hour", "-", "Settings" );
 	avail_seed.set( 123, "avail_seed", false, "Random number generator seed", "-", "Heliostat availability|Parameters" );
@@ -319,7 +320,7 @@ solarfield_outputs::solarfield_outputs()
 	n_repairs.set(nan, "n_repairs", true, "Number of heliostat repairs", "-", "Heliostat availability|Outputs");
 	staff_utilization.set(nan, "staff_utilization", true, "Staff utilization", "-", "Heliostat availability|Outputs");
 	heliostat_repair_cost_y1.set(nan, "heliostat_repair_cost_y1", true, "Heliostat repair cost (year 1)", "$", "Heliostat availability|Outputs");
-	heliostat_repair_cost_real.set(nan, "heliostat_repair_cost", true);
+	heliostat_repair_cost.set(nan, "heliostat_repair_cost", true);
 	avg_avail.set(nan, "avg_avail", true, "Average lifetime availability", "-", "Heliostat availability|Outputs");
 
 	std::vector< double > empty_vec;
@@ -329,7 +330,7 @@ solarfield_outputs::solarfield_outputs()
     (*this)["n_repairs"] = &n_repairs;
     (*this)["staff_utilization"] = &staff_utilization;
     (*this)["heliostat_repair_cost_y1"] = &heliostat_repair_cost_y1;
-    (*this)["heliostat_repair_cost_real"] = &heliostat_repair_cost_real;
+    (*this)["heliostat_repair_cost_real"] = &heliostat_repair_cost;
     (*this)["avail_schedule"] = &avail_schedule;
 	(*this)["avg_avail"] = &avg_avail;
 	(*this)["n_repairs_per_component"] = &n_repairs_per_component;
@@ -346,7 +347,7 @@ optical_outputs::optical_outputs()
 	std::vector< double > empty_vec;
 	
 	n_replacements.set(nan, "n_replacements", true, "Mirror replacements", "-", "Optical degradation|Outputs" );
-	heliostat_refurbish_cost_real.set(nan, "heliostat_refurbish_cost", true, "Mirror replacement cost", "$", "Optical degradation|Outputs" );
+	heliostat_refurbish_cost.set(nan, "heliostat_refurbish_cost", true, "Mirror replacement cost", "$", "Optical degradation|Outputs" );
 	heliostat_refurbish_cost_y1.set(nan, "heliostat_refurbish_cost_y1", true, "Mirror replacement cost (year 1)", "$", "Optical degradation|Outputs" );
 	avg_soil.set(nan, "avg_soil", true, "Average lifetime soiling", "-", "Optical degradation|Outputs" );
 	avg_degr.set(nan, "avg_degr", true, "Average lifetime degradation", "-", "Optical degradation|Outputs" );
@@ -357,7 +358,7 @@ optical_outputs::optical_outputs()
 	repl_total.set(empty_vec, "repl_total", true );
 
     (*this)["n_replacements"] = &n_replacements;
-    (*this)["heliostat_refurbish_cost_real"] = &heliostat_refurbish_cost_real;
+    (*this)["heliostat_refurbish_cost_real"] = &heliostat_refurbish_cost;
     (*this)["heliostat_refurbish_cost_y1"] = &heliostat_refurbish_cost_y1;
     (*this)["avg_soil"] = &avg_soil;
     (*this)["avg_degr"] = &avg_degr;
@@ -1276,7 +1277,7 @@ bool Project::M()
     m_solarfield_outputs.n_repairs.assign( sfa.m_results.n_repairs / sfa.m_settings.n_years);
     m_solarfield_outputs.staff_utilization.assign( sfa.m_results.staff_utilization );
     m_solarfield_outputs.heliostat_repair_cost_y1.assign( sfa.m_results.heliostat_repair_cost_y1 );
-    m_solarfield_outputs.heliostat_repair_cost_real.assign( sfa.m_results.heliostat_repair_cost );
+    m_solarfield_outputs.heliostat_repair_cost.assign( sfa.m_results.heliostat_repair_cost );
 	m_solarfield_outputs.avg_avail.assign(sfa.m_results.avg_avail);
     m_solarfield_outputs.avail_schedule.assign_vector( sfa.m_results.avail_schedule);
 
@@ -1330,7 +1331,7 @@ bool Project::O()
 
     //assign results to structure
     m_optical_outputs.n_replacements.assign(od.m_results.n_replacements);
-    m_optical_outputs.heliostat_refurbish_cost_real.assign(od.m_results.heliostat_refurbish_cost);
+    m_optical_outputs.heliostat_refurbish_cost.assign(od.m_results.heliostat_refurbish_cost);
     m_optical_outputs.heliostat_refurbish_cost_y1.assign(od.m_results.heliostat_refurbish_cost_y1);
     m_optical_outputs.avg_soil.assign(od.m_results.avg_soil);
     m_optical_outputs.avg_degr.assign(od.m_results.avg_degr);
@@ -1655,8 +1656,8 @@ bool Project::Z()
 	//-- O&M costs
 	m_objective_outputs.heliostat_om_labor_real.assign(m_explicit_outputs.heliostat_om_labor_real.as_number());				// E
 	m_objective_outputs.heliostat_wash_cost_real.assign(m_explicit_outputs.heliostat_wash_cost_real.as_number());			// E
-	m_objective_outputs.heliostat_repair_cost_real.assign(m_solarfield_outputs.heliostat_repair_cost_real.as_number());		// M
-	m_objective_outputs.heliostat_refurbish_cost_real.assign(m_optical_outputs.heliostat_refurbish_cost_real.as_number());	// O
+	m_objective_outputs.heliostat_repair_cost_real.assign(m_solarfield_outputs.heliostat_repair_cost.as_number());		// M
+	m_objective_outputs.heliostat_refurbish_cost_real.assign(m_optical_outputs.heliostat_refurbish_cost.as_number());	// O
 
 	double rec_start_cost_y1 = m_simulation_outputs.annual_rec_starts.as_number() * m_parameters.disp_rsu_cost.as_number();
 	double cycle_start_cost_y1 = m_simulation_outputs.annual_cycle_starts.as_number() * m_parameters.disp_csu_cost.as_number();

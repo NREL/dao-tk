@@ -414,7 +414,7 @@ struct solarfield_outputs : public lk::varhash_t
 	parameter n_repairs;
 	parameter staff_utilization;
 	parameter heliostat_repair_cost_y1;
-	parameter heliostat_repair_cost_real;
+	parameter heliostat_repair_cost;
 	parameter avail_schedule;
 
 	parameter avg_avail;
@@ -427,7 +427,7 @@ struct solarfield_outputs : public lk::varhash_t
 struct optical_outputs : public lk::varhash_t
 {
 	parameter n_replacements;
-	parameter heliostat_refurbish_cost_real;
+	parameter heliostat_refurbish_cost;
 	parameter heliostat_refurbish_cost_y1;
 	parameter avg_soil;
 	parameter avg_degr;
