@@ -903,6 +903,7 @@ void _simulate_objective(lk::invoke_t &cxt)
 
 	mw.UpdateDataTable();
 
+	/*
 	mw.Log(wxString::Format("Mirror replacements per year: %0.1f ", P->m_optical_outputs.n_replacements.as_number()));
 	mw.Log(wxString::Format("Heliostat repairs per year: %0.1f ", P->m_solarfield_outputs.n_repairs.as_number()));
 	mw.Log(wxString::Format("Average degradation loss: %0.3f ", P->m_optical_outputs.avg_degr.as_number()));
@@ -936,7 +937,7 @@ void _simulate_objective(lk::invoke_t &cxt)
 
 	mw.Log(wxString::Format("Total cash flow ($): %0.0f ", P->m_objective_outputs.cash_flow.as_number()));
 	mw.Log(wxString::Format("PPA price (c/kWhe): %0.3f ", P->m_objective_outputs.ppa.as_number()));
-
+	*/
 
 	return;
 }

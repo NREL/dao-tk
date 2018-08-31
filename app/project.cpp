@@ -55,7 +55,7 @@ parameters::parameters()
 	current_standby.set(false, "current_standby", false, "Start power cycle in standby", "-", "Cycle|Parameters");
 
 	std::string empty_string = "";
-	ampl_data_dir.set(empty_string, "ampl_data_dir", false, "AMPL data folder", "-", "Settings" );
+	ampl_data_dir.set("", "ampl_data_dir", false, "AMPL data folder", "-", "Settings" );
 	solar_resource_file.set(empty_string, "solar_resource_file", false, "Solar resource file", "-", "Settings" );
 
 	disp_steps_per_hour.set( 1, "disp_steps_per_hour", false, "Dispatch time steps per hour", "-", "Settings" );
@@ -432,14 +432,9 @@ explicit_outputs::explicit_outputs()
 	heliostat_wash_cost_y1.set(nan, "heliostat_wash_cost_y1", true);
 	heliostat_wash_cost_real.set(nan, "heliostat_wash_cost", true);
 
-	(*this)["cost_receiver_real"] = &cost_receiver_real;
-	(*this)["cost_tower_real"] = &cost_tower_real;
-	(*this)["cost_plant_real"] = &cost_plant_real;
-	(*this)["cost_tes_real"] = &cost_tes_real;
 	(*this)["heliostat_om_labor_y1"] = &heliostat_om_labor_y1;
-	(*this)["heliostat_om_labor_real"] = &heliostat_om_labor_real;
 	(*this)["heliostat_wash_cost_y1"] = &heliostat_wash_cost_y1;
-	(*this)["heliostat_wash_cost_real"] = &heliostat_wash_cost_real;
+
 }
 
 financial_outputs::financial_outputs()
@@ -453,9 +448,7 @@ financial_outputs::financial_outputs()
 	project_return_aftertax_irr.set(nan, "project_return_aftertax_irr", true);
 	total_installed_cost.set(nan, "total_installed_cost", true);
 
-	(*this)["lcoe_nom"] = &lcoe_nom;
-	(*this)["lcoe_real"] = &lcoe_real;
-	(*this)["ppa"] = &ppa;
+
 	(*this)["project_return_aftertax_npv"] = &project_return_aftertax_npv;
 	(*this)["project_return_aftertax_irr"] = &project_return_aftertax_irr;
 	(*this)["total_installed_cost"] = &total_installed_cost;
@@ -465,36 +458,50 @@ objective_outputs::objective_outputs()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();
 
-	cost_receiver_real.set(nan, "cost_receiver_real", true); // from E
-	cost_tower_real.set(nan, "cost_tower_real", true);		// from E
-	cost_plant_real.set(nan, "cost_plant_real", true);		// from E
-	cost_tes_real.set(nan, "cost_tes_real", true);			// from E
-	cost_land_real.set(nan, "cost_land_real", true);			// from D
-	cost_sf_real.set(nan, "cost_sf_real", true);				// from D
-	cap_cost_real.set(nan, "cap_cost_real", true);
+	cost_receiver_real.set(nan, "cost_receiver_real", true, "Receiver cost", "$", "Objective|Outputs");
+	cost_tower_real.set(nan, "cost_tower_real", true, "Tower cost", "$", "Objective|Outputs");
+	cost_plant_real.set(nan, "cost_plant_real", true, "Plant cost", "$", "Objective|Outputs");
+	cost_tes_real.set(nan, "cost_tes_real", true, "TES cost", "$", "Objective|Outputs");
+	cost_land_real.set(nan, "cost_land_real", true, "Land cost", "$", "Objective|Outputs");				// from D
+	cost_sf_real.set(nan, "cost_sf_real", true, "Heliostat field cost", "$", "Objective|Outputs");		// from D
+	cap_cost_real.set(nan, "cap_cost_real", true, "Total Capital cost", "$", "Objective|Outputs");
 
-	rec_start_cost_real.set(nan, "rec_start_cost_real", true);
-	cycle_start_cost_real.set(nan, "cycle_start_cost_real", true);
-	cycle_ramp_cost_real.set(nan, "cycle_ramp_cost_real", true);
-	heliostat_repair_cost_real.set(nan, "heliostat_repair_cost_real", true);		  // from M
-	heliostat_om_labor_real.set(nan, "heliostat_om_labor_real", true);			  // from E
-	heliostat_wash_cost_real.set(nan, "heliostat_wash_cost_real", true);			  // from E
-	heliostat_refurbish_cost_real.set(nan, "heliostat_refurbish_cost_real", true); // from O
-	om_cost_real.set(nan, "om_cost_real", true);
+	rec_start_cost_real.set(nan, "rec_start_cost_real", true, "Receiver start cost", "$", "Objective|Outputs");
+	cycle_start_cost_real.set(nan, "cycle_start_cost_real", true, "Cycle start cost", "$", "Objective|Outputs");
+	cycle_ramp_cost_real.set(nan, "cycle_ramp_cost_real", true, "Cycle ramp cost", "$", "Objective|Outputs");
+	heliostat_repair_cost_real.set(nan, "heliostat_repair_cost_real", true, "Heliostat repair cost", "$", "Objective|Outputs");		  // from M
+	heliostat_om_labor_real.set(nan, "heliostat_om_labor_real", true, "Heliostat O&M labor cost", "$", "Objective|Outputs");
+	heliostat_wash_cost_real.set(nan, "heliostat_wash_cost_real", true, "Heliostat O&M wash cost", "$", "Objective|Outputs");
+	heliostat_refurbish_cost_real.set(nan, "heliostat_refurbish_cost_real", true, "Heliostat refurbish cost", "$", "Objective|Outputs"); // from O
+	om_cost_real.set(nan, "om_cost_real", true, "Total O&M cost", "$", "Objective|Outputs");
 	
-	sales.set(nan, "sales", true);
-	cash_flow.set(nan, "cash_flow", true);
-	ppa.set(nan, "ppa", true);				// from F
-	lcoe_nom.set(nan, "lcoe_nom", true);		// from F
-	lcoe_real.set(nan, "lcoe_real", true);	// from F
+	sales.set(nan, "sales", true, "Sales", "$", "Objective|Outputs");
+	cash_flow.set(nan, "cash_flow", true, "Cash flow", "$", "Objective|Outputs");
+	ppa.set(nan, "ppa", true, "PPA price (year 1)", "c/kWhe", "Objective|Outputs");
+	lcoe_nom.set(nan, "lcoe_nom", true, "LCOE (nominal)", "c/kWhe", "Objective|Outputs");
+	lcoe_real.set(nan, "lcoe_real", true, "LCOE (real)", "c/kWhe", "Objective|Outputs");
 	
+	(*this)["cost_receiver_real"] = &cost_receiver_real;
+	(*this)["cost_tower_real"] = &cost_tower_real;
+	(*this)["cost_plant_real"] = &cost_plant_real;
+	(*this)["cost_tes_real"] = &cost_tes_real;
+	(*this)["cost_land_real"] = &cost_land_real;
+	(*this)["cost_sf_real"] = &cost_sf_real;
 	(*this)["cap_cost_real"] = &cap_cost_real;
 	(*this)["rec_start_cost_real"] = &rec_start_cost_real;
 	(*this)["cycle_start_cost_real"] = &cycle_start_cost_real;
 	(*this)["cycle_ramp_cost_real"] = &cycle_ramp_cost_real;
+	(*this)["heliostat_repair_cost_real"] = &heliostat_repair_cost_real;
+	(*this)["heliostat_om_labor_real"] = &heliostat_om_labor_real;
+	(*this)["heliostat_wash_cost_real"] = &heliostat_wash_cost_real;
+	(*this)["heliostat_refurbish_cost_real"] = &heliostat_refurbish_cost_real;
 	(*this)["om_cost_real"] = &om_cost_real;
 	(*this)["sales"] = &sales;
 	(*this)["cash_flow"] = &cash_flow;
+	(*this)["ppa"] = &ppa;
+	(*this)["lcoe_nom"] = &lcoe_nom;
+	(*this)["lcoe_real"] = &lcoe_real;
+	
 
 }
 /* 
@@ -638,7 +645,7 @@ Project::Project()
 
 	//construct the merged data map
 	std::vector<lk::varhash_t*> struct_pointers = { &m_variables, &m_parameters, &m_design_outputs,
-		&m_solarfield_outputs, &m_optical_outputs, /*&m_cycle_outputs,*/ &m_simulation_outputs };
+		&m_solarfield_outputs, &m_optical_outputs, /*&m_cycle_outputs,*/ &m_simulation_outputs, &m_objective_outputs };
 
 	_merged_data.clear();
 
@@ -671,7 +678,7 @@ std::vector< void* > Project::GetDataObjects()
     std::vector< void* > rvec = {
         (void*)&m_variables, (void*)&m_parameters, //(void*)&m_cluster_parameters,
         (void*)&m_design_outputs, (void*)&m_optical_outputs, (void*)&m_solarfield_outputs,
-        (void*)&m_simulation_outputs }; // , (void*)&m_cycle_outputs
+        (void*)&m_simulation_outputs, (void*)&m_objective_outputs }; // , (void*)&m_cycle_outputs
 
     return rvec;
 }
