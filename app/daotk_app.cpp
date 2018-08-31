@@ -560,10 +560,15 @@ bool MainWindow::Load(const wxString &file)
 
 			rjs::Value &jv = D[v->name.c_str()];
 
+
 			switch(v->type())
 			{
 				case lk::vardata_t::NUMBER:
 				{
+                    //if fields are missing, we can't load this
+                    if( !(jv.HasMember("s") && jv.HasMember("n")) )
+                        continue;
+
 					int inum = jv.HasMember("d") ? jv["d"].GetInt() : 0;
 					int scale = jv.HasMember("s") ? jv["s"].GetInt() : 0;
 					
