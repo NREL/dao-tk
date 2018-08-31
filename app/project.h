@@ -376,6 +376,8 @@ struct parameters : public lk::varhash_t
 	parameter helio_comp_weibull_scale;
 	parameter helio_comp_mtr;
 	parameter helio_comp_repair_cost;
+	parameter clustering_feature_weights;
+	parameter clustering_feature_divisions;
 	//-----------------------------------------------------------------------
 
 	parameters();

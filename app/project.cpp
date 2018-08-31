@@ -161,8 +161,13 @@ parameters::parameters()
 	std::string ca = "affinity_propagation";
 	cluster_algorithm.set(ca, "cluster_algorithm", false);
 
+	std::vector<double> default_feature_wts = { 1.0, 0.5, 0.5, 0.0, 1.0, 0.5, 0.5, 0.25, 0.25 };
+	std::vector<double> default_feature_divs = { 8, 4, 4, 1, 8, 4, 4, 4, 4 };
+	clustering_feature_weights.set(default_feature_wts, "clustering_feature_weights", true);
+	clustering_feature_divisions.set(default_feature_wts, "clustering_feature_divs", true);
 
-	
+
+
 
     (*this)["print_messages"] = &print_messages;
     (*this)["check_max_flux"] = &check_max_flux;
@@ -257,6 +262,8 @@ parameters::parameters()
 	(*this)["is_hard_partitions"] = &is_hard_partitions;
 	(*this)["is_run_continuous"] = &is_run_continuous;
 	(*this)["cluster_algorithm"] = &cluster_algorithm;
+	(*this)["clustering_feature_weights"] = &clustering_feature_weights;
+	(*this)["clustering_feature_divisions"] = &clustering_feature_divisions;
 
 }
 
@@ -1721,6 +1728,26 @@ bool Project::setup_clusters(s_metric_outputs &metric_results, s_cluster_outputs
     metrics.inputs.prices.resize( m_parameters.dispatch_factors_ts.vec()->size() );
     for (size_t i = 0; i < m_parameters.dispatch_factors_ts.vec()->size(); i++)
         metrics.inputs.prices.at(i) = m_parameters.dispatch_factors_ts.vec()->at(i).as_number();
+
+	if (m_parameters.clustering_feature_weights.vec()->size() != 9 || m_parameters.clustering_feature_weights.vec()->size() != 9)
+		message_handler("Incomplete set of clustering feature weighting factors or divisions were specified. Default values will be used");
+	else
+	{
+		std::vector<std::string> feature_order = { "dni", "dni_prev", "dni_next", "clearsky", "price", "price_prev", "price_next", "tdry", "wspd" };
+		for (int i = 0; i < feature_order.size(); i++)
+		{
+			metrics.inputs.features[feature_order[i]].weight = m_parameters.clustering_feature_weights.vec()->at(i).as_number();
+			metrics.inputs.features[feature_order[i]].divisions = m_parameters.clustering_feature_divisions.vec()->at(i).as_integer();
+		}
+	}
+
+	if (!m_parameters.is_dispatch.as_boolean())  // don't include price if not using dispatch optimization
+	{
+		metrics.inputs.features["price"].weight = 0.0;
+		metrics.inputs.features["price_prev"].weight = 0.0;
+		metrics.inputs.features["price_next"].weight = 0.0;
+	}
+
 
 
 	//--- Get the solar field availability
