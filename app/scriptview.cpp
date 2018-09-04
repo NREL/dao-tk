@@ -17,6 +17,11 @@
 #include "scripting.h"
 #include "vardialog.h"
 
+void SyntaxOutput( const wxString &text)
+{
+	MainWindow::Instance().SyntaxLog(text);
+}
+
 void Output(const wxString &text)
 {
 	MainWindow::Instance().Log(text, false);
@@ -79,8 +84,7 @@ public:
 	}
 	virtual void OnSyntaxCheck(int, const wxString &err)
 	{
-		ClearOutput();
-		Output(err);
+		SyntaxOutput(err);
 	}
 };
 
@@ -107,12 +111,21 @@ ScriptView::ScriptView(wxWindow *parent)
 
 	m_editor->RegisterLibrary(daotk_functions(), "DAOToolkit Functions", this);
 
+	m_syntaxText = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, 
+			wxTE_READONLY | wxTE_MULTILINE | wxHSCROLL | wxTE_DONTWRAP | wxBORDER_NONE);
+	m_syntaxText->SetFont(wxFont(10, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "consolas"));
+	m_syntaxText->SetForegroundColour(*wxRED);
+
 	wxBoxSizer *szedit = new wxBoxSizer(wxVERTICAL);
 	szedit->Add(szdoc, 0, wxALL | wxEXPAND, 2);
 	szedit->Add(m_editor, 1, wxALL | wxEXPAND, 0);
 	szedit->Add(m_statusLabel = new wxStaticText(this, wxID_ANY, wxEmptyString), 0, wxALL | wxEXPAND, 0);
+	szedit->Add(m_syntaxText, 0, wxTOP | wxLEFT | wxEXPAND, 2);
+
 
 	SetSizer(szedit);
+
+	m_syntaxText->Hide();
 
 	m_editor->SetFocus();
 }
@@ -258,6 +271,23 @@ bool ScriptView::Load(const wxString &file)
 		return true;
 	}
 	else return false;
+}
+
+void ScriptView::SyntaxText(const wxString &text)
+{
+	if( text.IsEmpty() )
+	{
+		m_syntaxText->Clear();
+		m_syntaxText->Hide();
+	}
+	else
+	{
+		m_syntaxText->SetValue(text);
+		m_syntaxText->Show();
+	}
+	this->Layout();
+	this->Update();
+	this->Refresh();
 }
 
 void ScriptView::Exec()

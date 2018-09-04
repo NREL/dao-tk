@@ -3,6 +3,42 @@
 #include <limits>
 
 
+ int double_scale(double val, int *scale)
+ {
+	 if( val == 0. )
+	 {
+		*scale = 0;
+	 	return 0;
+	 }
+
+	 int power = (int)std::ceil( std::log10(val) );
+	 *scale = SIGNIF_FIGURE - power;
+
+     int ival = (int)(val*std::pow(10, *scale));
+
+    std::string sival = wxString::Format("%d", ival).ToStdString();
+
+    for(size_t i=sival.length()-1; i>0; i++)
+    {
+        if( sival.back() == '0')
+        {
+            sival.pop_back();
+            ival /= 10;
+            *scale -= 1;
+        }
+        else
+            break;
+    }
+
+	 return ival;
+ }
+ 
+ double double_unscale(int val, int power)
+ {
+	 return (double)(val)*pow(10,-power);
+ }
+
+
 variables::variables()
 {
 	/* 
@@ -112,6 +148,7 @@ parameters::parameters()
 	flux_max.set(1000., "flux_max", false, "Maximum receiver flux", "kW/m2", "Simulation|Parameters");
 	maintenance_interval.set(5000., "maintenance_interval", false, "Runtime duration betwwen maintenance events", "h", "Cycle|Parameters");
 	maintenance_duration.set(168., "maintenance_duration", false, "Duration of maintenance events", "h", "Cycle|Parameters");
+	downtime_threshold.set(24, "downtime_threshold", false, "Downtime threshold for warm start", "h", "Cycle|Parameters");
 	steplength.set(1., "steplength", false, "Simulation time period length", "h", "Cycle|Parameters");
 	hours_to_maintenance.set(5000., "hours_to_maintenance", false, "Runtime duration before next maintenance event", "h", "Cycle|Parameters");
 	power_output.set(0., "power_output", false, "Initial power cycle output", "W", "Cycle|Parameters");
@@ -232,6 +269,7 @@ parameters::parameters()
     (*this)["flux_max"] = &flux_max;
 	(*this)["maintenance_interval"] = &maintenance_interval;
 	(*this)["maintenance_duration"] = &maintenance_duration;
+	(*this)["downtime_threshold"] = &downtime_threshold;
 	(*this)["steplength"] = &steplength;
 	(*this)["hours_to_maintenance"] = &hours_to_maintenance;
 	(*this)["power_output"] = &power_output;
@@ -1315,6 +1353,102 @@ bool Project::M()
 
 
 	is_sf_avail_valid = true;
+	return true;
+}
+
+bool Project::C()
+{
+	/*
+	The cycle efficiency and capacity problem
+
+	Returns a dict with keys:
+	cycle_efficiency    Time series of mean cycle efficiency 
+	cycle_capacity      Time series of mean cycle capacity
+	n_failures          Average number of failures per scenario
+	lost_rev            Average revenue lost per scenario
+	*/
+	PowerCycle pc;
+
+	//Simulation parameters
+	pc.SetSimulationParameters(
+		m_parameters.read_periods.as_integer(),
+		m_parameters.sim_length.as_integer(),
+		m_parameters.start_period.as_integer(),
+		m_parameters.next_start_period.as_integer(),
+		m_parameters.write_interval.as_integer(),
+		1.e-8,
+		false,
+		m_parameters.num_scenarios.as_integer()
+	);
+
+	//Plant Components
+	std::vector < double > c_eff_cold(m_parameters.num_condenser_trains.as_integer(), 0.);
+	std::vector < double > c_eff_hot(m_parameters.num_condenser_trains.as_integer(), 0.);
+	for (int i = 0; i < m_parameters.num_condenser_trains.as_integer(); i++)
+	{
+		c_eff_cold.at(i) = m_parameters.condenser_eff_cold.vec()->at(i).as_number();
+		c_eff_hot.at(i) = m_parameters.condenser_eff_hot.vec()->at(i).as_number();
+	}
+
+	pc.GeneratePlantComponents(
+		m_parameters.num_condenser_trains.as_integer(),
+		m_parameters.fans_per_train.as_integer(),
+		m_parameters.radiators_per_train.as_integer(),
+		m_parameters.num_salt_steam_trains.as_integer(),
+		m_parameters.num_fwh.as_integer(),
+		m_parameters.num_salt_pumps.as_integer(),
+		m_parameters.num_water_pumps.as_integer(),
+		m_parameters.num_turbines.as_integer(),
+		c_eff_cold,
+		c_eff_hot
+	);
+
+	//Plant Parameters
+	pc.SetPlantAttributes(
+		m_parameters.maintenance_interval.as_number(),
+		m_parameters.maintenance_duration.as_number(),
+		m_parameters.downtime_threshold.as_number(),
+		m_parameters.steplength.as_number(),
+		m_parameters.hours_to_maintenance.as_number(),
+		m_parameters.power_output.as_number(),
+		m_parameters.current_standby.as_boolean(),
+		m_parameters.capacity.as_number(),
+		m_parameters.temp_threshold.as_number(),
+		m_parameters.time_online.as_number(),
+		m_parameters.time_in_standby.as_number(),
+		m_parameters.downtime.as_number(),
+		m_parameters.shutdown_capacity.as_number(),
+		m_parameters.no_restart_capacity.as_number()
+	);
+	
+	//Assign RNG
+	WELLFiveTwelve *gen;
+	pc.AssignGenerator(gen);
+
+	//Assign Dispatch
+	std::vector < double > cycle_power_ts(m_parameters.sim_length.as_integer(), 0.);
+	std::vector < double > standby_ts(m_parameters.sim_length.as_integer(), 0.);
+	std::vector < double > ambient_temp_ts(m_parameters.sim_length.as_integer(), 0.);
+
+	for (int i = 0; i < m_parameters.num_condenser_trains.as_integer(); i++)
+	{
+		cycle_power_ts.at(i) = m_parameters.cycle_power.vec()->at(i).as_number();
+		standby_ts.at(i) = m_parameters.standby.vec()->at(i).as_number();
+		ambient_temp_ts.at(i) = m_parameters.ambient_temperature.vec()->at(i).as_number();
+	}
+	
+	std::unordered_map < std::string, std::vector < double > > dispatch;
+	dispatch["standby"] = standby_ts;
+	dispatch["cycle_power"] = cycle_power_ts;
+	dispatch["ambient_temperature"] = ambient_temp_ts;
+	
+	pc.SetDispatch(dispatch);
+
+	pc.Simulate(false);
+	pc.GetAverageEfficiencyAndCapacity();
+	m_cycle_outputs.cycle_capacity.assign_vector( pc.m_results.avg_cycle_capacity );
+	m_cycle_outputs.cycle_efficiency.assign_vector( pc.m_results.avg_cycle_efficiency );
+
 	return true;
 }
 

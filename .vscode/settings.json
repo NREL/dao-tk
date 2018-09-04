@@ -62,7 +62,9 @@
         "ratio": "cpp",
         "thread": "cpp",
         "cinttypes": "cpp",
+        "*.cpng": "cpp",
         "bitset": "cpp",
-        "codecvt": "cpp"
+        "codecvt": "cpp",
+        "*.xpm": "cpp"
     }
 }

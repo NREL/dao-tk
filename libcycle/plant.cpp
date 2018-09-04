@@ -9,6 +9,8 @@ cycle_results::cycle_results()
 {
 	cycle_capacity = {};
 	cycle_efficiency = {};
+	avg_cycle_capacity = {};
+	avg_cycle_efficiency = {};
 	failure_events = {};
 	failure_event_labels = {};
 	component_status = {};
@@ -47,10 +49,16 @@ void PowerCycle::GeneratePlantCyclingPenalties()
 	m_cold_start_penalty = m_cs_dist.GetInverseCDF(unif);
 }
 
-void PowerCycle::SetSimulationParameters( int read_periods, 
-	int sim_length, int start_period, int next_start_period,
+void PowerCycle::SetSimulationParameters( 
+	int read_periods, 
+	int sim_length, 
+	int start_period, 
+	int next_start_period,
 	int write_interval,
-	double epsilon, bool print_output, int num_scenarios)
+	double epsilon, 
+	bool print_output, 
+	int num_scenarios
+)
 {
     m_read_periods = read_periods;
     m_sim_length = sim_length;
@@ -132,11 +140,15 @@ void PowerCycle::SetStatus()
     }
 
 	SetPlantAttributes(
-		m_maintenance_interval, m_maintenance_duration, 
-		m_downtime_threshold, m_steplength, 
+		m_maintenance_interval, 
+		m_maintenance_duration, 
+		m_downtime_threshold, 
+		m_steplength, 
 		m_plant_status["hours_to_maintenance"] * 1.0,
-		m_plant_status["power_output"] * 1.0, m_plant_status["standby"] && true,
-		m_capacity, m_condenser_temp_threshold, m_plant_status["time_online"] * 1.0,
+		m_plant_status["power_output"] * 1.0, 
+		m_plant_status["standby"] && true,
+		m_capacity, m_condenser_temp_threshold, 
+		m_plant_status["time_online"] * 1.0,
 		m_plant_status["time_in_standby"] * 1.0,
 		m_plant_status["downtime"] * 1.0,
 		m_shutdown_capacity,
@@ -473,10 +485,12 @@ void PowerCycle::AddWaterPumps(int num_pumps)
 }
 
 void PowerCycle::AddTurbines(int num_turbines)
-/*
-Adds Hi-, Medium-, and Low-Pressure Turbines to the plant object.
-*/
 {
+	/*
+	Adds turbines to the plant; assumes that the turbine-generator shaft shares a 
+	single failure rate, based on anecdotal feedback of maintenance every ~6 years, and 
+	the incidence of turbine failures being rare.
+	*/
 	std::string component_name;
 	double capacity_reduction = 1.0 / num_turbines;
 	for (int i = 0; i < num_turbines; i++)
@@ -484,9 +498,10 @@ Adds Hi-, Medium-, and Low-Pressure Turbines to the plant object.
 		m_num_turbines += 1;
 		component_name = "T" + std::to_string(m_num_turbines);
 		AddComponent(component_name, "Turbine", 32.7, 72, capacity_reduction, 0, 7.777, "D");
-		AddFailureType(component_name, "MBTF_High-pressure", "O", "gamma", 1, 51834.31953);
-		AddFailureType(component_name, "MBTF_Medium-pressure", "O", "gamma", 1, 51834.31953);
-		AddFailureType(component_name, "MBTF_Low-pressure", "O", "gamma", 1, 51834.31953);
+		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
+		//AddFailureType(component_name, "MBTF_High-pressure", "O", "gamma", 1, 51834.31953);
+		//AddFailureType(component_name, "MBTF_Medium-pressure", "O", "gamma", 1, 51834.31953);
+		//AddFailureType(component_name, "MBTF_Low-pressure", "O", "gamma", 1, 51834.31953);
 	}
 }
 
@@ -499,8 +514,8 @@ void PowerCycle::GeneratePlantComponents(
 	int num_salt_pumps = 2,
 	int num_water_pumps = 2,
 	int num_turbines = 1,
-	std::vector<double> condenser_eff_cold = {0.,1.,1.},
-	std::vector<double> condenser_eff_hot = {0.,0.95,1.}
+	std::vector<double> condenser_eff_cold = { 0.,1.,1. },
+	std::vector<double> condenser_eff_hot = { 0.,0.95,1. }
 )
 {
 	/* 
@@ -526,7 +541,8 @@ void PowerCycle::GeneratePlantComponents(
 	AddTurbines(num_turbines);
 }
 
-void PowerCycle::SetPlantAttributes(double maintenance_interval = 5000.,
+void PowerCycle::SetPlantAttributes(
+	double maintenance_interval = 5000.,
 	double maintenance_duration = 168.,
 	double downtime_threshold = 24., 
 	double steplength = 1., 
@@ -731,6 +747,10 @@ void PowerCycle::TestForComponentFailures(double ramp_mult, int t, std::string s
 {
 	/*
 	Determines whether a component is to fail, based on current dispatch.
+	ramp_mult - ramping penalty used to accelerate component wear
+	t -- time period index
+	start -- indicates plant start (Hot, Warm, Cold, or None)
+	mode -- string indicating operating mode (e.g., Offline, Standby)
 	*/
 	double hazard_increase = 0.;
 	if (start == "HotStart")
@@ -829,7 +849,7 @@ void PowerCycle::AdvanceDowntime(std::string mode)
     /*
 	When the plant is not operational, advances time by a period.  This
     updates the repair time and/or maintenance time remaining in the plant.
-
+	mode -- string indicating operating mode (e.g., Offline, Standby)
 	*/
 	for (size_t i = 0; i < m_components.size(); i++)
 	{
@@ -875,8 +895,7 @@ void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, s
     
     ramp_mult -- ramping penalty (multiplier for life degradation)
     t -- period index (indicator of whether read-only or not)
-    mode -- operating mode (e.g., HotStart, Running)
-    retval -- None
+    mode --string indicating operating mode (e.g., Offline, Standby)
     
 	*/
     //print t - m_read_periods
@@ -904,9 +923,9 @@ void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, s
 
 void PowerCycle::ResetHazardRates()
 {
-
     /*
-	resets the plant (restores component lifetimes)
+	resets the plant (restores component hazard rates
+	to "as-good-as-new")
 	*/
 	for (size_t i = 0; i < m_components.size(); i++)
 		m_components.at(i).ResetHazardRate();
@@ -960,6 +979,7 @@ std::string PowerCycle::GetStartMode(int t)
 {
 	/* 
 	returns the start mode as a string, or "none" if there is no start.
+	t -- time period index
 	*/
 	double power_out = m_dispatch.at("cycle_power").at(t);
 	if (power_out > m_eps)
@@ -978,7 +998,8 @@ std::string PowerCycle::GetStartMode(int t)
 std::string PowerCycle::GetOperatingMode(int t)
 {
 	/*
-	returns the operating mode as a string.
+	Returns the operating mode as a string.
+	t -- time period index
 	*/
 	double power_out = m_dispatch.at("cycle_power").at(t);
 	double standby = m_dispatch.at("standby").at(t);
@@ -1005,6 +1026,10 @@ std::string PowerCycle::GetOperatingMode(int t)
 
 void PowerCycle::ReadInComponentFailures(int t)
 {
+	/*
+	Reads in component failures from failure_events dictionary object.
+	t -- time period index
+	*/
 	for (size_t j = 0; j < m_components.size(); j++)
 	{
 		for (size_t k = 0; k < m_components.at(j).GetFailureTypes().size(); k++)
@@ -1028,7 +1053,10 @@ void PowerCycle::ReadInComponentFailures(int t)
 
 void PowerCycle::ReadInMaintenanceEvents(int t)
 {
-	//Read in planned maintenance events
+	/* 
+	Reads in planned maintenance events from failure_events dictionary object.
+	t -- time period index
+	*/
 	if (
 		m_failure_events.find("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + "MAINTENANCE")
 		!= m_failure_events.end()
@@ -1226,6 +1254,30 @@ void PowerCycle::SingleScen(bool reset_plant)
 	m_results.component_status[m_current_scenario] = m_component_status;
 }
 
+void PowerCycle::GetAverageEfficiencyAndCapacity()
+{
+	/*
+	Calculates the time series of the sample mean 
+	efficiency and capacity of the power cycle.
+	*/
+	m_results.avg_cycle_efficiency.clear();
+	m_results.avg_cycle_capacity.clear();
+	double avg_eff;
+	double avg_cap;
+	for (int t = 0; t < m_sim_length; t++)
+	{
+		avg_eff = 0.;
+		avg_cap = 0.;
+		for (int s = 0; s < m_num_scenarios; s++)
+		{
+			avg_eff += m_results.cycle_efficiency[s].at(t);
+			avg_cap += m_results.cycle_capacity[s].at(t);
+		}
+		m_results.avg_cycle_efficiency.push_back(avg_eff / m_num_scenarios);
+		m_results.avg_cycle_capacity.push_back(avg_cap / m_num_scenarios);
+	}
+}
+
 void PowerCycle::Simulate(bool reset_plant)
 {
 	/*
@@ -1240,6 +1292,7 @@ void PowerCycle::Simulate(bool reset_plant)
 		SingleScen(reset_plant);
 		m_gen->saveStates(i);
 	}
+	GetAverageEfficiencyAndCapacity();
 }
 
 void PowerCycle::ResetPlant(WELLFiveTwelve &gen)

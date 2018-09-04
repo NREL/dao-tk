@@ -14,6 +14,8 @@ struct cycle_results
 {
 	std::unordered_map < int, std::vector < double > > cycle_capacity;
 	std::unordered_map < int, std::vector < double > > cycle_efficiency;
+	std::vector < double > avg_cycle_capacity;
+	std::vector < double > avg_cycle_efficiency;
 	std::unordered_map< std::string, failure_event > failure_events;
 	std::vector <std::string> failure_event_labels;
 	std::unordered_map<int,  std::unordered_map< std::string, ComponentStatus > > component_status;
@@ -199,6 +201,7 @@ public:
 	void RunDispatch();
 	void Operate(double power_out, int t, std::string start, std::string mode);
 	void SingleScen(bool reset_plant);
+	void GetAverageEfficiencyAndCapacity();
 	void Simulate(bool reset_plant);
 	void ResetPlant(WELLFiveTwelve &gen);
 };

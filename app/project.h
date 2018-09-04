@@ -8,6 +8,8 @@
 #include <ssc/sscapi.h>
 #include "../liboptical/optical_degr.h"
 #include "../libsolar/solarfield_avail.h"
+#include "../libcycle/plant.h"
+#include "../libcycle/well512.h"
 
 #include "../libcluster/clustersim.h"
 #include "../libclearsky/clearsky.h"
@@ -16,9 +18,13 @@
 A class containing the aspects of the current project
 */
 
+#define SIGNIF_FIGURE 5 	//specify the significant digit requirement for data storage
+
 extern ssc_bool_t ssc_progress_handler(ssc_module_t, ssc_handler_t, int action, float f0, float f1, const char *s0, const char *, void *);
 extern bool sim_progress_handler(float progress, const char *msg);
 extern void message_handler(const char *msg);
+extern int double_scale(double val, int *scale);
+extern double double_unscale(int val, int power);
 
 struct documentation
 {
@@ -106,7 +112,7 @@ public:
 	bool is_shown_in_list;
     documentation doc;
 
-    void assign_vector(float *_vec, int nval)
+	void assign_vector(float *_vec, int nval)
     {
         this->empty_vector();
         this->vec()->resize(nval);
@@ -355,6 +361,7 @@ struct parameters : public lk::varhash_t
 	parameter flux_max;
 	parameter maintenance_interval;
 	parameter maintenance_duration;
+	parameter downtime_threshold;
 	parameter steplength;
 	parameter hours_to_maintenance;
 	parameter power_output;
@@ -372,12 +379,17 @@ struct parameters : public lk::varhash_t
 	parameter user_sf_avail;
 	parameter condenser_eff_cold;
 	parameter condenser_eff_hot;
+	parameter cycle_power;
+	parameter ambient_temperature;
+	parameter standby;
+
 	parameter helio_comp_weibull_shape;
 	parameter helio_comp_weibull_scale;
 	parameter helio_comp_mtr;
 	parameter helio_comp_repair_cost;
 	parameter clustering_feature_weights;
 	parameter clustering_feature_divisions;
+
 	//-----------------------------------------------------------------------
 
 	parameters();
@@ -581,6 +593,7 @@ public:
 	//objective function methods
 	bool D();
 	bool M();
+	bool C();
 	bool O();
 	bool S();
 	bool E();
