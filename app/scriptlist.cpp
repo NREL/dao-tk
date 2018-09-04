@@ -123,7 +123,8 @@ void ScriptList::UpdateScriptList()
         if(thisextent.GetWidth() > maxextent.GetWidth())
             maxextent = thisextent;
     }
-    m_parent->SetSashPosition(maxextent.GetWidth(), true);
+    if( maxextent.GetWidth() > 0 )
+        m_parent->SetSashPosition(maxextent.GetWidth(), true);
 }
 
 void ScriptList::Add()

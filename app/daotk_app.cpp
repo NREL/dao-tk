@@ -445,7 +445,8 @@ void MainWindow::Save()
 
 		//add to the data structure
 		jv.AddMember("d", jdata, alloc);
-		D.AddMember((rjs::Value::StringRefType)(v->name.c_str()), jv, alloc);
+		// D.AddMember((rjs::Value::StringRefType)(v->name.c_str()), jv, alloc);
+        D.AddMember(rjs::StringRef(v->name.c_str()), jv, alloc);
 	}
 	//Add script list info
 	std::vector<ScriptListObject> *sl = m_ScriptList->GetList();
@@ -459,14 +460,29 @@ void MainWindow::Save()
 		jv.AddMember("slp", jdp, alloc);
 
 		rjs::Value jdc(rjs::kStringType);
-		jdc.SetString( (rjs::Value::StringRefType)sl->at(i).created.FormatISOCombined().c_str() );
-		jv.AddMember("slc", jdc, alloc);
+        wxString cstr = sl->at(i).created.FormatISOCombined();
+        {
+            char buffer[50];
+            int len = sprintf(buffer, "%s", cstr.ToStdString().c_str() );
+            jdc.SetString( buffer, len, alloc );
+            jv.AddMember("slc", jdc, alloc);
+        }
 
 		rjs::Value jdm(rjs::kStringType);
-		jdm.SetString( (rjs::Value::StringRefType)sl->at(i).modified.FormatISOCombined().c_str() );
-		jv.AddMember("slm", jdm, alloc);
+        cstr = sl->at(i).modified.FormatISOCombined();
+        {
+            char buffer[50];
+            int len = sprintf(buffer, "%s", cstr.ToStdString().c_str() );
+            jdc.SetString( buffer, len, alloc );
+            jv.AddMember("slm", jdm, alloc);
+        }
 
-		D.AddMember( (rjs::Value::StringRefType)(wxString::Format("jlo%02d",i).c_str()), jv, alloc);
+        {
+            char buffer[15];
+            int len = sprintf(buffer, "jlo%02d", i);
+            rjs::Value memname(buffer, len, alloc);
+            D.AddMember( memname, jv, alloc);
+        }
 	}
 
 
