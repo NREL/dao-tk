@@ -13,6 +13,7 @@ class wxPanel;
 class wxMetroButton;
 class wxMetroTabList;
 class ScriptView;
+class ScriptList;
 class DataView;
 class LogView;
 
@@ -45,6 +46,7 @@ private:
 	wxSimplebook *m_notebook;
 
 	ScriptView *m_ScriptViewForm;
+	ScriptList *m_ScriptList;
 	DataView *m_DataViewForm;
 	LogView *m_LogViewForm;
 
@@ -63,6 +65,7 @@ public:
 	static MainWindow &Instance();
 	void UpdateFrameTitle();
 	Project *GetProject();
+	ScriptView *GetScriptViewForm();
 	
 	bool UpdateIsStopFlagSet();
 	void SetProgress( int percent, const wxString &msg = wxEmptyString );
@@ -70,12 +73,16 @@ public:
 
 	void ClearLog();
 	void Log(const wxString &, bool wnl = true);
+	void SyntaxLog(const wxString &);
 
 	bool LoadScript(const wxString &file);
 	void ScriptInsert(const char *text);
 
 	void Save();
 	void SaveAs();
+
+	bool Open();
+	bool Load(const wxString &);
 
 protected:
 	void OnClose(wxCloseEvent &);

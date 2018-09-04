@@ -17,9 +17,13 @@
 A class containing the aspects of the current project
 */
 
+#define SIGNIF_FIGURE 5 	//specify the significant digit requirement for data storage
+
 extern ssc_bool_t ssc_progress_handler(ssc_module_t, ssc_handler_t, int action, float f0, float f1, const char *s0, const char *, void *);
 extern bool sim_progress_handler(float progress, const char *msg);
 extern void message_handler(const char *msg);
+extern int double_scale(double val, int *scale);
+extern double double_unscale(int val, int power);
 
 struct documentation
 {
@@ -107,7 +111,7 @@ public:
 	bool is_shown_in_list;
     documentation doc;
 
-    void assign_vector(float *_vec, int nval)
+	void assign_vector(float *_vec, int nval)
     {
         this->empty_vector();
         this->vec()->resize(nval);

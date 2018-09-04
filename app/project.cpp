@@ -3,6 +3,42 @@
 #include <limits>
 
 
+ int double_scale(double val, int *scale)
+ {
+	 if( val == 0. )
+	 {
+		*scale = 0;
+	 	return 0;
+	 }
+
+	 int power = (int)std::ceil( std::log10(val) );
+	 *scale = SIGNIF_FIGURE - power;
+
+     int ival = (int)(val*std::pow(10, *scale));
+
+    std::string sival = wxString::Format("%d", ival).ToStdString();
+
+    for(size_t i=sival.length()-1; i>0; i++)
+    {
+        if( sival.back() == '0')
+        {
+            sival.pop_back();
+            ival /= 10;
+            *scale -= 1;
+        }
+        else
+            break;
+    }
+
+	 return ival;
+ }
+ 
+ double double_unscale(int val, int power)
+ {
+	 return (double)(val)*pow(10,-power);
+ }
+
+
 variables::variables()
 {
 	/* 
