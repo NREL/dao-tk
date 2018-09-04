@@ -941,3 +941,12 @@ void _simulate_objective(lk::invoke_t &cxt)
 
 	return;
 }
+
+void _setup_clusters(lk::invoke_t &cxt)
+{
+	LK_DOC("setup_clusters", "Set up clusters based on current project settings.", "([table:options]):table");
+	MainWindow &mw = MainWindow::Instance();
+	Project* P = mw.GetProject();
+	P->setup_clusters();
+
+}

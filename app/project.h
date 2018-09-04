@@ -551,7 +551,7 @@ class Project
 	void update_calculated_values_post_layout();
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
 	
-	bool setup_clusters(s_metric_outputs &metric_results, s_cluster_outputs &cluster_results);
+	
 	bool simulate_system();
 	void calc_avg_annual_schedule(double original_ts, double new_ts, const parameter &full_sch, std::vector<double> &output_sch);
 
@@ -567,6 +567,9 @@ public:
 	explicit_outputs m_explicit_outputs;
 	financial_outputs m_financial_outputs;
 	objective_outputs m_objective_outputs;
+
+	s_metric_outputs metric_outputs;
+	s_cluster_outputs cluster_outputs;
 
 	Project();
 	~Project();
@@ -584,7 +587,7 @@ public:
 	bool F();
 	bool Z();
 
-
+	bool setup_clusters();
 
 
 	data_base *GetVarPtr(const char *name);

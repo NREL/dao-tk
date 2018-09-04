@@ -6,6 +6,31 @@
 
 
 
+s_cluster_outputs::s_cluster_outputs()
+{
+	converged = false;
+	ncluster = std::numeric_limits<int>::quiet_NaN();
+	wcss = std::numeric_limits<double>::quiet_NaN();
+	wcss_to_exemplars = std::numeric_limits<double>::quiet_NaN();
+}
+
+
+void s_cluster_outputs::clear()
+{
+	converged = false;
+	ncluster = std::numeric_limits<int>::quiet_NaN();
+	wcss = std::numeric_limits<double>::quiet_NaN();
+	wcss_to_exemplars = std::numeric_limits<double>::quiet_NaN();
+	index.clear();
+	exemplars.clear();
+	count.clear();
+	weights.clear();
+	means.clear();
+	partition_matrix.clear();
+}
+
+
+
 
 cluster_alg::cluster_alg()
 {

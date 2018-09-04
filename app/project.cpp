@@ -653,6 +653,8 @@ void Project::Initialize()
 	lk_hash_to_ssc(m_ssc_data, default_params);
 	ssc_to_lk_hash(m_ssc_data, m_parameters);
 
+	cluster_outputs.clear();
+
 }
 
 Project::Project()
@@ -1711,7 +1713,7 @@ bool Project::Z()
 
 }
 
-bool Project::setup_clusters(s_metric_outputs &metric_results, s_cluster_outputs &cluster_results)
+bool Project::setup_clusters()
 {
 
 	//-- Set up metrics for cluster creation
@@ -1779,10 +1781,10 @@ bool Project::setup_clusters(s_metric_outputs &metric_results, s_cluster_outputs
 
 	//--- Calculate metrics and create clusters
 	metrics.calc_metrics();
-	metric_results = metrics.results;
+	metric_outputs = metrics.results;
 
 	cluster.create_clusters(metrics.results.data);
-	cluster_results = cluster.results;
+	cluster_outputs = cluster.results;
 
 	return true;
 }
@@ -1842,7 +1844,6 @@ bool Project::simulate_system()
 	{
 
 		//--- Set cluster simulation parameters
-		s_metric_outputs metric_results;
 		cluster_sim csim;
 		csim.set_default_inputs();
 		csim.inputs.days.nnext = int(m_parameters.is_dispatch.as_boolean());
@@ -1851,11 +1852,17 @@ bool Project::simulate_system()
 		csim.inputs.days.nprev = m_parameters.cluster_nprev.as_integer();
 
 
-		//--- Set up clusters
-		if (!setup_clusters(metric_results, csim.inputs.cluster_results))
-			return false;
+		//--- Set up clusters unless already defined
+		if (abs(m_parameters.n_clusters.as_integer() - (int)cluster_outputs.exemplars.size()) > 1 )
+		{
+			if (!setup_clusters())
+				return false;
+		}
+		else
+			message_handler(wxString::Format("Using existing set of %d cluster exemplars", cluster_outputs.ncluster));
 
-		csim.assign_first_last(metric_results);
+		csim.inputs.cluster_results = cluster_outputs;
+		csim.assign_first_last(metric_outputs);
 		int ncl = csim.inputs.cluster_results.ncluster;
 
 
@@ -1914,7 +1921,7 @@ bool Project::simulate_system()
 				{
 					int exemplar = csim.inputs.combined.start.at(g);						
 					int d = std::max(csim.firstday(exemplar)-csim.inputs.days.nprev-1, 0);	// Day before first simulated day
-					avg_prev_dni += metric_results.daily_dni.at(d, 0) / (double)ng;
+					avg_prev_dni += metric_outputs.daily_dni.at(d, 0) / (double)ng;
 				}
 				tes_charge = csim.initial_charge_heuristic(avg_prev_dni, m_variables.solarm.as_number());
 			}
@@ -1998,7 +2005,7 @@ bool Project::simulate_system()
 				if (csim.inputs.is_initial_charge_heuristic)
 				{
 					int d = std::max((d1 - csim.inputs.days.nprev - 1), 0);  // Day before first simulated day
-					double prev_dni = metric_results.daily_dni.at(d, 0);
+					double prev_dni = metric_outputs.daily_dni.at(d, 0);
 					tes_charge = csim.initial_charge_heuristic(prev_dni, m_variables.solarm.as_number());
 				}
 

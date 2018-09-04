@@ -15,5 +15,6 @@ extern void _simulate_performance(lk::invoke_t &cxt);
 extern void _initialize(lk::invoke_t &cxt);
 extern void _simulate_financial(lk::invoke_t &cxt);
 extern void _simulate_objective(lk::invoke_t &cxt);
+extern void _setup_clusters(lk::invoke_t &cxt);
 
 #endif
