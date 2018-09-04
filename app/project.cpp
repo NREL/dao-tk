@@ -409,6 +409,12 @@ simulation_outputs::simulation_outputs()
 	annual_rec_starts.set(nan, "annual_rec_starts", true, "Annual receiver starts", "-", "Simulation|Outputs");
 	annual_cycle_starts.set(nan, "annual_cycle_starts", true, "Annual cycle starts", "-", "Simulation|Outputs");
 	annual_cycle_ramp.set(nan, "annual_cycle_ramp", true, "Annual cycle ramping", "GWe", "Simulation|Outputs");
+	cycle_ramp_index.set(nan, "cycle_ramp_index", true, "Cycle ramp index", "%", "Simulation|Outputs");
+
+	annual_rec_starts_disp.set(nan, "annual_rec_starts_disp", true, "Annual receiver starts from dispatch soln", "-", "Simulation|Outputs");
+	annual_cycle_starts_disp.set(nan, "annual_cycle_starts_disp", true, "Annual cycle starts from dispatch soln", "-", "Simulation|Outputs");
+	annual_cycle_ramp_disp.set(nan, "annual_cycle_ramp_disp", true, "Annual cycle ramping from dispatch soln", "GWe", "Simulation|Outputs");
+	cycle_ramp_index_disp.set(nan, "cycle_ramp_index_disp", true, "Cycle ramp index from dispatch soln", "%", "Simulation|Outputs");
 
 
 	(*this)["generation_arr"] = &generation_arr;
@@ -423,7 +429,11 @@ simulation_outputs::simulation_outputs()
 	(*this)["annual_rec_starts"] = &annual_rec_starts;
 	(*this)["annual_cycle_starts"] = &annual_cycle_starts;
 	(*this)["annual_cycle_ramp"] = &annual_cycle_ramp;
-
+	(*this)["cycle_ramp_index"] = &cycle_ramp_index;
+	(*this)["annual_rec_starts_disp"] = &annual_rec_starts_disp;
+	(*this)["annual_cycle_starts_disp"] = &annual_cycle_starts_disp;
+	(*this)["annual_cycle_ramp_disp"] = &annual_cycle_ramp_disp;
+	(*this)["cycle_ramp_index_disp"] = &cycle_ramp_index_disp;
 }
 
 explicit_outputs::explicit_outputs()
@@ -1401,21 +1411,11 @@ bool Project::S()
 		calc_avg_annual_schedule(op_ts, sim_ts, m_optical_outputs.degr_schedule, degr);
 	}
 
-	std::vector<double>sfavail(nrec, 1.);
-	ssc_number_t *p_sf = new ssc_number_t[nrec];
-	for (int i = 0; i<nrec; i++)
-		p_sf[i] = 0.;
-	ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sf, nrec);
-	delete p_sf;
-
-	/*
 	ssc_number_t *p_sf = new ssc_number_t[nrec];
 	for (int i = 0; i<nrec; i++)
 		p_sf[i] = 100.*(1. - avail[i]*soil[i]*degr[i]);
 	ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sf, nrec);
 	delete p_sf;
-	*/
-
 
 
 	//--- Set ssc parameters
@@ -1803,9 +1803,12 @@ bool Project::simulate_system()
 
 
 	//--- Initialize results
-	double annual_generation, revenue_units, rec_starts, cycle_starts, cycle_ramp;
+	double annual_generation, revenue_units, rec_starts, cycle_starts, cycle_ramp, max_generation;
 	int n_hourly_keys = 5;
-	std::string hourly_keys[] = { "gen",  "Q_thermal", "e_ch_tes", "beam", "pricing_mult" };
+	std::string hourly_keys[] = { "gen",  "Q_thermal", "e_ch_tes", "beam", "pricing_mult" , "disp_qsfprod_expected", "disp_wpb_expected" };	
+	if (m_parameters.is_dispatch.as_boolean())
+		n_hourly_keys = 7;
+
 	unordered_map < std::string, std::vector<double>> collect_ssc_data, full_data;
 	for (int i = 0; i < n_hourly_keys; i++)
 	{
@@ -2057,10 +2060,12 @@ bool Project::simulate_system()
 	//--- Sum annual generation and revenue
 	annual_generation = 0.0;
 	revenue_units = 0.0;
+	max_generation = 0.0;
 	for (int i = 0; i < (int)full_data["gen"].size(); i++)
 	{
 		annual_generation += full_data["gen"].at(i) / (double)wf_steps_per_hour;
 		revenue_units += full_data["gen"].at(i) * m_parameters.dispatch_factors_ts.vec()->at(i).as_number() / (double)wf_steps_per_hour;
+		max_generation = fmax(max_generation, full_data["gen"].at(i));
 	}
 	//message_handler(wxString::Format("Annual generation (GWhe) = %.4f",annual_generation / 1.e6).c_str());
 	//message_handler(wxString::Format("Annual revenue units (GWhe) = %.4f", revenue_units / 1.e6).c_str());
@@ -2070,6 +2075,11 @@ bool Project::simulate_system()
 	rec_starts = 0.0;
 	cycle_starts = 0.0;
 	cycle_ramp = 0.0;
+
+	double disp_rec_starts = 0.0;
+	double disp_cycle_starts = 0.0;
+	double disp_cycle_ramp = 0.0;
+
 	for (int i = 1; i < (int)full_data["gen"].size(); i++)
 	{
 		if (full_data["Q_thermal"][i] > 0.0 && full_data["Q_thermal"][i - 1] <= 0.0)
@@ -2080,7 +2090,25 @@ bool Project::simulate_system()
 
 		if (full_data["gen"][i] > 0.0 && full_data["gen"][i] > full_data["gen"][i - 1])
 			cycle_ramp += full_data["gen"][i] - full_data["gen"][i - 1]; //kWe
+
+		// Dispatched results for comparison
+		if (m_parameters.is_dispatch.as_boolean())
+		{
+			if (full_data["disp_qsfprod_expected"][i] > 0.0 && full_data["disp_qsfprod_expected"][i - 1] <= 0.0)
+				disp_rec_starts += 1;
+
+			if (full_data["disp_wpb_expected"][i] > 0.0 && full_data["disp_wpb_expected"][i - 1] <= 0.0)
+				disp_cycle_starts += 1;
+
+			if (full_data["disp_wpb_expected"][i] > 0.0 && full_data["disp_wpb_expected"][i] > full_data["disp_wpb_expected"][i - 1])
+				disp_cycle_ramp += (full_data["disp_wpb_expected"][i] - full_data["disp_wpb_expected"][i - 1])*1000.;   //"disp_wpb_expected" in MWe
+		}
 	}
+	double cycle_ramp_index = cycle_ramp / max_generation / 365.;
+	double disp_cycle_ramp_index = 0.0;
+	if (m_parameters.is_dispatch.as_boolean())
+		disp_cycle_ramp_index = disp_cycle_ramp / max_generation / 365.;
+
 
 
 	//--- Set simulation outputs
@@ -2095,6 +2123,13 @@ bool Project::simulate_system()
 	m_simulation_outputs.annual_rec_starts.assign(rec_starts);
 	m_simulation_outputs.annual_cycle_starts.assign(cycle_starts);
 	m_simulation_outputs.annual_cycle_ramp.assign(cycle_ramp*1.e-6);
+	m_simulation_outputs.cycle_ramp_index.assign(cycle_ramp_index*100.);
+
+	m_simulation_outputs.annual_rec_starts_disp.assign(disp_rec_starts);
+	m_simulation_outputs.annual_cycle_starts_disp.assign(disp_cycle_starts);
+	m_simulation_outputs.annual_cycle_ramp_disp.assign(disp_cycle_ramp*1.e-6);
+	m_simulation_outputs.cycle_ramp_index_disp.assign(disp_cycle_ramp_index*100.);
+
 
 	return true;
 }

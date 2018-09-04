@@ -464,6 +464,11 @@ struct simulation_outputs : public lk::varhash_t
 	parameter annual_rec_starts;
 	parameter annual_cycle_starts;
 	parameter annual_cycle_ramp;
+	parameter cycle_ramp_index;
+	parameter annual_rec_starts_disp;
+	parameter annual_cycle_starts_disp;
+	parameter annual_cycle_ramp_disp;
+	parameter cycle_ramp_index_disp;
 
 	simulation_outputs();
 };
