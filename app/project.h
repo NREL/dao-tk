@@ -8,6 +8,8 @@
 #include <ssc/sscapi.h>
 #include "../liboptical/optical_degr.h"
 #include "../libsolar/solarfield_avail.h"
+#include "../libcycle/plant.h"
+#include "../libcycle/well512.h"
 
 #include "../libcluster/clustersim.h"
 
@@ -346,6 +348,7 @@ struct parameters : public lk::varhash_t
 	parameter flux_max;
 	parameter maintenance_interval;
 	parameter maintenance_duration;
+	parameter downtime_threshold;
 	parameter steplength;
 	parameter hours_to_maintenance;
 	parameter power_output;
@@ -362,6 +365,9 @@ struct parameters : public lk::varhash_t
 	parameter user_sf_avail;
 	parameter condenser_eff_cold;
 	parameter condenser_eff_hot;
+	parameter cycle_power;
+	parameter ambient_temperature;
+	parameter standby;
 	//-----------------------------------------------------------------------
 
 	parameters();
@@ -516,6 +522,7 @@ public:
 	//objective function methods
 	bool D();
 	bool M();
+	bool C();
 	bool O();
 	bool S();
 	int E();
