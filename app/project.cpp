@@ -1993,7 +1993,7 @@ bool Project::simulate_system()
 				return false;
 		}
 		else
-			message_handler(wxString::Format("Using existing set of %d cluster exemplars", cluster_outputs.ncluster));
+			message_handler(wxString::Format("Using existing set of %d cluster exemplars", cluster_outputs.ncluster).ToStdString().c_str());
 
 		csim.inputs.cluster_results = cluster_outputs;
 		csim.assign_first_last(metric_outputs);
