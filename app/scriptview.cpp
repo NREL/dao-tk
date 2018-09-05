@@ -99,10 +99,10 @@ ScriptView::ScriptView(wxWindow *parent)
 	// szdoc->Add(new wxButton(this, wxID_SAVEAS, "Save as", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
 	szdoc->Add(new wxButton(this, ID_RUN, "Run", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
 	szdoc->Add(m_stopButton = new wxButton(this, wxID_STOP, "Stop", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
-	szdoc->AddStretchSpacer();
+    szdoc->AddSpacer(15);
 	szdoc->Add(new wxButton(this, ID_HELP, "Help", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
     szdoc->Add(new wxButton(this, ID_VARS, "Variables", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
-	szdoc->AddStretchSpacer();
+    szdoc->AddSpacer(15);
 	szdoc->Add(new wxButton(this, wxID_FIND, "Find", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
 	szdoc->Add(new wxButton(this, wxID_FORWARD, "Find next", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
 	szdoc->AddStretchSpacer();
