@@ -20,10 +20,11 @@ class VariableDialog : public wxFrame
     wxComboBox *m_searchselect;
     wxHtmlWindow *m_html;
     std::vector< lk::varhash_t* > m_variable_data;
+    std::vector< std::string > m_anchor_list;
 
 
 public:
-    VariableDialog(wxWindow *parent, std::vector< void* > vargroups, int id = -1, long style = wxDEFAULT_FRAME_STYLE,
+    VariableDialog(wxWindow *parent, std::vector< void* > vargroups, std::string imgdir, int id = -1, long style = wxDEFAULT_FRAME_STYLE,
                 wxSize size=wxDefaultSize, wxPoint position=wxDefaultPosition);
 
     void OnCommand(wxCommandEvent &);

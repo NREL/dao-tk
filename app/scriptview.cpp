@@ -320,8 +320,9 @@ void ScriptView::Exec()
 
 void ScriptView::CreateVariableDialog()
 {
-    VariableDialog *dlg = new VariableDialog(this, MainWindow::Instance().GetProject()->GetDataObjects(), wxID_ANY, 
-                                    wxDEFAULT_FRAME_STYLE, MainWindow::Instance().GetSize() );
+    VariableDialog *dlg = new VariableDialog(this, MainWindow::Instance().GetProject()->GetDataObjects(), 
+                                    MainWindow::Instance().GetImagePath(),
+                                    wxID_ANY, wxDEFAULT_FRAME_STYLE, MainWindow::Instance().GetSize() );
     dlg->Show();
     
     return;

@@ -67,6 +67,7 @@ public:
 	void UpdateFrameTitle();
 	Project *GetProject();
 	ScriptView *GetScriptViewForm();
+    std::string GetImagePath();
 	
 	bool UpdateIsStopFlagSet();
 	void SetProgress( int percent, const wxString &msg = wxEmptyString );
