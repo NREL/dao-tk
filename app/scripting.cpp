@@ -265,6 +265,7 @@ void _test(lk::invoke_t &cxt)
 	P->D();
 	P->M();
 	P->O();
+	P->C();
 
 
 	mw.Log(wxString::Format("Total field area: %.2f", P->m_design_outputs.area_sf.as_number()));
@@ -272,6 +273,7 @@ void _test(lk::invoke_t &cxt)
 	mw.Log(wxString::Format("Number of mirror replacements: %d", (int)P->m_optical_outputs.n_replacements.as_integer()));
 	mw.Log(wxString::Format("Average soiling: %.2f", P->m_optical_outputs.avg_soil.as_number()));
 	mw.Log(wxString::Format("Average degradation: %.2f", P->m_optical_outputs.avg_degr.as_number()));
+	mw.Log(wxString::Format("Average cycle repair labor costs: %.2f", P->m_cycle_outputs.cycle_labor_cost.as_number()));
 
 	mw.SetProgress(0.);
 	mw.UpdateDataTable();

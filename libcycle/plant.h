@@ -123,6 +123,8 @@ public:
 	double GetHotStartPenalty();
 	double GetWarmStartPenalty();
 	double GetColdStartPenalty();
+	int GetSimLength();
+	int GetWriteInterval();
 	void SetShutdownCapacity(double capacity);
 	void SetNoRestartCapacity(double capacity);
 	std::unordered_map< std::string, failure_event > GetFailureEvents();

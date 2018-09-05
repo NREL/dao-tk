@@ -1446,8 +1446,8 @@ bool Project::C()
 	);
 	
 	//Assign RNG
-	WELLFiveTwelve *gen;
-	pc.AssignGenerator(gen);
+	WELLFiveTwelve gen(0);
+	pc.AssignGenerator(&gen);
 
 	//Assign Dispatch
 	std::vector < double > cycle_power_ts(m_parameters.sim_length.as_integer(), 0.);
@@ -1469,10 +1469,17 @@ bool Project::C()
 	pc.SetDispatch(dispatch);
 
 	pc.Simulate(false);
+
+	//Annualize repair cost
+	double ann_fact = 8760. / (double)(pc.GetSteplength() * pc.GetWriteInterval());
+
+	pc.m_results.avg_labor_cost = calc_real_dollars(pc.m_results.avg_labor_cost) * ann_fact;
+
+	//Assign results to structure
 	pc.GetAverageEfficiencyAndCapacity();
 	m_cycle_outputs.cycle_capacity.assign_vector( pc.m_results.avg_cycle_capacity );
 	m_cycle_outputs.cycle_efficiency.assign_vector( pc.m_results.avg_cycle_efficiency );
-	m_cycle_outputs.cycle_labor_cost.assign(pc.m_results.avg_labor_cost);
+	m_cycle_outputs.cycle_labor_cost.assign( pc.m_results.avg_labor_cost );
 
 	is_cycle_avail_valid = true;
 
@@ -1793,7 +1800,7 @@ bool Project::Z()
 	{
 		is_simulation_valid = false;
 		is_financial_valid = false;
-		O();
+		C();
 	}
 	else
 		message_handler("Using existing cycle availability results in objective function");
@@ -1855,6 +1862,8 @@ bool Project::Z()
 	m_objective_outputs.rec_start_cost_real.assign(calc_real_dollars(rec_start_cost_y1));
 	m_objective_outputs.cycle_start_cost_real.assign(calc_real_dollars(cycle_start_cost_y1));
 	m_objective_outputs.cycle_ramp_cost_real.assign(calc_real_dollars(cycle_ramp_cost_y1));
+
+	m_objective_outputs.cycle_repair_cost_real.assign(m_cycle_outputs.cycle_labor_cost.as_number());  // C
 	
 	double om_cost = m_objective_outputs.heliostat_om_labor_real.as_number() +
 					m_objective_outputs.heliostat_wash_cost_real.as_number() +
@@ -1862,7 +1871,8 @@ bool Project::Z()
 					m_objective_outputs.heliostat_refurbish_cost_real.as_number() +
 					m_objective_outputs.rec_start_cost_real.as_number() +
 					m_objective_outputs.cycle_start_cost_real.as_number() +
-					m_objective_outputs.cycle_ramp_cost_real.as_number();
+					m_objective_outputs.cycle_ramp_cost_real.as_number() +
+					m_objective_outputs.cycle_repair_cost_real.as_number();
 	
 	m_objective_outputs.om_cost_real.assign(om_cost);
 

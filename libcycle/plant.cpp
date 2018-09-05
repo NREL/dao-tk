@@ -301,6 +301,16 @@ double PowerCycle::GetColdStartPenalty()
 	return m_cold_start_penalty;
 }
 
+int PowerCycle::GetSimLength()
+{
+	return m_sim_length;
+}
+
+int PowerCycle::GetWriteInterval()
+{
+	return m_write_interval;
+}
+
 void PowerCycle::SetShutdownCapacity(double capacity) 
 {
 	m_shutdown_capacity = capacity;
@@ -1278,6 +1288,12 @@ void PowerCycle::GetAverageEfficiencyAndCapacity()
 		m_results.avg_cycle_efficiency.push_back(avg_eff / m_num_scenarios);
 		m_results.avg_cycle_capacity.push_back(avg_cap / m_num_scenarios);
 	}
+	double avg_labor = 0.;
+	for (int s = 0; s < m_num_scenarios; s++)
+	{
+		avg_labor += m_results.labor_costs[s];
+	}
+	m_results.avg_labor_cost = avg_labor / m_num_scenarios;
 }
 
 double PowerCycle::GetLaborCosts(size_t start_fail_idx)
