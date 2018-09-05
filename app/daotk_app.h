@@ -42,6 +42,7 @@ private:
         m_help_dir;    //the location of the help directory
 
 	wxMetroButton * m_mainMenuButton;
+	wxMetroButton * m_scriptMenuButton;
 	wxMetroTabList *m_tabList;
 	wxSimplebook *m_notebook;
 
