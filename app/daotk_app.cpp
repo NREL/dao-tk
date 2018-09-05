@@ -279,6 +279,11 @@ ScriptView *MainWindow::GetScriptViewForm()
 	return m_ScriptViewForm;
 }
 
+std::string MainWindow::GetImagePath()
+{
+    return m_image_dir.GetFullPath().ToStdString();
+}
+
 void MainWindow::Log(const wxString &text, bool wnl)
 {
 	m_LogViewForm->Log(text, wnl);

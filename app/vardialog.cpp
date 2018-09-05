@@ -7,9 +7,11 @@
 
 #include <wex/icons/stock_cancel_20.cpng>
 
-enum {ID_SEARCHSELECT=wxID_HIGHEST+154, ID_SEARCHTEXT, ID_SEARCHCLEAR, ID_VAR_HELP};
+enum {ID_SEARCHSELECT=wxID_HIGHEST+154, ID_SEARCHTEXT, ID_SEARCHCLEAR, ID_VAR_HELP,
+        ID_NAV_BACK, ID_NAV_FORWARD, ID_NAV_TOP, ID_NAV_NEXT_SECTION, ID_NAV_PREV_SECTION
+    };
 
-VariableDialog::VariableDialog(wxWindow *parent, std::vector< void* > vargroups, int id, long style, wxSize size, wxPoint position)
+VariableDialog::VariableDialog(wxWindow *parent, std::vector< void* > vargroups, std::string imgpath, int id, long style, wxSize size, wxPoint position)
     : wxFrame(parent, id, "Variable information", position, size, style)
 {
 
@@ -24,7 +26,8 @@ VariableDialog::VariableDialog(wxWindow *parent, std::vector< void* > vargroups,
     for (size_t i = 0; i < searchchoices.size(); i++)
         sca.push_back(searchchoices[i]);
 
-    m_searchtext = new wxTextCtrl(main_panel, ID_SEARCHTEXT, wxEmptyString, wxDefaultPosition, wxSize(250,21) );
+    m_searchtext = new wxTextCtrl(main_panel, ID_SEARCHTEXT, wxEmptyString, wxDefaultPosition, wxSize(250,30) );
+    m_searchtext->SetForegroundColour( wxColour("#888") );
     m_searchselect = new wxComboBox(main_panel, ID_SEARCHSELECT, searchchoices[0],
                     wxDefaultPosition, wxDefaultSize, sca, wxCB_DROPDOWN | wxCB_READONLY);
     
@@ -32,12 +35,26 @@ VariableDialog::VariableDialog(wxWindow *parent, std::vector< void* > vargroups,
 
     wxBoxSizer *mainsizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *topsizer = new wxBoxSizer(wxHORIZONTAL);
+    // ID_NAV_BACK, ID_NAV_FORWARD, ID_NAV_TOP, ID_NAV_NEXT_SECTION
+    wxBitmapButton *bmtmp;
+    topsizer->Add(bmtmp = new wxBitmapButton(main_panel, ID_NAV_BACK, wxIcon(imgpath+"/arrow-left.png", wxBITMAP_TYPE_PNG) ), 0, wxBU_EXACTFIT|wxALL, 2);
+    bmtmp->SetToolTip("History back");
+    topsizer->Add(bmtmp = new wxBitmapButton(main_panel, ID_NAV_FORWARD, wxIcon(imgpath+"/arrow-right.png", wxBITMAP_TYPE_PNG) ), 0, wxBU_EXACTFIT|wxALL, 2);
+    bmtmp->SetToolTip("History forward");
+    topsizer->Add(bmtmp = new wxBitmapButton(main_panel, ID_NAV_TOP, wxIcon(imgpath+"/arrow-up-double.png", wxBITMAP_TYPE_PNG) ), 0, wxBU_EXACTFIT|wxALL, 2);
+    bmtmp->SetToolTip("Top of page");
+    topsizer->Add(bmtmp = new wxBitmapButton(main_panel, ID_NAV_NEXT_SECTION, wxIcon(imgpath+"/arrow-down.png", wxBITMAP_TYPE_PNG) ), 0, wxBU_EXACTFIT|wxALL, 2);
+    bmtmp->SetToolTip("Next group");
+    topsizer->Add(bmtmp = new wxBitmapButton(main_panel, ID_NAV_PREV_SECTION, wxIcon(imgpath+"/arrow-up.png", wxBITMAP_TYPE_PNG) ), 0, wxBU_EXACTFIT|wxALL, 2);
+    bmtmp->SetToolTip("Previous group");
+    topsizer->AddStretchSpacer();
 
-    topsizer->Add(m_searchtext, 1, wxEXPAND | wxALL, 2);
-    topsizer->Add(new wxBitmapButton(main_panel, ID_SEARCHCLEAR, wxBITMAP_PNG_FROM_DATA(stock_cancel_20) ), 0, wxALL, 2);
-    topsizer->Add(m_searchselect, 0, wxALL, 2);
+    // topsizer->Add(new wxStaticText(main_panel, wxID_ANY, "Search..."), 0, wxALL|wxALIGN_BOTTOM, 2);
+    topsizer->Add(m_searchtext, 0, wxALL|wxALIGN_BOTTOM, 2);
+    topsizer->Add(new wxBitmapButton(main_panel, ID_SEARCHCLEAR, wxBITMAP_PNG_FROM_DATA(stock_cancel_20) ), 0, wxALL|wxALIGN_BOTTOM, 2);
+    topsizer->Add(m_searchselect, 0, wxALL|wxALIGN_BOTTOM, 2);
 
-    mainsizer->Add(topsizer);
+    mainsizer->Add(topsizer, 0, wxEXPAND, 0);
     mainsizer->Add(m_html, 1, wxEXPAND | wxALL, 2);
 
     UpdateHelp("", "All");
@@ -56,21 +73,53 @@ VariableDialog::VariableDialog(wxWindow *parent, std::vector< void* > vargroups,
 
 void VariableDialog::OnCommand(wxCommandEvent &evt)
 {
-
     switch (evt.GetId())
     {
     case ID_SEARCHTEXT:
     case ID_SEARCHSELECT:
     {
+        
         wxString filter = m_searchtext->GetValue();
         wxString filtertype = m_searchselect->GetValue();
         UpdateHelp(filter.c_str(), filtertype.c_str());
+
         break;
     }
     case ID_SEARCHCLEAR:
+    {
         m_searchtext->SetValue("");
         wxString filtertype = m_searchselect->GetValue();
         UpdateHelp("", filtertype.c_str());
+        break;
+    }
+    case ID_NAV_BACK:
+        m_html->HistoryBack();
+        break;
+    case ID_NAV_FORWARD:
+        m_html->HistoryForward();
+        break;
+    case ID_NAV_NEXT_SECTION:
+    case ID_NAV_PREV_SECTION:
+    {
+        wxString anchor = m_html->GetOpenedAnchor();
+        int a_ind = std::find( m_anchor_list.begin(), m_anchor_list.end(), anchor.ToStdString().c_str() ) - m_anchor_list.begin();
+        if ( evt.GetId() == ID_NAV_NEXT_SECTION )
+        {
+            if( a_ind > m_anchor_list.size()-2 )
+                break;
+            m_html->LoadPage("#"+m_anchor_list.at(a_ind+1) );
+        }
+        else
+        {
+            if( a_ind < 1 )
+                break;
+            m_html->LoadPage("#"+m_anchor_list.at(a_ind-1) );
+        }
+        
+    }
+        break;
+    case ID_NAV_TOP:
+        m_html->LoadPage("#top");
         break;
     }
 
@@ -78,7 +127,9 @@ void VariableDialog::OnCommand(wxCommandEvent &evt)
 
 void VariableDialog::UpdateHelp(const char* filter, const char* type)
 {
-    std::string filtered_text = "<html><head></head><body>";
+    std::string filtered_text = "<html><head></head><body><a name=\"top\"></a>";
+    std::string body_text;
+    std::vector< std::string > all_group_names;
     wxString sfilter(filter);
     std::string stype(type);
 
@@ -86,6 +137,9 @@ void VariableDialog::UpdateHelp(const char* filter, const char* type)
     
         
     //do search here and append doc items  -- "All", "Name", "Description", "Type"
+    m_anchor_list.clear();
+    m_anchor_list.push_back("top");
+
     for (std::vector< lk::varhash_t* >::iterator grit = m_variable_data.begin(); grit != m_variable_data.end(); grit++)
     {
         std::string filtered_group_items;
@@ -102,9 +156,18 @@ void VariableDialog::UpdateHelp(const char* filter, const char* type)
             {
                 std::string groupname = v->group;
                 std::string groupfirst = wxSplit(groupname, '|').front();
-                group_formatted.append("<table style=\"width:100%;background-color:#444;fontsize:+3;\"><tr><td><font size=\"+4\" color=\"#fff\">");
-                group_formatted.append(groupfirst);
-                group_formatted.append("</font></td></tr></table>");
+                wxString grouplab = groupname;
+                grouplab.Replace(" ","");
+                grouplab.Replace("|","_");
+
+                group_formatted.append( wxString::Format(
+                        "<a name=\"%s\"></a><table style=\"width:100%;background-color:#444;fontsize:+3;\">"
+                        "<tr><td><font size=\"+4\" color=\"#fff\">%s</font></td></tr></table>",
+                        grouplab.ToStdString().c_str(),
+                    groupfirst.c_str() ).ToStdString() );
+
+                all_group_names.push_back( groupname + "#" + grouplab );
+                m_anchor_list.push_back( grouplab );
             }
 
             if (sfilter.empty())
@@ -166,14 +229,31 @@ void VariableDialog::UpdateHelp(const char* filter, const char* type)
 
         if ( ! filtered_group_items.empty() )
         {
-            filtered_text.append(group_formatted);
-            filtered_text.append(filtered_group_items);
+            body_text.append(group_formatted);
+            body_text.append(filtered_group_items);
         }
     }
+
+    //always construct the header
+    filtered_text.append("<table style=\"width:80%;background-color:#FF7926;padding:5px;border:2px;\"><tr><td><font size=\"+1\" color=\"#000\"><tr>");
+    for(size_t i=0; i<all_group_names.size(); i++)
+    {
+        wxArrayString groupparse = wxSplit( all_group_names.at(i), '#');
+        filtered_text.append( wxString::Format("<td><a href=\"#%s\">%s</a></td>",
+                                groupparse[1].c_str(),
+                                groupparse[0].c_str()
+                            ).ToStdString() );
+
+    }
+    filtered_text.append("</tr></table>");
+
+    //add the filtered body text
+    filtered_text.append( body_text );
+
     filtered_text.append("</body></html>");
 
-
     m_html->SetPage(filtered_text);
+    m_html->LoadPage("#"+m_anchor_list.front());
 }
 
 void VariableDialog::OnHtmlEvent(wxHtmlLinkEvent &evt)
@@ -199,13 +279,19 @@ void VariableDialog::OnHtmlEvent(wxHtmlLinkEvent &evt)
             }
         }
     }
-
     return;
 }
 
 BEGIN_EVENT_TABLE( VariableDialog, wxFrame )
+    EVT_COMMAND_SET_FOCUS(ID_SEARCHTEXT, VariableDialog::OnCommand)
+    EVT_COMMAND_KILL_FOCUS(ID_SEARCHTEXT, VariableDialog::OnCommand)
     EVT_TEXT(ID_SEARCHTEXT, VariableDialog::OnCommand)
     EVT_COMBOBOX(ID_SEARCHSELECT, VariableDialog::OnCommand)
     EVT_BUTTON(ID_SEARCHCLEAR, VariableDialog::OnCommand)
-    EVT_HTML_LINK_CLICKED(ID_VAR_HELP, VariableDialog::OnHtmlEvent)
+    EVT_BUTTON(ID_NAV_BACK, VariableDialog::OnCommand)
+    EVT_BUTTON(ID_NAV_FORWARD, VariableDialog::OnCommand)
+    EVT_BUTTON(ID_NAV_TOP, VariableDialog::OnCommand)
+    EVT_BUTTON(ID_NAV_NEXT_SECTION, VariableDialog::OnCommand)
+    EVT_BUTTON(ID_NAV_PREV_SECTION, VariableDialog::OnCommand)
+    // EVT_HTML_LINK_CLICKED(ID_VAR_HELP, VariableDialog::OnHtmlEvent)
 END_EVENT_TABLE()
