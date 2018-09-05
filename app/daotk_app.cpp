@@ -121,7 +121,7 @@ int MyApp::OnExit()
 enum {
 	ID_MAIN_MENU = wxID_HIGHEST + 123, ID_SCRIPT_MENU, ID_TABS, 
 	ID_NEW_SCRIPT, ID_OPEN_SCRIPT, ID_RUN_SCRIPT, ID_SCRIPT_VARIABLES,
-	ID_SAVE_SCRIPT, ID_SAVE_SCRIPT_AS, ID_SCRIPT_HELP
+	ID_SAVE_SCRIPT, ID_SAVE_SCRIPT_AS, ID_SCRIPT_HELP, ID_SCRIPT_FIND, ID_SCRIPT_NEXT, //ID_SCRIPT_PREV
 };
 
 
@@ -145,6 +145,9 @@ EVT_MENU(ID_OPEN_SCRIPT, MainWindow::OnCommand)
 EVT_MENU(ID_SAVE_SCRIPT, MainWindow::OnCommand)
 EVT_MENU(ID_SAVE_SCRIPT_AS, MainWindow::OnCommand)
 EVT_MENU(ID_RUN_SCRIPT, MainWindow::OnCommand)
+EVT_MENU(ID_SCRIPT_FIND, MainWindow::OnCommand)
+EVT_MENU(ID_SCRIPT_NEXT, MainWindow::OnCommand)
+// EVT_MENU(ID_SCRIPT_PREV, MainWindow::OnCommand)
 EVT_BUTTON(wxID_HELP, MainWindow::OnCommand)
 EVT_MENU(ID_SCRIPT_VARIABLES, MainWindow::OnCommand)
 END_EVENT_TABLE()
@@ -220,6 +223,9 @@ MainWindow::MainWindow()
 	entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F5, ID_RUN_SCRIPT));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_SHIFT, WXK_F1, ID_SCRIPT_HELP));
     entries.push_back(wxAcceleratorEntry(wxACCEL_SHIFT, WXK_F2, ID_SCRIPT_VARIABLES));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'f', ID_SCRIPT_FIND));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F3, ID_SCRIPT_NEXT));
+    // entries.push_back(wxAcceleratorEntry(wxACCEL_SHIFT, WXK_F3, ID_SCRIPT_PREV));
 	SetAcceleratorTable(wxAcceleratorTable(entries.size(), &entries[0]));
 
 	
@@ -775,6 +781,12 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
 		break;
     case ID_SCRIPT_VARIABLES:
         m_ScriptViewForm->CreateVariableDialog();
+        break;
+    case ID_SCRIPT_NEXT:
+        m_ScriptViewForm->GetEditor()->FindNext();
+        break;
+    case ID_SCRIPT_FIND:
+        m_ScriptViewForm->GetEditor()->ShowFindReplaceDialog();
         break;
 	};
 }
