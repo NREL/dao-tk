@@ -109,8 +109,8 @@ parameters::parameters()
     num_turbines.set(                        1,                 "num_turbines",      false,               "Number of turbine-generator shafts",        "-",                  "Cycle|Parameters" );
     read_periods.set(                        0,                 "read_periods",      false,                      "Number of read-only periods",        "-",                  "Cycle|Parameters" );
     sim_length.set(                         48,                   "sim_length",      false,            "Number of periods in cycle simulation",        "-",                  "Cycle|Parameters" );
-    start_period.set(                        0,                 "start_period",      false,                "Cycle simuilation starting period",        "-",                  "Cycle|Parameters" );
-    next_start_period.set(                   0,            "next_start_period",      false,           "Next cycle simuilation starting period",        "-",                  "Cycle|Parameters" );
+    start_period.set(                        0,                 "start_period",      false,                 "Cycle simulation starting period",        "-",                  "Cycle|Parameters" );
+    next_start_period.set(                   0,            "next_start_period",      false,            "Next cycle simulation starting period",        "-",                  "Cycle|Parameters" );
     write_interval.set(                     48,               "write_interval",      false,    "Number of periods in rolling horizon interval",        "-",                  "Cycle|Parameters" );
     num_scenarios.set(                       1,                "num_scenarios",      false,                              "Number of scenarios",        "-",                  "Cycle|Parameters" );
 
@@ -146,7 +146,7 @@ parameters::parameters()
     startup_frac.set(                      0.5,                 "startup_frac",      false,                       "Power block startup energy",  "MWh/MWh",             "Simulation|Parameters" );
     v_wind_max.set(                        15.,                   "v_wind_max",      false,                    "Max operational wind velocity",      "m/s",             "Simulation|Parameters" );
     flux_max.set(                        1000.,                     "flux_max",      false,                            "Maximum receiver flux",    "kW/m2",             "Simulation|Parameters" );
-    maintenance_interval.set(            5000.,         "maintenance_interval",      false,      "Runtime duration betwwen maintenance events",        "h",                  "Cycle|Parameters" );
+    maintenance_interval.set(            5000.,         "maintenance_interval",      false,      "Runtime duration between maintenance events",        "h",                  "Cycle|Parameters" );
     maintenance_duration.set(             168.,         "maintenance_duration",      false,                   "Duration of maintenance events",        "h",                  "Cycle|Parameters" );
     downtime_threshold.set(                 24,           "downtime_threshold",      false,                "Downtime threshold for warm start",        "h",                  "Cycle|Parameters" );
     steplength.set(                         1.,                   "steplength",      false,                    "Simulation time period length",        "h",                  "Cycle|Parameters" );
@@ -158,8 +158,8 @@ parameters::parameters()
     time_in_standby.set(                    0.,              "time_in_standby",      false,               "Initial power cycle time in stndby",        "h",                  "Cycle|Parameters" );
     downtime.set(                           0.,                     "downtime",      false,                     "Initial power cycle downtime",        "h",                  "Cycle|Parameters" );
     shutdown_capacity.set(                 0.3,            "shutdown_capacity",      false,            "Threshold capacity to shut plant down",        "h",                  "Cycle|Parameters" );
-    no_restart_capacity.set(               0.9,          "no_restart_capacity",      false, "Threshold capacity to perform maintenance on shutdown",   "h",                  "Cycle|Parameters" );
-	cycle_hourly_labor_cost.set(50., "cycle_hourly_labor_cost", false, "Hourly cost for repair of failed components in power cycle", "h", "Cycle|Parameters");
+    no_restart_capacity.set(               0.9,          "no_restart_capacity",      false,   "Threshold capacity for maintenance on shutdown",        "h",                  "Cycle|Parameters" );
+	cycle_hourly_labor_cost.set           (50.,       "cycle_hourly_labor_cost",     false,       "Hourly cost for repair of cycle components",        "h",                  "Cycle|Parameters" );
 
 	std::vector< double > pval = { 0., 7., 200., 12000. };
     c_ces.set(                            pval,                        "c_ces",      false );
@@ -423,7 +423,7 @@ cycle_outputs::cycle_outputs()
 
     cycle_efficiency.set(            empty_vec,             "cycle_efficiency",       true,                     "Cycle efficiency time series",        "-",                     "Cycle|Outputs" );
     cycle_capacity.set(              empty_vec,               "cycle_capacity",       true,                       "Cycle capacity time series",        "-",                     "Cycle|Outputs" );
-	cycle_labor_cost.set(nan, "cycle_labor_cost", true, "Expected labor costs for power cycle repair", "-", "Cycle|Outputs");
+	cycle_labor_cost.set(                  nan,             "cycle_labor_cost",       true,      "Expected labor costs for power cycle repair",        "-",                     "Cycle|Outputs" );
 
 	(*this)["cycle_efficiency"] = &cycle_efficiency;
 	(*this)["cycle_capacity"] = &cycle_capacity;
