@@ -119,19 +119,21 @@ int MyApp::OnExit()
 }
 
 enum {
-	ID_MAIN_MENU = wxID_HIGHEST + 123, ID_TABS, 
-	ID_NEW_SCRIPT, ID_OPEN_SCRIPT, ID_RUN_SCRIPT, 
-	ID_SAVE_SCRIPT, ID_SAVE_SCRIPT_AS
+	ID_MAIN_MENU = wxID_HIGHEST + 123, ID_SCRIPT_MENU, ID_TABS, 
+	ID_NEW_SCRIPT, ID_OPEN_SCRIPT, ID_RUN_SCRIPT, ID_SCRIPT_VARIABLES,
+	ID_SAVE_SCRIPT, ID_SAVE_SCRIPT_AS, ID_SCRIPT_HELP
 };
 
 
 
 BEGIN_EVENT_TABLE(MainWindow, wxFrame)
 EVT_BUTTON(ID_MAIN_MENU, MainWindow::OnCommand)
+EVT_BUTTON(ID_SCRIPT_MENU, MainWindow::OnCommand)
 EVT_LISTBOX(ID_TABS, MainWindow::OnCaseTabChange)
 EVT_CLOSE(MainWindow::OnClose)
 EVT_MENU(wxID_ABOUT, MainWindow::OnCommand)
 EVT_MENU(wxID_HELP, MainWindow::OnCommand)
+EVT_MENU(ID_SCRIPT_HELP, MainWindow::OnCommand)
 EVT_MENU(wxID_NEW, MainWindow::OnCommand)
 EVT_MENU(wxID_OPEN, MainWindow::OnCommand)
 EVT_MENU(wxID_SAVE, MainWindow::OnCommand)
@@ -144,6 +146,7 @@ EVT_MENU(ID_SAVE_SCRIPT, MainWindow::OnCommand)
 EVT_MENU(ID_SAVE_SCRIPT_AS, MainWindow::OnCommand)
 EVT_MENU(ID_RUN_SCRIPT, MainWindow::OnCommand)
 EVT_BUTTON(wxID_HELP, MainWindow::OnCommand)
+EVT_MENU(ID_SCRIPT_VARIABLES, MainWindow::OnCommand)
 END_EVENT_TABLE()
 
 static MainWindow *g_mainWindow = 0;
@@ -180,10 +183,13 @@ MainWindow::MainWindow()
     m_local_dir.AppendDir("dao-tk");
 
 	wxBoxSizer *tools = new wxBoxSizer(wxHORIZONTAL);
-	tools->Add(m_mainMenuButton = new wxMetroButton(this, ID_MAIN_MENU, wxEmptyString, wxBITMAP_PNG_FROM_DATA(menu), wxDefaultPosition, wxDefaultSize /*, wxMB_DOWNARROW */), 0, wxALL | wxEXPAND, 0);
+
+	tools->Add(m_mainMenuButton = new wxMetroButton(this, ID_MAIN_MENU, wxEmptyString, wxIcon( m_image_dir.GetPath() + "/main-menu.png", wxBITMAP_TYPE_PNG ), wxDefaultPosition, wxDefaultSize /*, wxMB_DOWNARROW */), 0, wxALL | wxEXPAND, 0);
+    
+	tools->Add(m_scriptMenuButton = new wxMetroButton(this, ID_SCRIPT_MENU, wxEmptyString, wxIcon( m_image_dir.GetPath() + "/script-menu.png", wxBITMAP_TYPE_PNG ), wxDefaultPosition, wxDefaultSize /*, wxMB_DOWNARROW */), 0, wxALL | wxEXPAND, 0);
 	m_tabList = new wxMetroTabList(this, ID_TABS, wxDefaultPosition, wxDefaultSize);
 	tools->Add(m_tabList, 1, wxALL | wxEXPAND, 0);
-	tools->Add(new wxMetroButton(this, wxID_HELP, wxEmptyString, wxBITMAP_PNG_FROM_DATA(qmark), wxDefaultPosition, wxDefaultSize), 0, wxALL | wxEXPAND, 0);
+	tools->Add(new wxMetroButton(this, ID_SCRIPT_HELP, wxEmptyString, wxBITMAP_PNG_FROM_DATA(qmark), wxDefaultPosition, wxDefaultSize), 0, wxALL | wxEXPAND, 0);
 
 	m_notebook = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
 
@@ -205,11 +211,15 @@ MainWindow::MainWindow()
 	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'o', wxID_OPEN));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 's', wxID_SAVE));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'w', wxID_CLOSE));
+	entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F1, wxID_CLOSE));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL|wxACCEL_SHIFT, 'a', wxID_SAVEAS));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL|wxACCEL_SHIFT, 'o', ID_OPEN_SCRIPT));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL|wxACCEL_SHIFT, 'n', ID_NEW_SCRIPT));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL|wxACCEL_SHIFT, 's', ID_SAVE_SCRIPT));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL|wxACCEL_SHIFT, 's', ID_SAVE_SCRIPT_AS));
 	entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F5, ID_RUN_SCRIPT));
-	entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F1, wxID_HELP));
+	entries.push_back(wxAcceleratorEntry(wxACCEL_SHIFT, WXK_F1, ID_SCRIPT_HELP));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_SHIFT, WXK_F2, ID_SCRIPT_VARIABLES));
 	SetAcceleratorTable(wxAcceleratorTable(entries.size(), &entries[0]));
 
 	
@@ -706,13 +716,8 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
 		menu.Append(wxID_NEW, "New project\tCtrl-N");
 		menu.Append(wxID_OPEN, "Open project\tCtrl-O");
 		menu.Append(wxID_SAVE, "Save project\tCtrl-S");
-		menu.Append(wxID_SAVEAS, "Save project as...");
-		menu.AppendSeparator();
-		menu.Append(ID_NEW_SCRIPT, "New script\tCtrl+Shift-N");
-		menu.Append(ID_OPEN_SCRIPT, "Open script\tCtrl+Shift-O");
-		menu.Append(ID_SAVE_SCRIPT, "Save script\tCtrl+Shift-S");
-		menu.Append(ID_SAVE_SCRIPT_AS, "Save script as...");
-		menu.Append(ID_RUN_SCRIPT, "Run script\tF5");
+		menu.Append(wxID_SAVEAS, "Save project as...\tCtrl+Shift-A");
+		menu.Append(wxID_HELP, "Software help...\tF1");
 		menu.AppendSeparator();
 		menu.Append(wxID_CLOSE, "Close project\tCtrl-W");
 		menu.Append(wxID_EXIT, "Quit");
@@ -737,7 +742,22 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
 		break;
 	case wxID_HELP:
 		//ShowHelpTopic("home");
+        m_ScriptViewForm->GetEditor()->ShowHelpDialog(m_ScriptViewForm);
 		break;
+    case ID_SCRIPT_MENU:
+    {
+        wxPoint p = m_scriptMenuButton->ClientToScreen(wxPoint(0, m_scriptMenuButton->GetClientSize().y));
+		wxMetroPopupMenu menu;
+		menu.Append(ID_NEW_SCRIPT, "New script\tCtrl+Shift-N");
+		menu.Append(ID_OPEN_SCRIPT, "Open script\tCtrl+Shift-O");
+		menu.Append(ID_SAVE_SCRIPT, "Save script\tCtrl+Shift-S");
+		menu.Append(ID_SAVE_SCRIPT_AS, "Save script as...");
+		menu.Append(ID_RUN_SCRIPT, "Run script\tF5");
+        menu.Append(wxID_HELP, "Scripting help\tShift+F1");
+        menu.Append(ID_SCRIPT_VARIABLES, "Script variables\tShift+F2");
+		menu.Popup(this, p);
+    }
+        break;
 	case ID_RUN_SCRIPT:
 		m_ScriptViewForm->Exec();
 		break;
@@ -753,6 +773,9 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
 	case ID_SAVE_SCRIPT_AS:
 		m_ScriptViewForm->SaveAs();
 		break;
+    case ID_SCRIPT_VARIABLES:
+        m_ScriptViewForm->CreateVariableDialog();
+        break;
 	};
 }
 
