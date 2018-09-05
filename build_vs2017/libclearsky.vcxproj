@@ -19,27 +19,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\libsolar\solarfield_avail.cpp" />
-    <ClCompile Include="..\libsolar\solarfield_heliostat.cpp" />
-    <ClCompile Include="..\libsolar\solarfield_staff.cpp" />
-    <ClCompile Include="..\libsolar\solarfield_structures.cpp" />
+    <ClCompile Include="..\libclearsky\clearsky.cpp" />
+    <ClCompile Include="..\libclearsky\solpos.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\libsolar\solarfield_avail.h" />
-    <ClInclude Include="..\libsolar\solarfield_heliostat.h" />
-    <ClInclude Include="..\libsolar\solarfield_staff.h" />
-    <ClInclude Include="..\libsolar\solarfield_structures.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="libclearsky.vcxproj">
-      <Project>{809d27ce-1241-4503-a38a-4bf90b683612}</Project>
-    </ProjectReference>
+    <ClInclude Include="..\libclearsky\clearsky.h" />
+    <ClInclude Include="..\libclearsky\solpos00.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{03C32DFE-081B-4DA8-8944-776BA8EE0A10}</ProjectGuid>
+    <ProjectGuid>{809D27CE-1241-4503-A38A-4BF90B683612}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>libsolar</RootNamespace>
-    <ProjectName>libsolar</ProjectName>
+    <RootNamespace>libclearsky</RootNamespace>
+    <ProjectName>libclearsky</ProjectName>
     <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -89,25 +80,25 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>target\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <TargetName>libsolar32d</TargetName>
+    <TargetName>libclearsky32d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>target\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <TargetName>libsolar32d</TargetName>
+    <TargetName>libclearsky32d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <TargetName>libsolar32</TargetName>
+    <TargetName>libclearsky32</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <TargetName>libsolar</TargetName>
+    <TargetName>libclearsky</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
@@ -122,10 +113,10 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <TargetName>libsolard32</TargetName>
+    <TargetName>libclearskyd32</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetName>libsolard</TargetName>
+    <TargetName>libclearskyd</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug32|Win32'">
     <OutDir>target\</OutDir>
@@ -134,7 +125,7 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug32|Win32'">
-    <TargetName>libsolar32d</TargetName>
+    <TargetName>libclearsky32d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release32|Win32'">
     <OutDir>target\</OutDir>
@@ -143,7 +134,7 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release32|Win32'">
-    <TargetName>libsolar32</TargetName>
+    <TargetName>libclearsky32</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release32|x64'">
     <OutDir>target\</OutDir>
@@ -152,7 +143,7 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release32|x64'">
-    <TargetName>libsolar64</TargetName>
+    <TargetName>libclearsky64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug32|x64'">
     <OutDir>target\</OutDir>
@@ -161,7 +152,7 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug32|x64'">
-    <TargetName>libsolar64d</TargetName>
+    <TargetName>libclearsky64d</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -199,7 +190,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>__DLL__;__32BIT__;__WINDOWS__;__VISUALC__;_CRT_SECURE_NO_WARNINGS; _CRT_SECURE_NO_WARNINGS; _CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\libsolar;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\libclearsky;$(SSCDIR)/shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -223,7 +214,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>__DLL__;__64BIT__;__WINDOWS__;__VISUALC__;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\libsolar;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\libclearsky;$(SSCDIR)/shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -243,7 +234,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>__DLL__;__32BIT__;__WINDOWS__;_DEBUG;__VISUALC__;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\libsolar;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\libclearsky;$(SSCDIR)/shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
@@ -258,7 +249,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>__DLL__;__64BIT__;__WINDOWS__;_DEBUG;__VISUALC__;_CRT_SECURE_NO_WARNINGS;</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\libsolar;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\libclearsky;$(SSCDIR)/shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>

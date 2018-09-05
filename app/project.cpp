@@ -90,8 +90,9 @@ parameters::parameters()
 	is_stochastic_disp.set( false, "is_stochastic_disp", false, "Run stochastic dispatch", "-", "Settings" );
 	current_standby.set(false, "current_standby", false, "Start power cycle in standby", "-", "Cycle|Parameters");
 
-	ampl_data_dir.set( "", "ampl_data_dir", false, "AMPL data folder", "-", "Settings" );
-	solar_resource_file.set( "", "solar_resource_file", false, "Solar resource file", "-", "Settings" );
+	std::string empty_string = "";
+	ampl_data_dir.set("", "ampl_data_dir", false, "AMPL data folder", "-", "Settings" );
+	solar_resource_file.set(empty_string, "solar_resource_file", false, "Solar resource file", "-", "Settings" );
 
 	disp_steps_per_hour.set( 1, "disp_steps_per_hour", false, "Dispatch time steps per hour", "-", "Settings" );
 	avail_seed.set( 123, "avail_seed", false, "Random number generator seed", "-", "Heliostat availability|Parameters" );
@@ -126,8 +127,6 @@ parameters::parameters()
 	om_staff_cost.set( 75, "om_staff_cost", false, "O&M staff cost rate", "$/hr", "Financial parameters");
 	wash_crew_cost.set( 65. + 10. + 25, "wash_crew_cost", false, "Wash crew cost rate", "$/hr", "Financial parameters" );
 	heliostat_refurbish_cost.set( 144. * 25 + 90 * 4., "heliostat_refurbish_cost", false, "Mirror replacement cost", "$", "Optical degradation|Parameters" );
-	helio_mtf.set( 12000, "helio_mtf", false, "Heliostat mean time to failure", "hr", "Heliostat availability|Parameters" );
-	heliostat_repair_cost.set( 300, "heliostat_repair_cost", false, "Heliostat repair cost", "$", "Heliostat availability|Parameters" );
 	om_staff_max_hours_week.set( 35, "om_staff_max_hours_week", false, "Max O&M staff hours per week", "hr", "Heliostat availability|Parameters" );
 	n_heliostats_sim.set( 1000, "n_heliostats_sim", false, "Number of simulated heliostats", "-", "Heliostat availability|Parameters" );
 	wash_units_per_hour.set( 45., "wash_units_per_hour", false, "Heliostat wash rate", "1/crew-hr", "Optical degradation|Parameters" );
@@ -160,20 +159,53 @@ parameters::parameters()
 	downtime.set(0., "downtime", false, "Initial power cycle downtime", "h", "Cycle|Parameters");
 	shutdown_capacity.set(0.3, "shutdown_capacity", false, "Threshold capacity to shut plant down", "h", "Cycle|Parameters");
 	no_restart_capacity.set(0.9, "no_restart_capacity", false, "Threshold capacity to perform maintenance on shutdown", "h", "Cycle|Parameters");
-	
+
 	std::vector< double > pval = { 0., 7., 200., 12000. };
 	c_ces.set( pval, "c_ces", false );
 
 	std::vector< double > pvalts(8760, 1.);
-	dispatch_factors_ts.set( pvalts, "dispatch_factors_ts", false );
-	dispatch_factors_ts.set( pvalts, "user_sf_avail", false );
+	dispatch_factors_ts.set(pvalts, "dispatch_factors_ts", false);
 
 	std::vector< double > c_eff_cold = { 0., 1., 1. };
 	condenser_eff_cold.set(c_eff_cold, "condenser_eff_cold", false);
 
 	std::vector< double > c_eff_hot = { 0., 0.95, 1. };
-	condenser_eff_hot.set(c_eff_hot, "condenser_eff_hot", false );
-	
+	condenser_eff_hot.set(c_eff_hot, "condenser_eff_hot", false);
+
+
+	// Availability parameters
+	std::string rp = "mean_repair_time";
+	helio_repair_priority.set(rp, "helio_repair_priority", false, "Heliostat repair priority", "-", "Heliostat availability|Parameters");
+	avail_model_timestep.set(24, "avail_model_timestep", false, "Availability model timestep", "hr", "Heliostat availability|Parameters");
+
+	std::vector< double > shape = { 1. };
+	std::vector< double > scale = { 12000. };
+	std::vector< double > mtr = { 2. };
+	std::vector< double > repair_cost = { 300. };
+	helio_comp_weibull_shape.set(shape, "helio_comp_weibull_shape", false, "Helio component Weibull shape params", "-", "Heliostat availability|Parameters");
+	helio_comp_weibull_scale.set(scale, "helio_comp_weibull_scale", false, "Helio component Weibull scale params", "hr", "Heliostat availability|Parameters");
+	helio_comp_mtr.set(mtr, "helio_comp_mtr", false, "Helio component mean time to repair", "hr", "Heliostat availability|Parameters");
+	helio_comp_repair_cost.set(repair_cost, "helio_comp_repair_cost", false, "Helio component repair cost", "$", "Heliostat availability|Parameters");
+
+	// Clustering parameters
+	is_use_clusters.set(false, "is_use_clusters", false, "Use clusters?", "-", "Settings");
+	n_clusters.set(30, "n_clusters", false, "Number of clusters", "-", "Settings");
+
+	cluster_ndays.set(2, "cluster_ndays", false);
+	cluster_nprev.set(1, "cluster_nprev", false);
+	is_hard_partitions.set(true, "is_hard_partitions", false);
+	is_run_continuous.set(true, "is_run_continuous", false);
+	std::string ca = "affinity_propagation";
+	cluster_algorithm.set(ca, "cluster_algorithm", false);
+
+	std::vector<double> default_feature_wts = { 1.0, 0.5, 0.5, 0.0, 1.0, 0.5, 0.5, 0.25, 0.25 };
+	std::vector<double> default_feature_divs = { 8, 4, 4, 1, 8, 4, 4, 4, 4 };
+	clustering_feature_weights.set(default_feature_wts, "clustering_feature_weights", true);
+	clustering_feature_divisions.set(default_feature_wts, "clustering_feature_divs", true);
+
+
+
+
     (*this)["print_messages"] = &print_messages;
     (*this)["check_max_flux"] = &check_max_flux;
     (*this)["is_optimize"] = &is_optimize;
@@ -215,8 +247,7 @@ parameters::parameters()
     (*this)["om_staff_cost"] = &om_staff_cost;
     (*this)["wash_crew_cost"] = &wash_crew_cost;
     (*this)["heliostat_refurbish_cost"] = &heliostat_refurbish_cost;
-    (*this)["helio_mtf"] = &helio_mtf;
-    (*this)["heliostat_repair_cost"] = &heliostat_repair_cost;
+
     (*this)["om_staff_max_hours_week"] = &om_staff_max_hours_week;
     (*this)["n_heliostats_sim"] = &n_heliostats_sim;
     (*this)["wash_units_per_hour"] = &wash_units_per_hour;
@@ -254,6 +285,24 @@ parameters::parameters()
 	(*this)["user_sf_avail"] = &user_sf_avail;
 	(*this)["condenser_eff_cold"] = &condenser_eff_cold;
 	(*this)["condenser_eff_hot"] = &condenser_eff_hot;
+
+	(*this)["helio_repair_priority"] = &helio_repair_priority;
+	(*this)["avail_model_timestep"] = &avail_model_timestep;
+	(*this)["helio_comp_weibull_shape"] = &helio_comp_weibull_shape;
+	(*this)["helio_comp_weibull_scale"] = &helio_comp_weibull_scale;
+	(*this)["helio_comp_mtr"] = &helio_comp_mtr;
+	(*this)["helio_comp_repair_cost"] = &helio_comp_repair_cost;
+
+	(*this)["is_use_clusters"] = &is_use_clusters;
+	(*this)["n_clusters"] = &n_clusters;
+	(*this)["cluster_ndays"] = &cluster_ndays;
+	(*this)["cluster_nprev"] = &cluster_nprev;
+	(*this)["is_hard_partitions"] = &is_hard_partitions;
+	(*this)["is_run_continuous"] = &is_run_continuous;
+	(*this)["cluster_algorithm"] = &cluster_algorithm;
+	(*this)["clustering_feature_weights"] = &clustering_feature_weights;
+	(*this)["clustering_feature_divisions"] = &clustering_feature_divisions;
+
 }
 
 design_outputs::design_outputs()
@@ -312,19 +361,24 @@ solarfield_outputs::solarfield_outputs()
 	*/
 
 	double nan = std::numeric_limits<double>::quiet_NaN();
+
 	n_repairs.set(nan, "n_repairs", true, "Number of heliostat repairs", "-", "Heliostat availability|Outputs");
 	staff_utilization.set(nan, "staff_utilization", true, "Staff utilization", "-", "Heliostat availability|Outputs");
 	heliostat_repair_cost_y1.set(nan, "heliostat_repair_cost_y1", true, "Heliostat repair cost (year 1)", "$", "Heliostat availability|Outputs");
 	heliostat_repair_cost.set(nan, "heliostat_repair_cost", true);
+	avg_avail.set(nan, "avg_avail", true, "Average lifetime availability", "-", "Heliostat availability|Outputs");
 
 	std::vector< double > empty_vec;
 	avail_schedule.set(empty_vec, "avail_schedule", true);
+	n_repairs_per_component.set(empty_vec, "n_repairs_per_component", true, "Average annual heliostat component repairs", "-", "Heliostat availability|Outputs");
 
     (*this)["n_repairs"] = &n_repairs;
     (*this)["staff_utilization"] = &staff_utilization;
     (*this)["heliostat_repair_cost_y1"] = &heliostat_repair_cost_y1;
-    (*this)["heliostat_repair_cost"] = &heliostat_repair_cost;
+    (*this)["heliostat_repair_cost_real"] = &heliostat_repair_cost;
     (*this)["avail_schedule"] = &avail_schedule;
+	(*this)["avg_avail"] = &avg_avail;
+	(*this)["n_repairs_per_component"] = &n_repairs_per_component;
 
 }
 
@@ -349,7 +403,7 @@ optical_outputs::optical_outputs()
 	repl_total.set(empty_vec, "repl_total", true );
 
     (*this)["n_replacements"] = &n_replacements;
-    (*this)["heliostat_refurbish_cost"] = &heliostat_refurbish_cost;
+    (*this)["heliostat_refurbish_cost_real"] = &heliostat_refurbish_cost;
     (*this)["heliostat_refurbish_cost_y1"] = &heliostat_refurbish_cost_y1;
     (*this)["avg_soil"] = &avg_soil;
     (*this)["avg_degr"] = &avg_degr;
@@ -386,8 +440,20 @@ simulation_outputs::simulation_outputs()
 	dni_templates.set(empty_vec, "dni_templates", true, "DNI clusters", "W/m2", "Simulation|Outputs");
 	price_templates.set(empty_vec, "price_templates", true, "Price clusters", "-", "Simulation|Outputs");
 
+
 	annual_generation.set(nan, "annual_generation", true, "Annual total generation", "GWhe", "Simulation|Outputs");
-	annual_revenue.set(nan, "annual_revenue", true, "Annual revenue units", "-", "Simulation|Outputs");
+	annual_revenue_units.set(nan, "annual_revenue_units", true, "Annual revenue units", "-", "Simulation|Outputs");
+
+	annual_rec_starts.set(nan, "annual_rec_starts", true, "Annual receiver starts", "-", "Simulation|Outputs");
+	annual_cycle_starts.set(nan, "annual_cycle_starts", true, "Annual cycle starts", "-", "Simulation|Outputs");
+	annual_cycle_ramp.set(nan, "annual_cycle_ramp", true, "Annual cycle ramping", "GWe", "Simulation|Outputs");
+	cycle_ramp_index.set(nan, "cycle_ramp_index", true, "Cycle ramp index", "%", "Simulation|Outputs");
+
+	annual_rec_starts_disp.set(nan, "annual_rec_starts_disp", true, "Annual receiver starts from dispatch soln", "-", "Simulation|Outputs");
+	annual_cycle_starts_disp.set(nan, "annual_cycle_starts_disp", true, "Annual cycle starts from dispatch soln", "-", "Simulation|Outputs");
+	annual_cycle_ramp_disp.set(nan, "annual_cycle_ramp_disp", true, "Annual cycle ramping from dispatch soln", "GWe", "Simulation|Outputs");
+	cycle_ramp_index_disp.set(nan, "cycle_ramp_index_disp", true, "Cycle ramp index from dispatch soln", "%", "Simulation|Outputs");
+
 
 	(*this)["generation_arr"] = &generation_arr;
 	(*this)["solar_field_power_arr"] = &solar_field_power_arr;
@@ -397,9 +463,102 @@ simulation_outputs::simulation_outputs()
 	(*this)["dni_templates"] = &dni_templates;
 	(*this)["price_templates"] = &price_templates;
 	(*this)["annual_generation"] = &annual_generation;
-	(*this)["annual_revenue"] = &annual_revenue;
+	(*this)["annual_revenue_units"] = &annual_revenue_units;
+	(*this)["annual_rec_starts"] = &annual_rec_starts;
+	(*this)["annual_cycle_starts"] = &annual_cycle_starts;
+	(*this)["annual_cycle_ramp"] = &annual_cycle_ramp;
+	(*this)["cycle_ramp_index"] = &cycle_ramp_index;
+	(*this)["annual_rec_starts_disp"] = &annual_rec_starts_disp;
+	(*this)["annual_cycle_starts_disp"] = &annual_cycle_starts_disp;
+	(*this)["annual_cycle_ramp_disp"] = &annual_cycle_ramp_disp;
+	(*this)["cycle_ramp_index_disp"] = &cycle_ramp_index_disp;
 }
 
+explicit_outputs::explicit_outputs()
+{
+	double nan = std::numeric_limits<double>::quiet_NaN();
+	cost_receiver_real.set(nan, "cost_receiver_real", true);
+	cost_tower_real.set(nan, "cost_tower_real", true);
+	cost_plant_real.set(nan, "cost_plant_real", true);
+	cost_tes_real.set(nan, "cost_tes_real", true);
+
+	heliostat_om_labor_y1.set(nan, "heliostat_om_labor_y1", true);
+	heliostat_om_labor_real.set(nan, "heliostat_om_labor", true);
+	heliostat_wash_cost_y1.set(nan, "heliostat_wash_cost_y1", true);
+	heliostat_wash_cost_real.set(nan, "heliostat_wash_cost", true);
+
+	(*this)["heliostat_om_labor_y1"] = &heliostat_om_labor_y1;
+	(*this)["heliostat_wash_cost_y1"] = &heliostat_wash_cost_y1;
+
+}
+
+financial_outputs::financial_outputs()
+{
+	double nan = std::numeric_limits<double>::quiet_NaN();
+
+	lcoe_nom.set(nan, "lcoe_nom", true);
+	lcoe_real.set(nan, "lcoe_real", true);
+	ppa.set(nan, "ppa", true);
+	project_return_aftertax_npv.set(nan, "project_return_aftertax_npv", true);
+	project_return_aftertax_irr.set(nan, "project_return_aftertax_irr", true);
+	total_installed_cost.set(nan, "total_installed_cost", true);
+
+
+	(*this)["project_return_aftertax_npv"] = &project_return_aftertax_npv;
+	(*this)["project_return_aftertax_irr"] = &project_return_aftertax_irr;
+	(*this)["total_installed_cost"] = &total_installed_cost;
+}
+
+objective_outputs::objective_outputs()
+{
+	double nan = std::numeric_limits<double>::quiet_NaN();
+
+	cost_receiver_real.set(nan, "cost_receiver_real", true, "Receiver cost", "$", "Objective|Outputs");
+	cost_tower_real.set(nan, "cost_tower_real", true, "Tower cost", "$", "Objective|Outputs");
+	cost_plant_real.set(nan, "cost_plant_real", true, "Plant cost", "$", "Objective|Outputs");
+	cost_tes_real.set(nan, "cost_tes_real", true, "TES cost", "$", "Objective|Outputs");
+	cost_land_real.set(nan, "cost_land_real", true, "Land cost", "$", "Objective|Outputs");				// from D
+	cost_sf_real.set(nan, "cost_sf_real", true, "Heliostat field cost", "$", "Objective|Outputs");		// from D
+	cap_cost_real.set(nan, "cap_cost_real", true, "Total Capital cost", "$", "Objective|Outputs");
+
+	rec_start_cost_real.set(nan, "rec_start_cost_real", true, "Receiver start cost", "$", "Objective|Outputs");
+	cycle_start_cost_real.set(nan, "cycle_start_cost_real", true, "Cycle start cost", "$", "Objective|Outputs");
+	cycle_ramp_cost_real.set(nan, "cycle_ramp_cost_real", true, "Cycle ramp cost", "$", "Objective|Outputs");
+	heliostat_repair_cost_real.set(nan, "heliostat_repair_cost_real", true, "Heliostat repair cost", "$", "Objective|Outputs");		  // from M
+	heliostat_om_labor_real.set(nan, "heliostat_om_labor_real", true, "Heliostat O&M labor cost", "$", "Objective|Outputs");
+	heliostat_wash_cost_real.set(nan, "heliostat_wash_cost_real", true, "Heliostat O&M wash cost", "$", "Objective|Outputs");
+	heliostat_refurbish_cost_real.set(nan, "heliostat_refurbish_cost_real", true, "Heliostat refurbish cost", "$", "Objective|Outputs"); // from O
+	om_cost_real.set(nan, "om_cost_real", true, "Total O&M cost", "$", "Objective|Outputs");
+	
+	sales.set(nan, "sales", true, "Sales", "$", "Objective|Outputs");
+	cash_flow.set(nan, "cash_flow", true, "Cash flow", "$", "Objective|Outputs");
+	ppa.set(nan, "ppa", true, "PPA price (year 1)", "c/kWhe", "Objective|Outputs");
+	lcoe_nom.set(nan, "lcoe_nom", true, "LCOE (nominal)", "c/kWhe", "Objective|Outputs");
+	lcoe_real.set(nan, "lcoe_real", true, "LCOE (real)", "c/kWhe", "Objective|Outputs");
+	
+	(*this)["cost_receiver_real"] = &cost_receiver_real;
+	(*this)["cost_tower_real"] = &cost_tower_real;
+	(*this)["cost_plant_real"] = &cost_plant_real;
+	(*this)["cost_tes_real"] = &cost_tes_real;
+	(*this)["cost_land_real"] = &cost_land_real;
+	(*this)["cost_sf_real"] = &cost_sf_real;
+	(*this)["cap_cost_real"] = &cap_cost_real;
+	(*this)["rec_start_cost_real"] = &rec_start_cost_real;
+	(*this)["cycle_start_cost_real"] = &cycle_start_cost_real;
+	(*this)["cycle_ramp_cost_real"] = &cycle_ramp_cost_real;
+	(*this)["heliostat_repair_cost_real"] = &heliostat_repair_cost_real;
+	(*this)["heliostat_om_labor_real"] = &heliostat_om_labor_real;
+	(*this)["heliostat_wash_cost_real"] = &heliostat_wash_cost_real;
+	(*this)["heliostat_refurbish_cost_real"] = &heliostat_refurbish_cost_real;
+	(*this)["om_cost_real"] = &om_cost_real;
+	(*this)["sales"] = &sales;
+	(*this)["cash_flow"] = &cash_flow;
+	(*this)["ppa"] = &ppa;
+	(*this)["lcoe_nom"] = &lcoe_nom;
+	(*this)["lcoe_real"] = &lcoe_real;
+	
+
+}
 /* 
 ---------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------
@@ -489,12 +648,18 @@ bool Project::Validate(Project::CALLING_SIM::E sim_type, std::string *error_msg)
 			}
 			break;
 		case CALLING_SIM::FINANCE:
-			if( !( is_design_valid && is_simulation_valid ) )
+			if( !( is_design_valid && is_simulation_valid && is_explicit_valid) )
 			{
 				(*error_msg).append(wxString::Format( "Error: Cannot calculate system financial metrics without a valid %s.\n",
-													is_design_valid ? "plant performance simulation" : "solar field design").c_str() );
-
+													is_design_valid ? (is_simulation_valid ? "cost simulation" : "plant performance simulation") : "solar field design").c_str() );
+				return false;
 			}
+
+			if (!is_sf_avail_valid)
+				(*error_msg).append("Notice: Calculating O&M costs without valid solar field availability model output.\n");
+			if (!is_sf_optical_valid)
+				(*error_msg).append("Notice:  Calculating O&M costs without valid solar field soiling/degradation model output.\n");
+
 			break;
 		case CALLING_SIM::OBJECTIVE:
 
@@ -514,11 +679,20 @@ void Project::Initialize()
 	is_sf_avail_valid = false;
 	is_sf_optical_valid = false;
 	is_simulation_valid = false;
+	is_explicit_valid = false;
+	is_financial_valid = false;
 
 	initialize_ssc_project();
 
-    ssc_to_lk_hash(m_ssc_data, m_parameters);
+    //ssc_to_lk_hash(m_ssc_data, m_parameters);
     ssc_to_lk_hash(m_ssc_data, m_variables);
+
+	parameters default_params;
+	lk_hash_to_ssc(m_ssc_data, default_params);
+	ssc_to_lk_hash(m_ssc_data, m_parameters);
+
+	cluster_outputs.clear();
+
 }
 
 Project::Project()
@@ -528,7 +702,7 @@ Project::Project()
 
 	//construct the merged data map
 	std::vector<lk::varhash_t*> struct_pointers = { &m_variables, &m_parameters, &m_design_outputs,
-		&m_solarfield_outputs, &m_optical_outputs, /*&m_cycle_outputs,*/ &m_simulation_outputs };
+		&m_solarfield_outputs, &m_optical_outputs, /*&m_cycle_outputs,*/ &m_simulation_outputs, &m_objective_outputs };
 
 	_merged_data.clear();
 
@@ -561,7 +735,7 @@ std::vector< void* > Project::GetDataObjects()
     std::vector< void* > rvec = {
         (void*)&m_variables, (void*)&m_parameters, //(void*)&m_cluster_parameters,
         (void*)&m_design_outputs, (void*)&m_optical_outputs, (void*)&m_solarfield_outputs,
-        (void*)&m_simulation_outputs }; // , (void*)&m_cycle_outputs
+        (void*)&m_simulation_outputs, (void*)&m_objective_outputs }; // , (void*)&m_cycle_outputs
 
     return rvec;
 }
@@ -1010,7 +1184,7 @@ bool Project::D()
 
 	update_calculated_system_values();
 	ssc_data_set_matrix(m_ssc_data, "heliostat_positions_in", (ssc_number_t*)0, 0, 0);
-	
+
     lk_hash_to_ssc(m_ssc_data, m_variables);
     lk_hash_to_ssc(m_ssc_data, m_parameters);
 
@@ -1071,17 +1245,13 @@ bool Project::M()
 	heliostat_repair_cost_y1 Total "" in first year($ / year)
 	*/
 
-	solarfield_availability sfa;
-
-	sfa.m_settings.mf = m_parameters.helio_mtf.as_number();
-	sfa.m_settings.rep_min = 1.;
-	sfa.m_settings.rep_max = 100.;
-	sfa.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
-	sfa.m_settings.n_om_staff = m_variables.om_staff.as_integer();
-	sfa.m_settings.hr_prod = m_parameters.om_staff_max_hours_week.as_number();
-	sfa.m_settings.n_hr_sim = 8760 * 12;
-	sfa.m_settings.seed = m_parameters.avail_seed.as_integer();
-	sfa.m_settings.n_helio_sim = 1000;
+	// error if invalid design
+	std::string error_msg;
+	if (!Validate(Project::CALLING_SIM::HELIO_AVAIL, &error_msg))
+	{
+		message_handler(error_msg.c_str());
+		return false;
+	}
 
 	//error if trying to simulate with no heliostats
 	if (m_design_outputs.number_heliostats.as_integer() <= 1)
@@ -1090,24 +1260,97 @@ bool Project::M()
 		return false;
 	}
 
+	solarfield_availability sfa;
+
+	sfa.m_settings.n_years = m_parameters.plant_lifetime.as_integer();
+	sfa.m_settings.step = m_parameters.avail_model_timestep.as_number();
+	
+	sfa.m_settings.n_om_staff.assign(sfa.m_settings.n_years, m_variables.om_staff.as_number());
+	sfa.m_settings.max_hours_per_day = 9.;
+	sfa.m_settings.max_hours_per_week = m_parameters.om_staff_max_hours_week.as_number();
+
+	sfa.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
+	sfa.m_settings.n_helio_sim = m_parameters.n_heliostats_sim.as_integer();
+	sfa.m_settings.seed = m_parameters.avail_seed.as_integer();
+
+	sfa.m_settings.is_fix_hours = false;
+	std::string weatherfile = m_parameters.solar_resource_file.as_string();
+	s_location loc(weatherfile);
+	sfa.m_settings.location = loc;
+
+
+	//-- Repair prioritization
+	std::string repair_priority = m_parameters.helio_repair_priority.as_string();
+	if (repair_priority == "failure_order")
+		sfa.m_settings.repair_order = FAILURE_ORDER;
+	//else if (repair_priority == "performance")
+	//	sfa.m_settings.repair_order = PERFORMANCE;
+	else if (repair_priority == "repair_time")
+		sfa.m_settings.repair_order = REPAIR_TIME;
+	else if (repair_priority == "mean_repair_time")
+		sfa.m_settings.repair_order = MEAN_REPAIR_TIME;
+	else if (repair_priority == "random")
+		sfa.m_settings.repair_order = RANDOM;
+	else
+	{
+		message_handler("Specified helio_repair_priority not recognized. Valid inputs are 'random', 'failure_order', 'repair_time', 'mean_repair_time'");
+		return false;
+	}
+
+
+	//-- Heliostat components
+	bool good_as_new = true;
+	double min_rep = 0.;
+	double max_rep = 1000.;
+	sfa.m_settings.helio_components.clear();
+	int ncomp = (int) m_parameters.helio_comp_weibull_shape.vec()->size();
+
+	if ((int)m_parameters.helio_comp_weibull_scale.vec()->size() != ncomp || (int)m_parameters.helio_comp_mtr.vec()->size() != ncomp || (int)m_parameters.helio_comp_repair_cost.vec()->size() != ncomp)
+	{
+		message_handler("Unequal number of heliostat components are specified in helio_comp_weibull_scale, helio_comp_weibull_shape, helio_comp_mtr, and helio_comp_repair_cost.");
+		return false;
+	}
+
+	for (int c = 0; c < ncomp; c++)
+	{
+		double shape = m_parameters.helio_comp_weibull_shape.vec()->at(c).as_number();
+		double scale = m_parameters.helio_comp_weibull_scale.vec()->at(c).as_number();
+		double mtr = m_parameters.helio_comp_mtr.vec()->at(c).as_number();
+		double rep_cost = m_parameters.helio_comp_repair_cost.vec()->at(c).as_number();
+		helio_component_inputs comp(shape, scale, mtr, min_rep, max_rep, good_as_new, rep_cost);
+		sfa.m_settings.helio_components.push_back(comp);
+	}
+
+
+	sfa.m_settings.is_tracking = false;
+	sfa.m_settings.helio_performance.assign(sfa.m_settings.n_helio, 1.0);
 	sfa.simulate(sim_progress_handler);
 
-	//Calculate staff cost and repair cost
-	double ann_fact = 8760. / (double)sfa.m_settings.n_hr_sim;
 
-	sfa.m_results.n_repairs *= ann_fact;	//annual repairs
-	sfa.m_results.heliostat_repair_cost_y1 = sfa.m_results.n_repairs * m_parameters.heliostat_repair_cost.as_number();
+	//Calculate staff cost and repair cost
+	sfa.m_results.heliostat_repair_cost_y1 = 0.0;
+	for (int c = 0; c < sfa.m_settings.helio_components.size(); c++)
+		sfa.m_results.heliostat_repair_cost_y1 += sfa.m_settings.helio_components[c].m_repair_cost * ( sfa.m_results.n_repairs_per_component[c] / sfa.m_settings.n_years); // Average yearly repair cost
+
 	
 	//lifetime costs
 	//treat heliostat repair costs as consuming reserve equipment paid for at the project outset
 	sfa.m_results.heliostat_repair_cost = calc_real_dollars(sfa.m_results.heliostat_repair_cost_y1);
 
     //assign outputs to project structure
-    m_solarfield_outputs.n_repairs.assign( sfa.m_results.n_repairs );
+    m_solarfield_outputs.n_repairs.assign( sfa.m_results.n_repairs / sfa.m_settings.n_years);
     m_solarfield_outputs.staff_utilization.assign( sfa.m_results.staff_utilization );
     m_solarfield_outputs.heliostat_repair_cost_y1.assign( sfa.m_results.heliostat_repair_cost_y1 );
     m_solarfield_outputs.heliostat_repair_cost.assign( sfa.m_results.heliostat_repair_cost );
-    m_solarfield_outputs.avail_schedule.assign_vector( sfa.m_results.avail_schedule, sfa.m_results.n_avail_schedule );
+	m_solarfield_outputs.avg_avail.assign(sfa.m_results.avg_avail);
+    m_solarfield_outputs.avail_schedule.assign_vector( sfa.m_results.avail_schedule);
+
+	std::vector<double> n_per_comp;
+	for (int c = 0; c < ncomp; c++)
+		n_per_comp.push_back( sfa.m_results.n_repairs_per_component[c] / sfa.m_settings.n_years );
+	
+	m_solarfield_outputs.n_repairs_per_component.assign_vector(n_per_comp);
+
 
 	is_sf_avail_valid = true;
 	return true;
@@ -1264,72 +1507,13 @@ bool Project::O()
 
 bool Project::S()
 {
-	/* 
-	
-	*/
+	//--- error if invalid design
+	std::string error_msg;
+	bool ok = Validate(Project::CALLING_SIM::SIMULATION, &error_msg);
+	message_handler(error_msg.c_str());
+	if (!ok)
+		return false;
 
-	std::vector<double> sfavail(m_parameters.user_sf_avail.vec()->size());
-	for(int i=0; i<sfavail.size(); i++)
-		sfavail.at(i) = m_parameters.user_sf_avail.vec()->at(i).as_number();
-
-	is_simulation_valid = simulate_system(m_cluster_parameters, sfavail );
-	
-	return is_simulation_valid;
-}
-
-void Project::setup_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail, s_metric_outputs &metric_results, s_cluster_outputs &cluster_results)
-{
-
-	//--- Set default inputs for all parameters
-	clustering_metrics metrics;
-	cluster_alg cluster;
-	metrics.set_default_inputs();
-	cluster.set_default_inputs();
-
-	//--- Set weather / price / solar field availability inputs
-	metrics.inputs.weather_files.clear();
-	std::string weatherfile = m_parameters.solar_resource_file.as_string();
-	metrics.inputs.weather_files.push_back(weatherfile);
-	metrics.inputs.is_price_files = false;
-    metrics.inputs.prices.clear();
-    metrics.inputs.prices.resize( m_parameters.dispatch_factors_ts.vec()->size() );
-    for (size_t i = 0; i < m_parameters.dispatch_factors_ts.vec()->size(); i++)
-        metrics.inputs.prices.at(i) = m_parameters.dispatch_factors_ts.vec()->at(i).as_number();
-
-	metrics.inputs.sfavail = sfavail;
-	metrics.inputs.stowlimit = m_parameters.v_wind_max.as_number();
-
-
-	//--- Update user-specified inputs if defined
-	if (user_inputs.nsim >-1)
-		metrics.inputs.nsimdays = user_inputs.nsim;
-
-	if (user_inputs.ncluster >-1)
-		cluster.inputs.ncluster = user_inputs.ncluster;
-
-	if (user_inputs.alg >-1)
-		cluster.inputs.alg = user_inputs.alg;
-
-	if (!user_inputs.hard_partitions)
-		cluster.inputs.hard_partitions = user_inputs.hard_partitions;
-
-
-	//--- Calculate metrics and create clusters
-	metrics.calc_metrics();
-	metric_results = metrics.results;
-
-	cluster.create_clusters(metrics.results.data);
-	cluster_results = cluster.results;
-
-
-	return;
-}
-
-
-bool Project::simulate_system(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail)
-{
-
-	int nr, nc;
 
 	//--- Set time step size from weather file
 	int nrec = 0;
@@ -1341,14 +1525,34 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 	fclose(fp);
 	nrec -= 3;
 	int wf_steps_per_hour = nrec / 8760;
-	int nperday = wf_steps_per_hour * 24;
+	double sim_ts = 1. / (double)wf_steps_per_hour;
 
-	//--- Set solar field availability
-	nr = (int)sfavail.size();
-	ssc_number_t *p_sf = new ssc_number_t[nr];
-	for (int i = 0; i<nr; i++)
-		p_sf[i] = 100.*(1. - sfavail.at(i));
-	ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sf, nr);
+	ssc_data_set_number(m_ssc_data, "time_steps_per_hour", wf_steps_per_hour);
+
+
+	//--- Set the solar field availability schedule
+	std::vector<double> avail(nrec, 1.);
+	std::vector<double> soil(nrec, 1.);
+	std::vector<double> degr(nrec, 1.);
+
+	if (is_sf_avail_valid)
+	{
+		int avail_ts = m_parameters.avail_model_timestep.as_integer();
+		calc_avg_annual_schedule(avail_ts, sim_ts, m_solarfield_outputs.avail_schedule, avail);
+	}
+	if (is_sf_optical_valid)
+	{
+		int op_ts = 1.0;  // assume 1hr time step in optical model
+		calc_avg_annual_schedule(op_ts, sim_ts, m_optical_outputs.soil_schedule, soil);
+		calc_avg_annual_schedule(op_ts, sim_ts, m_optical_outputs.degr_schedule, degr);
+	}
+
+	ssc_number_t *p_sf = new ssc_number_t[nrec];
+	for (int i = 0; i<nrec; i++)
+		p_sf[i] = 100.*(1. - avail[i]*soil[i]*degr[i]);
+	ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sf, nrec);
+	delete p_sf;
+
 
 	//--- Set ssc parameters
 	ssc_number_t val, nhel, helio_height, helio_width, dens_mirror;
@@ -1358,7 +1562,7 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 	if (m_parameters.is_ampl_engine.as_boolean())
 		ssc_data_set_string(m_ssc_data, "ampl_data_dir", m_parameters.ampl_data_dir.as_string().c_str());
 	else
-		ssc_data_set_string(m_ssc_data, "ampl_data_dir", (const char*)(""));		
+		ssc_data_set_string(m_ssc_data, "ampl_data_dir", (const char*)(""));
 
 	ssc_data_get_number(m_ssc_data, "helio_height", &helio_height);
 	ssc_data_get_number(m_ssc_data, "helio_width", &helio_width);
@@ -1366,11 +1570,10 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 	ssc_data_get_number(m_ssc_data, "number_heliostats", &nhel);
 	ssc_data_set_number(m_ssc_data, "A_sf_in", helio_height*helio_width*dens_mirror*nhel);
 	ssc_data_set_number(m_ssc_data, "N_hel", nhel);
-	
-
 	ssc_data_get_number(m_ssc_data, "base_land_area", &val);
 	ssc_data_set_number(m_ssc_data, "land_area_base", val);
 
+	int nr, nc;
 	ssc_number_t *p_fluxmap = ssc_data_get_matrix(m_ssc_data, "flux_table", &nr, &nc);
 	ssc_data_set_matrix(m_ssc_data, "flux_maps", p_fluxmap, nr, nc);
 
@@ -1386,16 +1589,362 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 	ssc_data_set_matrix(m_ssc_data, "flux_positions", p_fluxpos, nr, 2);
 
 
-	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean()); 
-	ssc_module_t mod_mspt = ssc_module_create("tcsmolten_salt");
+	//--- Run simulation
+	is_simulation_valid = simulate_system();
+	
+	return is_simulation_valid;
+}
 
+bool Project::E()
+{
+	// Receiver cost
+	double arec = m_variables.D_rec.as_number() * 3.14159 * m_variables.rec_height.as_number();
+	double e_rec = m_parameters.rec_ref_cost.as_number() * pow(arec / m_parameters.rec_ref_area.as_number(), 0.7);
+	double e_rec_real = calc_real_dollars(e_rec);
+	
+	// Tower cost
+	double e_tower = m_parameters.tower_fixed_cost.as_number() * exp(m_parameters.tower_exp.as_number() * m_variables.h_tower.as_number());
+	double e_tower_real = calc_real_dollars(e_tower);
+
+	// Plant cost
+	double del_eff = m_variables.design_eff.as_number() - 0.412;
+	double effscale = 0.0;
+	for (int i = 0; i < m_parameters.c_ces.vec()->size(); i++)
+		effscale += m_parameters.c_ces.vec()->at(i).as_number() * pow(del_eff, i);
+
+	double e_plant = (m_parameters.c_cps0.as_number() + m_parameters.c_cps1.as_number() * m_variables.P_ref.as_number()*1000.) *(1.0 + effscale);
+	double e_plant_real = calc_real_dollars(e_plant);
+
+	// TES cost
+	double e_tes = m_parameters.tes_spec_cost.as_number() * m_variables.tshours.as_number() * (m_variables.P_ref.as_number() * 1000. / m_variables.design_eff.as_number());
+	double e_tes_real = calc_real_dollars(e_tes);
+
+	// OM labor costs
+	double heliostat_om_labor_y1 = m_parameters.om_staff_cost.as_number() * m_variables.om_staff.as_number() * m_parameters.om_staff_max_hours_week.as_number()*52.;
+	double heliostat_om_labor = calc_real_dollars(heliostat_om_labor_y1, false, true);
+
+	// Washing labor costs
+	double heliostat_wash_cost_y1 = m_parameters.wash_crew_cost.as_number() * m_variables.n_wash_crews.as_number() * m_parameters.wash_crew_max_hours_week.as_number()*52.;
+	double heliostat_wash_cost = calc_real_dollars(heliostat_wash_cost_y1, false, true);
+
+
+	m_explicit_outputs.cost_receiver_real.assign(e_rec_real);
+	m_explicit_outputs.cost_tower_real.assign(e_tower_real);
+	m_explicit_outputs.cost_plant_real.assign(e_plant_real);
+	m_explicit_outputs.cost_tes_real.assign(e_tes_real);
+
+	m_explicit_outputs.heliostat_om_labor_y1.assign(heliostat_om_labor_y1);
+	m_explicit_outputs.heliostat_om_labor_real.assign(heliostat_om_labor);
+
+	m_explicit_outputs.heliostat_wash_cost_y1.assign(heliostat_wash_cost_y1);
+	m_explicit_outputs.heliostat_wash_cost_real.assign(heliostat_wash_cost);
+
+	is_explicit_valid = true;
+
+	return is_explicit_valid;
+}
+
+bool Project::F()
+{
+	// error if invalid design or simulation
+	std::string error_msg;
+	bool ok = Validate(Project::CALLING_SIM::FINANCE, &error_msg);
+	message_handler(error_msg.c_str());
+	if (!ok)
+		return false;
+
+	// Set ssc generation array from simulation outputs
+	size_t n = m_simulation_outputs.generation_arr.vec()->size();
+	ssc_number_t *p_gen = new ssc_number_t[n];
+	for (size_t i = 0; i < n; i++)
+		p_gen[i] = m_simulation_outputs.generation_arr.vec()->at(i).as_number();
+	ssc_data_set_array(m_ssc_data, "gen", p_gen, n);
+	delete[] p_gen;
+
+
+	// om_costs
+	double om_cost = 0.0;
+	om_cost += m_explicit_outputs.heliostat_om_labor_y1.as_number();
+	om_cost += m_explicit_outputs.heliostat_wash_cost_y1.as_number();
+
+	om_cost += m_simulation_outputs.annual_rec_starts.as_number() * m_parameters.disp_rsu_cost.as_number();
+	om_cost += m_simulation_outputs.annual_cycle_starts.as_number() * m_parameters.disp_csu_cost.as_number();
+	om_cost += m_simulation_outputs.annual_cycle_ramp.as_number() * 1.e6 * m_parameters.disp_pen_delta_w.as_number();
+
+	if (is_sf_avail_valid)
+		om_cost += m_solarfield_outputs.heliostat_repair_cost_y1.as_number();
+	if (is_sf_optical_valid)
+		om_cost += m_optical_outputs.heliostat_refurbish_cost_y1.as_number();
+
+	ssc_number_t *p_om = new ssc_number_t[1];
+	p_om[0] = om_cost;
+	ssc_data_set_array(m_ssc_data, "om_fixed", p_om, 1);
+	delete[] p_om;
+
+
+	// run financial model
+	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean());
+	ssc_module_t mod_fin = ssc_module_create("singleowner");
+
+	if (!ssc_module_exec_with_handler(mod_fin, m_ssc_data, ssc_progress_handler, 0))
+	{
+		message_handler("Financial simulation failed");
+		ssc_module_free(mod_fin);
+		return false;
+	}
+
+	// collect outputs
+	ssc_number_t val;
+	ssc_data_get_number(m_ssc_data, "lcoe_nom", &val);
+	m_financial_outputs.lcoe_nom.assign(val);
+
+	ssc_data_get_number(m_ssc_data, "lcoe_real", &val);
+	m_financial_outputs.lcoe_real.assign(val);
+
+	ssc_data_get_number(m_ssc_data, "ppa", &val);
+	m_financial_outputs.ppa.assign(val);
+
+	ssc_data_get_number(m_ssc_data, "project_return_aftertax_npv", &val);
+	m_financial_outputs.project_return_aftertax_npv.assign(val);
+
+	ssc_data_get_number(m_ssc_data, "project_return_aftertax_irr", &val);
+	m_financial_outputs.project_return_aftertax_irr.assign(val);
+
+	ssc_data_get_number(m_ssc_data, "total_installed_cost", &val);
+	m_financial_outputs.total_installed_cost.assign(val);
+
+	ssc_module_free(mod_fin);
+
+	is_financial_valid = true;
+
+	return is_financial_valid;
+}
+
+bool Project::Z()
+{
+
+	// Check for existing simulations 
+	// Design
+	if (!is_design_valid)
+	{
+		is_sf_avail_valid = false;
+		is_sf_optical_valid = false;
+		is_simulation_valid = false;
+		is_explicit_valid = false;
+		is_financial_valid = false;
+		D();
+	}
+	else
+		message_handler("Using existing solar field design in objective function");
+
+	// Availability
+	if (!is_sf_avail_valid)
+	{
+		is_sf_optical_valid = false;
+		is_simulation_valid = false;
+		is_financial_valid = false;
+		M();
+	}		
+	else
+		message_handler("Using existing heliostat field availability results in objective function");
+
+
+	// Degradiation/soiling
+	if (!is_sf_optical_valid)
+	{
+		is_simulation_valid = false;
+		is_financial_valid = false;
+		O();
+	}
+	else
+		message_handler("Using existing heliostat field soiling/degradation results in objective function");
+
+	// Simulation
+	if (!is_simulation_valid)
+	{
+		is_financial_valid = false;
+		S();
+	}
+	else
+		message_handler("Using existing annual performance results in objective function");
+
+	// Explicit cost terms
+	if (!is_explicit_valid)
+	{
+		is_financial_valid = false;
+		E();
+	}
+	else
+		message_handler("Using existing cost results in objective function");
+
+
+	// Financial simulation
+	if (!is_financial_valid)
+		F();
+	else
+		message_handler("Using existing financial results in objective function");
+
+
+	//-- Capital costs -> all already defined in outputs from E() and D()
+	m_objective_outputs.cost_receiver_real.assign(m_explicit_outputs.cost_receiver_real.as_number()); // E
+	m_objective_outputs.cost_tower_real.assign(m_explicit_outputs.cost_tower_real.as_number());		  // E
+	m_objective_outputs.cost_plant_real.assign(m_explicit_outputs.cost_plant_real.as_number());		  // E
+	m_objective_outputs.cost_tes_real.assign(m_explicit_outputs.cost_tes_real.as_number());			  // E
+	m_objective_outputs.cost_land_real.assign(m_design_outputs.cost_land_real.as_number());			  // D
+	m_objective_outputs.cost_sf_real.assign(m_design_outputs.cost_sf_real.as_number());				  // D
+
+	double cap_cost = m_objective_outputs.cost_receiver_real.as_number() +
+					m_objective_outputs.cost_tower_real.as_number() +
+					m_objective_outputs.cost_plant_real.as_number() +
+					m_objective_outputs.cost_tes_real.as_number() +
+					m_objective_outputs.cost_land_real.as_number() +
+					m_objective_outputs.cost_sf_real.as_number();
+
+	m_objective_outputs.cap_cost_real.assign(cap_cost);
+
+
+	//-- O&M costs
+	m_objective_outputs.heliostat_om_labor_real.assign(m_explicit_outputs.heliostat_om_labor_real.as_number());				// E
+	m_objective_outputs.heliostat_wash_cost_real.assign(m_explicit_outputs.heliostat_wash_cost_real.as_number());			// E
+	m_objective_outputs.heliostat_repair_cost_real.assign(m_solarfield_outputs.heliostat_repair_cost.as_number());		// M
+	m_objective_outputs.heliostat_refurbish_cost_real.assign(m_optical_outputs.heliostat_refurbish_cost.as_number());	// O
+
+	double rec_start_cost_y1 = m_simulation_outputs.annual_rec_starts.as_number() * m_parameters.disp_rsu_cost.as_number();
+	double cycle_start_cost_y1 = m_simulation_outputs.annual_cycle_starts.as_number() * m_parameters.disp_csu_cost.as_number();
+	double cycle_ramp_cost_y1 = m_simulation_outputs.annual_cycle_ramp.as_number() * 1.e6 * m_parameters.disp_pen_delta_w.as_number();
+
+	m_objective_outputs.rec_start_cost_real.assign(calc_real_dollars(rec_start_cost_y1));
+	m_objective_outputs.cycle_start_cost_real.assign(calc_real_dollars(cycle_start_cost_y1));
+	m_objective_outputs.cycle_ramp_cost_real.assign(calc_real_dollars(cycle_ramp_cost_y1));
+	
+	double om_cost = m_objective_outputs.heliostat_om_labor_real.as_number() +
+					m_objective_outputs.heliostat_wash_cost_real.as_number() +
+					m_objective_outputs.heliostat_repair_cost_real.as_number() +
+					m_objective_outputs.heliostat_refurbish_cost_real.as_number() +
+					m_objective_outputs.rec_start_cost_real.as_number() +
+					m_objective_outputs.cycle_start_cost_real.as_number() +
+					m_objective_outputs.cycle_ramp_cost_real.as_number();
+	
+	m_objective_outputs.om_cost_real.assign(om_cost);
+
+	//-- Revenue
+	ssc_number_t ppa_price_input;
+	ssc_data_get_number(m_ssc_data, "ppa_price_input", &ppa_price_input);
+	double rev = m_simulation_outputs.annual_revenue_units.as_number() * 1.e6 * ppa_price_input;  
+	double sales = calc_real_dollars(rev, true);
+	m_objective_outputs.sales.assign(sales);
+
+	// Cash flow
+	m_objective_outputs.cash_flow.assign(sales - cap_cost - om_cost);
+
+	// Financial model results
+	m_objective_outputs.ppa.assign(m_financial_outputs.ppa.as_number());				// F
+	m_objective_outputs.lcoe_nom.assign(m_financial_outputs.lcoe_nom.as_number());		// F
+	m_objective_outputs.lcoe_real.assign(m_financial_outputs.lcoe_real.as_number());	// F
+
+
+	return true;
+
+}
+
+bool Project::setup_clusters()
+{
+
+	//-- Set up metrics for cluster creation
+	clustering_metrics metrics; 
+	metrics.set_default_inputs();
+	metrics.inputs.nsimdays = m_parameters.cluster_ndays.as_integer();
+	metrics.inputs.stowlimit = m_parameters.v_wind_max.as_number();
+
+	metrics.inputs.weather_files.clear();
+	std::string weatherfile = m_parameters.solar_resource_file.as_string();
+	metrics.inputs.weather_files.push_back(weatherfile);
+	metrics.inputs.is_price_files = false;
+    metrics.inputs.prices.clear();
+    metrics.inputs.prices.resize( m_parameters.dispatch_factors_ts.vec()->size() );
+    for (size_t i = 0; i < m_parameters.dispatch_factors_ts.vec()->size(); i++)
+        metrics.inputs.prices.at(i) = m_parameters.dispatch_factors_ts.vec()->at(i).as_number();
+
+	if (m_parameters.clustering_feature_weights.vec()->size() != 9 || m_parameters.clustering_feature_weights.vec()->size() != 9)
+		message_handler("Incomplete set of clustering feature weighting factors or divisions were specified. Default values will be used");
+	else
+	{
+		std::vector<std::string> feature_order = { "dni", "dni_prev", "dni_next", "clearsky", "price", "price_prev", "price_next", "tdry", "wspd" };
+		for (int i = 0; i < feature_order.size(); i++)
+		{
+			metrics.inputs.features[feature_order[i]].weight = m_parameters.clustering_feature_weights.vec()->at(i).as_number();
+			metrics.inputs.features[feature_order[i]].divisions = m_parameters.clustering_feature_divisions.vec()->at(i).as_integer();
+		}
+	}
+
+	if (!m_parameters.is_dispatch.as_boolean())  // don't include price if not using dispatch optimization
+	{
+		metrics.inputs.features["price"].weight = 0.0;
+		metrics.inputs.features["price_prev"].weight = 0.0;
+		metrics.inputs.features["price_next"].weight = 0.0;
+	}
+
+
+
+	//--- Get the solar field availability
+	int nrec;
+	ssc_number_t *p_sf = ssc_data_get_array(m_ssc_data, "sf_adjust:hourly", &nrec);
+	metrics.inputs.sfavail.clear();
+	for (int i = 0; i < nrec; i++)
+		metrics.inputs.sfavail.push_back(1. - p_sf[i] / 100.);
 
 	
+	//-- Set up clustering parameters
+	cluster_alg cluster;
+	cluster.set_default_inputs();
+	cluster.inputs.ncluster = m_parameters.n_clusters.as_integer();
+	cluster.inputs.hard_partitions = m_parameters.is_hard_partitions.as_boolean();
+
+	std::string ca = m_parameters.cluster_algorithm.as_string();
+	if (ca == "affinity_propagation")
+		cluster.inputs.alg = AFFINITY_PROPAGATION;
+	else if (ca == "kmeans")
+		cluster.inputs.alg = KMEANS;
+	else if (ca == "random")
+		cluster.inputs.alg = RANDOM_SELECTION;
+	else
+	{
+		message_handler("Cluster setup failed because algorithm is not recognized. Valid inputs are 'affinity_propagation', 'kmeans', or 'random'. Suggested input is 'affinity_propagation'");
+		return false;
+	}
+
+	//--- Calculate metrics and create clusters
+	metrics.calc_metrics();
+	metric_outputs = metrics.results;
+
+	cluster.create_clusters(metrics.results.data);
+	cluster_outputs = cluster.results;
+
+	return true;
+}
+
+
+bool Project::simulate_system()
+{
+	int nr;
+
+	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean());
+	ssc_module_t mod_mspt = ssc_module_create("tcsmolten_salt");
+
+	//--- Get time step size from current ssc inputs
+	ssc_number_t wf_steps_per_hour;
+	ssc_data_get_number(m_ssc_data, "time_steps_per_hour", &wf_steps_per_hour);
+	int nperday = (int)wf_steps_per_hour * 24;
+	int nrec = (int)wf_steps_per_hour * 8760;
+
 
 	//--- Initialize results
-	double annual_generation, revenue_units, total_installed_cost, system_capacity;
+	double annual_generation, revenue_units, rec_starts, cycle_starts, cycle_ramp, max_generation;
 	int n_hourly_keys = 5;
-	std::string hourly_keys[] = { "gen",  "Q_thermal", "e_ch_tes", "beam", "pricing_mult" };
+	std::string hourly_keys[] = { "gen",  "Q_thermal", "e_ch_tes", "beam", "pricing_mult" , "disp_qsfprod_expected", "disp_wpb_expected" };	
+	if (m_parameters.is_dispatch.as_boolean())
+		n_hourly_keys = 7;
+
 	unordered_map < std::string, std::vector<double>> collect_ssc_data, full_data;
 	for (int i = 0; i < n_hourly_keys; i++)
 	{
@@ -1405,9 +1954,14 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 	}
 
 	//--- Run full simulation
-	if (user_inputs.is_run_full)
+	if (!m_parameters.is_use_clusters.as_boolean())
 	{
-		ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0);
+		if (!ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0))
+		{
+			message_handler("SSC simulation failed");
+			ssc_module_free(mod_mspt);
+			return false;
+		}
 
 		for (int i = 0; i < n_hourly_keys; i++)
 		{
@@ -1423,25 +1977,34 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 	else
 	{
 
-		//--- Set default inputs for all clustering parameters
-		s_metric_outputs metric_results;
+		//--- Set cluster simulation parameters
 		cluster_sim csim;
 		csim.set_default_inputs();
 		csim.inputs.days.nnext = int(m_parameters.is_dispatch.as_boolean());
-
-		//--- Update with user-defined inputs if defined
-		csim.inputs.is_run_continuous = user_inputs.is_run_continuous;
-		if (user_inputs.nsim > -1)
-			csim.inputs.days.ncount = user_inputs.nsim;
-
-		if (user_inputs.nprev > -1)
-			csim.inputs.days.nprev = user_inputs.nprev;
+		csim.inputs.is_run_continuous = m_parameters.is_run_continuous.as_boolean();
+		csim.inputs.days.ncount = m_parameters.cluster_ndays.as_integer();
+		csim.inputs.days.nprev = m_parameters.cluster_nprev.as_integer();
 
 
-		//--- Set up clusters
-		setup_clusters(user_inputs, sfavail, metric_results, csim.inputs.cluster_results);
-		csim.assign_first_last(metric_results);
+		//--- Set up clusters unless already defined
+		if (abs(m_parameters.n_clusters.as_integer() - (int)cluster_outputs.exemplars.size()) > 1 )
+		{
+			if (!setup_clusters())
+				return false;
+		}
+		else
+			message_handler(wxString::Format("Using existing set of %d cluster exemplars", cluster_outputs.ncluster));
+
+		csim.inputs.cluster_results = cluster_outputs;
+		csim.assign_first_last(metric_outputs);
 		int ncl = csim.inputs.cluster_results.ncluster;
+
+
+		//--- Get the solar field availability
+		ssc_number_t *p_sf = ssc_data_get_array(m_ssc_data, "sf_adjust:hourly", &nr);
+		std::vector<double>sfavail;
+		for (int i = 0; i < nr; i++)
+			sfavail.push_back(1. - p_sf[i]/100.);
 
 
 		//--- Calculate cluster-average solar-field availability
@@ -1492,7 +2055,7 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 				{
 					int exemplar = csim.inputs.combined.start.at(g);						
 					int d = std::max(csim.firstday(exemplar)-csim.inputs.days.nprev-1, 0);	// Day before first simulated day
-					avg_prev_dni += metric_results.daily_dni.at(d, 0) / (double)ng;
+					avg_prev_dni += metric_outputs.daily_dni.at(d, 0) / (double)ng;
 				}
 				tes_charge = csim.initial_charge_heuristic(avg_prev_dni, m_variables.solarm.as_number());
 			}
@@ -1517,7 +2080,13 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 
 
 			// Run simulation and collect results
-			ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0);
+			if (!ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0))
+			{
+				message_handler("SSC simulation failed");
+				ssc_module_free(mod_mspt);
+				return false;
+			}
+
 			for (int i = 0; i < n_hourly_keys; i++)
 			{
 				std::string key = hourly_keys[i];
@@ -1570,7 +2139,7 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 				if (csim.inputs.is_initial_charge_heuristic)
 				{
 					int d = std::max((d1 - csim.inputs.days.nprev - 1), 0);  // Day before first simulated day
-					double prev_dni = metric_results.daily_dni.at(d, 0);
+					double prev_dni = metric_outputs.daily_dni.at(d, 0);
 					tes_charge = csim.initial_charge_heuristic(prev_dni, m_variables.solarm.as_number());
 				}
 
@@ -1632,26 +2201,121 @@ bool Project::simulate_system(const project_cluster_inputs &user_inputs, const s
 	//--- Sum annual generation and revenue
 	annual_generation = 0.0;
 	revenue_units = 0.0;
+	max_generation = 0.0;
 	for (int i = 0; i < (int)full_data["gen"].size(); i++)
 	{
 		annual_generation += full_data["gen"].at(i) / (double)wf_steps_per_hour;
 		revenue_units += full_data["gen"].at(i) * m_parameters.dispatch_factors_ts.vec()->at(i).as_number() / (double)wf_steps_per_hour;
+		max_generation = fmax(max_generation, full_data["gen"].at(i));
 	}
-	message_handler(wxString::Format("Annual generation (GWhe) = %.4f",annual_generation / 1.e6).c_str());
-	message_handler(wxString::Format("Annual revenue (GWhe) = %.4f", revenue_units / 1.e6).c_str());
+	//message_handler(wxString::Format("Annual generation (GWhe) = %.4f",annual_generation / 1.e6).c_str());
+	//message_handler(wxString::Format("Annual revenue units (GWhe) = %.4f", revenue_units / 1.e6).c_str());
 
-	//"gen",  "Q_thermal", "annual_energy", "e_ch_tes", "beam", "pricing_mult" 
-	
+
+	//--- Calculate annual receiver starts, cycle starts, and cycle ramping
+	rec_starts = 0.0;
+	cycle_starts = 0.0;
+	cycle_ramp = 0.0;
+
+	double disp_rec_starts = 0.0;
+	double disp_cycle_starts = 0.0;
+	double disp_cycle_ramp = 0.0;
+
+	for (int i = 1; i < (int)full_data["gen"].size(); i++)
+	{
+		if (full_data["Q_thermal"][i] > 0.0 && full_data["Q_thermal"][i - 1] <= 0.0)
+			rec_starts += 1;
+
+		if (full_data["gen"][i] > 0.0 && full_data["gen"][i - 1] <= 0.0)
+			cycle_starts += 1;
+
+		if (full_data["gen"][i] > 0.0 && full_data["gen"][i] > full_data["gen"][i - 1])
+			cycle_ramp += full_data["gen"][i] - full_data["gen"][i - 1]; //kWe
+
+		// Dispatched results for comparison
+		if (m_parameters.is_dispatch.as_boolean())
+		{
+			if (full_data["disp_qsfprod_expected"][i] > 0.0 && full_data["disp_qsfprod_expected"][i - 1] <= 0.0)
+				disp_rec_starts += 1;
+
+			if (full_data["disp_wpb_expected"][i] > 0.0 && full_data["disp_wpb_expected"][i - 1] <= 0.0)
+				disp_cycle_starts += 1;
+
+			if (full_data["disp_wpb_expected"][i] > 0.0 && full_data["disp_wpb_expected"][i] > full_data["disp_wpb_expected"][i - 1])
+				disp_cycle_ramp += (full_data["disp_wpb_expected"][i] - full_data["disp_wpb_expected"][i - 1])*1000.;   //"disp_wpb_expected" in MWe
+		}
+	}
+	double cycle_ramp_index = cycle_ramp / max_generation / 365.;
+	double disp_cycle_ramp_index = 0.0;
+	if (m_parameters.is_dispatch.as_boolean())
+		disp_cycle_ramp_index = disp_cycle_ramp / max_generation / 365.;
+
+
+
+	//--- Set simulation outputs
 	m_simulation_outputs.generation_arr.assign_vector( full_data["gen"] );
 	m_simulation_outputs.solar_field_power_arr.assign_vector( full_data["Q_thermal"]);
 	m_simulation_outputs.tes_charge_state.assign_vector( full_data["e_ch_tes"] );
 	m_simulation_outputs.dni_arr.assign_vector( full_data["beam"] );
 	m_simulation_outputs.price_arr.assign_vector( full_data["pricing_mult"] );
 
-	m_simulation_outputs.annual_generation.assign( annual_generation );
-	m_simulation_outputs.annual_revenue.assign( revenue_units );
+	m_simulation_outputs.annual_generation.assign( annual_generation*1.e-6 );
+	m_simulation_outputs.annual_revenue_units.assign( revenue_units*1.e-6);
+	m_simulation_outputs.annual_rec_starts.assign(rec_starts);
+	m_simulation_outputs.annual_cycle_starts.assign(cycle_starts);
+	m_simulation_outputs.annual_cycle_ramp.assign(cycle_ramp*1.e-6);
+	m_simulation_outputs.cycle_ramp_index.assign(cycle_ramp_index*100.);
+
+	m_simulation_outputs.annual_rec_starts_disp.assign(disp_rec_starts);
+	m_simulation_outputs.annual_cycle_starts_disp.assign(disp_cycle_starts);
+	m_simulation_outputs.annual_cycle_ramp_disp.assign(disp_cycle_ramp*1.e-6);
+	m_simulation_outputs.cycle_ramp_index_disp.assign(disp_cycle_ramp_index*100.);
+
 
 	return true;
 }
 
 
+void Project::calc_avg_annual_schedule(double original_ts, double new_ts, const parameter &full_sch, std::vector<double> &output_sch)
+{
+	// Convert full multiple-year availability, soiling, or degradation schedule into avg annual schedule for simulation
+	// original_ts = timestep used in availability model
+	// new_ts = timestep needed for simulation
+
+	int nsteps = full_sch.vec()->size();
+	int ny = (int)floor(original_ts * nsteps / 8760);
+	double n = ceil(8760. / (double)original_ts);  // number points per year
+	int n_int = (int)floor(n);
+
+	// Calculate annual availability schedule averaged over all simulated years
+	std::vector<double> avg_sched(n_int, 0.0);
+	for (int y = 0; y < ny; y++)
+	{
+		int p1 = (int)floor(y*n);
+		for (int p = 0; p < n_int; p++)
+		{
+			double avail_pt;
+			if (p1 + p <= nsteps - 1)
+				avail_pt = full_sch.vec()->at(p1 + p).as_number();
+			else
+				avail_pt = full_sch.vec()->at(nsteps - 1).as_number();
+
+			avg_sched[p] += avail_pt / (double)ny;
+		}
+	}
+
+	// Translate to new time step
+	output_sch.clear();
+	int nrec = (int)ceil(8760. / new_ts);
+	for (int i = 0; i < nrec; i++)
+	{
+		int j = floor(i*new_ts / original_ts);
+
+		if (j <= avg_sched.size() - 1)
+			output_sch.push_back(avg_sched[j]);
+		else
+			output_sch.push_back(avg_sched.back());
+	}
+
+	return;
+}

@@ -22,14 +22,17 @@
     <ClCompile Include="..\libcluster\cluster.cpp" />
     <ClCompile Include="..\libcluster\clustersim.cpp" />
     <ClCompile Include="..\libcluster\metrics.cpp" />
-    <ClCompile Include="..\libcluster\solpos.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\libcluster\cluster.h" />
     <ClInclude Include="..\libcluster\clustersim.h" />
     <ClInclude Include="..\libcluster\matrixtools.h" />
     <ClInclude Include="..\libcluster\metrics.h" />
-    <ClInclude Include="..\libcluster\solpos00.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="libclearsky.vcxproj">
+      <Project>{809d27ce-1241-4503-a38a-4bf90b683612}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D0B9A03F-F041-4108-9728-098275555C89}</ProjectGuid>

@@ -14,8 +14,8 @@ LKLIB = $(LKDIR)/lkuxwx3.a
 CC = gcc
 CXX = g++
 WARNINGS=-Wall -Wno-unknown-pragmas #-Werror
-CFLAGS =  -g -O0 -I. -I$(JSONDIR) -I$(WEXDIR)/include -I$(LKDIR)/include -I$(SSCDIR) -I$(HOME)/libsolar -I$(HOME)/liboptical -I$(HOME)/libcluster -I$(HOME)/libcycle -DLK_USE_WXWIDGETS `wx-config-3 --cflags` $(WARNINGS)
-LDFLAGS = -std=c++0x -no-pie -I.. ./ssc.so $(WEXLIB) $(LKLIB) liboptical.a libsolar.a libcluster.a libcycle.a `wx-config-3 --libs stc` `wx-config-3 --libs aui` `wx-config-3 --libs` -lm  -lfontconfig -ldl -lcurl 
+CFLAGS =  -g -O0 -I. -I$(JSONDIR) -I$(WEXDIR)/include -I$(LKDIR)/include -I$(SSCDIR) -I$(HOME)/libsolar -I$(HOME)/liboptical -I$(HOME)/libcluster -I$(HOME)/libcycle -I$(HOME)/libclearsky -DLK_USE_WXWIDGETS `wx-config-3 --cflags` $(WARNINGS)
+LDFLAGS = -std=c++0x -no-pie -I.. ./ssc.so $(WEXLIB) $(LKLIB) liboptical.a libsolar.a libcluster.a libcycle.a libclearsky.a `wx-config-3 --libs stc` `wx-config-3 --libs aui` `wx-config-3 --libs` -lm  -lfontconfig -ldl -lcurl 
 CXXFLAGS=-std=c++0x $(CFLAGS)
 
 

@@ -17,7 +17,7 @@ struct s_cluster_inputs
 	bool hard_partitions;	// Compute partition matrix with hard partitions?
 	int nitermax;			// Maximum number of iterations 
 
-							// Parameters specific to affinity-propagation algorithm
+	// Parameters specific to affinity-propagation algorithm
 	bool enforce_ncluster;  // Enforce specified number of clusters?
 	double pref_mult;		// Preference multiplier (used as initial guess if enforce_ncluster = True)
 	int ncluster_tol;		// Tolerance for number of clusters (only if enforce_ncluster = True
@@ -25,15 +25,16 @@ struct s_cluster_inputs
 	int nconverge;			// Number of iterations without change in selected exemplars 
 	double damping;			// Damping factor (0.5-1)	
 
-							// Parameters specific to k-means algorithm
+	// Parameters specific to k-means algorithm
 	int ninit;				// Number of re-initializations 
 	double converge;		// Convergence criteria (relative change in wcss)
 
 };
 
 
-struct s_cluster_outputs
+class s_cluster_outputs
 {
+public:
 	bool converged;						// Algorithm converged before iteration limits?
 	int ncluster;						// Number of clusters created
 	double wcss;						// Within cluster sum of squares
@@ -46,6 +47,9 @@ struct s_cluster_outputs
 
 	matrix<double> means;				// Cluster means
 	matrix<double> partition_matrix;	// Partition matrix
+
+	s_cluster_outputs();
+	void clear();
 
 };
 

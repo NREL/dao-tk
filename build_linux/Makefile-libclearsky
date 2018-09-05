@@ -1,4 +1,4 @@
-VPATH=../libsolar
+VPATH=../libclearsky
 
 CXX = g++
 CFLAGS = -g -D__64BIT__ -fPIC -Wall -O3
@@ -7,12 +7,10 @@ CXXFLAGS= -std=c++0x $(CFLAGS)
 
 
 OBJECTS = \
-	solarfield_structures.o\
-    solarfield_heliostat.o\
-    solarfield_staff.o\
-	solarfield_avail.o
+	solpos.o\
+	clearsky.o
 
-TARGET = libsolar.a
+TARGET = libclearsky.a
 
 $(TARGET) : $(OBJECTS)
 	ar rs $(TARGET) $(OBJECTS)

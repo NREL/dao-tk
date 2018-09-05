@@ -46,6 +46,9 @@
     <ClInclude Include="..\app\vardialog.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="libclearsky.vcxproj">
+      <Project>{809d27ce-1241-4503-a38a-4bf90b683612}</Project>
+    </ProjectReference>
     <ProjectReference Include="libcluster.vcxproj">
       <Project>{d0b9a03f-f041-4108-9728-098275555c89}</Project>
     </ProjectReference>
@@ -278,7 +281,7 @@
     <ClCompile>
       <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>..\app;$(LKDIR)\include;$(SSCDIR);$(WXMSW3)\lib\vc_x64_lib\mswu;$(WXMSW3)\include;$(WEXDIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\app;$(LKDIR)\include;$(SSCDIR);$(WXMSW3)\lib\vc_x64_lib\mswu;$(WXMSW3)\include;$(WEXDIR)\include;..\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WEX_USE_LK;LK_USE_WXWIDGETS;WIN32;_CRT_SECURE_NO_DEPRECATE=1;_CRT_NON_CONFORMING_SWPRINTFS=1;_SCL_SECURE_NO_WARNINGS=1;__WXMSW__;NDEBUG;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
