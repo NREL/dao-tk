@@ -159,6 +159,7 @@ parameters::parameters()
     downtime.set(                           0.,                     "downtime",      false,                     "Initial power cycle downtime",        "h",                  "Cycle|Parameters" );
     shutdown_capacity.set(                 0.3,            "shutdown_capacity",      false,            "Threshold capacity to shut plant down",        "h",                  "Cycle|Parameters" );
     no_restart_capacity.set(               0.9,          "no_restart_capacity",      false, "Threshold capacity to perform maintenance on shutdown",   "h",                  "Cycle|Parameters" );
+	cycle_hourly_labor_cost.set(50., "cycle_hourly_labor_cost", false, "Hourly cost for repair of failed components in power cycle", "h", "Cycle|Parameters");
 
 	std::vector< double > pval = { 0., 7., 200., 12000. };
     c_ces.set(                            pval,                        "c_ces",      false );
@@ -280,6 +281,7 @@ parameters::parameters()
 	(*this)["downtime"] = &downtime;
 	(*this)["shutdown_capacity"] = &shutdown_capacity;
 	(*this)["no_restart_capacity"] = &no_restart_capacity;
+	(*this)["cycle_hourly_labor_cost"] = &cycle_hourly_labor_cost;
     (*this)["c_ces"] = &c_ces;
     (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
 	(*this)["user_sf_avail"] = &user_sf_avail;
@@ -421,9 +423,11 @@ cycle_outputs::cycle_outputs()
 
     cycle_efficiency.set(            empty_vec,             "cycle_efficiency",       true,                     "Cycle efficiency time series",        "-",                     "Cycle|Outputs" );
     cycle_capacity.set(              empty_vec,               "cycle_capacity",       true,                       "Cycle capacity time series",        "-",                     "Cycle|Outputs" );
+	cycle_labor_cost.set(nan, "cycle_labor_cost", true, "Expected labor costs for power cycle repair", "-", "Cycle|Outputs");
 
 	(*this)["cycle_efficiency"] = &cycle_efficiency;
 	(*this)["cycle_capacity"] = &cycle_capacity;
+	(*this)["cycle_labor_cost"] = &cycle_labor_cost;
 }
 
 simulation_outputs::simulation_outputs()
@@ -1397,7 +1401,8 @@ bool Project::C()
 		m_parameters.write_interval.as_integer(),
 		1.e-8,
 		false,
-		m_parameters.num_scenarios.as_integer()
+		m_parameters.num_scenarios.as_integer(),
+		m_parameters.cycle_hourly_labor_cost.as_number()
 	);
 
 	//Plant Components
@@ -1467,10 +1472,11 @@ bool Project::C()
 	pc.GetAverageEfficiencyAndCapacity();
 	m_cycle_outputs.cycle_capacity.assign_vector( pc.m_results.avg_cycle_capacity );
 	m_cycle_outputs.cycle_efficiency.assign_vector( pc.m_results.avg_cycle_efficiency );
+	m_cycle_outputs.cycle_labor_cost.assign(pc.m_results.avg_labor_cost);
 
 	is_cycle_avail_valid = true;
 
-	return true;
+	return is_cycle_avail_valid;
 }
 
 bool Project::O()

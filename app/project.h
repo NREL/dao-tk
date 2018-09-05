@@ -372,6 +372,7 @@ struct parameters : public lk::varhash_t
 	parameter downtime;
 	parameter shutdown_capacity;
 	parameter no_restart_capacity;
+	parameter cycle_hourly_labor_cost;
 	parameter avail_model_timestep;
     //vector-doubles
 	parameter c_ces;
@@ -459,6 +460,8 @@ struct cycle_outputs : public lk::varhash_t
 {
 	parameter cycle_efficiency;
 	parameter cycle_capacity;
+	parameter cycle_labor_cost;
+
 	cycle_outputs();
 };
 

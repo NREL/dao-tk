@@ -17,12 +17,13 @@ struct failure_event
 	std::string component;
 	int fail_idx;
     double duration;
+	double labor;
     double new_life;
 	int scen_index;
 
 	failure_event();
 	failure_event(int time, std::string component, int fail_idx, double duration,
-		double new_life, int scen_index);
+		double labor, double new_life, int scen_index);
 
     std::string print();
 };

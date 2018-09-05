@@ -14,10 +14,10 @@ struct cycle_results
 {
 	std::unordered_map < int, std::vector < double > > cycle_capacity;
 	std::unordered_map < int, std::vector < double > > cycle_efficiency;
+	std::unordered_map < int,  double  > labor_costs;
 	std::vector < double > avg_cycle_capacity;
 	std::vector < double > avg_cycle_efficiency;
-	std::unordered_map< std::string, failure_event > failure_events;
-	std::vector <std::string> failure_event_labels;
+	double avg_labor_cost;
 	std::unordered_map<int,  std::unordered_map< std::string, ComponentStatus > > component_status;
 	std::unordered_map<int, std::unordered_map< std::string, double > >  plant_status;
 	cycle_results();
@@ -84,6 +84,7 @@ class PowerCycle
 	int m_fans_per_condenser_train;
 	double m_cycle_efficiency;
 	double m_cycle_capacity;
+	double m_hourly_labor_cost;
 
 public:
 	cycle_results m_results;
@@ -92,14 +93,15 @@ public:
 	void AssignGenerator(WELLFiveTwelve *gen);
 	void GeneratePlantCyclingPenalties();
 	void SetSimulationParameters(
-		int read_periods = 0, 
-		int sim_length = 48,
-		int start_period = 0, 
-		int next_start_period = 48,
-		int write_interval = 0,
-		double epsilon = 1.E-10, 
-		bool print_output = false, 
-		int num_scenarios = 1
+		int read_periods,
+		int sim_length,
+		int start_period,
+		int next_start_period,
+		int write_interval,
+		double epsilon,
+		bool print_output,
+		int num_scenarios,
+		double hourly_labor_cost
 	);
 	void SetCondenserEfficienciesCold(std::vector<double> eff_cold);
 	void SetCondenserEfficienciesHot(std::vector<double> eff_hot);
@@ -202,6 +204,7 @@ public:
 	void Operate(double power_out, int t, std::string start, std::string mode);
 	void SingleScen(bool reset_plant);
 	void GetAverageEfficiencyAndCapacity();
+	double GetLaborCosts(size_t start_fail_idx);
 	void Simulate(bool reset_plant);
 	void ResetPlant(WELLFiveTwelve &gen);
 };
