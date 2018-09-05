@@ -166,8 +166,8 @@ void VariableDialog::UpdateHelp(const char* filter, const char* type)
                         grouplab.ToStdString().c_str(),
                     groupfirst.c_str() ).ToStdString() );
 
-                all_group_names.push_back( groupname + "#" + grouplab );
-                m_anchor_list.push_back( grouplab );
+                all_group_names.push_back( groupname + "#" + grouplab.ToStdString());
+                m_anchor_list.push_back( grouplab.ToStdString());
             }
 
             if (sfilter.empty())
