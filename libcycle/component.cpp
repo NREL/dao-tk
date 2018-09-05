@@ -8,8 +8,8 @@
 
 failure_event::failure_event(){}
 
-failure_event::failure_event(int _time, std::string _component, int _fail_idx, double _duration, double _new_life, int _scen_index)
-    : time( _time ), component( _component ), fail_idx( _fail_idx), duration( _duration ), new_life( _new_life ), scen_index(_scen_index)
+failure_event::failure_event(int _time, std::string _component, int _fail_idx, double _duration, double _labor, double _new_life, int _scen_index)
+    : time( _time ), component( _component ), fail_idx( _fail_idx), duration(_duration), labor(_labor), new_life( _new_life ), scen_index(_scen_index)
 {}
 
 
@@ -402,11 +402,11 @@ void Component::GenerateFailure(WELLFiveTwelve &gen, int t, int fail_idx, int sc
     GenerateTimeToRepair(gen);
     m_failure_types.at(fail_idx).GenerateFailureVariate(gen);
     ResetHazardRate();
-    
+	double labor = m_status.downtime_remaining - m_cooldown_time;
     //add a new failure to the parent (CSPPlant) failure queue
 	std::string label = "S"+std::to_string(scen_index)+"T"+std::to_string(t)+GetName()+std::to_string(fail_idx);
     (*m_parent_failure_events)[label] = failure_event(
-		t, GetName(), fail_idx, m_status.downtime_remaining, 
+		t, GetName(), fail_idx, m_status.downtime_remaining, labor,
 		m_failure_types.at(fail_idx).GetLifeOrProb(), scen_index
 		);
 	(*m_parent_failure_event_labels).push_back(label);

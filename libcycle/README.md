@@ -99,6 +99,7 @@ Simulation parameters are all scalars, so no sets are included in the table that
 | eps | Floating point number | Threshold on lifetimes for which a failure occurs | 1e-10 |
 | output | Boolean | True if information on failure events is printed to the console, false o.w. | false |
 | num_scenarios | Integer between 1 and 100 | Number of scenarios in simulation | 1 | 
+| hourly_labor_cost | Floating point number | Hourly labor cost for repair of a failed component ($) | 35 |
 
 ### Dispatch Parameters
 
@@ -116,5 +117,10 @@ The simulation model provides the following outputs:
  
 | Sets | Parameter | Data Type | Description |
 | --- | --- | --- | --- | 
-| s, t | cycle_capacity | Floating point number | Effective capacity of system due to component failures (fraction of total capacity) |
+| s, t | cycle_capacity | Floating point number | Relative capacity of system due to component failures (fraction of total capacity) |
+| s, t | cycle_efficiency | Floating point number | Relative efficiency of system due to component failures (fraction of total capacity) |
+| t | avg_cycle_capacity | Floating point number | Effective capacity of system due to component failures (fraction of total capacity) |
+| t | avg_cycle_efficiency | Floating point number | Effective capacity of system due to component failures (fraction of total capacity) |
+| s | labor_costs | Floating point number | Total labor cost of component repairs for scenario s ($) |
+|  | avg_labor_cost | Floating point number | Average total labor cost for component repairs ($) |
 

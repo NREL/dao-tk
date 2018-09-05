@@ -477,13 +477,25 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("num_scenarios") != h->end())
 		num_scenarios = h->at("num_scenarios")->as_integer();
 
-	cycle.SetSimulationParameters(read_periods, sim_length,
-		start_period, next_start_period, write_interval, eps, 
-		output, num_scenarios);
+	double cycle_hourly_labor_cost = 50.;
+	if (h->find("cycle_hourly_labor_cost") != h->end())
+		eps = h->at("cycle_hourly_labor_cost")->as_number();
+
+	cycle.SetSimulationParameters(
+		read_periods, 
+		sim_length,
+		start_period, 
+		next_start_period, 
+		write_interval, 
+		eps, 
+		output, 
+		num_scenarios,
+		cycle_hourly_labor_cost
+		);
 
 	// Dispatch parameters
 	// For now, we will assume that the dispatch parameters
-	// will be required inputs, i.e., no defaults.  These
+	// will be required inputs, i.e., there are no defaults.  These
 	// should come from a prior run of SAM. 
 
 	std::unordered_map<std::string, std::vector<double> > dispatch;

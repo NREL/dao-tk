@@ -9,10 +9,10 @@ cycle_results::cycle_results()
 {
 	cycle_capacity = {};
 	cycle_efficiency = {};
+	labor_costs = {};
 	avg_cycle_capacity = {};
 	avg_cycle_efficiency = {};
-	failure_events = {};
-	failure_event_labels = {};
+	avg_labor_cost = 0.;
 	component_status = {};
 	plant_status = {};
 }
@@ -50,14 +50,15 @@ void PowerCycle::GeneratePlantCyclingPenalties()
 }
 
 void PowerCycle::SetSimulationParameters( 
-	int read_periods, 
-	int sim_length, 
-	int start_period, 
-	int next_start_period,
-	int write_interval,
-	double epsilon, 
-	bool print_output, 
-	int num_scenarios
+	int read_periods = 0,
+	int sim_length = 48,
+	int start_period = 0,
+	int next_start_period = 48,
+	int write_interval = 0,
+	double epsilon = 1.E-10,
+	bool print_output = false,
+	int num_scenarios = 1,
+	double hourly_labor_cost = 50.
 )
 {
     m_read_periods = read_periods;
@@ -68,6 +69,7 @@ void PowerCycle::SetSimulationParameters(
     m_output = print_output;
     m_eps = epsilon;
 	m_num_scenarios = num_scenarios;
+	m_hourly_labor_cost = hourly_labor_cost;
 }
 
 void PowerCycle::SetCondenserEfficienciesCold(std::vector<double> eff_cold)
@@ -829,7 +831,7 @@ void PowerCycle::PlantMaintenanceShutdown(int t, bool reset_time, bool record,
 	{
 		m_failure_events[
 			"S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + label
-		] = failure_event(t, label, -1, duration, 0., m_current_scenario);
+		] = failure_event(t, label, -1, duration, 0., 0., m_current_scenario);
 			m_failure_event_labels.push_back(std::to_string(t) + label);
 	}
 
@@ -895,7 +897,7 @@ void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, s
     
     ramp_mult -- ramping penalty (multiplier for life degradation)
     t -- period index (indicator of whether read-only or not)
-    mode --string indicating operating mode (e.g., Offline, Standby)
+    mode -- string indicating operating mode (e.g., Offline, Standby)
     
 	*/
     //print t - m_read_periods
@@ -1278,6 +1280,26 @@ void PowerCycle::GetAverageEfficiencyAndCapacity()
 	}
 }
 
+double PowerCycle::GetLaborCosts(size_t start_fail_idx)
+{
+	/*
+	Calculates the cost of labor associated with all the failures that occurred
+	in the current scenario.
+
+	start_fail_idx -- starting index of failure event labels to check; this value
+	   is the size of m_failure_event_labels at the start of the scenario.
+
+	retval - estimated labor costs, in dollars
+	*/
+	double hours = 0;
+	
+	for (size_t i = start_fail_idx; i < m_failure_event_labels.size(); i++)
+	{
+		hours += m_failure_events[m_failure_event_labels[i]].labor;
+	}
+	return hours * m_hourly_labor_cost;
+}
+
 void PowerCycle::Simulate(bool reset_plant)
 {
 	/*
@@ -1285,18 +1307,27 @@ void PowerCycle::Simulate(bool reset_plant)
 	maintenance events in the power block.  
 	*/
 	InitializeCyclingDists();
+	size_t cum_num_failures = 0;
 	for (int i = 0; i < m_num_scenarios; i++)
 	{
 		m_gen->assignStates(m_current_scenario);
 		m_current_scenario = i;
 		SingleScen(reset_plant);
 		m_gen->saveStates(i);
+
+		//get labor costs, starting at first event in curremt scenario
+		m_results.labor_costs[i] = GetLaborCosts(cum_num_failures);
+		cum_num_failures = m_failure_event_labels.size();
 	}
 	GetAverageEfficiencyAndCapacity();
 }
 
 void PowerCycle::ResetPlant(WELLFiveTwelve &gen)
 {
+	/* 
+	Resets the plant and its components to initial conditions.
+	gen -- RNG object
+	*/
 	m_online = false;
 	m_time_online = 0.;
 	m_standby = false;
