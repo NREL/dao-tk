@@ -48,18 +48,18 @@ variables::variables()
 	double dmax = -std::numeric_limits<double>::infinity();
 	double dmin = -dmax;
 	
-    h_tower.set(dnan, dmin, dmax, "h_tower", "Tower height", "m", "Variables");
-	rec_height.set(dnan, dmin, dmax, "rec_height", "Receiver height", "m", "Variables");
-	D_rec.set(dnan, dmin, dmax, "D_rec", "Receiver diameter", "m", "Variables");
-	design_eff.set(dnan, dmin, dmax, "design_eff", "Design efficiency", "-", "Variables");
-	dni_des.set(dnan, dmin, dmax, "dni_des", "Design point DNI", "W/m2", "Variables");
-	P_ref.set(dnan, dmin, dmax, "P_ref", "Design gross power", "kW", "Variables");
-	solarm.set(dnan, dmin, dmax, "solarm", "Solar multiple", "-", "Variables");
-	tshours.set(dnan, dmin, dmax, "tshours", "Hours stored at full load operation", "hr", "Variables");
-	degr_replace_limit.set(dnan, dmin, dmax, "degr_replace_limit", "Mirror degradation replacement limit", "-", "Variables");
-	om_staff.set(-1, -999, 999, "om_staff", "Number of o&m staff", "-", "Variables");
-	n_wash_crews.set(-1, -999, 999, "n_wash_crews", "Number of wash crews", "-", "Variables");
-	N_panels.set(-1, -999, 999, "N_panels", "Number of receiver panels", "-", "Variables");
+    h_tower.set(                          dnan,      dmin,      dmax,            "h_tower",                                     "Tower height",        "m",                         "Variables" );
+    rec_height.set(                       dnan,      dmin,      dmax,         "rec_height",                                  "Receiver height",        "m",                         "Variables" );
+    D_rec.set(                            dnan,      dmin,      dmax,              "D_rec",                                "Receiver diameter",        "m",                         "Variables" );
+    design_eff.set(                       dnan,      dmin,      dmax,         "design_eff",                                "Design efficiency",        "-",                         "Variables" );
+    dni_des.set(                          dnan,      dmin,      dmax,            "dni_des",                                 "Design point DNI",     "W/m2",                         "Variables" );
+    P_ref.set(                            dnan,      dmin,      dmax,              "P_ref",                               "Design gross power",       "kW",                         "Variables" );
+    solarm.set(                           dnan,      dmin,      dmax,             "solarm",                                   "Solar multiple",        "-",                         "Variables" );
+    tshours.set(                          dnan,      dmin,      dmax,            "tshours",              "Hours stored at full load operation",       "hr",                         "Variables" );
+    degr_replace_limit.set(               dnan,      dmin,      dmax, "degr_replace_limit",             "Mirror degradation replacement limit",        "-",                         "Variables" );
+    om_staff.set(                           -1,      -999,       999,           "om_staff",                              "Number of o&m staff",        "-",                         "Variables" );
+    n_wash_crews.set(                       -1,      -999,       999,       "n_wash_crews",                             "Number of wash crews",        "-",                         "Variables" );
+    N_panels.set(                           -1,      -999,       999,           "N_panels",                        "Number of receiver panels",        "-",                         "Variables" );
 
     (*this)["h_tower"] = &h_tower;
     (*this)["rec_height"] = &rec_height;
@@ -82,126 +82,126 @@ parameters::parameters()
 	Initialize members
 	*/
 
-	print_messages.set( true, "print_messages", false, "Print full output", "-", "Settings" );
-	check_max_flux.set( true, "check_max_flux", false, "Check max flux", "-", "Settings" );
-	is_optimize.set( false, "is_optimize", false );
-	is_dispatch.set( false, "is_dispatch", false, "Optimize dispatch", "-", "Settings" );
-	is_ampl_engine.set( false, "is_ampl_engine", false, "Use AMPL optimizer", "-", "Settings");
-	is_stochastic_disp.set( false, "is_stochastic_disp", false, "Run stochastic dispatch", "-", "Settings" );
-	current_standby.set(false, "current_standby", false, "Start power cycle in standby", "-", "Cycle|Parameters");
+    print_messages.set(                   true,               "print_messages",      false,                                "Print full output",        "-",                          "Settings" );
+    check_max_flux.set(                   true,               "check_max_flux",      false,                                   "Check max flux",        "-",                          "Settings" );
+    is_optimize.set(                     false,                  "is_optimize",      false );
+    is_dispatch.set(                     false,                  "is_dispatch",      false,                                "Optimize dispatch",        "-",                          "Settings" );
+    is_ampl_engine.set(                  false,               "is_ampl_engine",      false,                               "Use AMPL optimizer",        "-",                          "Settings" );
+    is_stochastic_disp.set(              false,           "is_stochastic_disp",      false,                          "Run stochastic dispatch",        "-",                          "Settings" );
+    current_standby.set(                 false,              "current_standby",      false,                     "Start power cycle in standby",        "-",                  "Cycle|Parameters" );
 
 	std::string empty_string = "";
-	ampl_data_dir.set("", "ampl_data_dir", false, "AMPL data folder", "-", "Settings" );
-	solar_resource_file.set(empty_string, "solar_resource_file", false, "Solar resource file", "-", "Settings" );
+    ampl_data_dir.set(                      "",                "ampl_data_dir",      false,                                 "AMPL data folder",        "-",                          "Settings" );
+    solar_resource_file.set(      empty_string,          "solar_resource_file",      false,                              "Solar resource file",        "-",                          "Settings" );
 
-	disp_steps_per_hour.set( 1, "disp_steps_per_hour", false, "Dispatch time steps per hour", "-", "Settings" );
-	avail_seed.set( 123, "avail_seed", false, "Random number generator seed", "-", "Heliostat availability|Parameters" );
-	plant_lifetime.set( 30, "plant_lifetime", false, "Plant lifetime", "yr", "Financial parameters" );
-	finance_period.set( 25, "finance_period", false, "Finance period", "yr", "Financial parameters" );
-	ppa_multiplier_model.set( 1, "ppa_multiplier_model", false, "PPA multiplier model", "-", "Financial parameters" );
-	num_condenser_trains.set(2, "num_condenser_trains", false, "Number of condenser trains", "-", "Cycle|Parameters");
-	fans_per_train.set(30, "fans_per_train", false, "Number of fans per condenser train", "-", "Cycle|Parameters");
-	radiators_per_train.set(2, "radiators_per_train", false, "Number of radiators per condenser train", "-", "Cycle|Parameters");
-	num_salt_steam_trains.set(2, "num_salt_steam_trains", false, "Number of salt-to-steam trains", "-", "Cycle|Parameters");
-	num_fwh.set(6, "num_fwh", false, "Number of feedwater heaters", "-", "Cycle|Parameters");
-	num_salt_pumps.set(2, "num_salt_pumps", false, "Number of hot salt pumps", "-", "Cycle|Parameters");
-	num_water_pumps.set(2, "num_water_pumps", false, "Number of boiler and water pumps", "-", "Cycle|Parameters");
-	num_turbines.set(1, "num_turbines", false, "Number of turbine-generator shafts", "-", "Cycle|Parameters");
-	read_periods.set(0, "read_periods", false, "Number of read-only periods", "-", "Cycle|Parameters");
-	sim_length.set(48, "sim_length", false, "Number of periods in cycle simulation", "-", "Cycle|Parameters");
-	start_period.set(0, "start_period", false, "Cycle simuilation starting period", "-", "Cycle|Parameters");
-	next_start_period.set(0, "next_start_period", false, "Next cycle simuilation starting period", "-", "Cycle|Parameters");
-	write_interval.set(48, "write_interval", false, "Number of periods in rolling horizon interval", "-", "Cycle|Parameters");
-	num_scenarios.set(1, "num_scenarios", false, "Number of scenarios", "-", "Cycle|Parameters");
+    disp_steps_per_hour.set(                 1,          "disp_steps_per_hour",      false,                     "Dispatch time steps per hour",        "-",                          "Settings" );
+    avail_seed.set(                        123,                   "avail_seed",      false,                     "Random number generator seed",        "-", "Heliostat availability|Parameters" );
+    plant_lifetime.set(                     30,               "plant_lifetime",      false,                                   "Plant lifetime",       "yr",              "Financial|Parameters" );
+    finance_period.set(                     25,               "finance_period",      false,                                   "Finance period",       "yr",              "Financial|Parameters" );
+    ppa_multiplier_model.set(                1,         "ppa_multiplier_model",      false,                             "PPA multiplier model",        "-",              "Financial|Parameters" );
+    num_condenser_trains.set(                2,         "num_condenser_trains",      false,                       "Number of condenser trains",        "-",                  "Cycle|Parameters" );
+    fans_per_train.set(                     30,               "fans_per_train",      false,               "Number of fans per condenser train",        "-",                  "Cycle|Parameters" );
+    radiators_per_train.set(                 2,          "radiators_per_train",      false,          "Number of radiators per condenser train",        "-",                  "Cycle|Parameters" );
+    num_salt_steam_trains.set(               2,        "num_salt_steam_trains",      false,                   "Number of salt-to-steam trains",        "-",                  "Cycle|Parameters" );
+    num_fwh.set(                             6,                      "num_fwh",      false,                      "Number of feedwater heaters",        "-",                  "Cycle|Parameters" );
+    num_salt_pumps.set(                      2,               "num_salt_pumps",      false,                         "Number of hot salt pumps",        "-",                  "Cycle|Parameters" );
+    num_water_pumps.set(                     2,              "num_water_pumps",      false,                 "Number of boiler and water pumps",        "-",                  "Cycle|Parameters" );
+    num_turbines.set(                        1,                 "num_turbines",      false,               "Number of turbine-generator shafts",        "-",                  "Cycle|Parameters" );
+    read_periods.set(                        0,                 "read_periods",      false,                      "Number of read-only periods",        "-",                  "Cycle|Parameters" );
+    sim_length.set(                         48,                   "sim_length",      false,            "Number of periods in cycle simulation",        "-",                  "Cycle|Parameters" );
+    start_period.set(                        0,                 "start_period",      false,                "Cycle simuilation starting period",        "-",                  "Cycle|Parameters" );
+    next_start_period.set(                   0,            "next_start_period",      false,           "Next cycle simuilation starting period",        "-",                  "Cycle|Parameters" );
+    write_interval.set(                     48,               "write_interval",      false,    "Number of periods in rolling horizon interval",        "-",                  "Cycle|Parameters" );
+    num_scenarios.set(                       1,                "num_scenarios",      false,                              "Number of scenarios",        "-",                  "Cycle|Parameters" );
 
-	rec_ref_cost.set( 1.03e+008, "rec_ref_cost", false, "Receiver reference cost", "$", "Financial parameters" );
-	rec_ref_area.set( 1571., "rec_ref_area", false, "Receiver reference area", "m2", "Financial parameters");
-	tes_spec_cost.set( 24., "tes_spec_cost", false, "TES specific cost", "$/kWht", "Financial parameters" );
-	tower_fixed_cost.set( 3.e6, "tower_fixed_cost", false, "Tower fixed cost", "$", "Financial parameters");
-	tower_exp.set( 0.0113, "tower_exp", false, "Tower cost scaling exponent", "-", "Financial parameters");
-	heliostat_spec_cost.set( 145., "heliostat_spec_cost", false, "Heliostat specific cost", "$/m2", "Financial parameters" );
-	site_spec_cost.set( 16., "site_spec_cost", false, "Site specific cost", "$/m2", "Financial parameters");
-	land_spec_cost.set( 10000, "land_spec_cost", false, "Land specific cost", "$/acre", "Financial parameters" );
-	c_cps0.set( 0., "c_cps0", false, "Power cycle cost coef - const", "-", "Financial parameters" );
-	c_cps1.set( 1440., "c_cps1", false, "Power cycle cost coef - slope", "-", "Financial parameters" );
-	om_staff_cost.set( 75, "om_staff_cost", false, "O&M staff cost rate", "$/hr", "Financial parameters");
-	wash_crew_cost.set( 65. + 10. + 25, "wash_crew_cost", false, "Wash crew cost rate", "$/hr", "Financial parameters" );
-	heliostat_refurbish_cost.set( 144. * 25 + 90 * 4., "heliostat_refurbish_cost", false, "Mirror replacement cost", "$", "Optical degradation|Parameters" );
-	om_staff_max_hours_week.set( 35, "om_staff_max_hours_week", false, "Max O&M staff hours per week", "hr", "Heliostat availability|Parameters" );
-	n_heliostats_sim.set( 1000, "n_heliostats_sim", false, "Number of simulated heliostats", "-", "Heliostat availability|Parameters" );
-	wash_units_per_hour.set( 45., "wash_units_per_hour", false, "Heliostat wash rate", "1/crew-hr", "Optical degradation|Parameters" );
-	wash_crew_max_hours_week.set( 70., "wash_crew_max_hours_week", false, "Wash crew max hours per week", "hr", "Optical degradation|Parameters" );
-	degr_per_hour.set( 1.e-7, "degr_per_hour", false, "Reflectivity degradation rate", "1/hr", "Optical degradation|Parameters" );
-	degr_accel_per_year.set( 0.125, "degr_accel_per_year", false, "Refl. degradation acceleration", "1/yr", "Optical degradation|Parameters" );
-	degr_seed.set( 123, "degr_seed", false, "Random number generator seed", "-", "Optical degradation|Parameters" );
-	soil_per_hour.set( 6.e-4, "soil_per_hour", false, "Mean soiling rate", "1/hr", "Optical degradation|Parameters" );
-	adjust_constant.set( 4, "adjust:constant", false, "Misc fixed power loss", "%", "Financial parameters" );
-	helio_reflectance.set( 0.95, "helio_reflectance", false, "Initial mirror reflectance", "-", "Optical degradation|Parameters" );
-	disp_rsu_cost.set( 950., "disp_rsu_cost", false, "Receiver startup cost", "$", "Simulation|Parameters" );
-	disp_csu_cost.set( 10000., "disp_csu_cost", false, "Power block startup cost", "$", "Simulation|Parameters");
-	disp_pen_delta_w.set( 0.1, "disp_pen_delta_w", false, "Power block ramp penalty", "$/delta-kW", "Simulation|Parameters" );
-	rec_su_delay.set( 0.2, "rec_su_delay", false, "Receiver min startup time", "hr", "Simulation|Parameters" );
-	rec_qf_delay.set( 0.25, "rec_qf_delay", false, "Receiver min startup energy", "MWh/MWh", "Simulation|Parameters" );
-	startup_time.set( 0.5, "startup_time", false, "Power block min startup time", "hr", "Simulation|Parameters" );
-	startup_frac.set( 0.5, "startup_frac", false, "Power block startup energy", "MWh/MWh", "Simulation|Parameters" );
-	v_wind_max.set( 15., "v_wind_max", false, "Max operational wind velocity", "m/s", "Simulation|Parameters" );
-	flux_max.set(1000., "flux_max", false, "Maximum receiver flux", "kW/m2", "Simulation|Parameters");
-	maintenance_interval.set(5000., "maintenance_interval", false, "Runtime duration betwwen maintenance events", "h", "Cycle|Parameters");
-	maintenance_duration.set(168., "maintenance_duration", false, "Duration of maintenance events", "h", "Cycle|Parameters");
-	downtime_threshold.set(24, "downtime_threshold", false, "Downtime threshold for warm start", "h", "Cycle|Parameters");
-	steplength.set(1., "steplength", false, "Simulation time period length", "h", "Cycle|Parameters");
-	hours_to_maintenance.set(5000., "hours_to_maintenance", false, "Runtime duration before next maintenance event", "h", "Cycle|Parameters");
-	power_output.set(0., "power_output", false, "Initial power cycle output", "W", "Cycle|Parameters");
-	capacity.set(500000., "capacity", false, "Power cycle capacity", "W", "Cycle|Parameters");
-	temp_threshold.set(20., "temp_threshold", false, "Ambient temperature threshold for condensers", "Celsius", "Cycle|Parameters");
-	time_online.set(0., "time_online", false, "Initial power cycle output duration", "h", "Cycle|Parameters");
-	time_in_standby.set(0., "time_in_standby", false, "Initial power cycle time in stndby", "h", "Cycle|Parameters");
-	downtime.set(0., "downtime", false, "Initial power cycle downtime", "h", "Cycle|Parameters");
-	shutdown_capacity.set(0.3, "shutdown_capacity", false, "Threshold capacity to shut plant down", "h", "Cycle|Parameters");
-	no_restart_capacity.set(0.9, "no_restart_capacity", false, "Threshold capacity to perform maintenance on shutdown", "h", "Cycle|Parameters");
+    rec_ref_cost.set(                1.03e+008,                 "rec_ref_cost",      false,                          "Receiver reference cost",        "$",              "Financial|Parameters" );
+    rec_ref_area.set(                    1571.,                 "rec_ref_area",      false,                          "Receiver reference area",       "m2",              "Financial|Parameters" );
+    tes_spec_cost.set(                     24.,                "tes_spec_cost",      false,                                "TES specific cost",   "$/kWht",              "Financial|Parameters" );
+    tower_fixed_cost.set(                 3.e6,             "tower_fixed_cost",      false,                                 "Tower fixed cost",        "$",              "Financial|Parameters" );
+    tower_exp.set(                      0.0113,                    "tower_exp",      false,                      "Tower cost scaling exponent",        "-",              "Financial|Parameters" );
+    heliostat_spec_cost.set(              145.,          "heliostat_spec_cost",      false,                          "Heliostat specific cost",     "$/m2",              "Financial|Parameters" );
+    site_spec_cost.set(                    16.,               "site_spec_cost",      false,                               "Site specific cost",     "$/m2",              "Financial|Parameters" );
+    land_spec_cost.set(                  10000,               "land_spec_cost",      false,                               "Land specific cost",   "$/acre",              "Financial|Parameters" );
+    c_cps0.set(                             0.,                       "c_cps0",      false,                    "Power cycle cost coef - const",        "-",              "Financial|Parameters" );
+    c_cps1.set(                          1440.,                       "c_cps1",      false,                    "Power cycle cost coef - slope",        "-",              "Financial|Parameters" );
+    om_staff_cost.set(                      75,                "om_staff_cost",      false,                              "O&M staff cost rate",     "$/hr",              "Financial|Parameters" );
+    wash_crew_cost.set(                   100.,               "wash_crew_cost",      false,                              "Wash crew cost rate",     "$/hr",              "Financial|Parameters" );
+    heliostat_refurbish_cost.set(        3960.,     "heliostat_refurbish_cost",      false,                          "Mirror replacement cost",        "$",    "Optical degradation|Parameters" );
+    om_staff_max_hours_week.set(            35,      "om_staff_max_hours_week",      false,                     "Max O&M staff hours per week",       "hr", "Heliostat availability|Parameters" );
+    n_heliostats_sim.set(                 1000,             "n_heliostats_sim",      false,                   "Number of simulated heliostats",        "-", "Heliostat availability|Parameters" );
+    wash_units_per_hour.set(               45.,          "wash_units_per_hour",      false,                              "Heliostat wash rate","1/crew-hr",    "Optical degradation|Parameters" );
+    wash_crew_max_hours_week.set(          70.,     "wash_crew_max_hours_week",      false,                     "Wash crew max hours per week",       "hr",    "Optical degradation|Parameters" );
+    degr_per_hour.set(                   1.e-7,                "degr_per_hour",      false,                    "Reflectivity degradation rate",     "1/hr",    "Optical degradation|Parameters" );
+    degr_accel_per_year.set(             0.125,          "degr_accel_per_year",      false,                   "Refl. degradation acceleration",     "1/yr",    "Optical degradation|Parameters" );
+    degr_seed.set(                         123,                    "degr_seed",      false,                     "Random number generator seed",        "-",    "Optical degradation|Parameters" );
+    soil_per_hour.set(                   6.e-4,                "soil_per_hour",      false,                                "Mean soiling rate",     "1/hr",    "Optical degradation|Parameters" );
+    adjust_constant.set(                     4,              "adjust:constant",      false,                            "Misc fixed power loss",        "%",              "Financial|Parameters" );
+    helio_reflectance.set(                0.95,            "helio_reflectance",      false,                       "Initial mirror reflectance",        "-",    "Optical degradation|Parameters" );
+    disp_rsu_cost.set(                    950.,                "disp_rsu_cost",      false,                            "Receiver startup cost",        "$",             "Simulation|Parameters" );
+    disp_csu_cost.set(                  10000.,                "disp_csu_cost",      false,                         "Power block startup cost",        "$",             "Simulation|Parameters" );
+    disp_pen_delta_w.set(                  0.1,             "disp_pen_delta_w",      false,                         "Power block ramp penalty","$/delta-kW",            "Simulation|Parameters" );
+    rec_su_delay.set(                      0.2,                 "rec_su_delay",      false,                        "Receiver min startup time",       "hr",             "Simulation|Parameters" );
+    rec_qf_delay.set(                     0.25,                 "rec_qf_delay",      false,                      "Receiver min startup energy",  "MWh/MWh",             "Simulation|Parameters" );
+    startup_time.set(                      0.5,                 "startup_time",      false,                     "Power block min startup time",       "hr",             "Simulation|Parameters" );
+    startup_frac.set(                      0.5,                 "startup_frac",      false,                       "Power block startup energy",  "MWh/MWh",             "Simulation|Parameters" );
+    v_wind_max.set(                        15.,                   "v_wind_max",      false,                    "Max operational wind velocity",      "m/s",             "Simulation|Parameters" );
+    flux_max.set(                        1000.,                     "flux_max",      false,                            "Maximum receiver flux",    "kW/m2",             "Simulation|Parameters" );
+    maintenance_interval.set(            5000.,         "maintenance_interval",      false,      "Runtime duration betwwen maintenance events",        "h",                  "Cycle|Parameters" );
+    maintenance_duration.set(             168.,         "maintenance_duration",      false,                   "Duration of maintenance events",        "h",                  "Cycle|Parameters" );
+    downtime_threshold.set(                 24,           "downtime_threshold",      false,                "Downtime threshold for warm start",        "h",                  "Cycle|Parameters" );
+    steplength.set(                         1.,                   "steplength",      false,                    "Simulation time period length",        "h",                  "Cycle|Parameters" );
+    hours_to_maintenance.set(            5000.,         "hours_to_maintenance",      false,   "Runtime duration before next maintenance event",        "h",                  "Cycle|Parameters" );
+    power_output.set(                       0.,                 "power_output",      false,                       "Initial power cycle output",        "W",                  "Cycle|Parameters" );
+    capacity.set(                      500000.,                     "capacity",      false,                             "Power cycle capacity",        "W",                  "Cycle|Parameters" );
+    temp_threshold.set(                    20.,               "temp_threshold",      false,     "Ambient temperature threshold for condensers",  "Celsius",                  "Cycle|Parameters" );
+    time_online.set(                        0.,                  "time_online",      false,              "Initial power cycle output duration",        "h",                  "Cycle|Parameters" );
+    time_in_standby.set(                    0.,              "time_in_standby",      false,               "Initial power cycle time in stndby",        "h",                  "Cycle|Parameters" );
+    downtime.set(                           0.,                     "downtime",      false,                     "Initial power cycle downtime",        "h",                  "Cycle|Parameters" );
+    shutdown_capacity.set(                 0.3,            "shutdown_capacity",      false,            "Threshold capacity to shut plant down",        "h",                  "Cycle|Parameters" );
+    no_restart_capacity.set(               0.9,          "no_restart_capacity",      false, "Threshold capacity to perform maintenance on shutdown",   "h",                  "Cycle|Parameters" );
 
 	std::vector< double > pval = { 0., 7., 200., 12000. };
-	c_ces.set( pval, "c_ces", false );
+    c_ces.set(                            pval,                        "c_ces",      false );
 
 	std::vector< double > pvalts(8760, 1.);
-	dispatch_factors_ts.set(pvalts, "dispatch_factors_ts", false);
+    dispatch_factors_ts.set(            pvalts,          "dispatch_factors_ts",      false );
 
 	std::vector< double > c_eff_cold = { 0., 1., 1. };
-	condenser_eff_cold.set(c_eff_cold, "condenser_eff_cold", false);
+    condenser_eff_cold.set(         c_eff_cold,           "condenser_eff_cold",      false );
 
 	std::vector< double > c_eff_hot = { 0., 0.95, 1. };
-	condenser_eff_hot.set(c_eff_hot, "condenser_eff_hot", false);
+    condenser_eff_hot.set(           c_eff_hot,            "condenser_eff_hot",      false );
 
 
 	// Availability parameters
 	std::string rp = "mean_repair_time";
-	helio_repair_priority.set(rp, "helio_repair_priority", false, "Heliostat repair priority", "-", "Heliostat availability|Parameters");
-	avail_model_timestep.set(24, "avail_model_timestep", false, "Availability model timestep", "hr", "Heliostat availability|Parameters");
+    helio_repair_priority.set(              rp,        "helio_repair_priority",      false,                        "Heliostat repair priority",        "-", "Heliostat availability|Parameters" );
+    avail_model_timestep.set(               24,         "avail_model_timestep",      false,                      "Availability model timestep",       "hr", "Heliostat availability|Parameters" );
 
 	std::vector< double > shape = { 1. };
 	std::vector< double > scale = { 12000. };
 	std::vector< double > mtr = { 2. };
 	std::vector< double > repair_cost = { 300. };
-	helio_comp_weibull_shape.set(shape, "helio_comp_weibull_shape", false, "Helio component Weibull shape params", "-", "Heliostat availability|Parameters");
-	helio_comp_weibull_scale.set(scale, "helio_comp_weibull_scale", false, "Helio component Weibull scale params", "hr", "Heliostat availability|Parameters");
-	helio_comp_mtr.set(mtr, "helio_comp_mtr", false, "Helio component mean time to repair", "hr", "Heliostat availability|Parameters");
-	helio_comp_repair_cost.set(repair_cost, "helio_comp_repair_cost", false, "Helio component repair cost", "$", "Heliostat availability|Parameters");
+    helio_comp_weibull_shape.set(        shape,     "helio_comp_weibull_shape",      false,             "Helio component Weibull shape params",        "-", "Heliostat availability|Parameters" );
+    helio_comp_weibull_scale.set(        scale,     "helio_comp_weibull_scale",      false,             "Helio component Weibull scale params",       "hr", "Heliostat availability|Parameters" );
+    helio_comp_mtr.set(                    mtr,               "helio_comp_mtr",      false,              "Helio component mean time to repair",       "hr", "Heliostat availability|Parameters" );
+    helio_comp_repair_cost.set(    repair_cost,       "helio_comp_repair_cost",      false,                      "Helio component repair cost",        "$", "Heliostat availability|Parameters" );
 
 	// Clustering parameters
-	is_use_clusters.set(false, "is_use_clusters", false, "Use clusters?", "-", "Settings");
-	n_clusters.set(30, "n_clusters", false, "Number of clusters", "-", "Settings");
+    is_use_clusters.set(                 false,              "is_use_clusters",      false,                                    "Use clusters?",        "-",                          "Settings" );
+    n_clusters.set(                         30,                   "n_clusters",      false,                               "Number of clusters",        "-",                          "Settings" );
 
-	cluster_ndays.set(2, "cluster_ndays", false);
-	cluster_nprev.set(1, "cluster_nprev", false);
-	is_hard_partitions.set(true, "is_hard_partitions", false);
-	is_run_continuous.set(true, "is_run_continuous", false);
+    cluster_ndays.set(                       2,                "cluster_ndays",      false );
+    cluster_nprev.set(                       1,                "cluster_nprev",      false );
+    is_hard_partitions.set(               true,           "is_hard_partitions",      false );
+    is_run_continuous.set(                true,            "is_run_continuous",      false );
 	std::string ca = "affinity_propagation";
-	cluster_algorithm.set(ca, "cluster_algorithm", false);
+    cluster_algorithm.set(                  ca,            "cluster_algorithm",      false );
 
 	std::vector<double> default_feature_wts = { 1.0, 0.5, 0.5, 0.0, 1.0, 0.5, 0.5, 0.25, 0.25 };
 	std::vector<double> default_feature_divs = { 8, 4, 4, 1, 8, 4, 4, 4, 4 };
-	clustering_feature_weights.set(default_feature_wts, "clustering_feature_weights", true);
-	clustering_feature_divisions.set(default_feature_wts, "clustering_feature_divs", true);
+    clustering_feature_weights.set(  default_feature_wts,   "clustering_feature_weights",       true );
+    clustering_feature_divisions.set( default_feature_wts,      "clustering_feature_divs",       true );
 
 
 
@@ -312,26 +312,26 @@ design_outputs::design_outputs()
 	*/
 
 	double nan = std::numeric_limits<double>::quiet_NaN();
-	number_heliostats.set(-1, "number_heliostats", true, "Heliostat count", "-", "Design|Outputs");
-	area_sf.set(nan, "area_sf", true, "Total heliostat area", "m2", "Design|Outputs");
-	base_land_area.set(nan, "base_land_area", true, "Solar field land area", "acre", "Design|Outputs");
-	land_area.set(nan, "land_area", true, "Total land area", "acre", "Design|Outputs");
-	flux_max_observed.set(nan, "flux_max_observed", true, "Max observed flux", "kW/m2", "Design|Outputs");
-	cost_rec_tot.set(nan, "cost_rec_tot", true, "Receiver cost", "$", "Design|Costs");
-	cost_sf_tot.set(nan, "cost_sf_tot", true, "Solar field cost", "$", "Design|Costs");
-	cost_sf_real.set(nan, "", true, "Solar field cost (real)", "$", "Design|Costs");
-	cost_tower_tot.set(nan, "cost_tower_tot", true, "Tower cost", "$", "Design|Costs");
-	cost_land_tot.set(nan, "cost_land_tot", true, "Land cost", "$", "Design|Costs");
-	cost_land_real.set(nan, "", true, "Land cost (real)", "$", "Design|Costs");
-	cost_site_tot.set(nan, "cost_site_tot", true, "Site cost", "$", "Design|Costs");
-	h_tower_opt.set(nan, "h_tower_opt", true);
-	rec_height_opt.set(nan, "rec_height_opt", true);
-	rec_aspect_opt.set(nan, "rec_aspect_opt", true);
+    number_heliostats.set(                  -1,            "number_heliostats",       true,                                  "Heliostat count",        "-",                    "Design|Outputs" );
+    area_sf.set(                           nan,                      "area_sf",       true,                             "Total heliostat area",       "m2",                    "Design|Outputs" );
+    base_land_area.set(                    nan,               "base_land_area",       true,                            "Solar field land area",     "acre",                    "Design|Outputs" );
+    land_area.set(                         nan,                    "land_area",       true,                                  "Total land area",     "acre",                    "Design|Outputs" );
+    flux_max_observed.set(                 nan,            "flux_max_observed",       true,                                "Max observed flux",    "kW/m2",                    "Design|Outputs" );
+    cost_rec_tot.set(                      nan,                 "cost_rec_tot",       true,                                    "Receiver cost",        "$",                      "Design|Costs" );
+    cost_sf_tot.set(                       nan,                  "cost_sf_tot",       true,                                 "Solar field cost",        "$",                      "Design|Costs" );
+    cost_sf_real.set(                      nan,                             "",       true,                          "Solar field cost (real)",        "$",                      "Design|Costs" );
+    cost_tower_tot.set(                    nan,               "cost_tower_tot",       true,                                       "Tower cost",        "$",                      "Design|Costs" );
+    cost_land_tot.set(                     nan,                "cost_land_tot",       true,                                        "Land cost",        "$",                      "Design|Costs" );
+    cost_land_real.set(                    nan,                             "",       true,                                 "Land cost (real)",        "$",                      "Design|Costs" );
+    cost_site_tot.set(                     nan,                "cost_site_tot",       true,                                        "Site cost",        "$",                      "Design|Costs" );
+    h_tower_opt.set(                       nan,                  "h_tower_opt",       true );
+    rec_height_opt.set(                    nan,               "rec_height_opt",       true );
+    rec_aspect_opt.set(                    nan,               "rec_aspect_opt",       true );
 
 	std::vector< std::vector< double > > empty_mat;
-	opteff_table.set(empty_mat, "opteff_table", true);
-	flux_table.set(empty_mat, "flux_table", true);
-	heliostat_positions.set(empty_mat, "heliostat_positions", true);
+    opteff_table.set(                empty_mat,                 "opteff_table",       true );
+    flux_table.set(                  empty_mat,                   "flux_table",       true );
+    heliostat_positions.set(         empty_mat,          "heliostat_positions",       true );
 
     (*this)["number_heliostats"] = &number_heliostats;
     (*this)["area_sf"] = &area_sf;
@@ -362,15 +362,15 @@ solarfield_outputs::solarfield_outputs()
 
 	double nan = std::numeric_limits<double>::quiet_NaN();
 
-	n_repairs.set(nan, "n_repairs", true, "Number of heliostat repairs", "-", "Heliostat availability|Outputs");
-	staff_utilization.set(nan, "staff_utilization", true, "Staff utilization", "-", "Heliostat availability|Outputs");
-	heliostat_repair_cost_y1.set(nan, "heliostat_repair_cost_y1", true, "Heliostat repair cost (year 1)", "$", "Heliostat availability|Outputs");
-	heliostat_repair_cost.set(nan, "heliostat_repair_cost", true);
-	avg_avail.set(nan, "avg_avail", true, "Average lifetime availability", "-", "Heliostat availability|Outputs");
+    n_repairs.set(                         nan,                    "n_repairs",       true,                      "Number of heliostat repairs",        "-",    "Heliostat availability|Outputs" );
+    staff_utilization.set(                 nan,            "staff_utilization",       true,                                "Staff utilization",        "-",    "Heliostat availability|Outputs" );
+    heliostat_repair_cost_y1.set(          nan,     "heliostat_repair_cost_y1",       true,                   "Heliostat repair cost (year 1)",        "$",    "Heliostat availability|Outputs" );
+    heliostat_repair_cost.set(             nan,        "heliostat_repair_cost",       true );
+    avg_avail.set(                         nan,                    "avg_avail",       true,                    "Average lifetime availability",        "-",    "Heliostat availability|Outputs" );
 
 	std::vector< double > empty_vec;
-	avail_schedule.set(empty_vec, "avail_schedule", true);
-	n_repairs_per_component.set(empty_vec, "n_repairs_per_component", true, "Average annual heliostat component repairs", "-", "Heliostat availability|Outputs");
+    avail_schedule.set(              empty_vec,               "avail_schedule",       true );
+    n_repairs_per_component.set(     empty_vec,      "n_repairs_per_component",       true,       "Average annual heliostat component repairs",        "-",    "Heliostat availability|Outputs" );
 
     (*this)["n_repairs"] = &n_repairs;
     (*this)["staff_utilization"] = &staff_utilization;
@@ -391,16 +391,16 @@ optical_outputs::optical_outputs()
 	double nan = std::numeric_limits<double>::quiet_NaN();
 	std::vector< double > empty_vec;
 	
-	n_replacements.set(nan, "n_replacements", true, "Mirror replacements", "-", "Optical degradation|Outputs" );
-	heliostat_refurbish_cost.set(nan, "heliostat_refurbish_cost", true, "Mirror replacement cost", "$", "Optical degradation|Outputs" );
-	heliostat_refurbish_cost_y1.set(nan, "heliostat_refurbish_cost_y1", true, "Mirror replacement cost (year 1)", "$", "Optical degradation|Outputs" );
-	avg_soil.set(nan, "avg_soil", true, "Average lifetime soiling", "-", "Optical degradation|Outputs" );
-	avg_degr.set(nan, "avg_degr", true, "Average lifetime degradation", "-", "Optical degradation|Outputs" );
+    n_replacements.set(                    nan,               "n_replacements",       true,                              "Mirror replacements",        "-",       "Optical degradation|Outputs" );
+    heliostat_refurbish_cost.set(          nan,     "heliostat_refurbish_cost",       true,                          "Mirror replacement cost",        "$",       "Optical degradation|Outputs" );
+    heliostat_refurbish_cost_y1.set(       nan,  "heliostat_refurbish_cost_y1",       true,                 "Mirror replacement cost (year 1)",        "$",       "Optical degradation|Outputs" );
+    avg_soil.set(                          nan,                     "avg_soil",       true,                         "Average lifetime soiling",        "-",       "Optical degradation|Outputs" );
+    avg_degr.set(                          nan,                     "avg_degr",       true,                     "Average lifetime degradation",        "-",       "Optical degradation|Outputs" );
 
-	soil_schedule.set(empty_vec, "soil_schedule", true, "Soiling time series", "-", "Optical degradation|Outputs" );
-	degr_schedule.set(empty_vec, "degr_schedule", true, "Degradation time series", "-", "Optical degradation|Outputs" );
-	repl_schedule.set(empty_vec, "repl_schedule", true, "Mirror repl. time series", "-", "Optical degradation|Outputs" );
-	repl_total.set(empty_vec, "repl_total", true );
+    soil_schedule.set(               empty_vec,                "soil_schedule",       true,                              "Soiling time series",        "-",       "Optical degradation|Outputs" );
+    degr_schedule.set(               empty_vec,                "degr_schedule",       true,                          "Degradation time series",        "-",       "Optical degradation|Outputs" );
+    repl_schedule.set(               empty_vec,                "repl_schedule",       true,                         "Mirror repl. time series",        "-",       "Optical degradation|Outputs" );
+    repl_total.set(                  empty_vec,                   "repl_total",       true );
 
     (*this)["n_replacements"] = &n_replacements;
     (*this)["heliostat_refurbish_cost_real"] = &heliostat_refurbish_cost;
@@ -419,8 +419,8 @@ cycle_outputs::cycle_outputs()
 {
 	std::vector< double > empty_vec;
 
-	cycle_efficiency.set(empty_vec, "cycle_efficiency", true, "Cycle efficiency time series", "-", "Cycle|Outputs");
-	cycle_capacity.set(empty_vec, "cycle_capacity", true, "Cycle capacity time series", "-", "Cycle|Outputs");
+    cycle_efficiency.set(            empty_vec,             "cycle_efficiency",       true,                     "Cycle efficiency time series",        "-",                     "Cycle|Outputs" );
+    cycle_capacity.set(              empty_vec,               "cycle_capacity",       true,                       "Cycle capacity time series",        "-",                     "Cycle|Outputs" );
 
 	(*this)["cycle_efficiency"] = &cycle_efficiency;
 	(*this)["cycle_capacity"] = &cycle_capacity;
@@ -431,28 +431,28 @@ simulation_outputs::simulation_outputs()
 	double nan = std::numeric_limits<double>::quiet_NaN();
 	std::vector< double > empty_vec;
 
-	generation_arr.set(empty_vec, "generation_arr", true, "Net power generation", "kWe", "Simulation|Outputs");
-	solar_field_power_arr.set(empty_vec, "solar_field_power_arr", true, "Solarfield thermal power", "kWt", "Simulation|Outputs");
-	tes_charge_state.set(empty_vec, "e_ch_tes", true, "Thermal storage charge state", "MWht", "Simulation|Outputs");
-	dni_arr.set(empty_vec, "dni_arr", true, "Direct normal irradiation", "W/m2", "Simulation|Outputs");
-	price_arr.set(empty_vec, "price_arr", true, "Price signal", "-", "Simulation|Outputs");
+    generation_arr.set(              empty_vec,               "generation_arr",       true,                             "Net power generation",      "kWe",                "Simulation|Outputs" );
+    solar_field_power_arr.set(       empty_vec,        "solar_field_power_arr",       true,                         "Solarfield thermal power",      "kWt",                "Simulation|Outputs" );
+    tes_charge_state.set(            empty_vec,                     "e_ch_tes",       true,                     "Thermal storage charge state",     "MWht",                "Simulation|Outputs" );
+    dni_arr.set(                     empty_vec,                      "dni_arr",       true,                        "Direct normal irradiation",     "W/m2",                "Simulation|Outputs" );
+    price_arr.set(                   empty_vec,                    "price_arr",       true,                                     "Price signal",        "-",                "Simulation|Outputs" );
 	
-	dni_templates.set(empty_vec, "dni_templates", true, "DNI clusters", "W/m2", "Simulation|Outputs");
-	price_templates.set(empty_vec, "price_templates", true, "Price clusters", "-", "Simulation|Outputs");
+    dni_templates.set(               empty_vec,                "dni_templates",       true,                                     "DNI clusters",     "W/m2",                "Simulation|Outputs" );
+    price_templates.set(             empty_vec,              "price_templates",       true,                                   "Price clusters",        "-",                "Simulation|Outputs" );
 
 
-	annual_generation.set(nan, "annual_generation", true, "Annual total generation", "GWhe", "Simulation|Outputs");
-	annual_revenue_units.set(nan, "annual_revenue_units", true, "Annual revenue units", "-", "Simulation|Outputs");
+    annual_generation.set(                 nan,            "annual_generation",       true,                          "Annual total generation",     "GWhe",                "Simulation|Outputs" );
+    annual_revenue_units.set(              nan,         "annual_revenue_units",       true,                             "Annual revenue units",        "-",                "Simulation|Outputs" );
 
-	annual_rec_starts.set(nan, "annual_rec_starts", true, "Annual receiver starts", "-", "Simulation|Outputs");
-	annual_cycle_starts.set(nan, "annual_cycle_starts", true, "Annual cycle starts", "-", "Simulation|Outputs");
-	annual_cycle_ramp.set(nan, "annual_cycle_ramp", true, "Annual cycle ramping", "GWe", "Simulation|Outputs");
-	cycle_ramp_index.set(nan, "cycle_ramp_index", true, "Cycle ramp index", "%", "Simulation|Outputs");
+    annual_rec_starts.set(                 nan,            "annual_rec_starts",       true,                           "Annual receiver starts",        "-",                "Simulation|Outputs" );
+    annual_cycle_starts.set(               nan,          "annual_cycle_starts",       true,                              "Annual cycle starts",        "-",                "Simulation|Outputs" );
+    annual_cycle_ramp.set(                 nan,            "annual_cycle_ramp",       true,                             "Annual cycle ramping",      "GWe",                "Simulation|Outputs" );
+    cycle_ramp_index.set(                  nan,             "cycle_ramp_index",       true,                                 "Cycle ramp index",        "%",                "Simulation|Outputs" );
 
-	annual_rec_starts_disp.set(nan, "annual_rec_starts_disp", true, "Annual receiver starts from dispatch soln", "-", "Simulation|Outputs");
-	annual_cycle_starts_disp.set(nan, "annual_cycle_starts_disp", true, "Annual cycle starts from dispatch soln", "-", "Simulation|Outputs");
-	annual_cycle_ramp_disp.set(nan, "annual_cycle_ramp_disp", true, "Annual cycle ramping from dispatch soln", "GWe", "Simulation|Outputs");
-	cycle_ramp_index_disp.set(nan, "cycle_ramp_index_disp", true, "Cycle ramp index from dispatch soln", "%", "Simulation|Outputs");
+    annual_rec_starts_disp.set(            nan,       "annual_rec_starts_disp",       true,        "Annual receiver starts from dispatch soln",        "-",                "Simulation|Outputs" );
+    annual_cycle_starts_disp.set(          nan,     "annual_cycle_starts_disp",       true,           "Annual cycle starts from dispatch soln",        "-",                "Simulation|Outputs" );
+    annual_cycle_ramp_disp.set(            nan,       "annual_cycle_ramp_disp",       true,          "Annual cycle ramping from dispatch soln",      "GWe",                "Simulation|Outputs" );
+    cycle_ramp_index_disp.set(             nan,        "cycle_ramp_index_disp",       true,              "Cycle ramp index from dispatch soln",        "%",                "Simulation|Outputs" );
 
 
 	(*this)["generation_arr"] = &generation_arr;
@@ -477,15 +477,15 @@ simulation_outputs::simulation_outputs()
 explicit_outputs::explicit_outputs()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();
-	cost_receiver_real.set(nan, "cost_receiver_real", true);
-	cost_tower_real.set(nan, "cost_tower_real", true);
-	cost_plant_real.set(nan, "cost_plant_real", true);
-	cost_tes_real.set(nan, "cost_tes_real", true);
+    cost_receiver_real.set(                nan,           "cost_receiver_real",       true );
+    cost_tower_real.set(                   nan,              "cost_tower_real",       true );
+    cost_plant_real.set(                   nan,              "cost_plant_real",       true );
+    cost_tes_real.set(                     nan,                "cost_tes_real",       true );
 
-	heliostat_om_labor_y1.set(nan, "heliostat_om_labor_y1", true);
-	heliostat_om_labor_real.set(nan, "heliostat_om_labor", true);
-	heliostat_wash_cost_y1.set(nan, "heliostat_wash_cost_y1", true);
-	heliostat_wash_cost_real.set(nan, "heliostat_wash_cost", true);
+    heliostat_om_labor_y1.set(             nan,        "heliostat_om_labor_y1",       true );
+    heliostat_om_labor_real.set(           nan,           "heliostat_om_labor",       true );
+    heliostat_wash_cost_y1.set(            nan,       "heliostat_wash_cost_y1",       true );
+    heliostat_wash_cost_real.set(          nan,          "heliostat_wash_cost",       true );
 
 	(*this)["heliostat_om_labor_y1"] = &heliostat_om_labor_y1;
 	(*this)["heliostat_wash_cost_y1"] = &heliostat_wash_cost_y1;
@@ -496,12 +496,12 @@ financial_outputs::financial_outputs()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();
 
-	lcoe_nom.set(nan, "lcoe_nom", true);
-	lcoe_real.set(nan, "lcoe_real", true);
-	ppa.set(nan, "ppa", true);
-	project_return_aftertax_npv.set(nan, "project_return_aftertax_npv", true);
-	project_return_aftertax_irr.set(nan, "project_return_aftertax_irr", true);
-	total_installed_cost.set(nan, "total_installed_cost", true);
+    lcoe_nom.set(                          nan,                     "lcoe_nom",       true );
+    lcoe_real.set(                         nan,                    "lcoe_real",       true );
+    ppa.set(                               nan,                          "ppa",       true );
+    project_return_aftertax_npv.set(       nan,  "project_return_aftertax_npv",       true );
+    project_return_aftertax_irr.set(       nan,  "project_return_aftertax_irr",       true );
+    total_installed_cost.set(              nan,         "total_installed_cost",       true );
 
 
 	(*this)["project_return_aftertax_npv"] = &project_return_aftertax_npv;
@@ -513,28 +513,28 @@ objective_outputs::objective_outputs()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();
 
-	cost_receiver_real.set(nan, "cost_receiver_real", true, "Receiver cost", "$", "Objective|Outputs");
-	cost_tower_real.set(nan, "cost_tower_real", true, "Tower cost", "$", "Objective|Outputs");
-	cost_plant_real.set(nan, "cost_plant_real", true, "Plant cost", "$", "Objective|Outputs");
-	cost_tes_real.set(nan, "cost_tes_real", true, "TES cost", "$", "Objective|Outputs");
-	cost_land_real.set(nan, "cost_land_real", true, "Land cost", "$", "Objective|Outputs");				// from D
-	cost_sf_real.set(nan, "cost_sf_real", true, "Heliostat field cost", "$", "Objective|Outputs");		// from D
-	cap_cost_real.set(nan, "cap_cost_real", true, "Total Capital cost", "$", "Objective|Outputs");
+    cost_receiver_real.set(                nan,           "cost_receiver_real",       true,                                    "Receiver cost",        "$",                 "Objective|Outputs" );
+    cost_tower_real.set(                   nan,              "cost_tower_real",       true,                                       "Tower cost",        "$",                 "Objective|Outputs" );
+    cost_plant_real.set(                   nan,              "cost_plant_real",       true,                                       "Plant cost",        "$",                 "Objective|Outputs" );
+    cost_tes_real.set(                     nan,                "cost_tes_real",       true,                                         "TES cost",        "$",                 "Objective|Outputs" );
+    cost_land_real.set(                    nan,               "cost_land_real",       true,                                        "Land cost",        "$",                 "Objective|Outputs" );
+    cost_sf_real.set(                      nan,                 "cost_sf_real",       true,                             "Heliostat field cost",        "$",                 "Objective|Outputs" );
+    cap_cost_real.set(                     nan,                "cap_cost_real",       true,                               "Total Capital cost",        "$",                 "Objective|Outputs" );
 
-	rec_start_cost_real.set(nan, "rec_start_cost_real", true, "Receiver start cost", "$", "Objective|Outputs");
-	cycle_start_cost_real.set(nan, "cycle_start_cost_real", true, "Cycle start cost", "$", "Objective|Outputs");
-	cycle_ramp_cost_real.set(nan, "cycle_ramp_cost_real", true, "Cycle ramp cost", "$", "Objective|Outputs");
-	heliostat_repair_cost_real.set(nan, "heliostat_repair_cost_real", true, "Heliostat repair cost", "$", "Objective|Outputs");		  // from M
-	heliostat_om_labor_real.set(nan, "heliostat_om_labor_real", true, "Heliostat O&M labor cost", "$", "Objective|Outputs");
-	heliostat_wash_cost_real.set(nan, "heliostat_wash_cost_real", true, "Heliostat O&M wash cost", "$", "Objective|Outputs");
-	heliostat_refurbish_cost_real.set(nan, "heliostat_refurbish_cost_real", true, "Heliostat refurbish cost", "$", "Objective|Outputs"); // from O
-	om_cost_real.set(nan, "om_cost_real", true, "Total O&M cost", "$", "Objective|Outputs");
+    rec_start_cost_real.set(               nan,          "rec_start_cost_real",       true,                              "Receiver start cost",        "$",                 "Objective|Outputs" );
+    cycle_start_cost_real.set(             nan,        "cycle_start_cost_real",       true,                                 "Cycle start cost",        "$",                 "Objective|Outputs" );
+    cycle_ramp_cost_real.set(              nan,         "cycle_ramp_cost_real",       true,                                  "Cycle ramp cost",        "$",                 "Objective|Outputs" );
+    heliostat_repair_cost_real.set(        nan,   "heliostat_repair_cost_real",       true,                            "Heliostat repair cost",        "$",                 "Objective|Outputs" );
+    heliostat_om_labor_real.set(           nan,      "heliostat_om_labor_real",       true,                         "Heliostat O&M labor cost",        "$",                 "Objective|Outputs" );
+    heliostat_wash_cost_real.set(          nan,     "heliostat_wash_cost_real",       true,                          "Heliostat O&M wash cost",        "$",                 "Objective|Outputs" );
+    heliostat_refurbish_cost_real.set(     nan,"heliostat_refurbish_cost_real",       true,                         "Heliostat refurbish cost",        "$",                 "Objective|Outputs" );
+    om_cost_real.set(                      nan,                 "om_cost_real",       true,                                   "Total O&M cost",        "$",                 "Objective|Outputs" );
 	
-	sales.set(nan, "sales", true, "Sales", "$", "Objective|Outputs");
-	cash_flow.set(nan, "cash_flow", true, "Cash flow", "$", "Objective|Outputs");
-	ppa.set(nan, "ppa", true, "PPA price (year 1)", "c/kWhe", "Objective|Outputs");
-	lcoe_nom.set(nan, "lcoe_nom", true, "LCOE (nominal)", "c/kWhe", "Objective|Outputs");
-	lcoe_real.set(nan, "lcoe_real", true, "LCOE (real)", "c/kWhe", "Objective|Outputs");
+    sales.set(                             nan,                        "sales",       true,                                            "Sales",        "$",                 "Objective|Outputs" );
+    cash_flow.set(                         nan,                    "cash_flow",       true,                                        "Cash flow",        "$",                 "Objective|Outputs" );
+    ppa.set(                               nan,                          "ppa",       true,                               "PPA price (year 1)",   "c/kWhe",                 "Objective|Outputs" );
+    lcoe_nom.set(                          nan,                     "lcoe_nom",       true,                                   "LCOE (nominal)",   "c/kWhe",                 "Objective|Outputs" );
+    lcoe_real.set(                         nan,                    "lcoe_real",       true,                                      "LCOE (real)",   "c/kWhe",                 "Objective|Outputs" );
 	
 	(*this)["cost_receiver_real"] = &cost_receiver_real;
 	(*this)["cost_tower_real"] = &cost_tower_real;
