@@ -547,6 +547,7 @@ class Project
 	bool is_design_valid;
 	bool is_sf_avail_valid;
 	bool is_sf_optical_valid;
+	bool is_cycle_avail_valid;
 	bool is_simulation_valid;
 	bool is_explicit_valid;
 	bool is_financial_valid;
@@ -586,7 +587,7 @@ public:
 	Project();
 	~Project();
 
-	struct CALLING_SIM{ enum E {DESIGN=1, HELIO_AVAIL, HELIO_OPTIC, SIMULATION, EXPLICIT, FINANCE, OBJECTIVE, NULLSIM=0}; };
+	struct CALLING_SIM{ enum E {DESIGN=1, HELIO_AVAIL, HELIO_OPTIC, CYCLE_AVAIL, SIMULATION, EXPLICIT, FINANCE, OBJECTIVE, NULLSIM=0}; };
 	bool Validate(CALLING_SIM::E simtype=CALLING_SIM::E::NULLSIM, std::string *error_msg=0);
 	void Initialize();
 

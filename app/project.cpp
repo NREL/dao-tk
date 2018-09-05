@@ -626,6 +626,18 @@ bool Project::Validate(Project::CALLING_SIM::E sim_type, std::string *error_msg)
 				return false;
 			}
 			break;
+		case CALLING_SIM::CYCLE_AVAIL:
+			if (!is_design_valid)
+			{
+				(*error_msg).append("Error: Attempting to run cycle availability without a valid solar field design.\n");
+				return false;
+			}
+			else
+			{
+				if (!is_cycle_avail_valid)
+					(*error_msg).append("Notice: Simulating performance without valid cycle availability model output.\n");
+			}
+			break;
 		case CALLING_SIM::SIMULATION:
 			if( !is_design_valid )
 			{
@@ -1364,9 +1376,16 @@ bool Project::C()
 	Returns a dict with keys:
 	cycle_efficiency    Time series of mean cycle efficiency 
 	cycle_capacity      Time series of mean cycle capacity
-	n_failures          Average number of failures per scenario
-	lost_rev            Average revenue lost per scenario
 	*/
+
+	// error if invalid design
+	std::string error_msg;
+	if (!Validate(Project::CALLING_SIM::CYCLE_AVAIL, &error_msg))
+	{
+		message_handler(error_msg.c_str());
+		return false;
+	}
+
 	PowerCycle pc;
 
 	//Simulation parameters
@@ -1448,6 +1467,8 @@ bool Project::C()
 	pc.GetAverageEfficiencyAndCapacity();
 	m_cycle_outputs.cycle_capacity.assign_vector( pc.m_results.avg_cycle_capacity );
 	m_cycle_outputs.cycle_efficiency.assign_vector( pc.m_results.avg_cycle_efficiency );
+
+	is_cycle_avail_valid = true;
 
 	return true;
 }
@@ -1729,6 +1750,7 @@ bool Project::Z()
 	{
 		is_sf_avail_valid = false;
 		is_sf_optical_valid = false;
+		is_cycle_avail_valid = false;
 		is_simulation_valid = false;
 		is_explicit_valid = false;
 		is_financial_valid = false;
@@ -1758,6 +1780,17 @@ bool Project::Z()
 	}
 	else
 		message_handler("Using existing heliostat field soiling/degradation results in objective function");
+
+
+	// Cycle efficiency/capacity
+	if (!is_cycle_avail_valid)
+	{
+		is_simulation_valid = false;
+		is_financial_valid = false;
+		O();
+	}
+	else
+		message_handler("Using existing cycle availability results in objective function");
 
 	// Simulation
 	if (!is_simulation_valid)
