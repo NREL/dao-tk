@@ -12,6 +12,7 @@
 #include "../libcycle/well512.h"
 
 #include "../libcluster/clustersim.h"
+#include "../libclearsky/clearsky.h"
 
 /* 
 A class containing the aspects of the current project
@@ -292,9 +293,14 @@ struct parameters : public lk::varhash_t
 	parameter is_ampl_engine;
 	parameter is_stochastic_disp;
 	parameter current_standby;
+	parameter is_use_clusters;
+	parameter is_run_continuous;
+	parameter is_hard_partitions;
     //strings
 	parameter ampl_data_dir;
 	parameter solar_resource_file;
+	parameter helio_repair_priority;
+	parameter cluster_algorithm;
     //ints
 	parameter disp_steps_per_hour;
 	parameter avail_seed;
@@ -315,6 +321,9 @@ struct parameters : public lk::varhash_t
 	parameter next_start_period;
 	parameter write_interval;
 	parameter num_scenarios;
+	parameter n_clusters;
+	parameter cluster_ndays;
+	parameter cluster_nprev;
     //doubles
 	parameter rec_ref_cost;
 	parameter rec_ref_area;
@@ -363,6 +372,7 @@ struct parameters : public lk::varhash_t
 	parameter downtime;
 	parameter shutdown_capacity;
 	parameter no_restart_capacity;
+	parameter avail_model_timestep;
     //vector-doubles
 	parameter c_ces;
 	parameter dispatch_factors_ts;
@@ -372,6 +382,14 @@ struct parameters : public lk::varhash_t
 	parameter cycle_power;
 	parameter ambient_temperature;
 	parameter standby;
+
+	parameter helio_comp_weibull_shape;
+	parameter helio_comp_weibull_scale;
+	parameter helio_comp_mtr;
+	parameter helio_comp_repair_cost;
+	parameter clustering_feature_weights;
+	parameter clustering_feature_divisions;
+
 	//-----------------------------------------------------------------------
 
 	parameters();
@@ -413,6 +431,9 @@ struct solarfield_outputs : public lk::varhash_t
 	parameter heliostat_repair_cost;
 	parameter avail_schedule;
 
+	parameter avg_avail;
+	parameter n_repairs_per_component;
+
 	solarfield_outputs();
 
 };
@@ -451,35 +472,73 @@ struct simulation_outputs : public lk::varhash_t
 	parameter dni_templates;
 	parameter price_templates;
 	parameter annual_generation;
-	parameter annual_revenue;
+	parameter annual_revenue_units;
+	parameter annual_rec_starts;
+	parameter annual_cycle_starts;
+	parameter annual_cycle_ramp;
+	parameter cycle_ramp_index;
+	parameter annual_rec_starts_disp;
+	parameter annual_cycle_starts_disp;
+	parameter annual_cycle_ramp_disp;
+	parameter cycle_ramp_index_disp;
 
 	simulation_outputs();
 };
 
-
-struct project_cluster_inputs
+struct explicit_outputs : public lk::varhash_t
 {
-	int ncluster;
-	int nsim;
-	int nprev;
-	int alg;
-	bool hard_partitions;
-	bool is_run_continuous;
-	bool is_run_full;
 
-	project_cluster_inputs()
-	{
-		initialize();
-	};
-	
-	void initialize()
-	{
-		ncluster = nsim = nprev = alg = -1;
-		hard_partitions = true;
-		is_run_continuous = false;
-		is_run_full = false;
-	};
+	parameter cost_receiver_real;
+	parameter cost_tower_real;
+	parameter cost_plant_real;
+	parameter cost_tes_real;
 
+	parameter heliostat_om_labor_y1;
+	parameter heliostat_om_labor_real;
+	parameter heliostat_wash_cost_y1;
+	parameter heliostat_wash_cost_real;
+
+	explicit_outputs();
+};
+
+struct financial_outputs : public lk::varhash_t 
+{
+	parameter lcoe_nom;
+	parameter lcoe_real;
+	parameter ppa;
+	parameter project_return_aftertax_npv;
+	parameter project_return_aftertax_irr;
+	parameter total_installed_cost;
+
+	financial_outputs();
+};
+
+struct objective_outputs : public lk::varhash_t
+{
+	parameter cost_receiver_real;
+	parameter cost_tower_real;
+	parameter cost_plant_real;
+	parameter cost_tes_real;
+	parameter cost_land_real;
+	parameter cost_sf_real;
+	parameter cap_cost_real;
+
+	parameter rec_start_cost_real;
+	parameter cycle_start_cost_real;
+	parameter cycle_ramp_cost_real;
+	parameter heliostat_repair_cost_real;
+	parameter heliostat_om_labor_real;
+	parameter heliostat_wash_cost_real;
+	parameter heliostat_refurbish_cost_real;
+	parameter om_cost_real;
+
+	parameter sales;
+	parameter cash_flow;
+	parameter ppa;
+	parameter lcoe_nom;
+	parameter lcoe_real;
+
+	objective_outputs();
 };
 
 //main class
@@ -489,6 +548,8 @@ class Project
 	bool is_sf_avail_valid;
 	bool is_sf_optical_valid;
 	bool is_simulation_valid;
+	bool is_explicit_valid;
+	bool is_financial_valid;
 
 	ssc_data_t m_ssc_data;
 	
@@ -502,19 +563,25 @@ class Project
 	void update_calculated_values_post_layout();
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
 	
-	void setup_clusters(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail, s_metric_outputs &metric_results, s_cluster_outputs &cluster_results);
-	bool simulate_system(const project_cluster_inputs &user_inputs, const std::vector<double> &sfavail);
+	
+	bool simulate_system();
+	void calc_avg_annual_schedule(double original_ts, double new_ts, const parameter &full_sch, std::vector<double> &output_sch);
 
 public:
 
 	variables m_variables;
 	parameters m_parameters;
-	project_cluster_inputs m_cluster_parameters;
 	design_outputs m_design_outputs;
 	solarfield_outputs m_solarfield_outputs;
 	optical_outputs m_optical_outputs;
 	cycle_outputs m_cycle_outputs;
 	simulation_outputs m_simulation_outputs;
+	explicit_outputs m_explicit_outputs;
+	financial_outputs m_financial_outputs;
+	objective_outputs m_objective_outputs;
+
+	s_metric_outputs metric_outputs;
+	s_cluster_outputs cluster_outputs;
 
 	Project();
 	~Project();
@@ -529,11 +596,11 @@ public:
 	bool C();
 	bool O();
 	bool S();
-	int E();
-	int F();
-	int Z();
+	bool E();
+	bool F();
+	bool Z();
 
-
+	bool setup_clusters();
 
 
 	data_base *GetVarPtr(const char *name);

@@ -1,16 +1,14 @@
 #ifndef _METRICS_
 #define _METRICS_
 
-
 #include "matrixtools.h"
+#include "../libclearsky/clearsky.h"
 #include <vector>
 #include <string>
 #include <unordered_map>
 
 using std::unordered_map;
 
-
-enum CSKYMODEL { MEINEL, HOTTEL };
 
 struct data_feature
 {
@@ -70,8 +68,6 @@ class clustering_metrics
 	bool read_csv(const std::string &csvfile, std::vector<double>&data);
 
 	bool read_weather(const std::string &weatherfile, double &lat, double &lon, double &elev, int &tz, int &year, bool &is_tmy, std::vector<double>&dni, std::vector<double>&wspd, std::vector<double>&tdry);
-
-	void approximate_clearsky(int model, double lat, double lon, double elev, int year, int tz, bool is_tmy, double tstephr, std::vector<double>&csky);
 
 
 public:
