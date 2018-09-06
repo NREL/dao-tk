@@ -15,6 +15,16 @@ cycle_results::cycle_results()
 	avg_labor_cost = 0.;
 	component_status = {};
 	plant_status = {};
+	failure_event_labels = {};
+	failure_events = {};
+}
+
+cycle_file_settings::cycle_file_settings()
+{
+	plant_in_state = "plant_state_in";
+	plant_out_state = "plant_state_out";
+	component_in_state = "component_state_in";
+	component_out_state = "component_state_out";
 }
 
 void PowerCycle::InitializeCyclingDists()
@@ -50,15 +60,15 @@ void PowerCycle::GeneratePlantCyclingPenalties()
 }
 
 void PowerCycle::SetSimulationParameters( 
-	int read_periods = 0,
-	int sim_length = 48,
-	int start_period = 0,
-	int next_start_period = 48,
-	int write_interval = 0,
-	double epsilon = 1.E-10,
-	bool print_output = false,
-	int num_scenarios = 1,
-	double hourly_labor_cost = 50.
+	int read_periods,
+	int sim_length,
+	int start_period,
+	int next_start_period,
+	int write_interval,
+	double epsilon,
+	bool print_output,
+	int num_scenarios,
+	double hourly_labor_cost
 )
 {
     m_read_periods = read_periods;
@@ -160,6 +170,102 @@ void PowerCycle::SetStatus()
 	m_hot_start_penalty = m_plant_status["hot_start_penalty"] * 1.0;
 	m_hot_start_penalty = m_plant_status["warm_start_penalty"] * 1.0;
 	m_hot_start_penalty = m_plant_status["cold_start_penalty"] * 1.0;
+}
+
+
+void PowerCycle::WriteStateToFiles(std::string component_filename, std::string plant_filename)
+{
+	//components
+	std::ofstream cfile;
+	cfile.open(component_filename);
+	cfile << "hazard_rate,downtime_remaining,repair_event_time,lifesprobs\n";
+	ComponentStatus status;
+	for (Component c : GetComponents())
+	{
+		status = m_component_status[c.GetName()];
+		cfile << status.hazard_rate << "," << status.downtime_remaining << "," << status.repair_event_time;
+		for (double d : status.lifetimes)
+		{
+			cfile << "," << d;
+		}
+		cfile << "\n";
+	}
+
+	//plant state
+	std::ofstream pfile;
+	pfile.open(plant_filename);
+	pfile << "hours_to_maintenance,power_output,standby,time_online,time_in_standby,downtime,hs_penalty,ws_penalty,cs_penalty\n";
+	pfile << m_plant_status["hours_to_maintenance"] << "," << m_plant_status["m_power_output"] << ",";
+	pfile << m_plant_status["m_standby"] << "," << m_plant_status["m_time_online"] << ",";
+	pfile << m_plant_status["m_time_in_standby"] << "," << m_plant_status["m_downtime"] << ",";
+	pfile << m_plant_status["m_hot_start_penalty"] << "," << m_plant_status["m_warm_start_penalty"] << ",";
+	pfile << m_plant_status["m_cold_start_penalty"] << "\n";
+
+}
+
+void PowerCycle::ReadStateFromFiles(std::string component_filename, std::string plant_filename)
+{
+	//set up reading of component file
+	std::ifstream cfile;
+	size_t pos = 0;
+	std::string delimiter = ",";
+	cfile.open(component_filename);
+	std::string cline;
+	std::vector<std::string> split_line = {};
+	getline(cfile, cline);
+	//std::vector <double> lifes_probs;
+	ComponentStatus status;
+	int cindex = 0;
+	std::string token;
+	while (!cfile.eof())
+	{
+		//lifes_probs.clear();
+		status.lifetimes.clear();
+		pos = 0;
+		getline(cfile, cline);
+		std::cerr << cline;
+		while (pos != std::string::npos) {
+			pos = cline.find(delimiter);
+			token = cline.substr(0, pos);
+			split_line.push_back(token);
+			cline.erase(0, pos + delimiter.length());
+		}
+		if (split_line.size() > 3)
+		{
+			status.hazard_rate = std::stod(split_line[0]);
+			status.downtime_remaining = std::stod(split_line[1]);
+			status.repair_event_time = std::stod(split_line[2]);
+			for (size_t i = 3; i < split_line.size(); i++)
+			{
+				status.lifetimes.push_back(std::stod(split_line[i]));
+			}
+			GetComponents().at(cindex).ReadStatus(status);
+		}
+		split_line.clear();
+		cindex++;
+	}
+	std::ifstream pfile;
+	pos = 0;
+	pfile.open(plant_filename);
+	std::string pline;
+	getline(pfile, pline);
+	getline(pfile, pline);
+	while (pos != std::string::npos) {
+		pos = pline.find(delimiter);
+		token = pline.substr(0, pos);
+		split_line.push_back(token);
+		cline.erase(0, pos + delimiter.length());
+	}
+	m_hours_to_maintenance = std::stod(split_line[0]);
+	m_power_output = std::stod(split_line[1]);
+	m_standby = std::stod(split_line[2]);
+	m_time_online = std::stod(split_line[3]);
+	m_time_in_standby = std::stod(split_line[4]);
+	m_downtime = std::stod(split_line[5]);
+	m_hot_start_penalty = std::stod(split_line[6]);
+	m_warm_start_penalty = std::stod(split_line[7]);
+	m_cold_start_penalty = std::stod(split_line[8]);
+	//std::vector <double> lifes_probs;
 }
 
 std::vector< Component > &PowerCycle::GetComponents()
@@ -406,13 +512,13 @@ void PowerCycle::AddCondenserTrain(int num_fans, int num_radiators)
 	m_num_condenser_trains += 1;
 	std::string component_name;
 	std::string train_name = "C" + std::to_string(m_num_condenser_trains);
+	AddComponent(component_name + "-T", "Condenser train", 15.55, 0, 0, 0, 7.777, "S");
 	for (int i = 1; i <= num_fans; i++)
 	{
 		component_name = train_name + "-F" + std::to_string(i);
 		AddComponent(component_name, "Condenser fan", 35.5, 0, 0, 0, 7.777, "S");
 		AddFailureType(component_name, "Fan Failure", "O", "gamma", 1, 841188);
 	}
-	AddComponent(component_name + "-T", "Condenser train", 15.55, 0, 0, 0, 7.777, "S");
 	for (int i = 1; i <= num_radiators; i++)
 	{
 		AddFailureType(component_name + "-T", "Radiator " + std::to_string(i) + " Failure", "O", "gamma", 1, 698976);
@@ -518,16 +624,16 @@ void PowerCycle::AddTurbines(int num_turbines)
 }
 
 void PowerCycle::GeneratePlantComponents(
-	int num_condenser_trains = 2,
-	int fans_per_train = 30,
-	int radiators_per_train = 1,
-	int num_salt_steam_trains = 2,
-	int num_fwh = 6,
-	int num_salt_pumps = 2,
-	int num_water_pumps = 2,
-	int num_turbines = 1,
-	std::vector<double> condenser_eff_cold = { 0.,1.,1. },
-	std::vector<double> condenser_eff_hot = { 0.,0.95,1. }
+	int num_condenser_trains,
+	int fans_per_train,
+	int radiators_per_train,
+	int num_salt_steam_trains,
+	int num_fwh,
+	int num_salt_pumps,
+	int num_water_pumps,
+	int num_turbines,
+	std::vector<double> condenser_eff_cold,
+	std::vector<double> condenser_eff_hot 
 )
 {
 	/* 
@@ -554,20 +660,20 @@ void PowerCycle::GeneratePlantComponents(
 }
 
 void PowerCycle::SetPlantAttributes(
-	double maintenance_interval = 5000.,
-	double maintenance_duration = 168.,
-	double downtime_threshold = 24., 
-	double steplength = 1., 
-	double hours_to_maintenance = 5000.,
-	double power_output = 0., 
-	bool current_standby = false, 
-	double capacity = 500000.,
-	double temp_threshold = 20., 
-	double time_online = 0., 
-	double time_in_standby = 0.,
-	double downtime = 0.,
-	double shutdown_capacity = 0.45, 
-	double no_restart_capacity = 0.9
+	double maintenance_interval,
+	double maintenance_duration,
+	double downtime_threshold,
+	double steplength,
+	double hours_to_maintenance,
+	double power_output,
+	bool current_standby,
+	double capacity,
+	double temp_threshold,
+	double time_online,
+	double time_in_standby,
+	double downtime,
+	double shutdown_capacity,
+	double no_restart_capacity
 )
 {
     /*
@@ -647,17 +753,20 @@ double PowerCycle::GetCondenserEfficiency(double temp)
 	int num_streams = 0;
 	int num_online_fans_down = 0;
 	for (size_t i : m_condenser_idx)
+	{
+		//std::cerr << i << " " << GetComponents().at(i).GetType() << "\n";
 		if (m_components.at(i).IsOperational())
 		{
 			num_streams++;
 			for (size_t j = 1; j <= m_fans_per_condenser_train; j++)
 			{
-				if (!m_components.at(i+j).IsOperational())
+				if (!m_components.at(i + j).IsOperational())
 				{
 					num_online_fans_down++;
 				}
 			}
 		}
+	}
 	if (temp < m_condenser_temp_threshold)
 		baseline_efficiency = m_condenser_efficiencies_cold[num_streams];
 	else
@@ -738,6 +847,7 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp)
 	{
 		m_cycle_capacity = 0.;
 		m_cycle_efficiency = 0.;
+		//std::cerr << "OFF";
 		return;
 	}
 	double condenser_eff = GetCondenserEfficiency(temp);
@@ -745,9 +855,11 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp)
 	double turbine_cap = GetTurbineCapacity();
 	double sst_cap = GetSaltSteamTrainCapacity();
 	double rem_eff = 1.0;
-	for (size_t i = 0; i<m_components.size(); i++)
+	for (size_t i = 0; i < m_components.size(); i++)
+	{
 		if (!m_components.at(i).IsOperational())
 			rem_eff -= m_components.at(i).GetCapacityReduction();
+	}
 	//efficiency and capacity reductions assumed equal for all components but
 	//turbines and salt-to-steam trains
 	m_cycle_capacity = std::max(0., std::min(turbine_cap,sst_cap)*condenser_eff*rem_eff);
@@ -1244,7 +1356,7 @@ void PowerCycle::Operate(double power_out, int t, std::string start, std::string
 
 }
 
-void PowerCycle::SingleScen(bool reset_plant)
+void PowerCycle::SingleScen(bool reset_plant, bool read_state_from_file)
 {
 
     /*failure_file = open(
@@ -1254,6 +1366,18 @@ void PowerCycle::SingleScen(bool reset_plant)
 	{
 		GeneratePlantCyclingPenalties();
 		ResetPlant(*m_gen);
+	}
+	else if (read_state_from_file)
+	{
+		std::string cfilename = (
+			m_filenames.component_in_state + 
+			std::to_string(m_current_scenario) + ".csv"
+			);
+		std::string pfilename = (
+			m_filenames.plant_in_state + 
+			std::to_string(m_current_scenario) + ".csv"
+			);
+		ReadStateFromFiles(cfilename, pfilename);
 	}
 	else
 	{
@@ -1316,7 +1440,7 @@ double PowerCycle::GetLaborCosts(size_t start_fail_idx)
 	return hours * m_hourly_labor_cost;
 }
 
-void PowerCycle::Simulate(bool reset_plant)
+void PowerCycle::Simulate(bool reset_plant, bool read_state_from_file)
 {
 	/*
 	Generates a collection of Monte Carlo realizations of failure and
@@ -1326,15 +1450,17 @@ void PowerCycle::Simulate(bool reset_plant)
 	size_t cum_num_failures = 0;
 	for (int i = 0; i < m_num_scenarios; i++)
 	{
-		m_gen->assignStates(m_current_scenario);
 		m_current_scenario = i;
-		SingleScen(reset_plant);
+		m_gen->assignStates(m_current_scenario);
+		SingleScen(reset_plant, read_state_from_file);
 		m_gen->saveStates(i);
 
 		//get labor costs, starting at first event in curremt scenario
 		m_results.labor_costs[i] = GetLaborCosts(cum_num_failures);
 		cum_num_failures = m_failure_event_labels.size();
 	}
+	m_results.failure_events = m_failure_events;
+	m_results.failure_event_labels = m_failure_event_labels;
 	GetAverageEfficiencyAndCapacity();
 }
 

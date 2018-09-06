@@ -9,6 +9,14 @@
 #include "well512.h"
 #include "distributions.h"
 
+struct cycle_file_settings
+{
+	std::string component_in_state;
+	std::string component_out_state;
+	std::string plant_in_state;
+	std::string plant_out_state;
+	cycle_file_settings();
+};
 
 struct cycle_results
 {
@@ -20,6 +28,8 @@ struct cycle_results
 	double avg_labor_cost;
 	std::unordered_map<int,  std::unordered_map< std::string, ComponentStatus > > component_status;
 	std::unordered_map<int, std::unordered_map< std::string, double > >  plant_status;
+	std::vector < std::string > failure_event_labels;
+	std::unordered_map < std::string, failure_event > failure_events;
 	cycle_results();
 };
 
@@ -85,29 +95,40 @@ class PowerCycle
 	double m_cycle_efficiency;
 	double m_cycle_capacity;
 	double m_hourly_labor_cost;
+	
 
 public:
+	cycle_file_settings m_filenames;
 	cycle_results m_results;
 	std::vector< std::string > output_log;
 	void InitializeCyclingDists();
 	void AssignGenerator(WELLFiveTwelve *gen);
 	void GeneratePlantCyclingPenalties();
 	void SetSimulationParameters(
-		int read_periods,
-		int sim_length,
-		int start_period,
-		int next_start_period,
-		int write_interval,
-		double epsilon,
-		bool print_output,
-		int num_scenarios,
-		double hourly_labor_cost
+		int read_periods = 0,
+		int sim_length = 48,
+		int start_period = 0,
+		int next_start_period = 48,
+		int write_interval = 48,
+		double epsilon = 1.E-10,
+		bool print_output = false,
+		int num_scenarios = 1,
+		double hourly_labor_cost = 50.
 	);
 	void SetCondenserEfficienciesCold(std::vector<double> eff_cold);
 	void SetCondenserEfficienciesHot(std::vector<double> eff_hot);
-	void ReadComponentStatus(std::unordered_map< std::string, ComponentStatus > dstat);
+	void ReadComponentStatus(
+		std::unordered_map< std::string, ComponentStatus > dstat);
 	void ClearComponentStatus();
 	void SetStatus();
+	void WriteStateToFiles(
+		std::string component_filename, 
+		std::string plant_filename
+	);
+	void ReadStateFromFiles(
+		std::string component_filename, 
+		std::string plant_filename
+	);
 	std::vector< Component >& GetComponents();
 	std::vector< double > GetComponentLifetimes();
 	std::vector< double >  GetComponentDowntimes();
@@ -153,32 +174,32 @@ public:
 	void AddWaterPumps(int num_pumps);
 	void AddTurbines(int num_turbines);
 	void GeneratePlantComponents(
-		int num_condenser_trains,
-		int fans_per_train,
-		int radiators_per_train,
-		int num_salt_steam_trains,
-		int num_fwh,
-		int num_salt_pumps,
-		int num_water_pumps,
-		int num_turbines,
-		std::vector<double> condenser_eff_cold,
-		std::vector<double> condenser_eff_hot
+		int num_condenser_trains = 2,
+		int fans_per_train = 30,
+		int radiators_per_train = 1,
+		int num_salt_steam_trains = 2,
+		int num_fwh = 6,
+		int num_salt_pumps = 2,
+		int num_water_pumps = 2,
+		int num_turbines = 1,
+		std::vector<double> condenser_eff_cold = { 0.,1.,1. },
+		std::vector<double> condenser_eff_hot = { 0.,0.95,1. }
 	);
 	void SetPlantAttributes(
-		double maintenance_interval,
-		double maintenance_duration,
-		double downtime_threshold,
-		double steplength, 
-		double hours_to_maintenance,
-		double power_output, 
-		bool current_standby,
-		double capacity,
-		double temp_threshold, 
-		double time_online, 
-		double time_in_standby,
-		double downtime, 
-		double shutdown_capacity,
-		double no_restart_capacity
+		double maintenance_interval = 5000.,
+		double maintenance_duration = 168.,
+		double downtime_threshold = 24.,
+		double steplength = 1.,
+		double hours_to_maintenance = 5000.,
+		double power_output = 0.,
+		bool current_standby = false,
+		double capacity = 500000.,
+		double temp_threshold = 20.,
+		double time_online = 0.,
+		double time_in_standby = 0.,
+		double downtime = 0.,
+		double shutdown_capacity = 0.45,
+		double no_restart_capacity = 0.9
 	);
 	void SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing = false);
 	int NumberOfAirstreamsOnline();
@@ -190,10 +211,20 @@ public:
 	void TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode);
 	bool AllComponentsOperational();
 	double GetMaxComponentDowntime();
-	void PlantMaintenanceShutdown(int t, bool reset_time, bool record, double duration = 0.);
+	void PlantMaintenanceShutdown(
+		int t,
+		bool reset_time, 
+		bool record, 
+		double duration = 0.
+	);
 	void AdvanceDowntime(std::string mode);
 	double GetRampMult(double power_out);
-	void OperateComponents(double ramp_mult, int t, std::string start, std::string mode);
+	void OperateComponents(
+		double ramp_mult, 
+		int t, 
+		std::string start, 
+		std::string mode
+	);
 	void ResetHazardRates();
 	void StoreComponentState();
 	void StorePlantState();
@@ -204,10 +235,10 @@ public:
 	void ReadInMaintenanceEvents(int t);
 	void RunDispatch();
 	void Operate(double power_out, int t, std::string start, std::string mode);
-	void SingleScen(bool reset_plant);
+	void SingleScen(bool reset_plant, bool read_state_from_file = false);
 	void GetAverageEfficiencyAndCapacity();
 	double GetLaborCosts(size_t start_fail_idx);
-	void Simulate(bool reset_plant);
+	void Simulate(bool reset_plant, bool read_state_from_file = false);
 	void ResetPlant(WELLFiveTwelve &gen);
 };
 
