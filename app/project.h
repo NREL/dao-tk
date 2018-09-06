@@ -80,7 +80,7 @@ protected:
             fmt_units = "[" + this->doc.units + "]";
 
         sprintf(buf,
-            "<h3>%s <font color=\"#C0C0C0\">%s</font></h3>"
+            "<h3 name=\"doc_%s\">%s <font color=\"#C0C0C0\">%s</font></h3>"
             "<font color=\"#800000\">"
             "<table style=\"background-color:#DDD\">"
             "<tr><td>Handle</td><td><b>%s</b></td></tr>"
@@ -89,6 +89,7 @@ protected:
             "</table>"
             "</font>"
             "<p><font size=\"+1\">%s</font></p><br><a href=\"id?%s\">Add</a><hr>",
+            this->name.c_str(),
             this->nice_name.c_str(),
             fmt_units.c_str(),
             this->name.c_str(), 
