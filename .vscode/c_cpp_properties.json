@@ -22,6 +22,7 @@
                 "${workspaceRoot}/liboptical",
                 "${workspaceRoot}/libcycle",
                 "${workspaceRoot}/libcluster",
+                "${workspaceRoot}/liboptimize",
                 "${workspaceRoot}/app"
             ],
             "defines": [
@@ -51,6 +52,7 @@
                     "${workspaceRoot}/liboptical",
                     "${workspaceRoot}/libcycle",
                     "${workspaceRoot}/libcluster",
+                    "${workspaceRoot}/liboptimize",
                     "${workspaceRoot}/app"
                 ],
                 "limitSymbolsToIncludedHeaders": true,

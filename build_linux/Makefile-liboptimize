@@ -1,0 +1,20 @@
+VPATH=../liboptimize
+
+CXX = g++
+CFLAGS = -g -D__64BIT__ -fPIC -Wall -O3 -I$(VPATH) -I$(VPATH)/nlopt -I$(VPATH)/eigen
+CXXFLAGS= -std=c++0x $(CFLAGS)
+
+CFLAGS += -D__64BIT__
+
+
+OBJECTS = \
+	optimize.o
+
+TARGET = liboptimize.a
+
+$(TARGET) : $(OBJECTS)
+	ar rs $(TARGET) $(OBJECTS)
+
+clean:
+	rm -rf $(TARGET) $(OBJECTS)
+

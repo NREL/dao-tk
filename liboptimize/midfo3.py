@@ -1,13 +1,13 @@
-#include "optimize.h"
-#include <nlopt.h>
-#include <eigen/Sparse>
-#include <exception>
+import numpy as np
+import scipy as sp
+from scipy import linalg # For updating QR factorization
+from scipy import spatial # For pairwise distances
+import itertools # For generating combinations
+import time,sys
+import nlopt
 
-
-std::vector<double> optimize::main(void (*f)(std::vector<double>), std::vector<double> LB, std::vector<double> UB,
-                std::vector< std::vector< double > > X, bool data_out, bool trust, bool convex_flag, int max_delta )
-{
-    /*
+def main(func, LB, UB, X, pflag=False, data_out=False, trust=False, convex_flag=False, max_delta=np.inf):
+    """
     Performs in implementation of our cutting plane approach for mixed-integer
     optimization of convex, derivative-free functions over a bound-constrained
     domain.
@@ -26,18 +26,10 @@ std::vector<double> optimize::main(void (*f)(std::vector<double>), std::vector<d
     Returns: 
     --------
     x_opt: A point satisfying (obj_ub - model_lower_bound(x_opt)) <= optimality_gap
-    */   
-    
-    if ( !convex_flag && !trust )
-        std::runtime_error("Must have trust=True when convex_flag=True");
+    """
+    if not convex_flag:
+        assert trust, "Must have trust=True when convex_flag=True"
 
-    //check for boundedness
-    bool bound_ok = true;
-    for(int i=0; i<X.size(); i++)
-    {
-        auto it = std::max_element(X.at(i).begin(), X.at(i).end());
-    }
-    /*
     assert np.all(np.max(X,axis=0) <= UB) and np.all(np.min(X,axis=0) >= LB), "Points in X are outside of the bounds"
 
     n = len(LB)
@@ -183,5 +175,67 @@ std::vector<double> optimize::main(void (*f)(std::vector<double>), std::vector<d
                 return grid[np.nanargmin(F),1:], eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order
             else:
                 return grid[np.nanargmin(F),1:]
-    */
-}
+
+def nlopt_for_continuous(x_int):
+    # For a given set of integer variables x, this objective function will call
+    # nlopt to optimize the continuous variables y return a value that depends on both.
+
+    def nlopt_obj_fun(x_cont, grad, x_int):
+
+        fval = sum((x_cont-x_int)**2)
+
+        return fval
+
+    n_cont = len(x_int) # Dimension of continuous variables (can be different from length of x_int)
+
+    opt = nlopt.opt(nlopt.LN_BOBYQA, n_cont)
+
+    # Bounds on continuous variables
+    lb = 2*np.ones(n) 
+    ub = 10*np.ones(n)
+    opt.set_lower_bounds(lb)
+    opt.set_upper_bounds(ub)
+
+    x0 = 5*np.ones(n) # Starting point for continuous variables
+
+    opt.set_initial_step(1)
+
+    opt.set_maxeval(100) # Max number of objective evaluations for a given set of integer values
+    opt.set_min_objective(lambda x_cont, grad: nlopt_obj_fun(x_cont, grad, x_int))
+
+    opt.set_ftol_rel(1e-2)
+    opt.set_xtol_rel(1e-2)
+
+    # You may want to use x_opt as a starting point for the next evaluation
+    x_opt = opt.optimize(x0)
+
+    minf = opt.last_optimum_value()
+
+    return minf
+
+if __name__ == "__main__":
+    np.set_printoptions(precision=16,linewidth=300,suppress=True)
+    n = 2 # Dimension of integer variables
+
+    LB = -6*np.ones(n) # Lower bound on integer variables
+    UB =  2*np.ones(n) # Upper bound on integer variables
+
+    x0 = np.zeros((1,n)) 
+    X = np.vstack((x0+ np.eye(n),x0-np.eye(n),x0)) # Initial integer values to evaluate
+
+    trust = True
+    # convex_flag = True
+    convex_flag = False; max_delta = 1
+
+    x_opt, eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order = main(nlopt_for_continuous, LB, UB, X, data_out=True, trust=trust, convex_flag=convex_flag, max_delta=max_delta)
+
+    np.savez('func=%s'%func.__name__ + '_n=%d'%n + '_bound=4' + '_trust=%d'%trust,
+            x_opt = x_opt, 
+            eta_i         =eta_i,
+            obj_ub_i      =obj_ub_i,
+            wall_time_i   =wall_time_i,
+            secants_i     =secants_i,
+            feas_secants_i=feas_secants_i,
+            eval_order    =eval_order,
+            )
+
