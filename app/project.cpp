@@ -2368,3 +2368,12 @@ void Project::calc_avg_annual_schedule(double original_ts, double new_ts, const 
 
 	return;
 }
+
+void Project::Optimize(lk::varhash_t* vars)
+{
+    /* 
+    
+    */
+
+
+}

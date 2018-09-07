@@ -596,6 +596,7 @@ public:
 	struct CALLING_SIM{ enum E {DESIGN=1, HELIO_AVAIL, HELIO_OPTIC, CYCLE_AVAIL, SIMULATION, EXPLICIT, FINANCE, OBJECTIVE, NULLSIM=0}; };
 	bool Validate(CALLING_SIM::E simtype=CALLING_SIM::E::NULLSIM, std::string *error_msg=0);
 	void Initialize();
+    void Optimize(lk::varhash_t* vars);
 
 	//objective function methods
 	bool D();
