@@ -131,6 +131,11 @@ double Component::GetCapacityReduction()
 	return m_capacity_reduction;
 }
 
+double Component::GetEfficiencyReduction()
+{
+	return m_efficiency_reduction;
+}
+
 double Component::GetEfficiency()
 {
 	/*
@@ -184,7 +189,7 @@ void Component::Shutdown(double time)
 }
 
         
-void Component::RestoreComponent(bool reset_age = true)
+void Component::RestoreComponent(bool reset_age)
 {
 	m_status.operational = true;
 	m_status.downtime_remaining = 0.0;

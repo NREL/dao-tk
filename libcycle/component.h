@@ -101,6 +101,8 @@ public:
 
 	double GetCapacityReduction();
 
+	double GetEfficiencyReduction();
+
 	double GetEfficiency();
 
 	double GetCapacity();
@@ -111,7 +113,7 @@ public:
         
     void Shutdown(double time);
         
-    void RestoreComponent(bool reset_age);
+    void RestoreComponent(bool reset_age = true);
 
 	void GenerateTimeToRepair(WELLFiveTwelve &gen);
         
