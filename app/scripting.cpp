@@ -5,6 +5,7 @@
 #include "scripting.h"
 #include "project.h"
 #include "daotk_app.h"
+#include "optimize.h"
 
 #include "../liboptical/optical_degr.h"
 #include "../liboptical/optical_structures.h"
@@ -963,4 +964,33 @@ void _setup_clusters(lk::invoke_t &cxt)
 	Project* P = mw.GetProject();
 	P->setup_clusters();
 
+}
+
+double f(std::vector<int> &x)
+{
+    int rval=0;
+    for(int i=0; i<x.size(); i++)
+        rval += (x.at(i)+3)*(x.at(i)+3);
+
+    return rval;
+}
+
+void _optimize(lk::invoke_t &cxt)
+{
+    LK_DOC("O", "Run outer-loop optimization.", "([table:options]):table");
+
+	MainWindow &mw = MainWindow::Instance();
+    
+    //npanel, nom, nwash
+    std::vector<int> lb = {-6,-6};
+    std::vector<int> ub = {2,2};
+    
+    std::vector< std::vector< int > > x;
+    x.push_back(std::vector<int>{1,0});
+    x.push_back(std::vector<int>{0,1});
+    x.push_back(std::vector<int>{-1,0});
+    x.push_back(std::vector<int>{0,-1});
+    x.push_back(std::vector<int>{0,0});
+
+    Optimize::main( f, lb, ub, x, true, true, false, 1);
 }

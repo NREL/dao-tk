@@ -1,11 +1,215 @@
 #include "optimize.h"
-#include <nlopt.h>
-#include <eigen/Sparse>
+#include <nlopt/nlopt.h>
+#include <eigen/Core>
+#include <eigen/Dense>
 #include <exception>
+#include <set>
+#include <iostream>
+#include <stdio.h>
 
+static bool increment(std::vector<int> &limits,  std::vector<int> &indices )
+{
+    /* 
+    Take a vector of ints (indices) that correspond to a set of indices in 'n' dimensions, where n=|indices|.
+    Increment indices by 1, starting with the last index, and rolling over prior indices.
 
-std::vector<double> optimize::main(void (*f)(std::vector<double>), std::vector<double> LB, std::vector<double> UB,
-                std::vector< std::vector< double > > X, bool data_out, bool trust, bool convex_flag, int max_delta )
+    Returns true if the indices are less than the greatest cumulative index allowed in 'limits'. Returns 
+    false if the incremented index is now greater than the limit.
+
+    Example:
+    limits=[2,3,2]
+    call    indices     returns
+    0       [0,0,0]     
+    1       [0,0,1]     true
+    3       [0,1,0]     true
+    4       [0,1,1]     true
+    3       [0,2,0]     true
+    3       [0,2,1]     true
+    7       [1,0,0]     true
+    8       [1,0,1]     true
+    ...
+    11      [1,2,1]     true
+    12      [2,0,0]     false
+    */
+    int nd = indices.size();
+
+    indices.back() ++;
+    
+    for(int i=nd-1; i>-1; i--)
+    {
+        if( indices.at(i) == limits.at(i) )
+        {
+            if(i==0)
+                return false;
+            indices.at(i-1)++;
+            indices.at(i) = 0;
+        }
+    }
+    return true;
+}
+
+static void combinations( const Eigen::VectorXi &indices, int nd, Eigen::MatrixXi &result, int force_col_width=-1 )
+{
+    std::vector< int > ctr(nd);
+
+    //initialize
+    for(int i=0; i<nd; i++)
+        ctr.at(i)=i;
+    
+    int ni = indices.size();
+
+    result.resize(ni*ni, force_col_width > nd ? force_col_width : nd);
+
+    int ct=0;
+    while(true)
+    {
+        for( int i=nd-1; i>0; i-- )
+        {
+            if(ctr.at(i) > (ni-1)-(nd-1-i))
+            {
+                ctr.at(i-1) ++;
+                for(int j=i; j<nd; j++)
+                    ctr.at(j) = ctr.at(j-1)+1;
+            }
+        }
+
+        if( ctr.front() > ni - nd)
+            break;
+        
+        for( int i=0; i<nd; i++ )
+        {
+            std::cout << ctr.at(i) << "\t";
+            result(ct, i) = indices( ctr.at(i) );
+        }
+        std::cout << "\n";
+
+        ctr.back()++;
+        ct++;
+    }
+    result.conservativeResize(ct, force_col_width > nd ? force_col_width : nd);
+
+    return;
+}
+
+static int nanargmin( Eigen::VectorXd & v)
+{
+    int i_fmin=-1;
+    float fmin=9e39;
+    for( int i=0; i<v.size(); i++ )
+    {
+        if( v(i) != v(i) )
+            continue;
+        if( v(i) < fmin )
+        {
+            fmin = v(i);
+            i_fmin = i;
+        }
+    }
+    return i_fmin;
+}
+
+static float nanmin( Eigen::VectorXd & v)
+{
+    float fmin=9e39;
+    for( int i=0; i<v.size(); i++ )
+    {
+        if( v(i) != v(i) )
+            continue;
+        if( v(i) < fmin )
+        {
+            fmin = v(i);
+        }
+    }
+    return fmin;
+}
+
+static Eigen::VectorXd nanfilter(const Eigen::VectorXd &v, Eigen::VectorXi *not_nan_indices=0)
+{
+    /* 
+    Return a vector omitting all nan's
+
+    Also fill a vector "not_nan_indices" containing the indices of 'v' with not nan
+    */
+
+    Eigen::VectorXd res(v.size());
+
+    if( not_nan_indices )
+        not_nan_indices->resize(v.size());  //oversize for now
+
+    
+    int ind=0;
+    for(int i=0; i<v.size(); i++)
+    {
+        if( v(i) != v(i) )
+            continue;
+        else
+        {
+            if( not_nan_indices )
+                (*not_nan_indices)(ind) = i;
+
+            res(ind++) = v(i);
+        }
+    }
+    if( not_nan_indices )
+        not_nan_indices->conservativeResize(ind); //resize to fit contents
+
+    return res;
+}
+
+static Eigen::VectorXi range(int lb, int ub)
+{
+    if( ub < lb )
+        std::runtime_error("Lower bound of range() exceeds upper bound.");
+
+    Eigen::VectorXi res(ub-lb);
+
+    for(int i=0; i<ub-lb; i++)
+        res(i) = lb+i;
+
+    return res;
+}
+
+static void zip(const Eigen::VectorXi &A, const Eigen::VectorXi &B, Eigen::Matrix2Xi &R)
+{
+    if( A.size() != B.size() )
+        std::runtime_error("Vector length mismatch in zip()");
+
+    int n = A.size();
+
+    R.resize(n, 2);
+    for(int i=0; i<n; i++)
+    {
+        R(i,0) = A(i);
+        R(i,1) = B(i);
+    }
+    return;
+}
+
+static inline bool assign_filter_nan(double c, void*)
+{
+   return c == c;
+}
+
+static void assign_where(Eigen::VectorXd &dest, const Eigen::VectorXd &compare, bool (*ftest)(double citem, void* data) )
+{
+    /* 
+    Take 2 vectors of type Eigen::VectorXi where both vectors have the same length 'm'. Assign values from 
+    'compare' to corresponding positions in 'dest' when the user-defined function 'ftest(int,void*)' is true. 
+    */
+
+    int m=dest.size();
+    if( compare.size() != m )
+        std::runtime_error("Attempting to compare to vectors of unequal length.");
+    
+    for(int i=0; i<m; i++)
+    {
+        if( ftest(compare(i),0) )
+            dest(i) = compare(i);
+    }
+}
+
+std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vector<int> _LB, std::vector<int> _UB,
+                std::vector< std::vector< int > > _X, bool data_out, bool trust, bool convex_flag, int max_delta )
 {
     /*
     Performs in implementation of our cutting plane approach for mixed-integer
@@ -28,68 +232,196 @@ std::vector<double> optimize::main(void (*f)(std::vector<double>), std::vector<d
     x_opt: A point satisfying (obj_ub - model_lower_bound(x_opt)) <= optimality_gap
     */   
     
-    if ( !convex_flag && !trust )
+    if( convex_flag )
+        if( ! trust )
+            std::runtime_error("Must have trust=True when convex_flag=True");
+
+    //require dimensions of matrices to align
+    int n, nx;
+    // n = len(LB)
+    n = _LB.size();
+    if( _X.front().size() == 0 )
+        std::runtime_error("Malformed data in optimization routine. Dimensionality of X is invalid.");
+    nx = _X.size();
+    if( _UB.size() != n || _LB.size() != n )
+        std::runtime_error("Dimensionality mismatch in optimization routine input data.");
+
+    //transfer input data into eigen containers
+    Eigen::VectorXi LB(n), UB(n);
+    Eigen::MatrixXi X( nx, n );
+    
+    for(int i=0; i<n; i++)
+        LB(i) = _LB.at(i);
+    for(int i=0; i<n; i++)
+        UB(i) = _UB.at(i);
+    for(int i=0; i<nx; i++)
+        for(int j=0; j<n; j++)
+            X(i,j) = _X.at(i).at(j);
+
+    if ( convex_flag && !trust )
         std::runtime_error("Must have trust=True when convex_flag=True");
 
     //check for boundedness
-    bool bound_ok = true;
-    for(int i=0; i<X.size(); i++)
+    // assert np.all(np.max(X,axis=0) <= UB) and np.all(np.min(X,axis=0) >= LB), "Points in X are outside of the bounds"
+    bool bounds_ok = true;
+    Eigen::MatrixXi Xt = X.transpose();
+    for(int i=0; i<n; i++)
+        if( Xt.row(i).maxCoeff() >= UB(i) || Xt.row(i).minCoeff() <= LB(i) )
+            std::runtime_error("Optimization input data outside of specified upper or lower bound range.");
+
+    
+    Eigen::MatrixXi grid;
+    // m = grid.shape[0]
+    int m=1;
+    for(int i=0; i<n; i++)
+        m *= (UB(i)+1-LB(i));
+    grid.resize(m, n+1);
+
+    std::vector< Eigen::VectorXi > ranges;
+    for(int i=0; i<n; i++)
+        ranges.push_back( range(LB(i), UB(i)+1) );
+
+    std::vector< int > limits(n,0);
+    for(int i=0; i<n; i++)
+        limits.at(i) = ranges.at(i).size();
+
+    std::vector< int > indices(n,0);
+    std::vector< std::string > indices_lookup;  //save string versions of the indices for quick location later
+
+    for(int mi=0; mi<m; mi++)
     {
-        auto it = std::max_element(X.at(i).begin(), X.at(i).end());
+        // grid = np.hstack((np.ones((m,1)),grid)) # It is nice to have a this column of ones instead of adding it throughout
+        grid(mi,0) = 1;
+    
+        std::stringstream myind;
+        for(int ni=0; ni<n; ni++)
+        {
+            // grid = np.hstack(np.meshgrid(*[np.arange(i,j+1) for i,j in zip(LB,UB)])).swapaxes(0,1).reshape(n,-1).T # Points in the grid
+            int v = ranges.at(ni)( indices.at(ni) );
+            grid(mi,ni+1) = v;
+            myind << v << ",";
+        }
+        increment( limits, indices );
+        indices_lookup.push_back( myind.str() );
+    }
+
+
+    // F = np.nan*np.ones(m)  # Function values
+    Eigen::VectorXd F = Eigen::VectorXd::Ones(m)*std::numeric_limits<float>::quiet_NaN();
+    
+    // c_mat = np.zeros((n+1,n+1))  # Holds the facets
+    Eigen::MatrixXd c_mat = Eigen::MatrixXd::Zero(n+1,n+1);
+    
+    // if data_out:
+    Eigen::VectorXd eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order;
+
+    // # Evaluate func at points in X 
+    for(int i=0; i<nx; i++)
+    {
+        std::stringstream xstr;
+        std::vector< int > x;
+        for(int j=0; j<n; j++)
+        {
+            xstr << X(i,j) << ",";
+            x.push_back( X(i,j) );
+        }
+
+        // row_in_grid = np.argwhere(np.all((grid[:,1:]-x)==0, axis=1))
+        int row_in_grid = std::find(indices_lookup.begin(), indices_lookup.end(), xstr.str() ) - indices_lookup.begin();
+        // assert len(row_in_grid), 
+        if( row_in_grid > indices_lookup.size() )
+            std::runtime_error("One of the initial points was not in the grid.");
+        
+
+        F(row_in_grid) = func(x);
+    }
+
+    Eigen::VectorXi x_star(n);
+    double delta;
+    if(trust)
+    {
+        int i_fmin = nanargmin(F);
+
+        for(int i=0; i<n; i++)
+            x_star(i) = grid(i_fmin,i+1);
+        delta = 1;
+    }
+
+    double obj_ub = nanmin(F); // Upper bound on optimal objective function value
+
+    // eta[~np.isnan(F)] = F[~np.isnan(F)] # Lowerbound is the function value at already-evaluated points
+    Eigen::VectorXi not_nans;
+    nanfilter(F, &not_nans);
+
+    Eigen::VectorXd eta = Eigen::VectorXd::Ones(m) * std::numeric_limits<double>::quiet_NaN();
+    assign_where(eta, F, &assign_filter_nan);
+
+    // eta_gen = np.nan*np.ones((m,n+1)) # To store the set of n+1 points that generate the value eta at each grid point
+    // eta_gen[~np.isnan(F)] = np.tile(np.where(~np.isnan(F))[0],(n+1,1)).T # The evaluated points are their own generators
+    Eigen::MatrixXi eta_gen(F.rows(), not_nans.size() );
+    for(int i=0; i<F.rows(); i++)
+        for(int j=0; j<not_nans.size(); j++)
+            eta_gen(i,j) = not_nans(j);
+    
+    eta_gen.transposeInPlace();
+
+    //# ruled_out = np.zeros(m,dtype='bool') # Mark if we can exclude a point from future combinations
+    double optimality_gap = 1e-8;
+    //# PDist = sp.spatial.distance.squareform(sp.spatial.distance.pdist(grid[:,1:],'euclidean'))
+
+
+    bool first_iter = true;
+    int new_ind = -1;   //index of best objective function value
+    double Fnew = std::numeric_limits<double>::quiet_NaN();
+    
+    while(true)
+    {
+        // # Generate all yet-to-be considered combinations of n+1 points
+        Eigen::MatrixXi newcombs;
+
+        if (first_iter)
+        {
+            // newcombs = map(list,itertools.combinations(np.where(~np.isnan(F))[0],n+1)) 
+            combinations(not_nans, n+1, newcombs);
+            first_iter = false;
+        }
+        else
+        {
+            // # Only generate newcombs with points that make some hyperplane with
+            // # value that is better than obj_ub at some point in the grid
+            // newcombs = map(list,(tup + (new_ind,) for tup in itertools.combinations(np.unique(eta_gen[np.where(np.logical_and(eta < obj_ub,np.isnan(F)))[0] ]).astype('int'),n)))
+            /* 
+            1. Get unique indices from within all eta_gen[i] where:
+                a. eta[i] is less than obj_up
+                b. F[i] is nan
+            2. Generate all index combinations from resulting vector
+            3. Add the new index to each combination
+            */
+            std::set<int> match_set;
+            for( int i=0; i<m; i++)
+                if( eta(i) < obj_ub && F(i) != F(i) )
+                    for( int j=0; j<eta_gen.cols(); j++ )
+                        match_set.insert( eta_gen(i,j) );
+            
+            Eigen::VectorXi all_index_matches( match_set.size() );
+
+            {
+                int i=0;
+                for( std::set<int>::iterator match = match_set.begin(); match != match_set.end(); match ++)
+                    all_index_matches(i++) = *match;
+            }
+            
+            combinations(all_index_matches, n, newcombs, n+1);
+
+            for(int i=0; i<newcombs.rows(); i++)
+                newcombs(i,n) = new_ind;
+
+            // # Now that we've used F to generate subsets, we can update the value
+            F(new_ind) = Fnew;
+        }
+
     }
     /*
-    assert np.all(np.max(X,axis=0) <= UB) and np.all(np.min(X,axis=0) >= LB), "Points in X are outside of the bounds"
-
-    n = len(LB)
-    grid = np.hstack(np.meshgrid(*[np.arange(i,j+1) for i,j in zip(LB,UB)])).swapaxes(0,1).reshape(n,-1).T # Points in the grid
-    m = grid.shape[0]
-    grid = np.hstack((np.ones((m,1)),grid)) # It is nice to have a this column of ones instead of adding it throughout
-    F = np.nan*np.ones(m)  # Function values
-    c_mat = np.zeros((n+1,n+1))  # Holds the facets
-
-    if data_out:
-        eta_i = []
-        obj_ub_i = []
-        wall_time_i = []
-        secants_i = []
-        feas_secants_i = []
-        eval_order = []
-
-    # Evaluate func at points in X 
-    for x in X:
-        row_in_grid = np.argwhere(np.all((grid[:,1:]-x)==0, axis=1))
-        assert len(row_in_grid), 'One of the initial points was not in the grid.'
-        F[row_in_grid] = func(x)
-
-    if trust:
-        x_star = grid[np.nanargmin(F),1:]
-        delta = 1
-
-    obj_ub = np.nanmin(F) # Upper bound on optimal objective function value
-    eta = -np.inf*np.ones(m) # Lower bound on the objective function value at each point in the grid
-    eta[~np.isnan(F)] = F[~np.isnan(F)] # Lowerbound is the function value at already-evaluated points
-
-    eta_gen = np.nan*np.ones((m,n+1)) # To store the set of n+1 points that generate the value eta at each grid point
-    eta_gen[~np.isnan(F)] = np.tile(np.where(~np.isnan(F))[0],(n+1,1)).T # The evaluated points are their own generators
-
-    # ruled_out = np.zeros(m,dtype='bool') # Mark if we can exclude a point from future combinations
-    optimality_gap = 1e-8 
-
-    # PDist = sp.spatial.distance.squareform(sp.spatial.distance.pdist(grid[:,1:],'euclidean'))
-
-    first_iter = True
-    while True:
-        # Generate all yet-to-be considered combinations of n+1 points
-        if first_iter:
-            newcombs = map(list,itertools.combinations(np.where(~np.isnan(F))[0],n+1)) 
-            first_iter = False
-        else:
-            # Only generate newcombs with points that make some hyperplane with
-            # value that is better than obj_ub at some point in the grid
-            newcombs = map(list,(tup + (new_ind,) for tup in itertools.combinations(np.unique(eta_gen[np.where(np.logical_and(eta < obj_ub,np.isnan(F)))[0] ]).astype('int'),n)))
-
-            # Now that we've used F to generate subsets, we can update the value
-            F[new_ind] = Fnew
 
         # Search over all of these combinations for new cutting planes
         feas_secants = 0
@@ -183,5 +515,5 @@ std::vector<double> optimize::main(void (*f)(std::vector<double>), std::vector<d
                 return grid[np.nanargmin(F),1:], eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order
             else:
                 return grid[np.nanargmin(F),1:]
-    */
+*/
 }

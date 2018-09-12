@@ -1,7 +1,7 @@
 VPATH=../liboptimize
 
 CXX = g++
-CFLAGS = -g -D__64BIT__ -fPIC -Wall -O3 -I$(VPATH) -I$(VPATH)/nlopt -I$(VPATH)/eigen
+CFLAGS = -g -D__64BIT__ -fPIC -Wall -O0 -I$(VPATH) -I$(VPATH)/nlopt -I$(VPATH)/eigen
 CXXFLAGS= -std=c++0x $(CFLAGS)
 
 CFLAGS += -D__64BIT__

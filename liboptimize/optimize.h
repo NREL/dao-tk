@@ -5,14 +5,17 @@
 #include <string>
 #include <limits>
 
-namespace optimize
+namespace Optimize
 {
-    std::vector<double> main( void (*f)(std::vector<double>), std::vector<double> LB, std::vector<double> UB,
-                std::vector< std::vector< double > > X, 
+    std::vector<double> main( double (*f)(std::vector<int>&), std::vector<int> LB, std::vector<int> UB,
+                std::vector< std::vector< int > > X, 
                 bool data_out = false, bool trust = false, bool convex_flag = false, 
                 int max_delta = std::numeric_limits<double>::infinity() );
 
-    
+        
 } // optimize
+
+
+
 
 #endif
