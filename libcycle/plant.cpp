@@ -17,6 +17,9 @@ cycle_results::cycle_results()
 	plant_status = {};
 	failure_event_labels = {};
 	failure_events = {};
+	period_of_first_failure = 0;
+	turbine_efficiency = 1.;
+	turbine_capacity = 1.;
 }
 
 cycle_file_settings::cycle_file_settings()
@@ -27,9 +30,14 @@ cycle_file_settings::cycle_file_settings()
 	component_out_state = "component_state_out";
 }
 
+PowerCycle::PowerCycle()
+{
+
+}
+
 void PowerCycle::InitializeCyclingDists()
 {
-	m_hs_dist = BoundedJohnsonDist(0.995066, 0.252898, 4.139E-5, 4.489E-4, "BoundedJohnson");
+	m_hs_dist = BoundedJohnsonDist(1.044471, 0.256348, 4.137E-5, 5.163E-4, "BoundedJohnson");
 	m_ws_dist = BoundedJohnsonDist(2.220435, 0.623145, 2.914E-5, 1.773E-3, "BoundedJohnson");
 	m_cs_dist = BoundedJohnsonDist(0.469391, 0.581813, 3.691E-5, 2.369E-4, "BoundedJohnson");
 }
@@ -53,10 +61,25 @@ void PowerCycle::GeneratePlantCyclingPenalties()
 	simulation model from penalizing hot starts more than
 	cold starts.
 	*/
-	double unif = m_gen->getVariate();
-	m_hot_start_penalty = m_hs_dist.GetInverseCDF(unif);
-	m_warm_start_penalty = m_ws_dist.GetInverseCDF(unif);
-	m_cold_start_penalty = m_cs_dist.GetInverseCDF(unif);
+	double unif = 0.75;
+	SetHotStartPenalty(m_cs_dist.GetInverseCDF(unif));
+	SetWarmStartPenalty(m_ws_dist.GetInverseCDF(unif));
+	SetColdStartPenalty(m_cs_dist.GetInverseCDF(unif));
+}
+
+void PowerCycle::SetHotStartPenalty(double pen)
+{
+	m_hot_start_penalty = pen;
+}
+
+void PowerCycle::SetWarmStartPenalty(double pen)
+{
+	m_warm_start_penalty = pen;
+}
+
+void PowerCycle::SetColdStartPenalty(double pen)
+{
+	m_cold_start_penalty = pen;
 }
 
 void PowerCycle::SetSimulationParameters( 
@@ -507,21 +530,25 @@ void PowerCycle::CreateComponentsFromFile(std::string component_data)
 }
 
 
-void PowerCycle::AddCondenserTrain(int num_fans, int num_radiators)
+void PowerCycle::AddCondenserTrains(int num_trains, int num_fans, int num_radiators)
 {
-	m_num_condenser_trains += 1;
-	std::string component_name;
-	std::string train_name = "C" + std::to_string(m_num_condenser_trains);
-	AddComponent(component_name + "-T", "Condenser train", 15.55, 0, 0, 0, 7.777, "S");
-	for (int i = 1; i <= num_fans; i++)
+	m_num_condenser_trains = num_trains;
+	m_fans_per_condenser_train = num_fans;
+	std::string component_name, train_name;
+	for (int j = 0; j < num_trains; j++)
 	{
-		component_name = train_name + "-F" + std::to_string(i);
-		AddComponent(component_name, "Condenser fan", 35.5, 0, 0, 0, 7.777, "S");
-		AddFailureType(component_name, "Fan Failure", "O", "gamma", 1, 841188);
-	}
-	for (int i = 1; i <= num_radiators; i++)
-	{
-		AddFailureType(component_name + "-T", "Radiator " + std::to_string(i) + " Failure", "O", "gamma", 1, 698976);
+		train_name = "C" + std::to_string(m_num_condenser_trains);
+		AddComponent(component_name + "-T", "Condenser train", 15.55, 0, 0, 0, 7.777, "S");
+		for (int i = 1; i <= num_fans; i++)
+		{
+			component_name = train_name + "-F" + std::to_string(i);
+			AddComponent(component_name, "Condenser fan", 35.5, 0, 0, 0, 7.777, "S");
+			AddFailureType(component_name, "Fan Failure", "O", "gamma", 1, 841188);
+		}
+		for (int i = 1; i <= num_radiators; i++)
+		{
+			AddFailureType(component_name + "-T", "Radiator " + std::to_string(i) + " Failure", "O", "gamma", 1, 698976);
+		}
 	}
 }
 
@@ -647,16 +674,14 @@ void PowerCycle::GeneratePlantComponents(
 	{
 		throw std::runtime_error("condenser efficiencies do not reconcile with number of trains.");
 	}
-	for (int i = 0; i < num_condenser_trains; i++)
-	{
-		AddCondenserTrain(fans_per_train, radiators_per_train);
-	}
-	m_fans_per_condenser_train = fans_per_train;
+	AddCondenserTrains(num_condenser_trains, fans_per_train, radiators_per_train);
 	AddSaltToSteamTrains(num_salt_steam_trains);
 	AddFeedwaterHeaters(num_fwh);
 	AddSaltPumps(num_salt_pumps);
 	AddWaterPumps(num_water_pumps);
 	AddTurbines(num_turbines);
+	m_condenser_efficiencies_cold = condenser_eff_cold;
+	m_condenser_efficiencies_hot = condenser_eff_hot;
 }
 
 void PowerCycle::SetPlantAttributes(
@@ -774,30 +799,50 @@ double PowerCycle::GetCondenserEfficiency(double temp)
 	return baseline_efficiency - num_online_fans_down * m_eff_loss_per_fan;
 }
 
-double PowerCycle::GetTurbineEfficiency()
+double PowerCycle::GetTurbineEfficiency(bool age)
 {
 	/*
 	Returns a weighted average of the efficiencies of all turbines, 
 	in which the weights are the relative capacity of each turbine to 
 	the plant capacity.
+
+	age -- true if aging model is included, false o.w.
 	*/
 	double eff = 0.0;
 	double total_cap = 0.0;
-	for (size_t i : m_turbine_idx)
+	if (age)
 	{
-		if (m_components.at(i).IsOperational())
+		for (size_t i : m_turbine_idx)
 		{
-			eff += m_components.at(i).GetEfficiency() * m_components.at(i).GetCapacityReduction();
-			total_cap += m_components.at(i).GetCapacityReduction();
+			if (m_components.at(i).IsOperational())
+			{
+				eff += m_components.at(i).GetEfficiency() * m_components.at(i).GetCapacityReduction();
+				total_cap += m_components.at(i).GetCapacityReduction();
+			}
+		}
+		return eff / total_cap;
+	}
+	else
+	{
+		eff = 1.0;
+		total_cap = 1.0;
+		for (size_t i : m_turbine_idx)
+		{
+			if (!m_components.at(i).IsOperational())
+			{
+				eff -= 1 * m_components.at(i).GetEfficiencyReduction();
+			}
 		}
 	}
-	return eff / total_cap;
+	return eff; 
 }
 
-double PowerCycle::GetTurbineCapacity()
+double PowerCycle::GetTurbineCapacity(bool age)
 {
 	/*
 	Returns the capacity of all turbines.
+
+	age -- true if aging model is included, false o.w.
 	*/
 	double cap = 0.0;
 	for (size_t i : m_turbine_idx)
@@ -806,7 +851,10 @@ double PowerCycle::GetTurbineCapacity()
 		{
 			//The first component is an age-weighted index, while the second is baseline 
 			//relative capacity vs. that of all turbines in the system.
-			cap += m_components.at(i).GetCapacity() * m_components.at(i).GetCapacityReduction();
+			if (age)
+				cap += m_components.at(i).GetCapacity() * m_components.at(i).GetCapacityReduction();
+			else
+				cap += m_components.at(i).GetCapacityReduction();
 		}
 	}
 	return cap;
@@ -829,7 +877,7 @@ double PowerCycle::GetSaltSteamTrainCapacity()
 	return cap;
 }
 
-void PowerCycle::SetCycleCapacityAndEfficiency(double temp)
+void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
 {
 	/* 
 	Provides the power cycle's capacity, which is limited by components that 
@@ -851,8 +899,8 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp)
 		return;
 	}
 	double condenser_eff = GetCondenserEfficiency(temp);
-	double turbine_eff = GetTurbineEfficiency();
-	double turbine_cap = GetTurbineCapacity();
+	double turbine_eff = GetTurbineEfficiency(false);
+	double turbine_cap = GetTurbineCapacity(false);
 	double sst_cap = GetSaltSteamTrainCapacity();
 	double rem_eff = 1.0;
 	for (size_t i = 0; i < m_components.size(); i++)
@@ -865,6 +913,16 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp)
 	m_cycle_capacity = std::max(0., std::min(turbine_cap,sst_cap)*condenser_eff*rem_eff);
 	//salt
 	m_cycle_efficiency = std::max(0., turbine_eff*condenser_eff*rem_eff); 
+}
+
+double PowerCycle::GetCycleCapacity()
+{
+	return m_cycle_capacity;
+}
+
+double PowerCycle::GetCycleEfficiency()
+{
+	return m_cycle_efficiency;
 }
 
 void PowerCycle::TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode)

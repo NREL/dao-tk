@@ -30,6 +30,9 @@ struct cycle_results
 	std::unordered_map<int, std::unordered_map< std::string, double > >  plant_status;
 	std::vector < std::string > failure_event_labels;
 	std::unordered_map < std::string, failure_event > failure_events;
+	int period_of_first_failure; 
+	double turbine_efficiency;   
+	double turbine_capacity;    
 	cycle_results();
 };
 
@@ -68,6 +71,8 @@ class PowerCycle
 	double m_downtime;
 	double m_shutdown_capacity = 0.3;      //These represent a policy, and are 
 	double m_no_restart_capacity = 0.96;   //assumed to be decision variables
+	double m_shutdown_efficiency = 0.3;
+	double m_no_restart_efficiency = 0.9;
 	double m_eps;
 	bool m_output;
 	double m_capacity;
@@ -89,7 +94,8 @@ class PowerCycle
 	int m_num_water_pumps = 0;
 	int m_num_turbines = 0; // HP, IP, LP turbines and generator count 
 							// as a single component
-	bool m_record_state_failure = true;
+	bool m_record_state_failure = true;  //record plant state at first component failure
+	bool first_failure_occured = false;  //indicates component failure has taken place
 	double m_eff_loss_per_fan = 0.01;
 	int m_fans_per_condenser_train;
 	double m_cycle_efficiency;
@@ -98,12 +104,16 @@ class PowerCycle
 	
 
 public:
+	PowerCycle::PowerCycle();
 	cycle_file_settings m_filenames;
 	cycle_results m_results;
 	std::vector< std::string > output_log;
 	void InitializeCyclingDists();
 	void AssignGenerator(WELLFiveTwelve *gen);
 	void GeneratePlantCyclingPenalties();
+	void SetHotStartPenalty(double pen);
+	void SetWarmStartPenalty(double pen);
+	void SetColdStartPenalty(double pen);
 	void SetSimulationParameters(
 		int read_periods = 0,
 		int sim_length = 48,
@@ -167,7 +177,7 @@ public:
 		double beta
 	);
 	void CreateComponentsFromFile(std::string component_data);
-	void AddCondenserTrain(int num_fans, int num_radiators);
+	void AddCondenserTrains(int num_trains, int num_fans, int num_radiators);
 	void AddSaltToSteamTrains(int num_trains);
 	void AddFeedwaterHeaters(int num_fwh);
 	void AddSaltPumps(int num_pumps);
@@ -204,10 +214,12 @@ public:
 	void SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing = false);
 	int NumberOfAirstreamsOnline();
 	double GetCondenserEfficiency(double temp);
-	double GetTurbineEfficiency();
-	double GetTurbineCapacity();
+	double GetTurbineEfficiency(bool age);
+	double GetTurbineCapacity(bool age);
 	double GetSaltSteamTrainCapacity();
-	void SetCycleCapacityAndEfficiency(double temp);
+	void SetCycleCapacityAndEfficiency(double temp, bool age = false);
+	double GetCycleCapacity();
+	double GetCycleEfficiency();
 	void TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode);
 	bool AllComponentsOperational();
 	double GetMaxComponentDowntime();
