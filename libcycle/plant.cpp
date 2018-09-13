@@ -5,34 +5,23 @@
 #include "plant.h"
 #include "lib_util.h"
 
-cycle_results::cycle_results()
-{
-	cycle_capacity = {};
-	cycle_efficiency = {};
-	labor_costs = {};
-	avg_cycle_capacity = {};
-	avg_cycle_efficiency = {};
-	avg_labor_cost = 0.;
-	component_status = {};
-	plant_status = {};
-	failure_event_labels = {};
-	failure_events = {};
-	period_of_first_failure = 0;
-	turbine_efficiency = 1.;
-	turbine_capacity = 1.;
-}
-
-cycle_file_settings::cycle_file_settings()
-{
-	plant_in_state = "plant_state_in";
-	plant_out_state = "plant_state_out";
-	component_in_state = "component_state_in";
-	component_out_state = "component_state_out";
-}
 
 PowerCycle::PowerCycle()
 {
+	WELLFiveTwelve *gen(0);
+	AssignGenerator(gen);
+	SetSimulationParameters();
+	SetPlantAttributes();
+	GeneratePlantComponents();
+}
 
+void PowerCycle::Initialize()
+{
+	InitializeCyclingDists();
+	GeneratePlantCyclingPenalties();
+	ResetPlant();
+	m_cycle_capacity = 1.;
+	m_cycle_efficiency = 1.;
 }
 
 void PowerCycle::InitializeCyclingDists()
@@ -69,40 +58,37 @@ void PowerCycle::GeneratePlantCyclingPenalties()
 
 void PowerCycle::SetHotStartPenalty(double pen)
 {
-	m_hot_start_penalty = pen;
+	m_current_cycle_state.hot_start_penalty = pen;
 }
 
 void PowerCycle::SetWarmStartPenalty(double pen)
 {
-	m_warm_start_penalty = pen;
+	m_current_cycle_state.warm_start_penalty = pen;
 }
 
 void PowerCycle::SetColdStartPenalty(double pen)
 {
-	m_cold_start_penalty = pen;
+	m_current_cycle_state.cold_start_penalty = pen;
 }
 
 void PowerCycle::SetSimulationParameters( 
 	int read_periods,
 	int sim_length,
-	int start_period,
-	int next_start_period,
-	int write_interval,
+	double steplength,
 	double epsilon,
 	bool print_output,
 	int num_scenarios,
 	double hourly_labor_cost
 )
 {
-    m_read_periods = read_periods;
-    m_sim_length = sim_length;
-	m_start_period = start_period;
-	m_next_start_period = next_start_period;
-	m_write_interval = write_interval;
-    m_output = print_output;
-    m_eps = epsilon;
-	m_num_scenarios = num_scenarios;
-	m_hourly_labor_cost = hourly_labor_cost;
+    m_sim_params.read_periods = read_periods;
+    m_sim_params.sim_length = sim_length;
+	m_sim_params.steplength = steplength;
+	m_sim_params.epsilon = epsilon;
+    m_sim_params.print_output = print_output;
+	m_sim_params.num_scenarios = num_scenarios;
+	m_sim_params.hourly_labor_cost = hourly_labor_cost;
+	m_current_scenario = 0;
 }
 
 void PowerCycle::SetCondenserEfficienciesCold(std::vector<double> eff_cold)
@@ -143,6 +129,18 @@ void PowerCycle::SetCondenserEfficienciesHot(std::vector<double> eff_hot)
 	m_condenser_efficiencies_hot = eff_hot;
 }
 
+void PowerCycle::ClearComponents()
+{
+	/*
+	Clears components, component index references, and any stored component status.
+	*/
+	m_components.clear();
+	m_condenser_idx.clear();
+	m_turbine_idx.clear();
+	m_sst_idx.clear();
+	m_start_component_status.clear();
+}
+
 void PowerCycle::ReadComponentStatus(
 	std::unordered_map< std::string, ComponentStatus > dstat
 )
@@ -151,61 +149,120 @@ void PowerCycle::ReadComponentStatus(
 	Mutator for component status for all components in the plant.
 	Used at initialization.
 	*/
-	m_component_status = dstat;
+	m_start_component_status = dstat;
 }
 
 void PowerCycle::ClearComponentStatus()
 {
-	m_component_status.clear();
+	m_start_component_status.clear();
 }
 
-void PowerCycle::SetStatus()
+void PowerCycle::ReadCycleStateFromResults(int scen_idx)
 {
-
-    for( std::vector< Component >::iterator it=m_components.begin(); it!= m_components.end(); it++)
-    {
-        if(m_component_status.find( it->GetName() ) != m_component_status.end() )
-        {
-            it->ReadStatus( m_component_status.at( it->GetName() ) );
-        }
-        else
-        {
-			it->GenerateInitialLifesAndProbs( *m_gen );
-        }
-    }
-
-	SetPlantAttributes(
-		m_maintenance_interval, 
-		m_maintenance_duration, 
-		m_downtime_threshold, 
-		m_steplength, 
-		m_plant_status["hours_to_maintenance"] * 1.0,
-		m_plant_status["power_output"] * 1.0, 
-		m_plant_status["standby"] && true,
-		m_capacity, m_condenser_temp_threshold, 
-		m_plant_status["time_online"] * 1.0,
-		m_plant_status["time_in_standby"] * 1.0,
-		m_plant_status["downtime"] * 1.0,
-		m_shutdown_capacity,
-		m_no_restart_capacity
-		);
-
-	m_hot_start_penalty = m_plant_status["hot_start_penalty"] * 1.0;
-	m_hot_start_penalty = m_plant_status["warm_start_penalty"] * 1.0;
-	m_hot_start_penalty = m_plant_status["cold_start_penalty"] * 1.0;
+	/*
+	Reads cycle and component state from results stored in memory from previous run.
+	*/
+	m_current_cycle_state = m_results.plant_status[m_current_scenario];
+	m_begin_cycle_state = m_results.plant_status[m_current_scenario];
+	m_start_component_status = m_results.component_status[m_current_scenario];
+	SetStartComponentStatus();
 }
 
-
-void PowerCycle::WriteStateToFiles(std::string component_filename, std::string plant_filename)
+void PowerCycle::SetStartComponentStatus()
 {
+	/*
+	Sets the status of all components to what is stored in
+	m_start_component_status.
+	*/
+	for (std::vector< Component >::iterator it = m_components.begin(); 
+			it != m_components.end(); it++)
+	{
+		if (m_start_component_status.find(it->GetName()) != 
+			m_start_component_status.end())
+		{
+			it->ReadStatus(m_start_component_status.at(it->GetName()));
+		}
+		else
+		{
+			it->GenerateInitialLifesAndProbs(*m_gen);
+		}
+	}
+}
+
+void PowerCycle::StoreComponentState()
+{
+	/*
+	Stores the current state of each component to the starting 
+	component state.  Done either right after the initialization
+	or after a simulation run generates no new failures.
+	*/
+	for (
+		std::vector< Component >::iterator it = m_components.begin();
+		it != m_components.end();
+		it++
+		)
+	{
+		m_start_component_status[it->GetName()] = it->GetState();
+	}
+}
+
+void PowerCycle::RecordFinalState()
+{
+	/* 
+	Assigns current power cycle state to the beginning component state.  
+	Done if no failures are found in the run.
+	*/
+	m_results.plant_status[m_current_scenario] = m_current_cycle_state;
+	m_results.component_status[m_current_scenario] = GetComponentStates();
+	m_gen->saveStates(m_current_scenario);
+}
+
+void PowerCycle::RevertToStartState()
+{
+	/*
+	Assigns beginning power cycle state to the current state.
+	Done if any component failures are found in the run, or if the 
+	capacity or efficiency change from the prior run.
+	*/
+	m_current_cycle_state.capacity = m_begin_cycle_state.capacity;
+	m_current_cycle_state.cold_start_penalty = m_begin_cycle_state.cold_start_penalty;
+	m_current_cycle_state.warm_start_penalty = m_begin_cycle_state.warm_start_penalty;
+	m_current_cycle_state.hot_start_penalty = m_begin_cycle_state.hot_start_penalty;
+	m_current_cycle_state.downtime = m_begin_cycle_state.downtime;
+	m_current_cycle_state.downtime_threshold = m_begin_cycle_state.downtime_threshold;
+	m_current_cycle_state.is_online = m_begin_cycle_state.is_online;
+	m_current_cycle_state.is_on_standby = m_begin_cycle_state.is_on_standby;
+	m_current_cycle_state.maintenance_duration = m_begin_cycle_state.maintenance_duration;
+	m_current_cycle_state.maintenance_interval = m_begin_cycle_state.maintenance_interval;
+	m_current_cycle_state.hours_to_maintenance = m_begin_cycle_state.hours_to_maintenance;
+	m_current_cycle_state.temp_threshold = m_begin_cycle_state.temp_threshold;
+	m_current_cycle_state.time_in_standby = m_begin_cycle_state.time_in_standby;
+	m_current_cycle_state.time_online = m_begin_cycle_state.time_online;
+	m_current_cycle_state.power_output = m_begin_cycle_state.power_output;
+
+	SetStartComponentStatus();
+
+	m_gen->assignStates(m_current_scenario);
+}
+
+void PowerCycle::WriteStateToFiles(bool current, std::string component_filename, std::string plant_filename)
+{
+	/*
+	Writes the current state of the plant to output files, one for all components and one for the plant.
+	*/
 	//components
 	std::ofstream cfile;
+	std::unordered_map <std::string, ComponentStatus> component_status;
+	if (current)
+		component_status = GetComponentStates();
+	else
+		component_status = m_start_component_status;
 	cfile.open(component_filename);
 	cfile << "hazard_rate,downtime_remaining,repair_event_time,lifesprobs\n";
 	ComponentStatus status;
 	for (Component c : GetComponents())
 	{
-		status = m_component_status[c.GetName()];
+		status = component_status[c.GetName()];
 		cfile << status.hazard_rate << "," << status.downtime_remaining << "," << status.repair_event_time;
 		for (double d : status.lifetimes)
 		{
@@ -215,14 +272,20 @@ void PowerCycle::WriteStateToFiles(std::string component_filename, std::string p
 	}
 
 	//plant state
+	cycle_state cstate;
+	if (current)
+		cstate = m_current_cycle_state;
+	else
+		cstate = m_begin_cycle_state;
+
 	std::ofstream pfile;
 	pfile.open(plant_filename);
 	pfile << "hours_to_maintenance,power_output,standby,time_online,time_in_standby,downtime,hs_penalty,ws_penalty,cs_penalty\n";
-	pfile << m_plant_status["hours_to_maintenance"] << "," << m_plant_status["m_power_output"] << ",";
-	pfile << m_plant_status["m_standby"] << "," << m_plant_status["m_time_online"] << ",";
-	pfile << m_plant_status["m_time_in_standby"] << "," << m_plant_status["m_downtime"] << ",";
-	pfile << m_plant_status["m_hot_start_penalty"] << "," << m_plant_status["m_warm_start_penalty"] << ",";
-	pfile << m_plant_status["m_cold_start_penalty"] << "\n";
+	pfile << cstate.hours_to_maintenance << "," << cstate.power_output << ",";
+	pfile << cstate.is_on_standby << "," << cstate.time_online << ",";
+	pfile << cstate.time_in_standby << "," << cstate.downtime << ",";
+	pfile << cstate.hot_start_penalty << "," << cstate.warm_start_penalty << ",";
+	pfile << cstate.cold_start_penalty << "\n";
 
 }
 
@@ -279,15 +342,15 @@ void PowerCycle::ReadStateFromFiles(std::string component_filename, std::string 
 		split_line.push_back(token);
 		cline.erase(0, pos + delimiter.length());
 	}
-	m_hours_to_maintenance = std::stod(split_line[0]);
-	m_power_output = std::stod(split_line[1]);
-	m_standby = std::stod(split_line[2]);
-	m_time_online = std::stod(split_line[3]);
-	m_time_in_standby = std::stod(split_line[4]);
-	m_downtime = std::stod(split_line[5]);
-	m_hot_start_penalty = std::stod(split_line[6]);
-	m_warm_start_penalty = std::stod(split_line[7]);
-	m_cold_start_penalty = std::stod(split_line[8]);
+	m_current_cycle_state.hours_to_maintenance = std::stod(split_line[0]);
+	m_current_cycle_state.power_output = std::stod(split_line[1]);
+	m_current_cycle_state.is_on_standby = std::stod(split_line[2]);
+	m_current_cycle_state.time_online = std::stod(split_line[3]);
+	m_current_cycle_state.time_in_standby = std::stod(split_line[4]);
+	m_current_cycle_state.downtime = std::stod(split_line[5]);
+	m_current_cycle_state.hot_start_penalty = std::stod(split_line[6]);
+	m_current_cycle_state.warm_start_penalty = std::stod(split_line[7]);
+	m_current_cycle_state.cold_start_penalty = std::stod(split_line[8]);
 	//std::vector <double> lifes_probs;
 }
 
@@ -318,7 +381,7 @@ std::vector< double > PowerCycle::GetComponentLifetimes()
 
 double PowerCycle::GetHoursToMaintenance()
 {
-	return m_hours_to_maintenance;
+	return m_current_cycle_state.hours_to_maintenance;
 }
 
 std::vector< double >  PowerCycle::GetComponentDowntimes()
@@ -370,7 +433,7 @@ bool PowerCycle::IsOnline()
 	retval -- a boolean indicator of whether the plant's power cycle is
     generating power.
 	*/
-    return m_online; 
+    return m_current_cycle_state.is_online; 
 }
 
 bool PowerCycle::IsOnStandby()
@@ -379,17 +442,17 @@ bool PowerCycle::IsOnStandby()
 	retval --  a boolean indicator of whether the plant is in standby 
     mode.
 	*/
-    return m_standby;
+    return m_current_cycle_state.is_on_standby;
 }
 
 double PowerCycle::GetTimeInStandby()
 {
-	return m_time_in_standby;
+	return m_current_cycle_state.time_in_standby;
 }
 
 double PowerCycle::GetTimeOnline()
 {
-	return m_time_online;
+	return m_current_cycle_state.time_online;
 }
 
 double PowerCycle::GetRampThreshold()
@@ -399,7 +462,7 @@ double PowerCycle::GetRampThreshold()
 
 double PowerCycle::GetSteplength()
 {
-	return m_steplength;
+	return m_sim_params.steplength;
 }
 
 std::unordered_map< std::string, failure_event > PowerCycle::GetFailureEvents()
@@ -415,29 +478,24 @@ std::vector<std::string> PowerCycle::GetFailureEventLabels()
 double PowerCycle::GetHotStartPenalty()
 {
 	/* accessor for hot start penalty. */
-	return m_hot_start_penalty;
+	return m_current_cycle_state.hot_start_penalty;
 }
 
 double PowerCycle::GetWarmStartPenalty()
 {
 	/* accessor for warm start penalty. */
-	return m_warm_start_penalty;
+	return m_current_cycle_state.warm_start_penalty;
 }
 
 double PowerCycle::GetColdStartPenalty()
 {
 	/* accessor for cold start penalty. */
-	return m_cold_start_penalty;
+	return m_current_cycle_state.cold_start_penalty;
 }
 
 int PowerCycle::GetSimLength()
 {
-	return m_sim_length;
-}
-
-int PowerCycle::GetWriteInterval()
-{
-	return m_write_interval;
+	return m_sim_params.sim_length;
 }
 
 void PowerCycle::SetShutdownCapacity(double capacity) 
@@ -668,7 +726,7 @@ void PowerCycle::GeneratePlantComponents(
 	component-specific methods.  Starts by clearing any existing components,
 	i.e., assumes that the plant specification in the arguments is complete.
 	*/
-	m_components.clear();
+	ClearComponents();
 	if (condenser_eff_cold.size() != (num_condenser_trains+1) ||
 		condenser_eff_hot.size() != (num_condenser_trains+1))
 	{
@@ -688,7 +746,6 @@ void PowerCycle::SetPlantAttributes(
 	double maintenance_interval,
 	double maintenance_duration,
 	double downtime_threshold,
-	double steplength,
 	double hours_to_maintenance,
 	double power_output,
 	bool current_standby,
@@ -707,22 +764,21 @@ void PowerCycle::SetPlantAttributes(
     
 	*/
 
-    m_maintenance_interval = maintenance_interval;
-    m_maintenance_duration = maintenance_duration;
+    m_current_cycle_state.maintenance_interval = maintenance_interval;
+    m_current_cycle_state.maintenance_duration = maintenance_duration;
     m_ramp_threshold = capacity * 0.2;  //using Gas-CC as source, Kumar 2012,
 	m_ramp_threshold_min = 1.1*m_ramp_threshold;   //Table 1-1
 	m_ramp_threshold_max = 2.0*m_ramp_threshold;   
-    m_downtime_threshold = downtime_threshold;
-    m_steplength = steplength;
-    m_hours_to_maintenance = hours_to_maintenance;
-    m_power_output = power_output;
-    m_standby = current_standby;
-    m_online = m_power_output > 0.;
-	m_capacity = capacity;
-	m_time_in_standby = time_in_standby;
-	m_time_online = time_online;
+    m_current_cycle_state.downtime_threshold = downtime_threshold;
+    m_current_cycle_state.hours_to_maintenance = hours_to_maintenance;
+    m_current_cycle_state.power_output = power_output;
+    m_current_cycle_state.is_on_standby = current_standby;
+    m_current_cycle_state.is_online = m_current_cycle_state.power_output > 0.;
+	m_current_cycle_state.capacity = capacity;
+	m_current_cycle_state.time_in_standby = time_in_standby;
+	m_current_cycle_state.time_online = time_online;
 	m_condenser_temp_threshold = temp_threshold;
-	m_downtime = downtime;
+	m_current_cycle_state.downtime = downtime;
 	m_shutdown_capacity = shutdown_capacity;
 	m_no_restart_capacity = no_restart_capacity;
 }
@@ -899,7 +955,7 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
 		return;
 	}
 	double condenser_eff = GetCondenserEfficiency(temp);
-	double turbine_eff = GetTurbineEfficiency(false);
+	double turbine_eff = GetTurbineEfficiency(age);
 	double turbine_cap = GetTurbineCapacity(false);
 	double sst_cap = GetSaltSteamTrainCapacity();
 	double rem_eff = 1.0;
@@ -936,14 +992,14 @@ void PowerCycle::TestForComponentFailures(double ramp_mult, int t, std::string s
 	*/
 	double hazard_increase = 0.;
 	if (start == "HotStart")
-		hazard_increase = m_hot_start_penalty;
+		hazard_increase = m_current_cycle_state.hot_start_penalty;
 	else if (start == "WarmStart")
-		hazard_increase = m_warm_start_penalty;
+		hazard_increase = m_current_cycle_state.warm_start_penalty;
 	else if (start == "ColdStart")
-		hazard_increase = m_cold_start_penalty;
+		hazard_increase = m_current_cycle_state.cold_start_penalty;
 	for (size_t i = 0; i < m_components.size(); i++)
 		m_components.at(i).TestForFailure(
-			m_steplength, ramp_mult, *m_gen, t - m_read_periods, 
+			m_sim_params.steplength, ramp_mult, *m_gen, t - m_sim_params.read_periods, 
 			hazard_increase, mode, m_current_scenario
 		);
 }
@@ -997,7 +1053,7 @@ void PowerCycle::PlantMaintenanceShutdown(int t, bool reset_time, bool record,
 	{
 		label = "MAINTENANCE";
 		for (size_t i = 0; i<m_components.size(); i++)
-			m_components.at(i).Shutdown(m_maintenance_duration);
+			m_components.at(i).Shutdown(m_current_cycle_state.maintenance_duration);
 	}
 	else
 	{
@@ -1016,13 +1072,8 @@ void PowerCycle::PlantMaintenanceShutdown(int t, bool reset_time, bool record,
 	}
 
 	if (reset_time)
-	    m_hours_to_maintenance = m_maintenance_interval * 1.0;
+	    m_current_cycle_state.hours_to_maintenance = m_current_cycle_state.maintenance_interval * 1.0;
 
-	if (m_record_state_failure)
-	{
-		m_record_state_failure = false;
-		StoreState();
-	}
 }
 
 void PowerCycle::AdvanceDowntime(std::string mode)
@@ -1036,7 +1087,7 @@ void PowerCycle::AdvanceDowntime(std::string mode)
 	for (size_t i = 0; i < m_components.size(); i++)
 	{
 		if (!m_components.at(i).IsOperational())
-			m_components.at(i).AdvanceDowntime(m_steplength, mode);
+			m_components.at(i).AdvanceDowntime(m_sim_params.steplength, mode);
 	}
 }
 
@@ -1054,12 +1105,12 @@ double PowerCycle::GetRampMult(double power_out)
 	retval -- floating point multiplier
 
 	*/
-	if (power_out <= m_eps)
+	if (power_out <= m_sim_params.epsilon)
 		return 1.0;
-	if (std::fabs(power_out - m_power_output) >= m_ramp_threshold_min)
+	if (std::fabs(power_out - m_current_cycle_state.power_output) >= m_ramp_threshold_min)
 	{
 		double ramp_penalty = m_ramping_penalty_min + (m_ramping_penalty_max - m_ramping_penalty_min)*
-			(std::fabs(power_out - m_power_output) - m_ramp_threshold_min ) / (m_ramp_threshold_max - m_ramp_threshold_min);
+			(std::fabs(power_out - m_current_cycle_state.power_output) - m_ramp_threshold_min ) / (m_ramp_threshold_max - m_ramp_threshold_min);
 		ramp_penalty = std::min(ramp_penalty, m_ramping_penalty_max);
 		return ramp_penalty;
 	}
@@ -1080,25 +1131,25 @@ void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, s
     mode -- string indicating operating mode (e.g., Offline, Standby)
     
 	*/
-    //print t - m_read_periods
+    //print t - m_sim_params.read_periods
 	double hazard_increase = 0.;
 	if (start == "HotStart")
-		hazard_increase = m_hot_start_penalty;
+		hazard_increase = m_current_cycle_state.hot_start_penalty;
 	else if (start == "WarmStart")
-		hazard_increase = m_warm_start_penalty;
+		hazard_increase = m_current_cycle_state.warm_start_penalty;
 	else if (start == "ColdStart")
-		hazard_increase = m_cold_start_penalty;
-    bool read_only = (t < m_read_periods);
+		hazard_increase = m_current_cycle_state.cold_start_penalty;
+    bool read_only = (t < m_sim_params.read_periods);
 	for (size_t i = 0; i < m_components.size(); i++) 
 	{
 		if (m_components.at(i).IsOperational())
 			m_components.at(i).Operate(
-				m_steplength, ramp_mult, *m_gen, read_only, t - m_read_periods, 
+				m_sim_params.steplength, ramp_mult, *m_gen, read_only, t - m_sim_params.read_periods, 
 				hazard_increase, mode, m_current_scenario
 			);
 		else if (mode == "OFF" || mode == "SF" || mode == "SS" || mode == "SO")
 		{
-			m_components.at(i).AdvanceDowntime(m_steplength, mode);
+			m_components.at(i).AdvanceDowntime(m_sim_params.steplength, mode);
 		}
 	}
 }
@@ -1113,48 +1164,22 @@ void PowerCycle::ResetHazardRates()
 		m_components.at(i).ResetHazardRate();
 }
 
-void PowerCycle::StoreComponentState()
+std::unordered_map<std::string, ComponentStatus> PowerCycle::GetComponentStates()
 {
 	/*
 	Stores the current state of each component, as of 
 	the end of the read-in periods.
 	*/
+	std::unordered_map<std::string, ComponentStatus> component_states;
 	for (
 		std::vector< Component >::iterator it = m_components.begin(); 
 		it != m_components.end(); 
 		it++
 		)
 	{
-		m_component_status[it->GetName()] = it->GetState();
+		component_states[it->GetName()] = it->GetState();
 	}
-}
-
-void PowerCycle::StorePlantState()
-{
-	/*
-	Stores the current state of the plant, as of
-	the end of the read-in periods.
-	*/
-	m_plant_status["hours_to_maintenance"] = m_hours_to_maintenance*1.0;
-	m_plant_status["power_output"] = m_power_output*1.0;
-	m_plant_status["standby"] = m_standby && true;
-	m_plant_status["running"] = m_power_output > 1e-8;
-	m_plant_status["hours_running"] = m_time_online*1.0;
-	m_plant_status["hours_in_standby"] = m_time_in_standby*1.0;
-	m_plant_status["downtime"] = m_downtime*1.0;
-	m_plant_status["m_hot_start_penalty"] = m_hot_start_penalty;
-	m_plant_status["m_hot_start_penalty"] = m_warm_start_penalty;
-	m_plant_status["m_hot_start_penalty"] = m_cold_start_penalty;
-}
-
-void PowerCycle::StoreState()
-{
-	/*
-	Stores the current state of the plant and each component, as of
-	the end of the read-in periods.
-	*/
-	StoreComponentState();
-	StorePlantState();
+	return component_states;
 }
 
 std::string PowerCycle::GetStartMode(int t)
@@ -1164,13 +1189,13 @@ std::string PowerCycle::GetStartMode(int t)
 	t -- time period index
 	*/
 	double power_out = m_dispatch.at("cycle_power").at(t);
-	if (power_out > m_eps)
+	if (power_out > m_sim_params.epsilon)
 	{
 		if (IsOnline())
 			return "None";
 		if (IsOnStandby())
 			return "HotStart";
-		else if (m_downtime <= m_downtime_threshold)
+		else if (m_current_cycle_state.downtime <= m_current_cycle_state.downtime_threshold)
 			return "WarmStart";
 		return "ColdStart";
 	}
@@ -1185,10 +1210,10 @@ std::string PowerCycle::GetOperatingMode(int t)
 	*/
 	double power_out = m_dispatch.at("cycle_power").at(t);
 	double standby = m_dispatch.at("standby").at(t);
-	if (power_out > m_eps)
+	if (power_out > m_sim_params.epsilon)
 	{
 		if (IsOnline())
-			if (m_time_online <= 1.0 - m_eps)
+			if (m_current_cycle_state.time_online <= 1.0 - m_sim_params.epsilon)
 				return "OF"; //in the first hour of power cycle operation
 			else
 				return "OO"; //ongoing (>1 hour) power cycle operation
@@ -1197,7 +1222,7 @@ std::string PowerCycle::GetOperatingMode(int t)
 	else if (standby >= 0.5)
 	{
 		if (IsOnStandby())
-			if (m_time_in_standby <= 1.0 - m_eps)
+			if (m_current_cycle_state.time_in_standby <= 1.0 - m_sim_params.epsilon)
 				return "SF"; //in first hour of standby
 			else
 				return "SO"; // ongoing standby (>1 hour)
@@ -1226,8 +1251,8 @@ void PowerCycle::ReadInComponentFailures(int t)
 					true //This indicates that we reset all hazard rates after repair; may want to revisit
 				);
 
-				if (m_output)
-					output_log.push_back(util::format("Failure Read: %d, %d, %s", t, m_read_periods, m_failure_events[label].print()));
+				if (m_sim_params.print_output)
+					output_log.push_back(util::format("Failure Read: %d, %d, %s", t, m_sim_params.read_periods, m_failure_events[label].print()));
 			}
 		}
 	}
@@ -1271,29 +1296,30 @@ void PowerCycle::RunDispatch()
         progress), and 0 otherwise.  This includes the read-in period.
     
 	*/
-    std::vector< double > cycle_capacities( m_sim_length, 0 );
-	std::vector< double > cycle_efficiencies(m_sim_length, 0);
-	m_record_state_failure = true;
-    for( int t = m_start_period; t < m_start_period + m_sim_length; t++)
+    std::vector< double > cycle_capacities( m_sim_params.sim_length, 0 );
+	std::vector< double > cycle_efficiencies(m_sim_params.sim_length, 0);
+    for( int t = 0; t < m_sim_params.sim_length; t++)
     {
-		if ( t == m_start_period + m_read_periods + m_write_interval )
+		/*
+		if ( t == m_sim_params.read_periods)
 		{
+			//ajz: Keeping failure events from previous runs in rolling horizon - NOT NEEDED ANYMORE
 			StoreState();
-			//ajz: Keeping failure events from previous runs in rolling horizon
-			//m_failure_events.clear();
-			//m_failure_event_labels.clear();
+			m_failure_events.clear();
+			m_failure_event_labels.clear();
 		}
+		*/
 		//Shut all components down for maintenance if such an event is 
 		//read in inputs, or the hours to maintenance is <= zero.
 		//record the event at the period to be read in next.
-		if( m_hours_to_maintenance <= 0 && t >= m_start_period+m_read_periods )
+		if( m_current_cycle_state.hours_to_maintenance <= 0 && t >= m_sim_params.read_periods )
         {
-            PlantMaintenanceShutdown(m_next_start_period + t - m_start_period, true,
-				t < m_start_period + m_read_periods + m_write_interval);
+            PlantMaintenanceShutdown(t, true,
+				t < m_sim_params.read_periods);
         }
 		
 		//Read in any component failures, if in the read-only stage.
-		if (t < m_read_periods)
+		if (t < m_sim_params.read_periods)
 		{
 			ReadInMaintenanceEvents(t);
 			ReadInComponentFailures(t);
@@ -1305,26 +1331,21 @@ void PowerCycle::RunDispatch()
 		std::string start = GetStartMode(t);
 		std::string mode = GetOperatingMode(t);
 		
-		if (m_cycle_capacity < m_eps)
+		if (m_cycle_capacity < m_sim_params.epsilon)
 		{
 			power_output = 0.0;
 			mode = "OFF";
 		}
-		if (t >= m_read_periods)  //we only generate 'new' failures after read-in period
+		if (t >= m_sim_params.read_periods)  //we only generate 'new' failures after read-in period
 		{
 			double ramp_mult = GetRampMult(power_output);
 			TestForComponentFailures(ramp_mult, t, start, mode);
 			SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
 			//if the cycle Capacity is set to zero, this means the plant is in maintenace
 			//or a critical failure has occurred, so shut the plant down.
-			if (m_cycle_capacity < m_eps)
+			if (m_cycle_capacity < m_sim_params.epsilon)
 			{
 				power_output = 0.0;
-				if (mode != "OFF" && m_record_state_failure)
-				{
-					StoreState();
-					m_record_state_failure = false;
-				}
 				mode = "OFF";
 			}
 			else if (m_cycle_capacity < m_shutdown_capacity)
@@ -1336,19 +1357,11 @@ void PowerCycle::RunDispatch()
 				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
 			}
 		}
-		power_output = std::min(power_output, m_cycle_capacity*m_capacity);
+		power_output = std::min(power_output, m_cycle_capacity*m_current_cycle_state.capacity);
 		Operate(power_output, t, start, mode);
 		cycle_capacities[t] = m_cycle_capacity;
 		cycle_efficiencies[t] = m_cycle_efficiency;
-
-		//std::cerr << "Period " << std::to_string(t) << " Capacity: " << std::to_string(cycle_capacity) << ".  Mode: " << mode <<"\n";
     }
-
-	if (m_record_state_failure)
-	{
-		StoreState();  //if no failures have occurred, save final plant state. otherwise, 
-					   //record the state at the first full plant shutdown.
-	}
 	m_results.cycle_efficiency[m_current_scenario] = cycle_efficiencies;
 	m_results.cycle_capacity[m_current_scenario] = cycle_capacities;                   
 }
@@ -1371,42 +1384,42 @@ void PowerCycle::Operate(double power_out, int t, std::string start, std::string
 		mode -- operation mode
 	*/
 	double ramp_mult = GetRampMult(power_out);
-	m_power_output = power_out;
+	m_current_cycle_state.power_output = power_out;
 	if (mode == "OFF")
 	{
-		m_online = false;
-		m_standby = false;
-		m_downtime += m_steplength;
-		m_time_in_standby = 0.0;
-		m_time_online = 0.0;
+		m_current_cycle_state.is_online = false;
+		m_current_cycle_state.is_on_standby = false;
+		m_current_cycle_state.downtime += m_sim_params.steplength;
+		m_current_cycle_state.time_in_standby = 0.0;
+		m_current_cycle_state.time_online = 0.0;
 		AdvanceDowntime("OFF");
 		return;
 	}
 	else if (mode == "SS") //standby - start
 	{
-		m_online = false;
-		m_standby = true;
-		m_time_in_standby = m_steplength;
-		m_downtime = 0.0;
-		m_time_online = 0.0;
+		m_current_cycle_state.is_online = false;
+		m_current_cycle_state.is_on_standby = true;
+		m_current_cycle_state.time_in_standby = m_sim_params.steplength;
+		m_current_cycle_state.downtime = 0.0;
+		m_current_cycle_state.time_online = 0.0;
 	}
 	else if (mode == "SF" || mode == "SO") //standby - first hour; standby ongoing (>1 hour)
 	{
-		m_time_in_standby += m_steplength;
+		m_current_cycle_state.time_in_standby += m_sim_params.steplength;
 	}
 	else if (mode == "OS") //online - start
 	{
-		m_online = true;
-		m_standby = false;
-		m_time_in_standby = 0.0;
-		m_downtime = 0.0;
-		m_time_online = m_steplength;
-		m_hours_to_maintenance -= m_steplength;
+		m_current_cycle_state.is_online = true;
+		m_current_cycle_state.is_on_standby = false;
+		m_current_cycle_state.time_in_standby = 0.0;
+		m_current_cycle_state.downtime = 0.0;
+		m_current_cycle_state.time_online = m_sim_params.steplength;
+		m_current_cycle_state.hours_to_maintenance -= m_sim_params.steplength;
 	}
 	else if (mode == "OF" || mode == "OO") //standby - first hour; standby ongoing (>1 hour)
 	{
-		m_time_online += m_steplength;
-		m_hours_to_maintenance -= m_steplength;
+		m_current_cycle_state.time_online += m_sim_params.steplength;
+		m_current_cycle_state.hours_to_maintenance -= m_sim_params.steplength;
 	}
 	else
 		throw std::runtime_error("invalid operating mode.");
@@ -1414,18 +1427,13 @@ void PowerCycle::Operate(double power_out, int t, std::string start, std::string
 
 }
 
-void PowerCycle::SingleScen(bool reset_plant, bool read_state_from_file)
+void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory)
 {
 
     /*failure_file = open(
-        os.path.join(m_output_dir,"component_failures.csv"),'w'
+        os.path.join(m_sim_params.print_output_dir,"component_failures.csv"),'w'
         )*/
-	if (reset_plant)
-	{
-		GeneratePlantCyclingPenalties();
-		ResetPlant(*m_gen);
-	}
-	else if (read_state_from_file)
+	if (read_state_from_file)
 	{
 		std::string cfilename = (
 			m_filenames.component_in_state + 
@@ -1437,15 +1445,21 @@ void PowerCycle::SingleScen(bool reset_plant, bool read_state_from_file)
 			);
 		ReadStateFromFiles(cfilename, pfilename);
 	}
+	else if (read_from_memory)
+	{
+		ReadCycleStateFromResults(m_current_scenario);
+		ReadComponentStatus(m_results.component_status[m_current_scenario]);
+	}
+	m_start_component_status = GetComponentStates();
+	RunDispatch();
+	if (m_new_failure_occurred)
+	{
+		RevertToStartState();
+	}
 	else
 	{
-		m_plant_status = m_results.plant_status[m_current_scenario];
-		m_component_status = m_results.component_status[m_current_scenario];
-		SetStatus();
+		RecordFinalState();
 	}
-	RunDispatch();
-	m_results.plant_status[m_current_scenario] = m_plant_status;
-	m_results.component_status[m_current_scenario] = m_component_status;
 }
 
 void PowerCycle::GetAverageEfficiencyAndCapacity()
@@ -1458,24 +1472,24 @@ void PowerCycle::GetAverageEfficiencyAndCapacity()
 	m_results.avg_cycle_capacity.clear();
 	double avg_eff;
 	double avg_cap;
-	for (int t = 0; t < m_sim_length; t++)
+	for (int t = 0; t < m_sim_params.sim_length; t++)
 	{
 		avg_eff = 0.;
 		avg_cap = 0.;
-		for (int s = 0; s < m_num_scenarios; s++)
+		for (int s = 0; s < m_sim_params.num_scenarios; s++)
 		{
 			avg_eff += m_results.cycle_efficiency[s].at(t);
 			avg_cap += m_results.cycle_capacity[s].at(t);
 		}
-		m_results.avg_cycle_efficiency.push_back(avg_eff / m_num_scenarios);
-		m_results.avg_cycle_capacity.push_back(avg_cap / m_num_scenarios);
+		m_results.avg_cycle_efficiency.push_back(avg_eff / m_sim_params.num_scenarios);
+		m_results.avg_cycle_capacity.push_back(avg_cap / m_sim_params.num_scenarios);
 	}
 	double avg_labor = 0.;
-	for (int s = 0; s < m_num_scenarios; s++)
+	for (int s = 0; s < m_sim_params.num_scenarios; s++)
 	{
 		avg_labor += m_results.labor_costs[s];
 	}
-	m_results.avg_labor_cost = avg_labor / m_num_scenarios;
+	m_results.avg_labor_cost = avg_labor / m_sim_params.num_scenarios;
 }
 
 double PowerCycle::GetLaborCosts(size_t start_fail_idx)
@@ -1495,7 +1509,7 @@ double PowerCycle::GetLaborCosts(size_t start_fail_idx)
 	{
 		hours += m_failure_events[m_failure_event_labels[i]].labor;
 	}
-	return hours * m_hourly_labor_cost;
+	return hours * m_sim_params.hourly_labor_cost;
 }
 
 void PowerCycle::Simulate(bool reset_plant, bool read_state_from_file)
@@ -1504,14 +1518,13 @@ void PowerCycle::Simulate(bool reset_plant, bool read_state_from_file)
 	Generates a collection of Monte Carlo realizations of failure and
 	maintenance events in the power block.  
 	*/
-	InitializeCyclingDists();
 	size_t cum_num_failures = 0;
-	for (int i = 0; i < m_num_scenarios; i++)
+	for (int i = 0; i < m_sim_params.num_scenarios; i++)
 	{
 		m_current_scenario = i;
-		m_gen->assignStates(m_current_scenario);
+		//m_gen->assignStates(m_current_scenario);
 		SingleScen(reset_plant, read_state_from_file);
-		m_gen->saveStates(i);
+		//m_gen->saveStates(i);
 
 		//get labor costs, starting at first event in curremt scenario
 		m_results.labor_costs[i] = GetLaborCosts(cum_num_failures);
@@ -1522,20 +1535,19 @@ void PowerCycle::Simulate(bool reset_plant, bool read_state_from_file)
 	GetAverageEfficiencyAndCapacity();
 }
 
-void PowerCycle::ResetPlant(WELLFiveTwelve &gen)
+void PowerCycle::ResetPlant()
 {
 	/* 
 	Resets the plant and its components to initial conditions.
-	gen -- RNG object
 	*/
-	m_online = false;
-	m_time_online = 0.;
-	m_standby = false;
-	m_time_in_standby = 0.;
-	m_power_output = 0.;
-	m_hours_to_maintenance = m_maintenance_interval;
+	m_current_cycle_state.is_online = false;
+	m_current_cycle_state.time_online = 0.;
+	m_current_cycle_state.is_on_standby = false;
+	m_current_cycle_state.time_in_standby = 0.;
+	m_current_cycle_state.power_output = 0.;
+	m_current_cycle_state.hours_to_maintenance = m_current_cycle_state.maintenance_interval;
 	for (size_t c = 0; c < GetComponents().size(); c++)
 	{
-		GetComponents().at(c).Reset(gen);
+		GetComponents().at(c).Reset(*m_gen);
 	}
 }

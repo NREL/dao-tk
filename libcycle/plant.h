@@ -8,105 +8,75 @@
 #include "component.h"
 #include "well512.h"
 #include "distributions.h"
+#include "plant_struct.h"
 
-struct cycle_file_settings
-{
-	std::string component_in_state;
-	std::string component_out_state;
-	std::string plant_in_state;
-	std::string plant_out_state;
-	cycle_file_settings();
-};
-
-struct cycle_results
-{
-	std::unordered_map < int, std::vector < double > > cycle_capacity;
-	std::unordered_map < int, std::vector < double > > cycle_efficiency;
-	std::unordered_map < int,  double  > labor_costs;
-	std::vector < double > avg_cycle_capacity;
-	std::vector < double > avg_cycle_efficiency;
-	double avg_labor_cost;
-	std::unordered_map<int,  std::unordered_map< std::string, ComponentStatus > > component_status;
-	std::unordered_map<int, std::unordered_map< std::string, double > >  plant_status;
-	std::vector < std::string > failure_event_labels;
-	std::unordered_map < std::string, failure_event > failure_events;
-	int period_of_first_failure; 
-	double turbine_efficiency;   
-	double turbine_capacity;    
-	cycle_results();
-};
 
 class PowerCycle
 {
+	//RNG Engine
 	WELLFiveTwelve *m_gen;
+
+	//Components
 	std::vector< Component > m_components;
 	std::vector< size_t > m_turbine_idx;  //turbine indices of component vector
  	std::vector< size_t > m_sst_idx;   //salt-to-steam train indices of component vector
 	std::vector< size_t > m_condenser_idx; //condenser train indices of component vector
-	std::unordered_map<std::string, std::vector<double> > m_dispatch;
-	std::unordered_map< std::string, failure_event > m_failure_events;
-	std::vector <std::string> m_failure_event_labels;
-	std::unordered_map< std::string, ComponentStatus > m_component_status;
-	std::unordered_map< std::string, double > m_plant_status;
-	double m_maintenance_interval;
-	double m_maintenance_duration;
-	double m_ramp_threshold;
-	double m_ramp_threshold_min;
-	double m_ramp_threshold_max;
-	double m_ramping_penalty_min = 1.2;  //Using Gas-CC
-	double m_ramping_penalty_max = 4.0;  //Using Gas-CC
-	double m_hours_to_maintenance;
-	bool m_online;
-	double m_power_output;
-	bool m_standby;   
-	double m_steplength;
-	int m_sim_length;   // length of simulation (number of periods)
-	int m_start_period;  // starting period for simulation
-	int m_read_periods;  // length of read-only periods
-	int m_next_start_period; // starting point of next simulation (for rolling horizon)
-	int m_write_interval; //interval over which to write failure events for future runs
-	int m_num_scenarios;
-	int m_current_scenario;
-	double m_downtime_threshold;
-	double m_downtime;
-	double m_shutdown_capacity = 0.3;      //These represent a policy, and are 
-	double m_no_restart_capacity = 0.96;   //assumed to be decision variables
-	double m_shutdown_efficiency = 0.3;
-	double m_no_restart_efficiency = 0.9;
-	double m_eps;
-	bool m_output;
-	double m_capacity;
-	double m_time_online;
-	double m_time_in_standby;
-	double m_condenser_temp_threshold;
+	
+	int m_num_condenser_trains = 0;
+	int m_fans_per_condenser_train = 0;
+	double m_eff_loss_per_fan = 0.01;   //currently hard-coded as an assumption
+	double m_condenser_temp_threshold = 20.;
 	std::vector<double> m_condenser_efficiencies_cold;
 	std::vector<double> m_condenser_efficiencies_hot;
-	double m_hot_start_penalty;
-	double m_warm_start_penalty;
-	double m_cold_start_penalty;
-	BoundedJohnsonDist m_hs_dist;
-	BoundedJohnsonDist m_ws_dist;
-	BoundedJohnsonDist m_cs_dist;
-	int m_num_condenser_trains = 0;
 	int m_num_feedwater_heaters = 0;
 	int m_num_salt_steam_trains = 0;
 	int m_num_salt_pumps = 0;
 	int m_num_water_pumps = 0;
 	int m_num_turbines = 0; // HP, IP, LP turbines and generator count 
 							// as a single component
-	bool m_record_state_failure = true;  //record plant state at first component failure
-	bool first_failure_occured = false;  //indicates component failure has taken place
-	double m_eff_loss_per_fan = 0.01;
-	int m_fans_per_condenser_train;
+	//Dispatch inputs
+	std::unordered_map<std::string, std::vector<double> > m_dispatch;
+
+	//Failure Events
+	std::unordered_map< std::string, failure_event > m_failure_events;
+	std::vector <std::string> m_failure_event_labels;
+
+	std::unordered_map< std::string, ComponentStatus > m_start_component_status;
+
+	//ramping parameters
+	double m_ramp_threshold;   //these are calculated with capacity as input
+	double m_ramp_threshold_min;
+	double m_ramp_threshold_max;
+	double m_ramping_penalty_min = 1.2;  //Using Gas-CC
+	double m_ramping_penalty_max = 4.0;  //Using Gas-CC
+
+	//Cycling distriutions for hazard rate increase
+	BoundedJohnsonDist m_hs_dist;
+	BoundedJohnsonDist m_ws_dist;
+	BoundedJohnsonDist m_cs_dist;
+
+	//These thresholds for shutdown represent a policy, and are assumed to be 
+	//decision variables
+	double m_shutdown_capacity = 0.3;      
+	double m_no_restart_capacity = 0.96;   
+	double m_shutdown_efficiency = 0.3;
+	double m_no_restart_efficiency = 0.9;
+
+	//Current status members
+	int m_current_scenario;
 	double m_cycle_efficiency;
 	double m_cycle_capacity;
-	double m_hourly_labor_cost;
+	bool m_new_failure_occurred;
 	
 
 public:
 	PowerCycle::PowerCycle();
+	void Initialize();
+	cycle_state m_current_cycle_state;
+	cycle_state m_begin_cycle_state;
 	cycle_file_settings m_filenames;
 	cycle_results m_results;
+	simulation_params m_sim_params;
 	std::vector< std::string > output_log;
 	void InitializeCyclingDists();
 	void AssignGenerator(WELLFiveTwelve *gen);
@@ -117,9 +87,7 @@ public:
 	void SetSimulationParameters(
 		int read_periods = 0,
 		int sim_length = 48,
-		int start_period = 0,
-		int next_start_period = 48,
-		int write_interval = 48,
+		double steplength = 1,
 		double epsilon = 1.E-10,
 		bool print_output = false,
 		int num_scenarios = 1,
@@ -127,11 +95,17 @@ public:
 	);
 	void SetCondenserEfficienciesCold(std::vector<double> eff_cold);
 	void SetCondenserEfficienciesHot(std::vector<double> eff_hot);
+	void ClearComponents();
 	void ReadComponentStatus(
 		std::unordered_map< std::string, ComponentStatus > dstat);
 	void ClearComponentStatus();
-	void SetStatus();
+	void ReadCycleStateFromResults(int scen_idx);
+	void SetStartComponentStatus();
+	void StoreComponentState();
+	void RecordFinalState();
+	void RevertToStartState();
 	void WriteStateToFiles(
+		bool current_state,
 		std::string component_filename, 
 		std::string plant_filename
 	);
@@ -155,7 +129,6 @@ public:
 	double GetWarmStartPenalty();
 	double GetColdStartPenalty();
 	int GetSimLength();
-	int GetWriteInterval();
 	void SetShutdownCapacity(double capacity);
 	void SetNoRestartCapacity(double capacity);
 	std::unordered_map< std::string, failure_event > GetFailureEvents();
@@ -199,7 +172,6 @@ public:
 		double maintenance_interval = 5000.,
 		double maintenance_duration = 168.,
 		double downtime_threshold = 24.,
-		double steplength = 1.,
 		double hours_to_maintenance = 5000.,
 		double power_output = 0.,
 		bool current_standby = false,
@@ -238,9 +210,7 @@ public:
 		std::string mode
 	);
 	void ResetHazardRates();
-	void StoreComponentState();
-	void StorePlantState();
-	void StoreState();
+	std::unordered_map<std::string, ComponentStatus> GetComponentStates();
 	std::string GetStartMode(int t);
 	std::string GetOperatingMode(int t);
 	void ReadInComponentFailures(int t);
@@ -251,7 +221,7 @@ public:
 	void GetAverageEfficiencyAndCapacity();
 	double GetLaborCosts(size_t start_fail_idx);
 	void Simulate(bool reset_plant, bool read_state_from_file = false);
-	void ResetPlant(WELLFiveTwelve &gen);
+	void ResetPlant();
 };
 
 

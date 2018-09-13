@@ -13,6 +13,7 @@ OBJECTS = \
 	distributions.o \
 	failure.o \
 	component.o\
+	plant_struct.o\
 	plant.o
 
 TARGET = libcycle.a
