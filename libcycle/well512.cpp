@@ -218,14 +218,17 @@ void WELLFiveTwelve::assignStates(int scenario)
 		//choose which to use
 		state = D.at(scenario);
 		state_i = 0; //reset when choosing a new scenario
+		saveStates(scenario);
 	}
 	else
 	{
 		state = m_stored_states[scenario];
+		state_i = m_stored_state_is[scenario];
 	}
 }
 
 void WELLFiveTwelve::saveStates(int scenario)
 {
 	m_stored_states[scenario] = state;
+	m_stored_state_is[scenario] = state_i;
 }

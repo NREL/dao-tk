@@ -43,6 +43,7 @@ public:
     uint32_t MAT4NEG(int t, uint32_t b, uint32_t v);
     double getVariate();
 	std::unordered_map<int, std::vector< uint32_t > > m_stored_states;
+	std::unordered_map<int, int > m_stored_state_is;
 };
 
 

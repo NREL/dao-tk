@@ -81,7 +81,7 @@ public:
 		std::unordered_map< std::string, failure_event > *failure_events, 
 		double availability_reduction = 1.0, 
 		double efficiency_reduction = 1.0, double repair_cost = 0.0,
-		std::string repair_mode = "D", std::vector< std::string > *failure_eventlabels = {}
+		std::string repair_mode = "D", std::vector< std::string > *failure_event_labels = {}
 		);
 
     void ReadStatus( ComponentStatus &status );
