@@ -109,9 +109,6 @@ parameters::parameters()
     num_turbines.set(                        1,                 "num_turbines",      false,               "Number of turbine-generator shafts",        "-",                  "Cycle|Parameters" );
     read_periods.set(                        0,                 "read_periods",      false,                      "Number of read-only periods",        "-",                  "Cycle|Parameters" );
     sim_length.set(                         48,                   "sim_length",      false,            "Number of periods in cycle simulation",        "-",                  "Cycle|Parameters" );
-    start_period.set(                        0,                 "start_period",      false,                 "Cycle simulation starting period",        "-",                  "Cycle|Parameters" );
-    next_start_period.set(                   0,            "next_start_period",      false,            "Next cycle simulation starting period",        "-",                  "Cycle|Parameters" );
-    write_interval.set(                     48,               "write_interval",      false,    "Number of periods in rolling horizon interval",        "-",                  "Cycle|Parameters" );
     num_scenarios.set(                       1,                "num_scenarios",      false,                              "Number of scenarios",        "-",                  "Cycle|Parameters" );
 
     rec_ref_cost.set(                1.03e+008,                 "rec_ref_cost",      false,                          "Receiver reference cost",        "$",              "Financial|Parameters" );
@@ -231,9 +228,6 @@ parameters::parameters()
 	(*this)["num_turbines"] = &num_turbines;
 	(*this)["read_periods"] = &read_periods;
 	(*this)["sim_length"] = &sim_length;
-	(*this)["start_period"] = &start_period;
-	(*this)["next_start_period"] = &next_start_period;
-	(*this)["write_interval"] = &write_interval;
 	(*this)["num_scenarios"] = &num_scenarios;
     (*this)["rec_ref_cost"] = &rec_ref_cost;
     (*this)["rec_ref_area"] = &rec_ref_area;
@@ -528,7 +522,8 @@ objective_outputs::objective_outputs()
     rec_start_cost_real.set(               nan,          "rec_start_cost_real",       true,                              "Receiver start cost",        "$",                 "Objective|Outputs" );
     cycle_start_cost_real.set(             nan,        "cycle_start_cost_real",       true,                                 "Cycle start cost",        "$",                 "Objective|Outputs" );
     cycle_ramp_cost_real.set(              nan,         "cycle_ramp_cost_real",       true,                                  "Cycle ramp cost",        "$",                 "Objective|Outputs" );
-    heliostat_repair_cost_real.set(        nan,   "heliostat_repair_cost_real",       true,                            "Heliostat repair cost",        "$",                 "Objective|Outputs" );
+	cycle_repair_cost_real.set(            nan,       "cycle_repair_cost_real",       true,                                "Cycle repair cost",        "$",                 "Objective|Outputs" );
+	heliostat_repair_cost_real.set(        nan,   "heliostat_repair_cost_real",       true,                            "Heliostat repair cost",        "$",                 "Objective|Outputs" );
     heliostat_om_labor_real.set(           nan,      "heliostat_om_labor_real",       true,                         "Heliostat O&M labor cost",        "$",                 "Objective|Outputs" );
     heliostat_wash_cost_real.set(          nan,     "heliostat_wash_cost_real",       true,                          "Heliostat O&M wash cost",        "$",                 "Objective|Outputs" );
     heliostat_refurbish_cost_real.set(     nan,"heliostat_refurbish_cost_real",       true,                         "Heliostat refurbish cost",        "$",                 "Objective|Outputs" );
@@ -550,6 +545,7 @@ objective_outputs::objective_outputs()
 	(*this)["rec_start_cost_real"] = &rec_start_cost_real;
 	(*this)["cycle_start_cost_real"] = &cycle_start_cost_real;
 	(*this)["cycle_ramp_cost_real"] = &cycle_ramp_cost_real;
+	(*this)["cycle_repair_cost_real"] = &cycle_repair_cost_real;
 	(*this)["heliostat_repair_cost_real"] = &heliostat_repair_cost_real;
 	(*this)["heliostat_om_labor_real"] = &heliostat_om_labor_real;
 	(*this)["heliostat_wash_cost_real"] = &heliostat_wash_cost_real;
@@ -718,7 +714,7 @@ Project::Project()
 
 	//construct the merged data map
 	std::vector<lk::varhash_t*> struct_pointers = { &m_variables, &m_parameters, &m_design_outputs,
-		&m_solarfield_outputs, &m_optical_outputs, /*&m_cycle_outputs,*/ &m_simulation_outputs, &m_objective_outputs };
+		&m_solarfield_outputs, &m_optical_outputs, &m_cycle_outputs, &m_simulation_outputs, &m_objective_outputs };
 
 	_merged_data.clear();
 
@@ -751,7 +747,7 @@ std::vector< void* > Project::GetDataObjects()
     std::vector< void* > rvec = {
         (void*)&m_variables, (void*)&m_parameters, //(void*)&m_cluster_parameters,
         (void*)&m_design_outputs, (void*)&m_optical_outputs, (void*)&m_solarfield_outputs,
-        (void*)&m_simulation_outputs, (void*)&m_objective_outputs }; // , (void*)&m_cycle_outputs
+		(void*)&m_cycle_outputs, (void*)&m_simulation_outputs, (void*)&m_objective_outputs }; // 
 
     return rvec;
 }
@@ -1396,24 +1392,22 @@ bool Project::C()
 	pc.SetSimulationParameters(
 		m_parameters.read_periods.as_integer(),
 		m_parameters.sim_length.as_integer(),
-		m_parameters.start_period.as_integer(),
-		m_parameters.next_start_period.as_integer(),
-		m_parameters.write_interval.as_integer(),
+		m_parameters.steplength.as_integer(),
 		1.e-8,
 		false,
 		m_parameters.num_scenarios.as_integer(),
 		m_parameters.cycle_hourly_labor_cost.as_number()
 	);
-
+	
 	//Plant Components
-	std::vector < double > c_eff_cold(m_parameters.num_condenser_trains.as_integer(), 0.);
-	std::vector < double > c_eff_hot(m_parameters.num_condenser_trains.as_integer(), 0.);
-	for (int i = 0; i < m_parameters.num_condenser_trains.as_integer(); i++)
+	std::vector < double > c_eff_cold;
+	std::vector < double > c_eff_hot;
+	for (int i = 0; i < m_parameters.num_condenser_trains.as_integer()+1; i++)
 	{
-		c_eff_cold.at(i) = m_parameters.condenser_eff_cold.vec()->at(i).as_number();
-		c_eff_hot.at(i) = m_parameters.condenser_eff_hot.vec()->at(i).as_number();
+		c_eff_cold.push_back( m_parameters.condenser_eff_cold.vec()->at(i).as_number() );
+		c_eff_hot.push_back( m_parameters.condenser_eff_hot.vec()->at(i).as_number() );
 	}
-
+	
 	pc.GeneratePlantComponents(
 		m_parameters.num_condenser_trains.as_integer(),
 		m_parameters.fans_per_train.as_integer(),
@@ -1432,7 +1426,6 @@ bool Project::C()
 		m_parameters.maintenance_interval.as_number(),
 		m_parameters.maintenance_duration.as_number(),
 		m_parameters.downtime_threshold.as_number(),
-		m_parameters.steplength.as_number(),
 		m_parameters.hours_to_maintenance.as_number(),
 		m_parameters.power_output.as_number(),
 		m_parameters.current_standby.as_boolean(),
@@ -1450,36 +1443,39 @@ bool Project::C()
 	pc.AssignGenerator(&gen);
 
 	//Assign Dispatch
-	std::vector < double > cycle_power_ts(m_parameters.sim_length.as_integer(), 0.);
-	std::vector < double > standby_ts(m_parameters.sim_length.as_integer(), 0.);
-	std::vector < double > ambient_temp_ts(m_parameters.sim_length.as_integer(), 0.);
-
-	for (int i = 0; i < m_parameters.num_condenser_trains.as_integer(); i++)
-	{
-		cycle_power_ts.at(i) = m_parameters.cycle_power.vec()->at(i).as_number();
-		standby_ts.at(i) = m_parameters.standby.vec()->at(i).as_number();
-		ambient_temp_ts.at(i) = m_parameters.ambient_temperature.vec()->at(i).as_number();
-	}
-	
 	std::unordered_map < std::string, std::vector < double > > dispatch;
-	dispatch["standby"] = standby_ts;
-	dispatch["cycle_power"] = cycle_power_ts;
-	dispatch["ambient_temperature"] = ambient_temp_ts;
+	dispatch["standby"] = {};
+	dispatch["cycle_power"] = {};
+	dispatch["ambient_temperature"] = {};
+
+	for (int i = 0; i < m_parameters.sim_length.as_integer(); i++)
+	{
+		dispatch["cycle_power"].push_back(m_parameters.cycle_power.vec()->at(i).as_number());
+		dispatch["standby"].push_back(m_parameters.standby.vec()->at(i).as_number());
+		dispatch["ambient_temperature"].push_back(m_parameters.ambient_temperature.vec()->at(i).as_number());
+	}
 	
 	pc.SetDispatch(dispatch);
 
-	pc.Simulate(false);
+	pc.Simulate(true);
 
 	//Annualize repair cost
-	double ann_fact = 8760. / (double)(pc.GetSteplength() * pc.GetWriteInterval());
+	//double ann_fact = 8760. / (double)(pc.GetSteplength() * pc.GetWriteInterval());
 
-	pc.m_results.avg_labor_cost = calc_real_dollars(pc.m_results.avg_labor_cost) * ann_fact;
+	//pc.m_results.avg_labor_cost = calc_real_dollars(pc.m_results.avg_labor_cost) * ann_fact;
 
 	//Assign results to structure
 	pc.GetAverageEfficiencyAndCapacity();
-	m_cycle_outputs.cycle_capacity.assign_vector( pc.m_results.avg_cycle_capacity );
-	m_cycle_outputs.cycle_efficiency.assign_vector( pc.m_results.avg_cycle_efficiency );
-	m_cycle_outputs.cycle_labor_cost.assign( pc.m_results.avg_labor_cost );
+	m_cycle_outputs.cycle_capacity.vec()->resize(pc.GetSimLength());
+	m_cycle_outputs.cycle_efficiency.vec()->resize(pc.GetSimLength());
+
+	//m_parameters.sim_length.assign(200);
+
+	m_cycle_outputs.cycle_labor_cost.assign(pc.m_results.avg_labor_cost);
+	//m_parameters.sim_length.assign(300);
+	m_cycle_outputs.cycle_capacity.assign_vector(pc.m_results.avg_cycle_capacity);
+	//m_parameters.sim_length.assign(350);
+	m_cycle_outputs.cycle_efficiency.assign_vector(pc.m_results.avg_cycle_efficiency);
 
 	is_cycle_avail_valid = true;
 
@@ -1798,7 +1794,6 @@ bool Project::Z()
 	// Cycle efficiency/capacity
 	if (!is_cycle_avail_valid)
 	{
-		is_simulation_valid = false;
 		is_financial_valid = false;
 		C();
 	}

@@ -317,9 +317,6 @@ struct parameters : public lk::varhash_t
 	parameter num_turbines;
 	parameter read_periods;
 	parameter sim_length;
-	parameter start_period;
-	parameter next_start_period;
-	parameter write_interval;
 	parameter num_scenarios;
 	parameter n_clusters;
 	parameter cluster_ndays;

@@ -260,20 +260,44 @@ void _test(lk::invoke_t &cxt)
 	P->m_variables.n_wash_crews.assign( 3 );
 	P->m_variables.N_panels.assign( 16 );
 
-	P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
-	
+	//P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+	P->m_parameters.solar_resource_file.assign( "C:/Users/AZOLAN/Documents/GitHub/daotk_dev/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+
+	P->m_parameters.cycle_power.empty_vector();
+	P->m_parameters.standby.empty_vector();
+	P->m_parameters.ambient_temperature.empty_vector();
+	for (int i = 0; i < 30; i++) //simulate 30 days of dispatch
+	{
+		for (int j = 0; j < 8; j++)
+		{
+			P->m_parameters.cycle_power.vec_append(0);
+			P->m_parameters.standby.vec_append(0);
+			P->m_parameters.ambient_temperature.vec_append(0);
+		}
+		for (int j = 0; j < 8; j++)
+		{
+			P->m_parameters.cycle_power.vec_append(1e5);
+			P->m_parameters.standby.vec_append(0);
+			P->m_parameters.ambient_temperature.vec_append(10);
+		}
+		for (int j = 0; j < 8; j++)
+		{
+			P->m_parameters.cycle_power.vec_append(0);
+			P->m_parameters.standby.vec_append(0);
+			P->m_parameters.ambient_temperature.vec_append(15);
+		}
+	}
 	P->D();
 	P->M();
 	P->O();
-	P->C();
-
-
+	//P->C();
+	
 	mw.Log(wxString::Format("Total field area: %.2f", P->m_design_outputs.area_sf.as_number()));
 	mw.Log(wxString::Format("Number of repairs: %d", (int)P->m_solarfield_outputs.n_repairs.as_integer()));
 	mw.Log(wxString::Format("Number of mirror replacements: %d", (int)P->m_optical_outputs.n_replacements.as_integer()));
 	mw.Log(wxString::Format("Average soiling: %.2f", P->m_optical_outputs.avg_soil.as_number()));
 	mw.Log(wxString::Format("Average degradation: %.2f", P->m_optical_outputs.avg_degr.as_number()));
-	mw.Log(wxString::Format("Average cycle repair labor costs: %.2f", P->m_cycle_outputs.cycle_labor_cost.as_number()));
+	//mw.Log(wxString::Format("Average cycle repair labor costs: %.2f", P->m_cycle_outputs.cycle_labor_cost.as_number()));
 
 	mw.SetProgress(0.);
 	mw.UpdateDataTable();
@@ -293,10 +317,9 @@ void _generate_solarfield(lk::invoke_t &cxt)
 
 void _power_cycle(lk::invoke_t &cxt)
 {
-	LK_DOC("power_cycle_avail", "Simulate the power cycle capacity over time, after accounting for maintenance and failures. "
+	LK_DOC("power_cycle", "Simulate the power cycle capacity over time, after accounting for maintenance and failures. "
 		"Table keys include: cycle_power, ambient_temperature, standby, "
-		"read_periods, sim_length, start_period, next_start_period, "
-		"write_interval, eps, output, num_scenarios, "
+		"read_periods, sim_length, eps, output, num_scenarios, "
 		"maintenance_interval, maintenance_duration, downtime_threshold, "
 		"steplength, hours_to_maintenance, power_output, current_standby, "
 		"capacity, temp_threshold, time_online, time_in_standby, downtime, "
@@ -304,6 +327,8 @@ void _power_cycle(lk::invoke_t &cxt)
 		"fans_per_train, radiators_per_train, num_salt_steam_trains, num_fwh, "
 		"num_salt_pumps, num_water_pumps, num_turbines, condenser_eff_cold, "
 		"condenser_eff_hot", "(table:cycle_inputs):table");
+
+	MainWindow &mw = MainWindow::Instance();
 
 	PowerCycle cycle;
 
@@ -322,10 +347,6 @@ void _power_cycle(lk::invoke_t &cxt)
 	double downtime_threshold = 24.;
 	if (h->find("downtime_threshold") != h->end())
 		downtime_threshold = h->at("downtime_threshold")->as_number();
-
-	double steplength = 1.;
-	if (h->find("steplength") != h->end())
-		steplength = h->at("steplength")->as_number();
 
 	double hours_to_maintenance = 5000.;
 	if (h->find("hours_to_maintenance") != h->end())
@@ -368,7 +389,7 @@ void _power_cycle(lk::invoke_t &cxt)
 		no_restart_capacity = h->at("no_restart_capacity")->as_number();
 
 	cycle.SetPlantAttributes(maintenance_interval, maintenance_duration,
-		downtime_threshold, steplength, hours_to_maintenance, power_output,
+		downtime_threshold, hours_to_maintenance, power_output,
 		current_standby, capacity, temp_threshold, time_online, time_in_standby, downtime,
 		shutdown_capacity, no_restart_capacity);
 
@@ -455,17 +476,9 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("sim_length") != h->end())
 		sim_length = h->at("sim_length")->as_integer();
 
-	int start_period = 0;
-	if (h->find("start_period") != h->end())
-		start_period = h->at("start_period")->as_integer();
-
-	int next_start_period = 0;
-	if (h->find("next_start_period") != h->end())
-		next_start_period = h->at("next_start_period")->as_integer();
-
-	int write_interval = 48;
-	if (h->find("write_interval") != h->end())
-		write_interval = h->at("write_interval")->as_integer();
+	double steplength = 1.;
+	if (h->find("steplength") != h->end())
+		steplength = h->at("steplength")->as_number();
 
 	double eps = 0;
 	if (h->find("eps") != h->end())
@@ -475,7 +488,7 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("output") != h->end())
 		output = h->at("output")->as_boolean();
 
-	int num_scenarios = 0;
+	int num_scenarios = 1;
 	if (h->find("num_scenarios") != h->end())
 		num_scenarios = h->at("num_scenarios")->as_integer();
 
@@ -484,26 +497,30 @@ void _power_cycle(lk::invoke_t &cxt)
 		eps = h->at("cycle_hourly_labor_cost")->as_number();
 
 	cycle.SetSimulationParameters(
-		read_periods, 
+		read_periods,
 		sim_length,
-		start_period, 
-		next_start_period, 
-		write_interval, 
+		steplength,
 		eps, 
 		output, 
 		num_scenarios,
 		cycle_hourly_labor_cost
 		);
 
+	
+
+	std::unordered_map<std::string, std::vector<double> > dispatch;
+	dispatch["cycle_power"] = { 0,0,0,0,0,0,0,0,9,9,9,9,9,9,9,9,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,9,9,9,9,9,9,9,9,0,0,0,0,0,0,0,0 };
+	dispatch["ambient_temperature"] = { 0,0,0,0,0,0,0,0,9,9,9,9,9,9,9,9,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,9,9,9,9,9,9,9,9,0,0,0,0,0,0,0,0 };
+	dispatch["standby"] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+
+	/*
 	// Dispatch parameters
 	// For now, we will assume that the dispatch parameters
 	// will be required inputs, i.e., there are no defaults.  These
-	// should come from a prior run of SAM. 
-
-	std::unordered_map<std::string, std::vector<double> > dispatch;
-	dispatch["cycle_power"] = {};
-	dispatch["ambient_temperature"] = {};
-	dispatch["standby"] = {};
+	// should come from a prior run of SAM.
 	std::vector<lk::vardata_t> *cycle_power = h->at("cycle_power")->vec();
 	std::vector<lk::vardata_t> *ambient_temperature = h->at("ambient_temperature")->vec();
 	std::vector<lk::vardata_t> *standby_by_hour = h->at("standby")->vec();
@@ -517,13 +534,18 @@ void _power_cycle(lk::invoke_t &cxt)
 		q = standby_by_hour->at(start_period + i);
 		dispatch.at("standby").push_back(q.as_number());
 	}
-	
+	*/
 	cycle.SetDispatch(dispatch, true);
 	WELLFiveTwelve gen(0);
 	cycle.AssignGenerator(&gen);
-	cycle.Simulate(true);
+	cycle.Initialize();
+	cycle.Simulate(false);
 
-	MainWindow::Instance().SetProgress(0.);
+	mw.SetProgress(0.);
+
+	//mw.Log(wxString::Format(""));
+	mw.Log(wxString::Format("Average cycle repair labor costs: %.2f",cycle.m_results.avg_labor_cost));
+	mw.Log(wxString::Format("Total number of failures: %i", cycle.m_results.failure_event_labels.size()));
 
 	return;
 }
