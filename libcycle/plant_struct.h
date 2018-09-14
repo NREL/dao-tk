@@ -35,6 +35,7 @@ struct cycle_state
 	double warm_start_penalty;
 	double cold_start_penalty;
 	cycle_state();
+	void print();
 };
 
 struct simulation_params
@@ -47,6 +48,7 @@ struct simulation_params
 	int num_scenarios;
 	double hourly_labor_cost;
 	simulation_params();
+	void print();
 };
 
 struct cycle_results

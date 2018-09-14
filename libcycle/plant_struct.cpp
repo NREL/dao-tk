@@ -1,6 +1,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <iostream>
 
 #include "plant_struct.h"
 
@@ -28,7 +29,26 @@ cycle_state::cycle_state()
 	downtime = 0;
 	hot_start_penalty = 0;
 	warm_start_penalty = 0;
-	cold_start_penalty = 0;
+	hot_start_penalty = 0;
+}
+
+void cycle_state::print()
+{
+	std::cerr << "maintenance_interval: " << maintenance_interval << "\n"
+		<< "maintenance_duration: " << maintenance_duration << "\n"
+		<< "downtime_threshold: " << downtime_threshold << "\n"
+		<< "hours_to_maintenance: " << hours_to_maintenance << "\n"
+		<< "is_online: " << is_online << "\n"
+		<< "is_on_standby: " << is_on_standby << "\n"
+		<< "power_output: " << power_output << "\n"
+		<< "capacity: " << capacity << "\n"
+		<< "temp_threshold: " << temp_threshold << "\n"
+		<< "time_online: " << time_online << "\n"
+		<< "time_in_standby: " << time_in_standby << "\n"
+		<< "downtime: " << downtime << "\n"
+		<< "hot_start_penalty: " << hot_start_penalty << "\n"
+		<< "warm_start_penalty: " << warm_start_penalty << "\n"
+		<< "cold_start_penalty: " << cold_start_penalty << "\n";
 }
 
 simulation_params::simulation_params()
@@ -40,6 +60,17 @@ simulation_params::simulation_params()
 	print_output = false;
 	num_scenarios = 1;
 	hourly_labor_cost = 50.;
+}
+
+void simulation_params::print()
+{
+	std::cerr << "read_periods: " << read_periods << "\n"
+		<< "sim_length: " << sim_length << "\n"
+		<< "steplength: " << steplength << "\n"
+		<< "epsilon: " << epsilon << "\n"
+		<< "print_output: " << print_output << "\n"
+		<< "num_scenarios: " << num_scenarios << "\n"
+		<< "hourly_labor_cost: " << hourly_labor_cost << "\n";
 }
 
 cycle_results::cycle_results()
