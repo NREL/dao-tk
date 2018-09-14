@@ -191,6 +191,11 @@ void Component::Shutdown(double time)
         
 void Component::RestoreComponent(bool reset_age)
 {
+	/*
+	Sets a component to an operational state.
+
+	reset_age -- indicator to set age to zero on repair
+	*/
 	m_status.operational = true;
 	m_status.downtime_remaining = 0.0;
 	m_status.repair_event_time = 0.0;
@@ -201,18 +206,21 @@ void Component::RestoreComponent(bool reset_age)
         
 void Component::ResetHazardRate()
 {
+	/* Sets hazard rate to one, i.e., treats component as good as new. */
 	m_status.hazard_rate = 1.;
 }
 
     
 double Component::GetDowntimeRemaining()
 {
+	/* accessor to downtime remaining before a component is online. */
 	return m_status.downtime_remaining;
 }
 
         
 void Component::SetDowntimeRemaining(double time)
 {
+	/* mutator for downtime remaining before a component is online. */
 	m_status.downtime_remaining = time;
 }
 
@@ -262,14 +270,30 @@ double Component::HoursToFailure(double ramp_mult, std::string mode)
 void Component::TestForBinaryFailure(std::string mode, int t, 
 	WELLFiveTwelve &gen, int scen_index)
 {
+	/*
+	Tests for failures of components for the start of online mode
+	(or standby mode).  Testing is done by generating a uniform
+	(0,1) random variate and comparing that value to the failure
+	probability times the hazard rate for each component for
+	which the starting mode matches.
+
+	mode -- operating mode identifier
+	t -- time period index
+	gen -- RNG engine
+	scen_index -- scenario index for simulation; recorded with 
+	failure events
+	*/
 	double var = 0.0;
 	for (size_t j = 0; j < m_failure_types.size(); j++)
 	{
 		if (m_failure_types.at(j).GetFailureMode() == mode)
 		{
 			var = gen.getVariate();
-			if ( var <= m_failure_types.at(j).GetFailureProbability() *m_status.hazard_rate )
+			if (var <= m_failure_types.at(j).GetFailureProbability()
+				* m_status.hazard_rate)
+			{
 				GenerateFailure(gen, t, j, scen_index);
+			}
 		}
 	}
 }
@@ -278,12 +302,12 @@ void Component::TestForFailure(double time, double ramp_mult,
 	WELLFiveTwelve &gen, int t, double hazard_increase, std::string mode, 
 	int scen_index)
 {
-	if (mode == "OFF")
-		return;
 	/*
 	Generates failure events under the provided dispatch, if there is not sufficient life
 	remaining in the component, or the RNG generates a failure on start.
 	*/
+	if (mode == "OFF")
+		return;
 	std::string opmode;
 	if (mode == "OS")
 	// if starting standby or online, test for fail on start, 
@@ -439,6 +463,10 @@ bool Component::CanBeRepaired(std::string mode)
 
 void Component::ResetDowntime()
 {
+	/* 
+	Resets downtime; used if plant comes online before repair is completed 
+	and component cannot be repaired while the plant is online.
+	*/
 	m_status.downtime_remaining = m_status.repair_event_time*1.0;
 }
         
@@ -495,6 +523,12 @@ ComponentStatus Component::GetState()
 
 void Component::Reset(WELLFiveTwelve &gen)
 {
+	/*
+	Reverts the component to an initial state, and generates a new collection
+	of failure lifetimes and probabilities.
+
+	gen -- RNG Engine
+	*/
 	m_cooldown_time = 0.;
 	m_status.downtime_remaining = 0.;
 	m_status.hazard_rate = 1.;
@@ -503,3 +537,9 @@ void Component::Reset(WELLFiveTwelve &gen)
 	m_status.age = 0.;
 	GenerateInitialLifesAndProbs(gen);
 }
+
+void Component::SetFailLifeOrProb(int fail_idx, double life_prob)
+{
+	m_failure_types.at(fail_idx).SetLifeOrProb(life_prob);
+}
+

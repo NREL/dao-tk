@@ -154,6 +154,8 @@ public:
 
 	void Reset(WELLFiveTwelve &gen);
 
+	void SetFailLifeOrProb(int fail_idx, double life_prob);
+
 };
 
 
