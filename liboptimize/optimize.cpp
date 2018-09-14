@@ -449,10 +449,14 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
         {
             int comb_size = newcombs.cols();
             Eigen::MatrixXd grid_comb(n+1, n+1);
+            std::vector<int> comb;
                         
             for(int j=0; j<n+1; j++) //for each row index in newcombs(count)...
                 for(int k=0; k<n+1; k++) //for each value in the row corresponding to newcombs(count,j)
+                {
                     grid_comb(j,k) = (double)grid( newcombs(count,j), k );
+                    comb.push_back(newcombs(count,j));
+                }
             grid_comb.transposeInPlace();
 
             // Q,R = np.linalg.qr(grid[comb].T,mode='complete')
@@ -487,6 +491,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                     //redo the factorization
                     // grid_comb.resize(n+1,n);
                     // grid_comb = grid_temp;
+//>>>>>>>>>>>>>> Shapes are wrong...                    
                     Eigen::HouseholderQR<Eigen::MatrixXd> qr1 = grid_temp.householderQr();
                     
                     // Check if the sign is right by comparing against the point # being left out
@@ -496,11 +501,10 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
 
                     if( qr1.hCoeffs().dot(grid_comb.row(n-j)) > 0.)
                         c_mat.row(j)*=-1.;
-                    
+//<<<<<<<<<<<<<<<<                    
                     grid_comb = grid_temp;
                 }
 
-            //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 // points_better_than_obj_ub = np.where(eta < obj_ub)[0]
                 std::vector<int> points_better_than_obj_ub = filter_where(eta, obj_ub, &filter_where_lt);
 
@@ -508,12 +512,12 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                 // points_to_possibly_update = points_better_than_obj_ub[sum(np.dot(c_mat,grid[points_better_than_obj_ub].T) >= -1e-9) == n ]
 
                 //collect the points that are better
-                Eigen::MatrixXd points_better_than_obj_ub_vals(points_better_than_obj_ub.size(),n+1);
+                Eigen::MatrixXd points_better_than_obj_ub_gridvals(points_better_than_obj_ub.size(),n+1);
                 for(int i=0; i<points_better_than_obj_ub.size(); i++)
                     for(int j=0; j<n+1; j++)
-                        points_better_than_obj_ub_vals(i,j) = grid(points_better_than_obj_ub.at(i),j);
+                        points_better_than_obj_ub_gridvals(i,j) = grid(points_better_than_obj_ub.at(i),j);
                 // Eigen::MatrixXd points_better_than_obj_ub_dp(n+1,points_better_than_obj_ub.size);
-                Eigen::MatrixXd points_better_than_obj_ub_dp = c_mat * points_better_than_obj_ub_vals.transpose();
+                Eigen::MatrixXd points_better_than_obj_ub_dp = c_mat * points_better_than_obj_ub_gridvals.transpose();
                 
                 std::vector<int> points_to_possibly_update;
                 
@@ -526,17 +530,34 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                     if(ok_ct == n)
                         points_to_possibly_update.push_back(points_better_than_obj_ub.at(i));
                 }
-            }
 
+            //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 // Find the hyperplane through grid[comb] (via np.linalg.solve) and the value of hyperplane at grid[points_to_possibly_update] (via np.dot) 
                 // vals = np.dot(grid[points_to_possibly_update], np.linalg.solve(grid[comb], F[comb]))
+                Eigen::MatrixXd F_comb(n+1,1);
+                for(int i=0; i<n+1; i++)
+                    F_comb(i,0) = F(comb.at(i));
+                
+                Eigen::MatrixXd hyperplane = grid_comb.bdcSvd().solve(F_comb.transpose())
+                
+                Eigen::MatrixXd vals = points_better_than_obj_ub_gridvals * hyperplane;
 
                 // Update lower bound eta at these points 
                 // flag = eta[points_to_possibly_update] < vals
+                std::vector<bool> flag, points_to_update;
+                for(int i=0; i<vals.rows(); i++)
+                {
+                    bool flagval = eta(points_to_possibly_update.at(i)) < vals(i);
+                    flag.push_back( flagval );
+
+                    if(flagval)
+                        points_to_update.push_back(points_to_possibly_update.at(i));
+                }
                 // eta[points_to_possibly_update[flag]] = vals[flag]
 
                 // Update the set generating this lower bound
                 // eta_gen[points_to_possibly_update[flag]] = comb
+            }
         }
             /*
         // Evaluate objective at the point with smallest eta value
