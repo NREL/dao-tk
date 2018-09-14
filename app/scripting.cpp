@@ -970,7 +970,7 @@ double f(std::vector<int> &x)
 {
     int rval=0;
     for(int i=0; i<x.size(); i++)
-        rval += (x.at(i)+3)*(x.at(i)+3);
+        rval += (x.at(i))*(x.at(i));
 
     return rval;
 }

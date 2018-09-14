@@ -208,6 +208,27 @@ static void assign_where(Eigen::VectorXd &dest, const Eigen::VectorXd &compare, 
     }
 }
 
+static inline bool filter_where_lt(double c, double d)
+{
+    return c < d;
+}
+
+static std::vector<int> filter_where(Eigen::VectorXd &source, double compare, bool (*ftest)(double item, double cval))
+{
+    /*
+    like numpy::where()
+
+    Take the vector 'compare' and run the function 'ftest' element-wise. When the function returns true,
+    include the corresponding value index from 'compare' in the result vector.
+    */
+    std::vector<int> res;
+    for(int i=0; i<source.size(); i++)
+        if( ftest(source(i), compare) )
+            res.push_back(i);
+
+    return res;
+}
+
 std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vector<int> _LB, std::vector<int> _UB,
                 std::vector< std::vector< int > > _X, bool data_out, bool trust, bool convex_flag, int max_delta )
 {
@@ -420,46 +441,105 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
             F(new_ind) = Fnew;
         }
 
-    }
-    /*
+        // Search over all of these combinations for new cutting planes
+        int feas_secants = 0;
 
-        # Search over all of these combinations for new cutting planes
-        feas_secants = 0
+        // for count,comb in enumerate(newcombs):
+        for(int count=0; count<newcombs.rows(); count++)
+        {
+            int comb_size = newcombs.cols();
+            Eigen::MatrixXd grid_comb(n+1, n+1);
+                        
+            for(int j=0; j<n+1; j++) //for each row index in newcombs(count)...
+                for(int k=0; k<n+1; k++) //for each value in the row corresponding to newcombs(count,j)
+                    grid_comb(j,k) = (double)grid( newcombs(count,j), k );
+            grid_comb.transposeInPlace();
 
-        for count,comb in enumerate(newcombs):
-            Q,R = np.linalg.qr(grid[comb].T,mode='complete')
+            // Q,R = np.linalg.qr(grid[comb].T,mode='complete')
+            Eigen::HouseholderQR<Eigen::MatrixXd> qr = grid_comb.householderQr();
+            Eigen::MatrixXd R = qr.matrixQR();
 
-            # Check if combination is poised
-            if np.min(np.abs(np.diag(R))) > 1e-8:
-                feas_secants += 1
+            // Check if combination is poised
+            // if np.min(np.abs(np.diag(R))) > 1e-8:
+            if( R.diagonal().cwiseAbs().minCoeff() > 1.e-8 )
+            {
+                feas_secants += 1;
 
-                #### Find n+1 facets (of the form c[1:n]^T x + c[0]<= 0) of the convex hull of this comb  
-                # We can update the QR factorization of comb to get the
-                # facets quickly by leaving one point out of the QR
-                for j in range(n+1): 
-                    Q1,_ = sp.linalg.qr_delete(Q,R,n-j,1,'col',check_finite=False)
-                    # Check if the sign is right by comparing against the point # being left out
-                    if np.dot(Q1[:,-1],grid[comb[n-j]]) > 0:
-                        c_mat[j] = -1*Q1[:,-1]
-                    else:
-                        c_mat[j] = Q1[:,-1]
+                //////// Find n+1 facets (of the form c[1:n]^T x + c[0]<= 0) of the convex hull of this comb  
+                // We can update the QR factorization of comb to get the
+                // facets quickly by leaving one point out of the QR
+                // for j in range(n+1): 
+                for(int j=0; j<n+1; j++)
+                {
+                    // Q1,_ = sp.linalg.qr_delete(Q,R,n-j,1,'col',check_finite=False)
+                    Eigen::MatrixXd grid_temp(n+1,n);
+                    int kk=0;
+                    for(int k=0; k<n+1; k++) //over all columns
+                    {
+                        if( k != n-j )
+                        {
+                            for(int jj=0; jj<n+1; jj++) //over all rows
+                                grid_temp(jj,kk) = grid_comb(jj,k);
+                            //only increment the column number for grid_temp if we aren't deleting
+                            kk++;
+                        }
+                    }
+                    //redo the factorization
+                    // grid_comb.resize(n+1,n);
+                    // grid_comb = grid_temp;
+                    Eigen::HouseholderQR<Eigen::MatrixXd> qr1 = grid_temp.householderQr();
+                    
+                    // Check if the sign is right by comparing against the point # being left out
+                    // if np.dot(Q1[:,-1],grid[comb[n-j]]) > 0:
+                    for(int k=0; k<n+1; k++)
+                        c_mat(j,k) = qr1.hCoeffs()(k);
 
-                points_better_than_obj_ub = np.where(eta < obj_ub)[0]
+                    if( qr1.hCoeffs().dot(grid_comb.row(n-j)) > 0.)
+                        c_mat.row(j)*=-1.;
+                    
+                    grid_comb = grid_temp;
+                }
 
-                # Any grid point outside of exactly n of the n+1 facets is in a cone and should be updated.
-                points_to_possibly_update = points_better_than_obj_ub[sum(np.dot(c_mat,grid[points_better_than_obj_ub].T) >= -1e-9) == n ]
+            //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+                // points_better_than_obj_ub = np.where(eta < obj_ub)[0]
+                std::vector<int> points_better_than_obj_ub = filter_where(eta, obj_ub, &filter_where_lt);
 
-                # Find the hyperplane through grid[comb] (via np.linalg.solve) and the value of hyperplane at grid[points_to_possibly_update] (via np.dot) 
-                vals = np.dot(grid[points_to_possibly_update], np.linalg.solve(grid[comb], F[comb]))
+                // Any grid point outside of exactly n of the n+1 facets is in a cone and should be updated.
+                // points_to_possibly_update = points_better_than_obj_ub[sum(np.dot(c_mat,grid[points_better_than_obj_ub].T) >= -1e-9) == n ]
 
-                # Update lower bound eta at these points 
-                flag = eta[points_to_possibly_update] < vals
-                eta[points_to_possibly_update[flag]] = vals[flag]
+                //collect the points that are better
+                Eigen::MatrixXd points_better_than_obj_ub_vals(points_better_than_obj_ub.size(),n+1);
+                for(int i=0; i<points_better_than_obj_ub.size(); i++)
+                    for(int j=0; j<n+1; j++)
+                        points_better_than_obj_ub_vals(i,j) = grid(points_better_than_obj_ub.at(i),j);
+                // Eigen::MatrixXd points_better_than_obj_ub_dp(n+1,points_better_than_obj_ub.size);
+                Eigen::MatrixXd points_better_than_obj_ub_dp = c_mat * points_better_than_obj_ub_vals.transpose();
+                
+                std::vector<int> points_to_possibly_update;
+                
+                for(int i=0; i<points_better_than_obj_ub_dp.cols(); i++)
+                {
+                    int ok_ct=0;
+                    for(int j=0; j<n+1; j++)
+                        if( points_better_than_obj_ub_dp.col(i)(j) >= -1.e-9 )
+                            ok_ct++;
+                    if(ok_ct == n)
+                        points_to_possibly_update.push_back(points_better_than_obj_ub.at(i));
+                }
+            }
 
-                # Update the set generating this lower bound
-                eta_gen[points_to_possibly_update[flag]] = comb
+                // Find the hyperplane through grid[comb] (via np.linalg.solve) and the value of hyperplane at grid[points_to_possibly_update] (via np.dot) 
+                // vals = np.dot(grid[points_to_possibly_update], np.linalg.solve(grid[comb], F[comb]))
 
-        # Evaluate objective at the point with smallest eta value
+                // Update lower bound eta at these points 
+                // flag = eta[points_to_possibly_update] < vals
+                // eta[points_to_possibly_update[flag]] = vals[flag]
+
+                // Update the set generating this lower bound
+                // eta_gen[points_to_possibly_update[flag]] = comb
+        }
+            /*
+        // Evaluate objective at the point with smallest eta value
         if trust:
             while True:
                 if convex_flag:
@@ -471,7 +551,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                     eval_performed_flag = True
                     Fnew = func(grid[new_ind,1:])
 
-                    # Update x_star
+                    // Update x_star
                     if (Fnew < obj_ub):
                         x_star = grid[new_ind,1:]
                         delta = delta+1
@@ -489,12 +569,12 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
         else:
             new_ind = np.argmin(eta)
 
-        Fnew = func(grid[new_ind,1:]) # Include this value in F in the next iteration (after all combinations with new_ind are formed)
-        obj_ub = min(Fnew,obj_ub)   # Update upper bound on the value of the global optimizer
+        Fnew = func(grid[new_ind,1:]) // Include this value in F in the next iteration (after all combinations with new_ind are formed)
+        obj_ub = min(Fnew,obj_ub)   // Update upper bound on the value of the global optimizer
         eta[new_ind] = Fnew
         eta_gen[new_ind] = new_ind
 
-        # Store information about the iteration (do not store if trust and no evaluation)
+        // Store information about the iteration (do not store if trust and no evaluation)
         if (data_out and trust and eval_performed_flag) or (data_out and not trust): 
             if not len(eta_i):
                 eta_i = eta.copy()
@@ -515,5 +595,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                 return grid[np.nanargmin(F),1:], eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order
             else:
                 return grid[np.nanargmin(F),1:]
-*/
+        */
+        
+    }
 }
