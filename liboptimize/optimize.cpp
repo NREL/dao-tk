@@ -7,6 +7,108 @@
 #include <iostream>
 #include <stdio.h>
 
+template <typename T>
+class Vector : public std::vector< T >
+{
+public:
+    Vector(){};
+    Vector(int len)
+    {
+        this->resize(len);
+    };
+    
+    void Zeros(int len)
+    {
+        this->resize(len, (T)0);
+    };
+
+    void Ones(int len)
+    {
+        this->resize(len, (T)1);
+    };
+
+    T& operator()(int index){return &this->at(index);};
+
+    Vector<T>& operator=(const Eigen::Matrix<T, Eigen::Dynamic, 1> &other)
+    {
+
+        for(size_t i=0; i<other.size(); i++)
+            this->at(i) = other(i);
+        return &(*this);
+    };
+
+    Eigen::Matrix<T, Eigen::Dynamic, 1> operator=(const Vector<T>)
+    {
+        Eigen::Matrix<T, Eigen::Dynamic, 1> res(this->size());
+        for(size_t i=0; i<this->size(); i++)
+            res(i) = this->at(i);
+        return res;
+    };
+};
+
+template <typename T>
+class Matrix : public std::vector< std::vector< T > >
+{
+protected:
+    int m_nrow, m_ncol;
+public:
+    Matrix(){};
+    Matrix(int nrow, int ncol)
+    {
+        Resize(nrow,ncol);
+        m_nrow=nrow;
+        m_ncol=ncol;
+    }
+
+    void Resize(int nrow, int ncol)
+    {
+        this->resize(nrow, std::vector<T>(ncol));
+        m_nrow=nrow;
+        m_ncol=ncol;
+    };
+
+    void Zeros(int nrow, int ncol)
+    {
+        this->resize(nrow, std::vector<T>(ncol, (T)0));
+        m_nrow=nrow;
+        m_ncol=ncol;
+    };
+
+    void Ones(int nrow, int ncol)
+    {
+        this->resize(nrow, std::vector<T>(ncol, (T)1));
+        m_nrow=nrow;
+        m_ncol=ncol;
+    }
+
+    T& operator() (int row, int col)
+    {
+        if( row > m_nrow-1 || row < 0 || col > m_ncol-1 || col < 0 )
+            std::runtime_error("Index out of bounds in class Matrix()");
+
+        return &this->at(row)->at(col);
+    };
+
+    Matrix<T>& operator=(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &other)
+    {
+        Matrix<T> res(other.rows(), std::vector<T>(other.cols()));
+        for(size_t i=0; i<other.rows(); i++)
+            for(size_t j=0; j<other.cols(); j++)
+                (*this)(i,j) = other(i,j);
+        return &(*this);
+    };
+
+    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> operator=(const Matrix<T>)
+    {
+        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> res(m_nrow, m_ncol);
+        for(size_t i=0; i<m_nrow; i++)
+            for(size_t j=0; j<m_ncol; j++)
+                res(i,j) = this->at(i)->at(j);
+        
+        return res;
+    };
+};
+
 static bool increment(std::vector<int> &limits,  std::vector<int> &indices )
 {
     /* 
@@ -91,14 +193,18 @@ static void combinations( const Eigen::VectorXi &indices, int nd, Eigen::MatrixX
     return;
 }
 
-static int nanargmin( Eigen::VectorXd & v)
+static int argmin( Eigen::VectorXd & v, bool ignore_nan=false)
 {
+    /* 
+    return index of the minimum value in vector 'v'. If ignore_nan, then don't consider nan values.
+    */
     int i_fmin=-1;
     float fmin=9e39;
     for( int i=0; i<v.size(); i++ )
     {
-        if( v(i) != v(i) )
-            continue;
+        if( ignore_nan )
+            if( v(i) != v(i) )
+                continue;
         if( v(i) < fmin )
         {
             fmin = v(i);
@@ -334,7 +440,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
     Eigen::MatrixXd c_mat = Eigen::MatrixXd::Zero(n+1,n+1);
     
     // if data_out:
-    Eigen::VectorXd eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order;
+    Eigen::MatrixXd eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order;
 
     // # Evaluate func at points in X 
     for(int i=0; i<nx; i++)
@@ -357,14 +463,14 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
         F(row_in_grid) = func(x);
     }
 
-    Eigen::VectorXi x_star(n);
+    std::vector<int> x_star(n);
     double delta;
     if(trust)
     {
-        int i_fmin = nanargmin(F);
+        int i_fmin = argmin(F, true);
 
         for(int i=0; i<n; i++)
-            x_star(i) = grid(i_fmin,i+1);
+            x_star.at(i) = grid(i_fmin,i+1);
         delta = 1;
     }
 
@@ -462,6 +568,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
             // Q,R = np.linalg.qr(grid[comb].T,mode='complete')
             Eigen::HouseholderQR<Eigen::MatrixXd> qr = grid_comb.householderQr();
             Eigen::MatrixXd R = qr.matrixQR();
+            Eigen::MatrixXd Q = qr.householderQ();
 
             // Check if combination is poised
             // if np.min(np.abs(np.diag(R))) > 1e-8:
@@ -491,17 +598,16 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                     //redo the factorization
                     // grid_comb.resize(n+1,n);
                     // grid_comb = grid_temp;
-//>>>>>>>>>>>>>> Shapes are wrong...                    
                     Eigen::HouseholderQR<Eigen::MatrixXd> qr1 = grid_temp.householderQr();
+                    Eigen::MatrixXd Q1 = qr1.householderQ();
                     
                     // Check if the sign is right by comparing against the point # being left out
                     // if np.dot(Q1[:,-1],grid[comb[n-j]]) > 0:
                     for(int k=0; k<n+1; k++)
-                        c_mat(j,k) = qr1.hCoeffs()(k);
+                        c_mat(j,k) = Q1(n-1,k);
 
-                    if( qr1.hCoeffs().dot(grid_comb.row(n-j)) > 0.)
+                    if( Q1.row(n-1).dot(grid_comb.row(n-j)) > 0.)
                         c_mat.row(j)*=-1.;
-//<<<<<<<<<<<<<<<<                    
                     grid_comb = grid_temp;
                 }
 
@@ -530,7 +636,6 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                     if(ok_ct == n)
                         points_to_possibly_update.push_back(points_better_than_obj_ub.at(i));
                 }
-
             //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 // Find the hyperplane through grid[comb] (via np.linalg.solve) and the value of hyperplane at grid[points_to_possibly_update] (via np.dot) 
                 // vals = np.dot(grid[points_to_possibly_update], np.linalg.solve(grid[comb], F[comb]))
@@ -538,68 +643,118 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                 for(int i=0; i<n+1; i++)
                     F_comb(i,0) = F(comb.at(i));
                 
-                Eigen::MatrixXd hyperplane = grid_comb.bdcSvd().solve(F_comb.transpose())
+                Eigen::MatrixXd hyperplane = grid_comb.bdcSvd().solve(F_comb.transpose());
                 
                 Eigen::MatrixXd vals = points_better_than_obj_ub_gridvals * hyperplane;
 
                 // Update lower bound eta at these points 
                 // flag = eta[points_to_possibly_update] < vals
-                std::vector<bool> flag, points_to_update;
+                // std::vector<bool> points_to_update;
                 for(int i=0; i<vals.rows(); i++)
                 {
                     bool flagval = eta(points_to_possibly_update.at(i)) < vals(i);
-                    flag.push_back( flagval );
+                    // flag.push_back( flagval );
 
                     if(flagval)
-                        points_to_update.push_back(points_to_possibly_update.at(i));
-                }
-                // eta[points_to_possibly_update[flag]] = vals[flag]
+                    {
+                        int point_to_update = points_to_possibly_update.at(i);
+                        
+                        // eta([points_to_possibly_update[flag]]) = vals[flag]
+                        eta.row(point_to_update) = vals.row(point_to_update);
 
-                // Update the set generating this lower bound
-                // eta_gen[points_to_possibly_update[flag]] = comb
+                        // Update the set generating this lower bound
+                        // eta_gen[points_to_possibly_update[flag]] = comb
+                        for(int j=0; j<comb.size(); j++)
+                            eta_gen(point_to_update,j) = comb.at(j);
+                    }
+                }
             }
         }
-            /*
+
+        bool eval_performed_flag = false;
+
+#ifdef __junk
         // Evaluate objective at the point with smallest eta value
-        if trust:
-            while True:
-                if convex_flag:
+        if( trust )
+        {
+
+            while(true)
+            {
+                std::vector<int> points_within_delta_of_xstar;
+
+                if( convex_flag )
                     points_within_delta_of_xstar = np.where(np.logical_and(eta < obj_ub, sp.spatial.distance.cdist([x_star], grid[:,1:], lambda u, v: np.linalg.norm(u-v,np.inf))[0]<=delta))[0]
-                else:
+                else
                     points_within_delta_of_xstar = np.where(np.logical_and(np.isnan(F), sp.spatial.distance.cdist([x_star], grid[:,1:], lambda u, v: np.linalg.norm(u-v,np.inf))[0]<=delta))[0]
-                if (points_within_delta_of_xstar.any()):
-                    new_ind = points_within_delta_of_xstar[np.argmin(eta[points_within_delta_of_xstar])]
-                    eval_performed_flag = True
-                    Fnew = func(grid[new_ind,1:])
+
+                if( !points_within_delta_of_xstar.empty() )
+                {
+                    // new_ind = points_within_delta_of_xstar[np.argmin(eta[points_within_delta_of_xstar])]
+                    int new_ind = 0;
+                    double eta_min_iter = 9.e36;
+                    for(int i=0; i<points_within_delta_of_xstar.size(); i++)
+                    {
+                        int point_i = points_within_delta_of_xstar.at(i);
+                        if( eta(point_i) < eta_min_iter )
+                        {
+                            eta_min_iter = eta(point_i);
+                            new_ind = point_i;
+                        }
+                    }
+                    
+                    eval_performed_flag = true;
+
+                    std::vector<int> x_star_maybe;
+                    for(int i=0; i<n; i++)
+                        x_star_maybe.push_back(grid(new_ind,i+1));
+
+                    Fnew = func(x_star_maybe);
 
                     // Update x_star
-                    if (Fnew < obj_ub):
-                        x_star = grid[new_ind,1:]
-                        delta = delta+1
-                    else:
-                        delta = max(1,delta/2)
-                    break
-                else:
-                    if convex_flag and np.logical_or(obj_ub - np.min(eta) <= optimality_gap, delta > max(UB-LB)):
-                        break
-                    if not convex_flag and not any(np.isnan(F)):
-                        break
-                    if not convex_flag and delta >= max_delta:
-                        break
-                    delta = delta + 1
-        else:
-            new_ind = np.argmin(eta)
+                    if (Fnew < obj_ub)
+                    {
+                        x_star = x_star_maybe;
+                        delta = delta+1;
+                    }
+                    else
+                        delta = std::max(1,delta/2);
 
-        Fnew = func(grid[new_ind,1:]) // Include this value in F in the next iteration (after all combinations with new_ind are formed)
-        obj_ub = min(Fnew,obj_ub)   // Update upper bound on the value of the global optimizer
-        eta[new_ind] = Fnew
-        eta_gen[new_ind] = new_ind
+                    break;
+                }
+                else
+                {
+
+                    if convex_flag and np.logical_or(obj_ub - np.min(eta) <= optimality_gap, delta > max(UB-LB))
+                        break;
+                    if not convex_flag and not any(np.isnan(F))
+                        break;
+                    if not convex_flag and delta >= max_delta
+                        break;
+                    delta = delta + 1;
+                }
+            }
+        }
+        else
+            new_ind = std::min_element(eta.begin(), eta.end()) - eta.begin();
+
+        std::vector<int> x_eval;
+        for(int i=0; i<n; i++)
+            x_eval.push_back(grid(new_ind,i+1));
+
+        Fnew = func(x_eval);    // Include this value in F in the next iteration (after all combinations with new_ind are formed)
+        obj_ub = std::min(Fnew,obj_ub);   // Update upper bound on the value of the global optimizer
+        eta(new_ind) = Fnew;
+        eta_gen(new_ind) = new_ind;
 
         // Store information about the iteration (do not store if trust and no evaluation)
-        if (data_out and trust and eval_performed_flag) or (data_out and not trust): 
-            if not len(eta_i):
-                eta_i = eta.copy()
-            else:
+        if ( (data_out and trust && eval_performed_flag) || (data_out && !trust) )
+        {
+            if( eta_i.empty() )
+            // if not len(eta_i):
+                // eta_i = eta.copy()
+                eta_i = eta;
+            else
+
                 eta_i = np.vstack((eta_i,eta.copy()))
 
             obj_ub_i = np.hstack((obj_ub_i,obj_ub))
@@ -607,6 +762,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
             secants_i = np.hstack((secants_i,count+1))
             feas_secants_i = np.hstack((feas_secants_i, feas_secants))
             eval_order = np.hstack((eval_order, new_ind))
+        }
 
         print(obj_ub - np.min(eta), count+1, sum(eta<obj_ub),sum(~np.isnan(F)), grid[new_ind, 1:]);sys.stdout.flush()
         if (convex_flag and obj_ub - np.min(eta) <= optimality_gap) or (not convex_flag and not any(np.isnan(F))) or (not convex_flag and not(any(points_within_delta_of_xstar)) and delta >= max_delta):
@@ -616,7 +772,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                 return grid[np.nanargmin(F),1:], eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order
             else:
                 return grid[np.nanargmin(F),1:]
-        */
         
+#endif 
     }
 }
