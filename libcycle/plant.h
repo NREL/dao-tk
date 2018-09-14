@@ -102,6 +102,7 @@ public:
 	void ReadCycleStateFromResults(int scen_idx);
 	void SetStartComponentStatus();
 	void StoreComponentState();
+	void StorePlantState();
 	void RecordFinalState();
 	void RevertToStartState();
 	void WriteStateToFiles(
@@ -216,12 +217,14 @@ public:
 	void ReadInComponentFailures(int t);
 	void ReadInMaintenanceEvents(int t);
 	void RunDispatch();
-	void Operate(double power_out, int t, std::string start, std::string mode);
+	void OperatePlant(double power_out, int t, std::string start, std::string mode);
 	void SingleScen(bool reset_plant, bool read_state_from_file = false);
 	void GetAverageEfficiencyAndCapacity();
 	double GetLaborCosts(size_t start_fail_idx);
 	void Simulate(bool reset_plant, bool read_state_from_file = false);
 	void ResetPlant();
+	void PrintComponentStatus();
+	void ClearFailureEvents();
 };
 
 

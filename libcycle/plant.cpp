@@ -26,6 +26,9 @@ void PowerCycle::Initialize()
 
 void PowerCycle::InitializeCyclingDists()
 {
+	/*
+	Sets distributions from which cycling penalties are generated.
+	*/
 	m_hs_dist = BoundedJohnsonDist(1.044471, 0.256348, 4.137E-5, 5.163E-4, "BoundedJohnson");
 	m_ws_dist = BoundedJohnsonDist(2.220435, 0.623145, 2.914E-5, 1.773E-3, "BoundedJohnson");
 	m_cs_dist = BoundedJohnsonDist(0.469391, 0.581813, 3.691E-5, 2.369E-4, "BoundedJohnson");
@@ -50,8 +53,8 @@ void PowerCycle::GeneratePlantCyclingPenalties()
 	simulation model from penalizing hot starts more than
 	cold starts.
 	*/
-	double unif = 0.75;
-	SetHotStartPenalty(m_cs_dist.GetInverseCDF(unif));
+	double unif = m_gen->getVariate();
+	SetHotStartPenalty(m_hs_dist.GetInverseCDF(unif));
 	SetWarmStartPenalty(m_ws_dist.GetInverseCDF(unif));
 	SetColdStartPenalty(m_cs_dist.GetInverseCDF(unif));
 }
@@ -139,6 +142,12 @@ void PowerCycle::ClearComponents()
 	m_turbine_idx.clear();
 	m_sst_idx.clear();
 	m_start_component_status.clear();
+	m_num_condenser_trains = 0;
+	m_num_feedwater_heaters = 0;
+	m_num_salt_pumps = 0;
+	m_num_salt_steam_trains = 0;
+	m_num_turbines = 0;
+	m_num_water_pumps = 0;
 }
 
 void PowerCycle::ReadComponentStatus(
@@ -181,11 +190,17 @@ void PowerCycle::SetStartComponentStatus()
 			m_start_component_status.end())
 		{
 			it->ReadStatus(m_start_component_status.at(it->GetName()));
+			for (int i = 0; i < it->GetFailureTypes().size(); i++)
+			{
+				it->SetFailLifeOrProb(i, m_start_component_status.at(it->GetName()).lifetimes.at(i));
+			}
 		}
+		/*
 		else
 		{
 			it->GenerateInitialLifesAndProbs(*m_gen);
 		}
+		*/
 	}
 }
 
@@ -204,6 +219,25 @@ void PowerCycle::StoreComponentState()
 	{
 		m_start_component_status[it->GetName()] = it->GetState();
 	}
+}
+
+void PowerCycle::StorePlantState()
+{
+	m_begin_cycle_state.capacity = m_current_cycle_state.capacity;
+	m_begin_cycle_state.cold_start_penalty = m_current_cycle_state.cold_start_penalty;
+	m_begin_cycle_state.warm_start_penalty = m_current_cycle_state.warm_start_penalty;
+	m_begin_cycle_state.hot_start_penalty = m_current_cycle_state.hot_start_penalty;
+	m_begin_cycle_state.downtime = m_current_cycle_state.downtime;
+	m_begin_cycle_state.downtime_threshold = m_current_cycle_state.downtime_threshold;
+	m_begin_cycle_state.is_online = m_current_cycle_state.is_online;
+	m_begin_cycle_state.is_on_standby = m_current_cycle_state.is_on_standby;
+	m_begin_cycle_state.maintenance_duration = m_current_cycle_state.maintenance_duration;
+	m_begin_cycle_state.maintenance_interval = m_current_cycle_state.maintenance_interval;
+	m_begin_cycle_state.hours_to_maintenance = m_current_cycle_state.hours_to_maintenance;
+	m_begin_cycle_state.temp_threshold = m_current_cycle_state.temp_threshold;
+	m_begin_cycle_state.time_in_standby = m_current_cycle_state.time_in_standby;
+	m_begin_cycle_state.time_online = m_current_cycle_state.time_online;
+	m_begin_cycle_state.power_output = m_current_cycle_state.power_output;
 }
 
 void PowerCycle::RecordFinalState()
@@ -309,7 +343,7 @@ void PowerCycle::ReadStateFromFiles(std::string component_filename, std::string 
 		status.lifetimes.clear();
 		pos = 0;
 		getline(cfile, cline);
-		std::cerr << cline;
+		//std::cerr << cline;
 		while (pos != std::string::npos) {
 			pos = cline.find(delimiter);
 			token = cline.substr(0, pos);
@@ -596,7 +630,7 @@ void PowerCycle::AddCondenserTrains(int num_trains, int num_fans, int num_radiat
 	for (int j = 0; j < num_trains; j++)
 	{
 		train_name = "C" + std::to_string(m_num_condenser_trains);
-		AddComponent(component_name + "-T", "Condenser train", 15.55, 0, 0, 0, 7.777, "S");
+		AddComponent(train_name + "-T", "Condenser train", 15.55, 0, 0, 0, 7.777, "S");
 		for (int i = 1; i <= num_fans; i++)
 		{
 			component_name = train_name + "-F" + std::to_string(i);
@@ -605,7 +639,7 @@ void PowerCycle::AddCondenserTrains(int num_trains, int num_fans, int num_radiat
 		}
 		for (int i = 1; i <= num_radiators; i++)
 		{
-			AddFailureType(component_name + "-T", "Radiator " + std::to_string(i) + " Failure", "O", "gamma", 1, 698976);
+			AddFailureType(train_name + "-T", "Radiator " + std::to_string(i) + " Failure", "O", "gamma", 1, 698976);
 		}
 	}
 }
@@ -678,7 +712,7 @@ void PowerCycle::AddWaterPumps(int num_pumps)
 	{
 		m_num_water_pumps += 1;
 		component_name = "WP" + std::to_string(m_num_water_pumps);
-		AddComponent(component_name, "Water pump", 0.5, 0., 1., 1, 7.777, "D");
+		AddComponent(component_name, "Water pump", 0.5, 40., 1., 1, 7.777, "D");
 		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
 		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
 		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "gamma", 1.5, 3750);
@@ -1144,7 +1178,7 @@ void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, s
 	{
 		if (m_components.at(i).IsOperational())
 			m_components.at(i).Operate(
-				m_sim_params.steplength, ramp_mult, *m_gen, read_only, t - m_sim_params.read_periods, 
+				m_sim_params.steplength, ramp_mult, *m_gen, read_only, t, 
 				hazard_increase, mode, m_current_scenario
 			);
 		else if (mode == "OFF" || mode == "SF" || mode == "SS" || mode == "SO")
@@ -1217,7 +1251,7 @@ std::string PowerCycle::GetOperatingMode(int t)
 				return "OF"; //in the first hour of power cycle operation
 			else
 				return "OO"; //ongoing (>1 hour) power cycle operation
-			return "OS";  //starting power cycle operation
+		return "OS";  //starting power cycle operation
 	}
 	else if (standby >= 0.5)
 	{
@@ -1315,7 +1349,7 @@ void PowerCycle::RunDispatch()
 		if( m_current_cycle_state.hours_to_maintenance <= 0 && t >= m_sim_params.read_periods )
         {
             PlantMaintenanceShutdown(t, true,
-				t < m_sim_params.read_periods);
+				t >= m_sim_params.read_periods);
         }
 		
 		//Read in any component failures, if in the read-only stage.
@@ -1330,7 +1364,6 @@ void PowerCycle::RunDispatch()
 		SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
 		std::string start = GetStartMode(t);
 		std::string mode = GetOperatingMode(t);
-		
 		if (m_cycle_capacity < m_sim_params.epsilon)
 		{
 			power_output = 0.0;
@@ -1357,8 +1390,9 @@ void PowerCycle::RunDispatch()
 				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
 			}
 		}
+		SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
 		power_output = std::min(power_output, m_cycle_capacity*m_current_cycle_state.capacity);
-		Operate(power_output, t, start, mode);
+		OperatePlant(power_output, t, start, mode);
 		cycle_capacities[t] = m_cycle_capacity;
 		cycle_efficiencies[t] = m_cycle_efficiency;
     }
@@ -1366,7 +1400,7 @@ void PowerCycle::RunDispatch()
 	m_results.cycle_capacity[m_current_scenario] = cycle_capacities;                   
 }
 
-void PowerCycle::Operate(double power_out, int t, std::string start, std::string mode)
+void PowerCycle::OperatePlant(double power_out, int t, std::string start, std::string mode)
 {
 
     /*
@@ -1405,7 +1439,11 @@ void PowerCycle::Operate(double power_out, int t, std::string start, std::string
 	}
 	else if (mode == "SF" || mode == "SO") //standby - first hour; standby ongoing (>1 hour)
 	{
+		m_current_cycle_state.is_online = false;
+		m_current_cycle_state.is_on_standby = true;
 		m_current_cycle_state.time_in_standby += m_sim_params.steplength;
+		m_current_cycle_state.downtime = 0.0;
+		m_current_cycle_state.time_online = 0.0;
 	}
 	else if (mode == "OS") //online - start
 	{
@@ -1418,6 +1456,10 @@ void PowerCycle::Operate(double power_out, int t, std::string start, std::string
 	}
 	else if (mode == "OF" || mode == "OO") //standby - first hour; standby ongoing (>1 hour)
 	{
+		m_current_cycle_state.is_online = true;
+		m_current_cycle_state.is_on_standby = false;
+		m_current_cycle_state.time_in_standby = 0.0;
+		m_current_cycle_state.downtime = 0.0;
 		m_current_cycle_state.time_online += m_sim_params.steplength;
 		m_current_cycle_state.hours_to_maintenance -= m_sim_params.steplength;
 	}
@@ -1550,4 +1592,33 @@ void PowerCycle::ResetPlant()
 	{
 		GetComponents().at(c).Reset(*m_gen);
 	}
+}
+
+void PowerCycle::PrintComponentStatus()
+{
+	/*
+	checks lifetimes and status of each component. for testing only.
+	*/
+	for (int i = 0; i < m_components.size(); i++)
+	{
+		std::cerr << "\n" << m_components.at(i).GetName() << " ";
+		for (int j = 0; j < m_components.at(i).GetLifetimesAndProbs().size(); j++)
+		{
+			std::cerr << m_components.at(i).GetLifetimesAndProbs().at(j) << " ";
+		}
+		std::cerr << "\n";
+		std::cerr << m_components.at(i).GetDowntimeRemaining();
+		std::cerr << "\n";
+		for (int j = 0; j < m_components.at(i).GetLifetimesAndProbs().size(); j++)
+		{
+			std::cerr << m_components.at(i).GetFailureTypes().at(j).GetFailureDist()->IsBinary() << " ";
+		}
+		std::cerr << "\n";
+	}
+}
+
+void PowerCycle::ClearFailureEvents()
+{
+	m_failure_events.clear();
+	m_failure_event_labels.clear();
 }
