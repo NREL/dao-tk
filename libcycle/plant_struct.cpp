@@ -60,6 +60,7 @@ simulation_params::simulation_params()
 	print_output = false;
 	num_scenarios = 1;
 	hourly_labor_cost = 50.;
+	stop_at_first_failure = false;
 }
 
 void simulation_params::print()
@@ -85,7 +86,7 @@ cycle_results::cycle_results()
 	plant_status = {};
 	failure_event_labels = {};
 	failure_events = {};
-	period_of_first_failure = 0;
+	period_of_first_failure = {};
 	turbine_efficiency = 1.;
 	turbine_capacity = 1.;
 }

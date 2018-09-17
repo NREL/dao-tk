@@ -91,7 +91,8 @@ public:
 		double epsilon = 1.E-10,
 		bool print_output = false,
 		int num_scenarios = 1,
-		double hourly_labor_cost = 50.
+		double hourly_labor_cost = 50.,
+		bool stop_at_first_failure = false
 	);
 	void SetCondenserEfficienciesCold(std::vector<double> eff_cold);
 	void SetCondenserEfficienciesHot(std::vector<double> eff_hot);
@@ -102,7 +103,8 @@ public:
 	void ReadCycleStateFromResults(int scen_idx);
 	void SetStartComponentStatus();
 	void StoreComponentState();
-	void StorePlantState();
+	void StorePlantParamsState();
+	void StoreCycleState();
 	void RecordFinalState();
 	void RevertToStartState();
 	void WriteStateToFiles(
@@ -217,14 +219,20 @@ public:
 	void ReadInComponentFailures(int t);
 	void ReadInMaintenanceEvents(int t);
 	void RunDispatch();
-	void OperatePlant(double power_out, int t, std::string start, std::string mode);
+	void OperatePlant(double power_out, int t, 
+		std::string start, std::string mode);
 	void SingleScen(bool reset_plant, bool read_state_from_file = false);
 	void GetAverageEfficiencyAndCapacity();
 	double GetLaborCosts(size_t start_fail_idx);
-	void Simulate(bool reset_plant, bool read_state_from_file = false);
+	void Simulate(
+		bool read_state_from_file = false, 
+		bool read_state_from_memory = false,
+		bool run_only_previous_failures = false
+	);
 	void ResetPlant();
 	void PrintComponentStatus();
 	void ClearFailureEvents();
+	bool AnyFailuresOccurred();
 };
 
 

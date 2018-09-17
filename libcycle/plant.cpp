@@ -22,6 +22,10 @@ void PowerCycle::Initialize()
 	ResetPlant();
 	m_cycle_capacity = 1.;
 	m_cycle_efficiency = 1.;
+	for (int i = 0; i < m_sim_params.num_scenarios; i++)
+	{
+		m_results.period_of_first_failure[i] = -1;
+	}
 }
 
 void PowerCycle::InitializeCyclingDists()
@@ -81,7 +85,8 @@ void PowerCycle::SetSimulationParameters(
 	double epsilon,
 	bool print_output,
 	int num_scenarios,
-	double hourly_labor_cost
+	double hourly_labor_cost,
+	bool stop_at_first_failure
 )
 {
     m_sim_params.read_periods = read_periods;
@@ -91,6 +96,7 @@ void PowerCycle::SetSimulationParameters(
     m_sim_params.print_output = print_output;
 	m_sim_params.num_scenarios = num_scenarios;
 	m_sim_params.hourly_labor_cost = hourly_labor_cost;
+	m_sim_params.stop_at_first_failure = stop_at_first_failure;
 	m_current_scenario = 0;
 }
 
@@ -175,6 +181,7 @@ void PowerCycle::ReadCycleStateFromResults(int scen_idx)
 	m_begin_cycle_state = m_results.plant_status[m_current_scenario];
 	m_start_component_status = m_results.component_status[m_current_scenario];
 	SetStartComponentStatus();
+	m_gen->assignStates(scen_idx);
 }
 
 void PowerCycle::SetStartComponentStatus()
@@ -221,7 +228,7 @@ void PowerCycle::StoreComponentState()
 	}
 }
 
-void PowerCycle::StorePlantState()
+void PowerCycle::StorePlantParamsState()
 {
 	m_begin_cycle_state.capacity = m_current_cycle_state.capacity;
 	m_begin_cycle_state.cold_start_penalty = m_current_cycle_state.cold_start_penalty;
@@ -239,6 +246,15 @@ void PowerCycle::StorePlantState()
 	m_begin_cycle_state.time_online = m_current_cycle_state.time_online;
 	m_begin_cycle_state.power_output = m_current_cycle_state.power_output;
 }
+
+void PowerCycle::StoreCycleState()
+{
+	StoreComponentState();
+	StorePlantParamsState();
+	m_gen->saveStates(m_current_scenario);
+}
+
+
 
 void PowerCycle::RecordFinalState()
 {
@@ -1181,7 +1197,7 @@ void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, s
 				m_sim_params.steplength, ramp_mult, *m_gen, read_only, t, 
 				hazard_increase, mode, m_current_scenario
 			);
-		else if (mode == "OFF" || mode == "SF" || mode == "SS" || mode == "SO")
+		else
 		{
 			m_components.at(i).AdvanceDowntime(m_sim_params.steplength, mode);
 		}
@@ -1330,9 +1346,11 @@ void PowerCycle::RunDispatch()
         progress), and 0 otherwise.  This includes the read-in period.
     
 	*/
+	m_new_failure_occurred = false;
     std::vector< double > cycle_capacities( m_sim_params.sim_length, 0 );
 	std::vector< double > cycle_efficiencies(m_sim_params.sim_length, 0);
-    for( int t = 0; t < m_sim_params.sim_length; t++)
+	int num_read_failures = m_failure_event_labels.size();
+	for( int t = 0; t < m_sim_params.sim_length; t++)
     {
 		/*
 		if ( t == m_sim_params.read_periods)
@@ -1395,6 +1413,20 @@ void PowerCycle::RunDispatch()
 		OperatePlant(power_output, t, start, mode);
 		cycle_capacities[t] = m_cycle_capacity;
 		cycle_efficiencies[t] = m_cycle_efficiency;
+		if (m_sim_params.stop_at_first_failure &&
+			m_failure_event_labels.size() > num_read_failures)
+		{
+			//If a new failure occurs, and our solution approach dictates
+			//that we must re-optimize, then fill the remaining 
+			m_new_failure_occurred = true;
+			m_results.period_of_first_failure[m_current_scenario] = t;
+			for (int tp = t; tp < m_sim_params.sim_length; tp++)
+			{
+				cycle_capacities[tp] = cycle_capacities[t] * 1.0;
+				cycle_efficiencies[tp] = cycle_efficiencies[t] * 1.0;
+			}
+			break;
+		}
     }
 	m_results.cycle_efficiency[m_current_scenario] = cycle_efficiencies;
 	m_results.cycle_capacity[m_current_scenario] = cycle_capacities;                   
@@ -1493,6 +1525,7 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory)
 		ReadComponentStatus(m_results.component_status[m_current_scenario]);
 	}
 	m_start_component_status = GetComponentStates();
+	m_sim_params.read_periods = m_results.period_of_first_failure[m_current_scenario] + 1;
 	RunDispatch();
 	if (m_new_failure_occurred)
 	{
@@ -1500,8 +1533,10 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory)
 	}
 	else
 	{
-		RecordFinalState();
+		StoreCycleState();
+		m_results.period_of_first_failure[m_current_scenario] = -1;
 	}
+	RecordFinalState();
 }
 
 void PowerCycle::GetAverageEfficiencyAndCapacity()
@@ -1526,12 +1561,7 @@ void PowerCycle::GetAverageEfficiencyAndCapacity()
 		m_results.avg_cycle_efficiency.push_back(avg_eff / m_sim_params.num_scenarios);
 		m_results.avg_cycle_capacity.push_back(avg_cap / m_sim_params.num_scenarios);
 	}
-	double avg_labor = 0.;
-	for (int s = 0; s < m_sim_params.num_scenarios; s++)
-	{
-		avg_labor += m_results.labor_costs[s];
-	}
-	m_results.avg_labor_cost = avg_labor / m_sim_params.num_scenarios;
+	m_results.avg_labor_cost = GetLaborCosts(0) / m_sim_params.num_scenarios;
 }
 
 double PowerCycle::GetLaborCosts(size_t start_fail_idx)
@@ -1554,27 +1584,42 @@ double PowerCycle::GetLaborCosts(size_t start_fail_idx)
 	return hours * m_sim_params.hourly_labor_cost;
 }
 
-void PowerCycle::Simulate(bool reset_plant, bool read_state_from_file)
+void PowerCycle::Simulate(bool read_state_from_file, bool read_state_from_memory,
+		bool run_only_previous_failures)
 {
 	/*
 	Generates a collection of Monte Carlo realizations of failure and
-	maintenance events in the power block.  
+	maintenance events in the power block. 
+	read_state_from_file -- reads start state from, and write out states to, 
+			filesystem if true
+	read_state_from memory -- reads start state from, and write out state to,
+			memory / results object if true
+	run_only_previous_failures -- only runs scenarios that generated a new 
+			failure in the last iteration if true
+
+	Note: labor costs are in aggregate and not scenario-specific.
 	*/
 	size_t cum_num_failures = 0;
 	for (int i = 0; i < m_sim_params.num_scenarios; i++)
 	{
 		m_current_scenario = i;
-		//m_gen->assignStates(m_current_scenario);
-		SingleScen(reset_plant, read_state_from_file);
-		//m_gen->saveStates(i);
-
-		//get labor costs, starting at first event in curremt scenario
-		m_results.labor_costs[i] = GetLaborCosts(cum_num_failures);
-		cum_num_failures = m_failure_event_labels.size();
+		if (!run_only_previous_failures || m_results.period_of_first_failure[i] > -1)
+			SingleScen(read_state_from_file, read_state_from_memory);
 	}
+	
+	//Record failure events
 	m_results.failure_events = m_failure_events;
 	m_results.failure_event_labels = m_failure_event_labels;
+	
+	//Obtain Summary Statistics
 	GetAverageEfficiencyAndCapacity();
+
+	//If no new failures occurred in any scenario, it is ok to proceed to the 
+	//next interval - so clear the failure events
+	if (!AnyFailuresOccurred())
+	{
+		ClearFailureEvents();
+	}
 }
 
 void PowerCycle::ResetPlant()
@@ -1622,3 +1667,14 @@ void PowerCycle::ClearFailureEvents()
 	m_failure_events.clear();
 	m_failure_event_labels.clear();
 }
+
+bool PowerCycle::AnyFailuresOccurred()
+{
+	for (int i = 0; i < m_sim_params.num_scenarios; i++)
+	{
+		if (m_results.period_of_first_failure[i] > -1)
+			return true;
+	}
+	return false;
+}
+
