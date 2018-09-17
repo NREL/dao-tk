@@ -15,21 +15,36 @@ public:
     {
         this->resize(len);
     };
+
+    Vector(int len, const T& init)
+    {
+        this->resize(len, init);
+    };
     
-    void Zeros(int len)
+    static Vector<T> Zeros(int len)
     {
-        this->resize(len, (T)0);
+        return Vector<T>(len, (T)0);
     };
 
-    void Ones(int len)
+    static Vector<T> Ones(int len)
     {
-        this->resize(len, (T)1);
+        return Vector<T>(len, (T)1);
     };
 
-    T& operator()(int index){return &this->at(index);};
+    T maxCoeff()
+    {
+        return *std::max(this->begin(), this->end());
+    };
 
-    const T operator() (int index) const {return this->at(index)};
+    T minCoeff()
+    {
+        return *std::min(this->begin(), this->end());
+    };
 
+    T& operator()(int index){return this->at(index);};
+
+    T operator()(int index) const {return this->at(index);};
+    
     Vector<T>& operator=(const Eigen::Matrix<T, Eigen::Dynamic, 1> &other)
     {
 
@@ -45,6 +60,35 @@ public:
             res(i) = this->at(i);
         return res;
     };
+
+    Vector<T>& operator*(double scale)
+    {
+        for(int i=0; i<this->size(); i++)
+            this->at(i)*= scale;
+    };
+
+    Vector<T>& operator*=(double scale)
+    {
+        for(int i=0; i<this->size(); i++)
+            this->at(i)*= scale;
+    };
+
+    T dot( const Vector<T> &rhs )
+    {
+        //dot product
+        int n = rhs.size();
+        
+        if( this->size() != n )
+            std::runtime_error("Dimension mismatch in vector-vector dot product");
+
+        T result=(T)0;
+
+        for(int i=0; i<n; i++)
+            result += (*this)(i)*rhs(i);
+
+        return result;
+    };
+
 };
 
 template <typename T>
@@ -59,7 +103,36 @@ public:
         Resize(nrow,ncol);
         m_nrow=nrow;
         m_ncol=ncol;
-    }
+    };
+
+    Matrix(int nrow, int ncol, const T& init)
+    {
+        this->resize( Vector<T>(ncol, init) );
+        m_nrow = nrow;
+        m_ncol = ncol;
+    };
+
+    Matrix(int nrow, const Vector<T>& init)
+    {
+        this->resize( nrow, init );
+        m_nrow = nrow;
+        m_ncol = init.size();
+    };
+
+    Matrix(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &other)
+    {
+        Set(other);
+    };
+
+    int rows()
+    {
+        return m_nrow;
+    };
+
+    int cols()
+    {
+        return m_ncol;
+    };
 
     void Resize(int nrow, int ncol)
     {
@@ -68,51 +141,98 @@ public:
         m_ncol=ncol;
     };
 
-    void Zeros(int nrow, int ncol)
+    static Matrix<T> Zeros(int nrow, int ncol)
     {
-        this->resize(nrow, Vector<T>(ncol, (T)0));
-        m_nrow=nrow;
-        m_ncol=ncol;
+        return Matrix<T>(nrow, Vector<T>(ncol, (T)0));
     };
 
-    void Ones(int nrow, int ncol)
+    static Matrix<T> Ones(int nrow, int ncol)
     {
-        this->resize(nrow, Vector<T>(ncol, (T)1));
-        m_nrow=nrow;
-        m_ncol=ncol;
-    }
+        return Matrix<T>(nrow, Vector<T>(ncol, (T)1));
+    };
 
     T& operator() (int row, int col)
     {
         if( row > m_nrow-1 || row < 0 || col > m_ncol-1 || col < 0 )
             std::runtime_error("Index out of bounds in class Matrix()");
 
-        return &this->at(row)->at(col);
+        return this->at(row).at(col);
     };
 
     Vector<T>& operator()(int row)
     {
-        return &this->at(row);
+        return this->at(row);
     };
 
-    Matrix<T>& operator=(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &other)
+    Matrix<T>& transpose()
+    {
+        Matrix<T> result(this->m_ncol, this->m_nrow);
+
+        for(int i=0; i<this->m_nrow; i++)
+            for(int j=0; j<this->m_ncol; j++)
+                result(j,i) = (*this)(i,j);
+
+        return result;
+    };
+
+    Matrix<T> &transposeInPlace()
+    {
+        Matrix<T> current = *this;
+
+        Resize(this->m_ncol, this->m_nrow);
+
+        *this = current.transpose();
+    };
+
+    Matrix<T>& Set(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &other)
     {
         Matrix<T> res(other.rows(), Vector<T>(other.cols()));
         for(size_t i=0; i<other.rows(); i++)
             for(size_t j=0; j<other.cols(); j++)
                 (*this)(i,j) = other(i,j);
-        return &(*this);
+        return *this;
     };
 
-    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> operator=(const Matrix<T>)
+    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> AsEigenMatrixType()
     {
         Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> res(m_nrow, m_ncol);
         for(size_t i=0; i<m_nrow; i++)
             for(size_t j=0; j<m_ncol; j++)
-                res(i,j) = this->at(i)->at(j);
+                res(i,j) = this->at(i).at(j);
         
         return res;
     };
+
+    Matrix<T>& operator*(double scale)
+    {
+        for(int i=0; i<this->m_nrow; i++)
+            this->at(i) *= scale;
+    };
+
+    Matrix<T> dot( const Vector<T> &rhs )
+    {
+        //dot product
+        int n = rhs.size();
+        
+        if( this->cols() != n )
+            std::runtime_error("Dimension mismatch in matrix-vector dot product");
+
+        Vector<T> result(this->rows(),0.);
+        for(int i=0; i<this->rows(); i++)
+            for(int j=0; j<n; j++)
+                result(i) += (*this)(i,j)*rhs(j);
+
+        return result;
+    };
+
+    Matrix<T> dot( Matrix<T> &rhs)
+    {
+        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> A = this->AsEigenMatrixType();
+        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> B = rhs.AsEigenMatrixType();
+
+        return Matrix<T>( A*B );
+    };
+
 };
 
 static bool increment(Vector<int> &limits,  Vector<int> &indices )
@@ -296,13 +416,13 @@ static Matrix<T> zip(const Vector<T> &A, const Vector<T> &B)
 
     int n = A.size();
 
-    R.resize(n, 2);
+    Matrix<T> result(n, 2);
     for(int i=0; i<n; i++)
     {
-        R(i,0) = A(i);
-        R(i,1) = B(i);
+        result(i,0) = A(i);
+        result(i,1) = B(i);
     }
-    return;
+    return result;
 }
 
 template <typename T>

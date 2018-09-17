@@ -10,12 +10,14 @@
 
 
 //------------------------------------------
-static inline bool assign_filter_nan(double c, void*)
+template <typename T>
+static inline bool assign_filter_nan(T c, void*)
 {
    return c == c;
 }
 
-static inline bool filter_where_lt(double c, double d)
+template <typename T>
+static inline bool filter_where_lt(T c, T d)
 {
     return c < d;
 };
@@ -61,8 +63,8 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
         std::runtime_error("Dimensionality mismatch in optimization routine input data.");
 
     //transfer input data into eigen containers
-    Eigen::VectorXi LB(n), UB(n);
-    Eigen::MatrixXi X( nx, n );
+    Vector<int> LB(n), UB(n);
+    Matrix<int> X( nx, n);
     
     for(int i=0; i<n; i++)
         LB(i) = _LB.at(i);
@@ -78,29 +80,30 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
     //check for boundedness
     // assert np.all(np.max(X,axis=0) <= UB) and np.all(np.min(X,axis=0) >= LB), "Points in X are outside of the bounds"
     bool bounds_ok = true;
-    Eigen::MatrixXi Xt = X.transpose();
+    // Eigen::MatrixXi Xt = X.transpose();
+    Matrix<int> Xt = X.transpose();
     for(int i=0; i<n; i++)
-        if( Xt.row(i).maxCoeff() >= UB(i) || Xt.row(i).minCoeff() <= LB(i) )
+        if( Xt.at(i).maxCoeff() >= UB(i) || Xt.at(i).minCoeff() <= LB(i) )
             std::runtime_error("Optimization input data outside of specified upper or lower bound range.");
 
     
-    Eigen::MatrixXi grid;
+    Matrix<int> grid;
     // m = grid.shape[0]
     int m=1;
     for(int i=0; i<n; i++)
         m *= (UB(i)+1-LB(i));
-    grid.resize(m, n+1);
+    grid.Resize(m, n+1);
 
-    std::vector< Eigen::VectorXi > ranges;
+    Matrix<int> ranges;
     for(int i=0; i<n; i++)
         ranges.push_back( range(LB(i), UB(i)+1) );
 
-    std::vector< int > limits(n,0);
+    Vector< int > limits(n);
     for(int i=0; i<n; i++)
         limits.at(i) = ranges.at(i).size();
 
-    std::vector< int > indices(n,0);
-    std::vector< std::string > indices_lookup;  //save string versions of the indices for quick location later
+    Vector< int > indices(n);
+    Vector< std::string > indices_lookup;  //save string versions of the indices for quick location later
 
     for(int mi=0; mi<m; mi++)
     {
@@ -121,19 +124,19 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
 
 
     // F = np.nan*np.ones(m)  # Function values
-    Eigen::VectorXd F = Eigen::VectorXd::Ones(m)*std::numeric_limits<float>::quiet_NaN();
+    Vector<double> F = Vector<double>::Ones(m)*std::numeric_limits<double>::quiet_NaN();
     
     // c_mat = np.zeros((n+1,n+1))  # Holds the facets
-    Eigen::MatrixXd c_mat = Eigen::MatrixXd::Zero(n+1,n+1);
+    Matrix<double> c_mat = Matrix<double>::Zeros(n+1,n+1);
     
     // if data_out:
-    Eigen::MatrixXd eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order;
+    Matrix<double> eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order;
 
     // # Evaluate func at points in X 
     for(int i=0; i<nx; i++)
     {
         std::stringstream xstr;
-        std::vector< int > x;
+        Vector< int > x;
         for(int j=0; j<n; j++)
         {
             xstr << X(i,j) << ",";
@@ -150,30 +153,30 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
         F(row_in_grid) = func(x);
     }
 
-    std::vector<int> x_star(n);
+    Vector<int> x_star(n);
     double delta;
     if(trust)
     {
         int i_fmin = argmin(F, true);
 
         for(int i=0; i<n; i++)
-            x_star.at(i) = grid(i_fmin,i+1);
+            x_star(i) = grid(i_fmin,i+1);
         delta = 1;
     }
 
     double obj_ub = nanmin(F); // Upper bound on optimal objective function value
 
     // eta[~np.isnan(F)] = F[~np.isnan(F)] # Lowerbound is the function value at already-evaluated points
-    Eigen::VectorXi not_nans;
+    Vector<int> not_nans;
     nanfilter(F, &not_nans);
 
-    Eigen::VectorXd eta = Eigen::VectorXd::Ones(m) * std::numeric_limits<double>::quiet_NaN();
+    Vector<double> eta = Vector<double>::Ones(m) * std::numeric_limits<double>::quiet_NaN();
     assign_where(eta, F, &assign_filter_nan);
 
     // eta_gen = np.nan*np.ones((m,n+1)) # To store the set of n+1 points that generate the value eta at each grid point
     // eta_gen[~np.isnan(F)] = np.tile(np.where(~np.isnan(F))[0],(n+1,1)).T # The evaluated points are their own generators
-    Eigen::MatrixXi eta_gen(F.rows(), not_nans.size() );
-    for(int i=0; i<F.rows(); i++)
+    Eigen::MatrixXi eta_gen(F.size(), not_nans.size() );
+    for(int i=0; i<F.size(); i++)
         for(int j=0; j<not_nans.size(); j++)
             eta_gen(i,j) = not_nans(j);
     
@@ -191,7 +194,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
     while(true)
     {
         // # Generate all yet-to-be considered combinations of n+1 points
-        Eigen::MatrixXi newcombs;
+        Matrix<int> newcombs;
 
         if (first_iter)
         {
@@ -217,7 +220,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                     for( int j=0; j<eta_gen.cols(); j++ )
                         match_set.insert( eta_gen(i,j) );
             
-            Eigen::VectorXi all_index_matches( match_set.size() );
+            Vector<int> all_index_matches( match_set.size() );
 
             {
                 int i=0;
@@ -241,8 +244,8 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
         for(int count=0; count<newcombs.rows(); count++)
         {
             int comb_size = newcombs.cols();
-            Eigen::MatrixXd grid_comb(n+1, n+1);
-            std::vector<int> comb;
+            Matrix<double> grid_comb(n+1, n+1);
+            Vector<int> comb;
                         
             for(int j=0; j<n+1; j++) //for each row index in newcombs(count)...
                 for(int k=0; k<n+1; k++) //for each value in the row corresponding to newcombs(count,j)
@@ -253,13 +256,17 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
             grid_comb.transposeInPlace();
 
             // Q,R = np.linalg.qr(grid[comb].T,mode='complete')
-            Eigen::HouseholderQR<Eigen::MatrixXd> qr = grid_comb.householderQr();
-            Eigen::MatrixXd R = qr.matrixQR();
-            Eigen::MatrixXd Q = qr.householderQ();
+            Eigen::MatrixXd grid_comb_e = grid_comb.AsEigenMatrixType();
+            Eigen::HouseholderQR<Eigen::MatrixXd> qr = grid_comb_e.householderQr();
+            
+            Eigen::MatrixXd R_e = qr.matrixQR();
+            Eigen::MatrixXd Q_e = qr.householderQ();
+            Matrix<double> R = R_e;
+            Matrix<double> Q = Q_e;
 
             // Check if combination is poised
             // if np.min(np.abs(np.diag(R))) > 1e-8:
-            if( R.diagonal().cwiseAbs().minCoeff() > 1.e-8 )
+            if( R_e.diagonal().cwiseAbs().minCoeff() > 1.e-8 )
             {
                 feas_secants += 1;
 
@@ -270,49 +277,54 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                 for(int j=0; j<n+1; j++)
                 {
                     // Q1,_ = sp.linalg.qr_delete(Q,R,n-j,1,'col',check_finite=False)
-                    Eigen::MatrixXd grid_temp(n+1,n);
-                    int kk=0;
-                    for(int k=0; k<n+1; k++) //over all columns
-                    {
-                        if( k != n-j )
-                        {
-                            for(int jj=0; jj<n+1; jj++) //over all rows
-                                grid_temp(jj,kk) = grid_comb(jj,k);
-                            //only increment the column number for grid_temp if we aren't deleting
-                            kk++;
-                        }
-                    }
+                    Matrix<double> grid_temp = grid_comb;
+                    grid_temp.erase(grid_temp.begin()+j,grid_temp.begin()+j+1);
+
+                    // Eigen::MatrixXd grid_temp(n+1,n);
+                    // int kk=0;
+                    // for(int k=0; k<n+1; k++) //over all columns
+                    // {
+                    //     if( k != n-j )
+                    //     {
+                    //         for(int jj=0; jj<n+1; jj++) //over all rows
+                    //             grid_temp(jj,kk) = grid_comb(jj,k);
+                    //         //only increment the column number for grid_temp if we aren't deleting
+                    //         kk++;
+                    //     }
+                    // }
                     //redo the factorization
                     // grid_comb.resize(n+1,n);
                     // grid_comb = grid_temp;
-                    Eigen::HouseholderQR<Eigen::MatrixXd> qr1 = grid_temp.householderQr();
-                    Eigen::MatrixXd Q1 = qr1.householderQ();
+                    Eigen::MatrixXd grid_temp_e = grid_temp.AsEigenMatrixType();
+                    Eigen::HouseholderQR<Eigen::MatrixXd> qr1 = grid_temp_e.householderQr();
+                    // Eigen::MatrixXd Q1 = qr1.householderQ();
+                    Matrix<double> Q1( qr1.householderQ() );
                     
                     // Check if the sign is right by comparing against the point # being left out
                     // if np.dot(Q1[:,-1],grid[comb[n-j]]) > 0:
                     for(int k=0; k<n+1; k++)
                         c_mat(j,k) = Q1(n-1,k);
 
-                    if( Q1.row(n-1).dot(grid_comb.row(n-j)) > 0.)
-                        c_mat.row(j)*=-1.;
+                    if( Q1.at(n-1).dot(grid_comb.at(n-j)) > 0.)
+                        c_mat.at(j)*=-1.;
                     grid_comb = grid_temp;
                 }
 
                 // points_better_than_obj_ub = np.where(eta < obj_ub)[0]
-                std::vector<int> points_better_than_obj_ub = filter_where(eta, obj_ub, &filter_where_lt);
+                Vector<int> points_better_than_obj_ub = filter_where(eta, obj_ub, &filter_where_lt);
 
                 // Any grid point outside of exactly n of the n+1 facets is in a cone and should be updated.
                 // points_to_possibly_update = points_better_than_obj_ub[sum(np.dot(c_mat,grid[points_better_than_obj_ub].T) >= -1e-9) == n ]
 
                 //collect the points that are better
-                Eigen::MatrixXd points_better_than_obj_ub_gridvals(points_better_than_obj_ub.size(),n+1);
+                Matrix<double> points_better_than_obj_ub_gridvals(points_better_than_obj_ub.size(),n+1);
                 for(int i=0; i<points_better_than_obj_ub.size(); i++)
                     for(int j=0; j<n+1; j++)
                         points_better_than_obj_ub_gridvals(i,j) = grid(points_better_than_obj_ub.at(i),j);
                 // Eigen::MatrixXd points_better_than_obj_ub_dp(n+1,points_better_than_obj_ub.size);
-                Eigen::MatrixXd points_better_than_obj_ub_dp = c_mat * points_better_than_obj_ub_gridvals.transpose();
+                Eigen::MatrixXd points_better_than_obj_ub_dp = c_mat.dot( points_better_than_obj_ub_gridvals.transpose() ).AsEigenMatrixType();
                 
-                std::vector<int> points_to_possibly_update;
+                Vector<int> points_to_possibly_update;
                 
                 for(int i=0; i<points_better_than_obj_ub_dp.cols(); i++)
                 {
@@ -330,29 +342,30 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                 for(int i=0; i<n+1; i++)
                     F_comb(i,0) = F(comb.at(i));
                 
-                Eigen::MatrixXd hyperplane = grid_comb.bdcSvd().solve(F_comb.transpose());
+                Eigen::MatrixXd hyperplane = grid_comb.AsEigenMatrixType().bdcSvd().solve(F_comb.transpose());
                 
-                Eigen::MatrixXd vals = points_better_than_obj_ub_gridvals * hyperplane;
+                // Eigen::MatrixXd 
+                Matrix<double> vals( points_better_than_obj_ub_gridvals.AsEigenMatrixType() * hyperplane );
 
                 // Update lower bound eta at these points 
                 // flag = eta[points_to_possibly_update] < vals
                 // std::vector<bool> points_to_update;
                 for(int i=0; i<vals.rows(); i++)
                 {
-                    bool flagval = eta(points_to_possibly_update.at(i)) < vals(i);
+                    bool flagval = eta(points_to_possibly_update(i)) < vals(i,0);
                     // flag.push_back( flagval );
 
                     if(flagval)
                     {
-                        int point_to_update = points_to_possibly_update.at(i);
+                        int point_to_update = points_to_possibly_update(i);
                         
                         // eta([points_to_possibly_update[flag]]) = vals[flag]
-                        eta.row(point_to_update) = vals.row(point_to_update);
+                        eta(point_to_update) = vals(point_to_update,0);
 
                         // Update the set generating this lower bound
                         // eta_gen[points_to_possibly_update[flag]] = comb
                         for(int j=0; j<comb.size(); j++)
-                            eta_gen(point_to_update,j) = comb.at(j);
+                            eta_gen(point_to_update,j) = comb(j);
                     }
                 }
             }
