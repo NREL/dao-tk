@@ -19,24 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\liboptimize\solarfield_avail.cpp" />
-    <ClCompile Include="..\liboptimize\solarfield_heliostat.cpp" />
-    <ClCompile Include="..\liboptimize\solarfield_staff.cpp" />
-    <ClCompile Include="..\liboptimize\solarfield_structures.cpp" />
+    <ClCompile Include="..\liboptimize\optimize.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\liboptimize\solarfield_avail.h" />
-    <ClInclude Include="..\liboptimize\solarfield_heliostat.h" />
-    <ClInclude Include="..\liboptimize\solarfield_staff.h" />
-    <ClInclude Include="..\liboptimize\solarfield_structures.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="libclearsky.vcxproj">
-      <Project>{809d27ce-1241-4503-a38a-4bf90b683612}</Project>
-    </ProjectReference>
+    <ClInclude Include="..\liboptimize\optutil.h" />
+    <ClInclude Include="..\liboptimize\optimize.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{03C32DFE-081B-4DA8-8944-776BA8EE0A10}</ProjectGuid>
+    <ProjectGuid>{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>liboptimize</RootNamespace>
     <ProjectName>liboptimize</ProjectName>

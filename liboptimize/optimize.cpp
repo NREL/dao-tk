@@ -55,10 +55,10 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
     //require dimensions of matrices to align
     int n, nx;
     // n = len(LB)
-    n = _LB.size();
+    n = (int)_LB.size();
     if( _X.front().size() == 0 )
         std::runtime_error("Malformed data in optimization routine. Dimensionality of X is invalid.");
-    nx = _X.size();
+    nx = (int)_X.size();
     if( _UB.size() != n || _LB.size() != n )
         std::runtime_error("Dimensionality mismatch in optimization routine input data.");
 
@@ -79,7 +79,6 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
 
     //check for boundedness
     // assert np.all(np.max(X,axis=0) <= UB) and np.all(np.min(X,axis=0) >= LB), "Points in X are outside of the bounds"
-    bool bounds_ok = true;
     // Eigen::MatrixXi Xt = X.transpose();
     Matrix<int> Xt = X.transpose();
     for(int i=0; i<n; i++)
@@ -100,7 +99,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
 
     Vector< int > limits(n);
     for(int i=0; i<n; i++)
-        limits.at(i) = ranges.at(i).size();
+        limits.at(i) = (int)ranges.at(i).size();
 
     Vector< int > indices(n);
     Vector< std::string > indices_lookup;  //save string versions of the indices for quick location later
@@ -127,7 +126,8 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
     Vector<double> F = Vector<double>::Ones(m)*std::numeric_limits<double>::quiet_NaN();
     
     // c_mat = np.zeros((n+1,n+1))  # Holds the facets
-    Matrix<double> c_mat = Matrix<double>::Zeros(n+1,n+1);
+    Matrix<double> c_mat;
+    c_mat.Zeros(n + 1, n + 1);
     
     // if data_out:
     Matrix<double> eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order;
@@ -144,7 +144,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
         }
 
         // row_in_grid = np.argwhere(np.all((grid[:,1:]-x)==0, axis=1))
-        int row_in_grid = std::find(indices_lookup.begin(), indices_lookup.end(), xstr.str() ) - indices_lookup.begin();
+        int row_in_grid = (int)( std::find(indices_lookup.begin(), indices_lookup.end(), xstr.str() ) - indices_lookup.begin() );
         // assert len(row_in_grid), 
         if( row_in_grid > indices_lookup.size() )
             std::runtime_error("One of the initial points was not in the grid.");
@@ -220,7 +220,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                     for( int j=0; j<eta_gen.cols(); j++ )
                         match_set.insert( eta_gen(i,j) );
             
-            Vector<int> all_index_matches( match_set.size() );
+            Vector<int> all_index_matches( (int)match_set.size() );
 
             {
                 int i=0;
@@ -243,7 +243,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
         // for count,comb in enumerate(newcombs):
         for(int count=0; count<newcombs.rows(); count++)
         {
-            int comb_size = newcombs.cols();
+            //int comb_size = newcombs.cols();
             Matrix<double> grid_comb(n+1, n+1);
             Vector<int> comb;
                         
@@ -317,7 +317,7 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
                 // points_to_possibly_update = points_better_than_obj_ub[sum(np.dot(c_mat,grid[points_better_than_obj_ub].T) >= -1e-9) == n ]
 
                 //collect the points that are better
-                Matrix<double> points_better_than_obj_ub_gridvals(points_better_than_obj_ub.size(),n+1);
+                Matrix<double> points_better_than_obj_ub_gridvals( (int)points_better_than_obj_ub.size(), n+1);
                 for(int i=0; i<points_better_than_obj_ub.size(); i++)
                     for(int j=0; j<n+1; j++)
                         points_better_than_obj_ub_gridvals(i,j) = grid(points_better_than_obj_ub.at(i),j);

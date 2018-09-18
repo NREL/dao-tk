@@ -9,8 +9,9 @@
 template <typename T>
 class Vector : public std::vector< T >
 {
+
 public:
-    Vector(){};
+    Vector() {};
     Vector(int len)
     {
         this->resize(len);
@@ -65,18 +66,20 @@ public:
     {
         for(int i=0; i<this->size(); i++)
             this->at(i)*= scale;
+        return *this;
     };
 
     Vector<T>& operator*=(double scale)
     {
         for(int i=0; i<this->size(); i++)
             this->at(i)*= scale;
+        return *this;
     };
 
     T dot( const Vector<T> &rhs )
     {
         //dot product
-        int n = rhs.size();
+        int n = (int)rhs.size();
         
         if( this->size() != n )
             std::runtime_error("Dimension mismatch in vector-vector dot product");
@@ -96,13 +99,28 @@ class Matrix : public std::vector< Vector< T > >
 {
 protected:
     int m_nrow, m_ncol;
+    Matrix<T> *m_transpose;
+
+    void _init()
+    {
+        m_transpose = 0;
+    };
+
+
 public:
-    Matrix(){};
+    ~Matrix()
+    {
+        if (m_transpose)
+            delete m_transpose;
+    };
+
+    Matrix() { _init(); };
     Matrix(int nrow, int ncol)
     {
         Resize(nrow,ncol);
         m_nrow=nrow;
         m_ncol=ncol;
+        _init();
     };
 
     Matrix(int nrow, int ncol, const T& init)
@@ -110,18 +128,21 @@ public:
         this->resize( Vector<T>(ncol, init) );
         m_nrow = nrow;
         m_ncol = ncol;
+        _init();
     };
 
     Matrix(int nrow, const Vector<T>& init)
     {
         this->resize( nrow, init );
         m_nrow = nrow;
-        m_ncol = init.size();
+        m_ncol = (int)init.size();
+        _init();
     };
 
     Matrix(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &other)
     {
         Set(other);
+        _init();
     };
 
     int rows()
@@ -166,13 +187,17 @@ public:
 
     Matrix<T>& transpose()
     {
-        Matrix<T> result(this->m_ncol, this->m_nrow);
+        //always update the local transpose matrix when calling to ensure it contains the right values
+        if (!m_transpose)
+            m_transpose = new Matrix<T>; //instantiate if needed
+
+        m_transpose->Resize(this->m_ncol, this->m_nrow);
 
         for(int i=0; i<this->m_nrow; i++)
             for(int j=0; j<this->m_ncol; j++)
-                result(j,i) = (*this)(i,j);
+                (*m_transpose)(j,i) = (*this)(i,j);
 
-        return result;
+        return *m_transpose;
     };
 
     Matrix<T> &transposeInPlace()
@@ -182,14 +207,16 @@ public:
         Resize(this->m_ncol, this->m_nrow);
 
         *this = current.transpose();
+
+        return *this;
     };
 
     Matrix<T>& Set(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &other)
     {
-        Matrix<T> res(other.rows(), Vector<T>(other.cols()));
-        for(size_t i=0; i<other.rows(); i++)
-            for(size_t j=0; j<other.cols(); j++)
-                (*this)(i,j) = other(i,j);
+        Matrix<T> res( (int)other.rows(), Vector<T>( (int)other.cols()) );
+        for(int i=0; i< (int)other.rows(); i++)
+            for(int j=0; j< (int)other.cols(); j++)
+                (*this)(i,j) = other(i, j);
         return *this;
     };
 
@@ -259,7 +286,7 @@ static bool increment(Vector<int> &limits,  Vector<int> &indices )
     11      [1,2,1]     true
     12      [2,0,0]     false
     */
-    int nd = indices.size();
+    int nd = (int)indices.size();
 
     indices.back() ++;
     
@@ -285,7 +312,7 @@ static void combinations( const Vector<T> &indices, int nd, Matrix<T> &result, i
     for(int i=0; i<nd; i++)
         ctr.at(i)=i;
     
-    int ni = indices.size();
+    int ni = (int)indices.size();
 
     // result.resize(ni*ni, force_col_width > nd ? force_col_width : nd);
 
@@ -344,19 +371,17 @@ static int argmin( Vector<T> & v, bool ignore_nan=false)
 };
 
 template <typename T>
-static float nanmin( Vector<T> & v)
+static T nanmin( Vector<T> & v)
 {
-    double fmin=9e39;
-    for( int i=0; i<v.size(); i++ )
+    T minval = std::numeric_limits<T>::max();
+    for( int i=0; i<(int)v.size(); i++ )
     {
         if( v(i) != v(i) )
             continue;
-        if( (double)v(i) < fmin )
-        {
-            fmin = (double)v(i);
-        }
+        if( v(i) < minval)
+            minval = v(i);
     }
-    return (T)fmin;
+    return minval;
 };
 
 static Vector<double> nanfilter(const Vector<double> &v, Vector<int> *not_nan_indices=0)
@@ -374,7 +399,6 @@ static Vector<double> nanfilter(const Vector<double> &v, Vector<int> *not_nan_in
         // not_nan_indices->resize(v.size());  //oversize for now
 
     
-    int ind=0;
     for(int i=0; i<v.size(); i++)
     {
         if( v(i) != v(i) )
@@ -382,7 +406,6 @@ static Vector<double> nanfilter(const Vector<double> &v, Vector<int> *not_nan_in
         else
         {
             if( not_nan_indices )
-                // (*not_nan_indices)(ind) = i;
                 not_nan_indices->push_back(i);
 
             // res(ind++) = v(i);
@@ -433,7 +456,7 @@ static void assign_where(Vector<T> &dest, const Vector<T> &compare, bool (*ftest
     'compare' to corresponding positions in 'dest' when the user-defined function 'ftest(int,void*)' is true. 
     */
 
-    int m=dest.size();
+    int m= (int)dest.size();
     if( compare.size() != m )
         std::runtime_error("Attempting to compare to vectors of unequal length.");
     

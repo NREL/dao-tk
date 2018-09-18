@@ -28,6 +28,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libcluster", "libcluster.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libclearsky", "libclearsky.vcxproj", "{809D27CE-1241-4503-A38A-4BF90B683612}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "liboptimize", "liboptimize.vcxproj", "{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -84,6 +86,14 @@ Global
 		{809D27CE-1241-4503-A38A-4BF90B683612}.Release|x64.Build.0 = Release|x64
 		{809D27CE-1241-4503-A38A-4BF90B683612}.Release|x86.ActiveCfg = Release|Win32
 		{809D27CE-1241-4503-A38A-4BF90B683612}.Release|x86.Build.0 = Release|Win32
+		{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}.Debug|x64.ActiveCfg = Debug|x64
+		{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}.Debug|x64.Build.0 = Debug|x64
+		{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}.Debug|x86.ActiveCfg = Debug|Win32
+		{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}.Debug|x86.Build.0 = Debug|Win32
+		{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}.Release|x64.ActiveCfg = Release|x64
+		{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}.Release|x64.Build.0 = Release|x64
+		{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}.Release|x86.ActiveCfg = Release|Win32
+		{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
