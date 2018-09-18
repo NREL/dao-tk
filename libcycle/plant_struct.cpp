@@ -86,7 +86,7 @@ cycle_results::cycle_results()
 	plant_status = {};
 	failure_event_labels = {};
 	failure_events = {};
-	period_of_first_failure = {};
+	period_of_last_failure = {};
 	turbine_efficiency = 1.;
 	turbine_capacity = 1.;
 }
