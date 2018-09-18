@@ -1049,7 +1049,7 @@ void PowerCycle::TestForComponentFailures(double ramp_mult, int t, std::string s
 		hazard_increase = m_current_cycle_state.cold_start_penalty;
 	for (size_t i = 0; i < m_components.size(); i++)
 		m_components.at(i).TestForFailure(
-			m_sim_params.steplength, ramp_mult, *m_gen, t - m_sim_params.read_periods, 
+			m_sim_params.steplength, ramp_mult, *m_gen, t, 
 			hazard_increase, mode, m_current_scenario
 		);
 }
@@ -1189,12 +1189,12 @@ void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, s
 		hazard_increase = m_current_cycle_state.warm_start_penalty;
 	else if (start == "ColdStart")
 		hazard_increase = m_current_cycle_state.cold_start_penalty;
-    bool read_only = (t < m_sim_params.read_periods);
+    //bool read_only = (t < m_sim_params.read_periods);
 	for (size_t i = 0; i < m_components.size(); i++) 
 	{
 		if (m_components.at(i).IsOperational())
 			m_components.at(i).Operate(
-				m_sim_params.steplength, ramp_mult, *m_gen, read_only, t, 
+				m_sim_params.steplength, ramp_mult, *m_gen, false, t, 
 				hazard_increase, mode, m_current_scenario
 			);
 		else
@@ -1369,8 +1369,7 @@ void PowerCycle::RunDispatch()
 		//record the event at the period to be read in next.
 		if( m_current_cycle_state.hours_to_maintenance <= 0 ) // && t >= m_sim_params.read_periods )
         {
-            PlantMaintenanceShutdown(t, true,
-				t >= m_sim_params.read_periods);
+            PlantMaintenanceShutdown(t, true, true);
         }
 		
 		/*
@@ -1539,9 +1538,8 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory)
 		ReadComponentStatus(m_results.component_status[m_current_scenario]);
 	}
 	m_start_component_status = GetComponentStates();
-	m_sim_params.read_periods = m_results.period_of_last_failure[m_current_scenario] + 1;
 	RunDispatch();
-	if (m_new_failure_occurred)
+	if (m_new_failure_occurred && m_sim_params.stop_at_first_failure)
 	{
 		RevertToStartState();
 	}
