@@ -1437,10 +1437,8 @@ bool Project::C()
 		m_parameters.shutdown_capacity.as_number(),
 		m_parameters.no_restart_capacity.as_number()
 	);
-	
-	//Assign RNG
-	WELLFiveTwelve gen(0);
-	pc.AssignGenerator(&gen);
+
+	pc.Initialize();
 
 	//Assign Dispatch
 	std::unordered_map < std::string, std::vector < double > > dispatch;
@@ -1465,7 +1463,7 @@ bool Project::C()
 	//pc.m_results.avg_labor_cost = calc_real_dollars(pc.m_results.avg_labor_cost) * ann_fact;
 
 	//Assign results to structure
-	pc.GetAverageEfficiencyAndCapacity();
+	pc.GetSummaryResults();
 	m_cycle_outputs.cycle_capacity.vec()->resize(pc.GetSimLength());
 	m_cycle_outputs.cycle_efficiency.vec()->resize(pc.GetSimLength());
 

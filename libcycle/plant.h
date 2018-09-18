@@ -189,8 +189,8 @@ public:
 	void SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing = false);
 	int NumberOfAirstreamsOnline();
 	double GetCondenserEfficiency(double temp);
-	double GetTurbineEfficiency(bool age);
-	double GetTurbineCapacity(bool age);
+	double GetTurbineEfficiency(bool age, bool include_failures = false);
+	double GetTurbineCapacity(bool age, bool include_failures = false);
 	double GetSaltSteamTrainCapacity();
 	void SetCycleCapacityAndEfficiency(double temp, bool age = false);
 	double GetCycleCapacity();
@@ -222,8 +222,10 @@ public:
 	void OperatePlant(double power_out, int t, 
 		std::string start, std::string mode);
 	void SingleScen(bool reset_plant, bool read_state_from_file = false);
-	void GetAverageEfficiencyAndCapacity();
+	void GetSummaryResults();
 	double GetLaborCosts(size_t start_fail_idx);
+	void StoreScenarioResults(std::vector <double> cycle_efficiencies,
+		std::vector <double> cycle_capacities);
 	void Simulate(
 		bool read_state_from_file = false, 
 		bool read_state_from_memory = false,

@@ -905,7 +905,7 @@ double PowerCycle::GetCondenserEfficiency(double temp)
 	return baseline_efficiency - num_online_fans_down * m_eff_loss_per_fan;
 }
 
-double PowerCycle::GetTurbineEfficiency(bool age)
+double PowerCycle::GetTurbineEfficiency(bool age, bool include_failures)
 {
 	/*
 	Returns a weighted average of the efficiencies of all turbines, 
@@ -913,6 +913,7 @@ double PowerCycle::GetTurbineEfficiency(bool age)
 	the plant capacity.
 
 	age -- true if aging model is included, false o.w.
+	include_failures -- include failed turbines in calculation, false o.w.
 	*/
 	double eff = 0.0;
 	double total_cap = 0.0;
@@ -920,7 +921,7 @@ double PowerCycle::GetTurbineEfficiency(bool age)
 	{
 		for (size_t i : m_turbine_idx)
 		{
-			if (m_components.at(i).IsOperational())
+			if (m_components.at(i).IsOperational() || include_failures)
 			{
 				eff += m_components.at(i).GetEfficiency() * m_components.at(i).GetCapacityReduction();
 				total_cap += m_components.at(i).GetCapacityReduction();
@@ -934,7 +935,7 @@ double PowerCycle::GetTurbineEfficiency(bool age)
 		total_cap = 1.0;
 		for (size_t i : m_turbine_idx)
 		{
-			if (!m_components.at(i).IsOperational())
+			if (!m_components.at(i).IsOperational() && !include_failures)
 			{
 				eff -= 1 * m_components.at(i).GetEfficiencyReduction();
 			}
@@ -943,17 +944,18 @@ double PowerCycle::GetTurbineEfficiency(bool age)
 	return eff; 
 }
 
-double PowerCycle::GetTurbineCapacity(bool age)
+double PowerCycle::GetTurbineCapacity(bool age, bool include_failures)
 {
 	/*
 	Returns the capacity of all turbines.
 
 	age -- true if aging model is included, false o.w.
+	include_failures -- include failed turbines in calculation, false o.w.
 	*/
 	double cap = 0.0;
 	for (size_t i : m_turbine_idx)
 	{
-		if (m_components.at(i).IsOperational())
+		if (include_failures || m_components.at(i).IsOperational())
 		{
 			//The first component is an age-weighted index, while the second is baseline 
 			//relative capacity vs. that of all turbines in the system.
@@ -1005,8 +1007,8 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
 		return;
 	}
 	double condenser_eff = GetCondenserEfficiency(temp);
-	double turbine_eff = GetTurbineEfficiency(age);
-	double turbine_cap = GetTurbineCapacity(false);
+	double turbine_eff = GetTurbineEfficiency(age, false);
+	double turbine_cap = GetTurbineCapacity(age, false);
 	double sst_cap = GetSaltSteamTrainCapacity();
 	double rem_eff = 1.0;
 	for (size_t i = 0; i < m_components.size(); i++)
@@ -1440,9 +1442,7 @@ void PowerCycle::RunDispatch()
 			num_previous_failures = m_failure_event_labels.size();
 		}
     }
-	m_results.cycle_efficiency[m_current_scenario] = cycle_efficiencies;
-	m_results.cycle_capacity[m_current_scenario] = cycle_capacities;         
-	m_results.labor_costs[m_current_scenario] = GetLaborCosts(0);
+	StoreScenarioResults(cycle_efficiencies, cycle_capacities);
 }
 
 void PowerCycle::OperatePlant(double power_out, int t, std::string start, std::string mode)
@@ -1551,7 +1551,7 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory)
 	RecordFinalState();
 }
 
-void PowerCycle::GetAverageEfficiencyAndCapacity()
+void PowerCycle::GetSummaryResults()
 {
 	/*
 	Calculates the time series of the sample mean 
@@ -1559,22 +1559,27 @@ void PowerCycle::GetAverageEfficiencyAndCapacity()
 	*/
 	m_results.avg_cycle_efficiency.clear();
 	m_results.avg_cycle_capacity.clear();
-	double avg_eff, avg_cap, avg_labor;
-	for (int t = 0; t < m_sim_params.sim_length; t++)
+	double avg_eff = 0.; 
+	double avg_cap = 0.;
+	double avg_labor = 0.;
+	double avg_turb_cap = 0.;
+	double avg_turb_eff = 0.;
+	for (int s = 0; s < m_sim_params.num_scenarios; s++)
 	{
-		avg_eff = 0.;
-		avg_cap = 0.;
-		avg_labor = 0.;
-		for (int s = 0; s < m_sim_params.num_scenarios; s++)
+		avg_labor += m_results.labor_costs[s];
+		avg_turb_cap += m_results.turbine_capacity[s];
+		avg_turb_eff += m_results.turbine_efficiency[s];
+		for (int t = 0; t < m_sim_params.sim_length; t++)
 		{
 			avg_eff += m_results.cycle_efficiency[s].at(t);
 			avg_cap += m_results.cycle_capacity[s].at(t);
-			avg_labor += m_results.labor_costs[s];
 		}
 		m_results.avg_cycle_efficiency.push_back(avg_eff / m_sim_params.num_scenarios);
 		m_results.avg_cycle_capacity.push_back(avg_cap / m_sim_params.num_scenarios);
 	}
 	m_results.avg_labor_cost = avg_labor / m_sim_params.num_scenarios;
+	m_results.avg_turbine_capacity = avg_turb_cap / m_sim_params.num_scenarios;
+	m_results.avg_turbine_efficiency = avg_turb_eff / m_sim_params.num_scenarios;
 }
 
 double PowerCycle::GetLaborCosts(size_t start_fail_idx)
@@ -1597,6 +1602,19 @@ double PowerCycle::GetLaborCosts(size_t start_fail_idx)
 	return hours * m_sim_params.hourly_labor_cost;
 }
 
+void PowerCycle::StoreScenarioResults(std::vector <double> cycle_efficiencies,
+	std::vector <double> cycle_capacities)
+{
+	/* 
+	Assigns key statistics of cycle performance to the results data structure.
+	*/
+	m_results.cycle_efficiency[m_current_scenario] = cycle_efficiencies;
+	m_results.cycle_capacity[m_current_scenario] = cycle_capacities;
+	m_results.labor_costs[m_current_scenario] = GetLaborCosts(0);
+	m_results.turbine_capacity[m_current_scenario] = GetTurbineCapacity(true, true);
+	m_results.turbine_efficiency[m_current_scenario] = GetTurbineEfficiency(true, true);
+}
+
 void PowerCycle::Simulate(bool read_state_from_file, bool read_state_from_memory,
 		bool run_only_previous_failures)
 {
@@ -1612,7 +1630,6 @@ void PowerCycle::Simulate(bool read_state_from_file, bool read_state_from_memory
 
 	Note: labor costs are in aggregate and not scenario-specific.
 	*/
-	size_t cum_num_failures = 0;
 	for (int i = 0; i < m_sim_params.num_scenarios; i++)
 	{
 		m_current_scenario = i;
@@ -1625,7 +1642,7 @@ void PowerCycle::Simulate(bool read_state_from_file, bool read_state_from_memory
 	m_results.failure_event_labels = m_failure_event_labels;
 	
 	//Obtain Summary Statistics
-	GetAverageEfficiencyAndCapacity();
+	GetSummaryResults();
 
 }
 

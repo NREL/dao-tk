@@ -65,8 +65,10 @@ struct cycle_results
 	std::vector < std::string > failure_event_labels;
 	std::unordered_map < std::string, failure_event > failure_events;
 	std::unordered_map <int, int> period_of_last_failure;
-	double turbine_efficiency;
-	double turbine_capacity;
+	std::unordered_map <int, double> turbine_efficiency;
+	std::unordered_map <int, double> turbine_capacity;
+	double avg_turbine_efficiency;
+	double avg_turbine_capacity;
 	cycle_results();
 };
 
