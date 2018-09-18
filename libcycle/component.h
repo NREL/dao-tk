@@ -92,8 +92,14 @@ public:
 
 	std::vector<FailureType> GetFailureTypes();
         
-	void AddFailureMode(std::string component, std::string id, std::string failure_mode,
-		std::string dist_type, double alpha, double beta);
+	void AddFailureMode(
+		std::string component,
+		std::string id,
+		std::string failure_mode,
+		std::string dist_type,
+		double alpha,
+		double beta
+	);
 
     double GetHazardRate();
     

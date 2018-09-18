@@ -95,44 +95,81 @@ void Component::ReadStatus( ComponentStatus &status )
         
 std::string Component::GetName()
 {
+	/* accessor for the component's name (identifier). */
 	return m_name;
 }
 
         
 std::string Component::GetType()
 {
+	/* accessor for the component's type (description). */
 	return m_type;
 }
 
 std::vector<FailureType> Component::GetFailureTypes()
 {
+	/* accessor for vector of failure types/modes for the component. */
 	return m_failure_types;
 }
 
-void Component::AddFailureMode(std::string component, std::string id, std::string failure_mode,
-	std::string dist_type, double alpha, double beta)
+void Component::AddFailureMode(
+	std::string component, 
+	std::string id, 
+	std::string failure_mode,
+	std::string dist_type, 
+	double alpha, 
+	double beta
+)
 {
+	/* 
+	Adds a new failure mode for the compnent. 
+	component -- component name
+	id -- identifier/note for failure type
+	failure_mode -- operating mode in which failure takes place or lifetime
+	    is reduced.  
+	    "ALL" - all non-downtime modes (online or standby)
+		"OS" - start of online mode
+		"OF" - first hour of online mode
+		"OO" - ongoing (2nd hour forward) of online mode
+		"SS" - start of standby mode
+		"SF" - first hour of standby mode
+		"SO" - ongoing (2nd hour forward) of standby mode
+		"O" - online mode 
+	dist_type -- indicator of the distribution family used for life/probability
+	    generation
+	alpha -- numeric parameter for distribution
+	beta -- numeric parameter for distribution
+	*/
 	m_failure_types.push_back(FailureType(component, id, failure_mode, dist_type, alpha, beta));
 }
         
 double Component::GetHazardRate()
 {
+	/* Acessor to component's current hazard rate. */
 	return m_status.hazard_rate;
 }
 
     
 double Component::GetRepairCost()
 {
+	/* 
+	accessor to component's repair cost (not 
+	used currently, due to a lack of reliable data
+	on component materials costs associated
+	with repairs. 
+	*/
 	return m_repair_cost;
 }
 
 double Component::GetCapacityReduction()
 {
+	/* accessor to component's capacity reduction. */
 	return m_capacity_reduction;
 }
 
 double Component::GetEfficiencyReduction()
 {
+	/* accessor to component's efficiency reduction. */
 	return m_efficiency_reduction;
 }
 
@@ -165,12 +202,18 @@ double Component::GetCapacity()
 
 double Component::GetCooldownTime()
 {
+	/*
+	Accessor to component's remaining cooldown time.
+	*/
 	return m_cooldown_time;
 }
 
         
 bool Component::IsOperational()
 {
+	/*
+	Accessor to boolean indicator of a component being operational.
+	*/
 	return m_status.operational;
 }
 
@@ -539,6 +582,12 @@ void Component::Reset(WELLFiveTwelve &gen)
 }
 
 void Component::SetFailLifeOrProb(int fail_idx, double life_prob)
+/*
+Mutator for a failure lifetime or probability for a component. 
+
+fail_idx -- index of failure to mutate
+life_prob -- value to assign to given lifetime / probability of failure
+*/
 {
 	m_failure_types.at(fail_idx).SetLifeOrProb(life_prob);
 }
