@@ -183,8 +183,10 @@ public:
 		double time_online = 0.,
 		double time_in_standby = 0.,
 		double downtime = 0.,
-		double shutdown_capacity = 0.45,
-		double no_restart_capacity = 0.9
+		double shutdown_capacity = 0.3,
+		double no_restart_capacity = 0.5,
+		double shutdown_efficiency = 0.7,
+		double no_restart_efficiency = 0.9
 	);
 	void SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing = false);
 	int NumberOfAirstreamsOnline();

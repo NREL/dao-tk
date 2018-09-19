@@ -805,7 +805,9 @@ void PowerCycle::SetPlantAttributes(
 	double time_in_standby,
 	double downtime,
 	double shutdown_capacity,
-	double no_restart_capacity
+	double no_restart_capacity,
+	double shutdown_efficiency,
+	double no_restart_efficiency
 )
 {
     /*
@@ -1749,5 +1751,5 @@ double PowerCycle::GetExpectedStartsToNextFailure()
 	{
 		return INFINITY;
 	}
-	return (1.0 - p) / p;
+	return 1.0 / (1.0 - p);
 }
