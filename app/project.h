@@ -293,6 +293,7 @@ struct parameters : public lk::varhash_t
 	parameter is_ampl_engine;
 	parameter is_stochastic_disp;
 	parameter current_standby;
+	parameter stop_cycle_at_first_failure;
 	parameter is_use_clusters;
 	parameter is_run_continuous;
 	parameter is_hard_partitions;
@@ -369,6 +370,8 @@ struct parameters : public lk::varhash_t
 	parameter downtime;
 	parameter shutdown_capacity;
 	parameter no_restart_capacity;
+	parameter shutdown_efficiency;
+	parameter no_restart_efficiency;
 	parameter cycle_hourly_labor_cost;
 	parameter avail_model_timestep;
     //vector-doubles
@@ -458,6 +461,11 @@ struct cycle_outputs : public lk::varhash_t
 	parameter cycle_efficiency;
 	parameter cycle_capacity;
 	parameter cycle_labor_cost;
+	parameter turbine_efficiency;
+	parameter turbine_capacity;
+	parameter expected_time_to_next_cycle_failure;
+	parameter expected_starts_to_next_cycle_failure;
+	parameter period_of_last_failure;
 
 	cycle_outputs();
 };

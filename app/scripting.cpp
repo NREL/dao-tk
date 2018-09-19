@@ -263,6 +263,7 @@ void _test(lk::invoke_t &cxt)
 	//P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
 	P->m_parameters.solar_resource_file.assign( "C:/Users/AZOLAN/Documents/GitHub/daotk_dev/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
 
+	P->m_parameters.sim_length.assign( 720 );
 	P->m_parameters.cycle_power.empty_vector();
 	P->m_parameters.standby.empty_vector();
 	P->m_parameters.ambient_temperature.empty_vector();
@@ -290,14 +291,14 @@ void _test(lk::invoke_t &cxt)
 	P->D();
 	P->M();
 	P->O();
-	//P->C();
+	P->C();
 	
 	mw.Log(wxString::Format("Total field area: %.2f", P->m_design_outputs.area_sf.as_number()));
 	mw.Log(wxString::Format("Number of repairs: %d", (int)P->m_solarfield_outputs.n_repairs.as_integer()));
 	mw.Log(wxString::Format("Number of mirror replacements: %d", (int)P->m_optical_outputs.n_replacements.as_integer()));
 	mw.Log(wxString::Format("Average soiling: %.2f", P->m_optical_outputs.avg_soil.as_number()));
 	mw.Log(wxString::Format("Average degradation: %.2f", P->m_optical_outputs.avg_degr.as_number()));
-	//mw.Log(wxString::Format("Average cycle repair labor costs: %.2f", P->m_cycle_outputs.cycle_labor_cost.as_number()));
+	mw.Log(wxString::Format("Average cycle repair labor costs: %.2f", P->m_cycle_outputs.cycle_labor_cost.as_number()));
 
 	mw.SetProgress(0.);
 	mw.UpdateDataTable();
@@ -320,10 +321,12 @@ void _power_cycle(lk::invoke_t &cxt)
 	LK_DOC("power_cycle", "Simulate the power cycle capacity over time, after accounting for maintenance and failures. "
 		"Table keys include: cycle_power, ambient_temperature, standby, "
 		"read_periods, sim_length, eps, output, num_scenarios, "
+		"cycle_hourly_labor_cost, stop_cycle_at_first_failure, "
 		"maintenance_interval, maintenance_duration, downtime_threshold, "
 		"steplength, hours_to_maintenance, power_output, current_standby, "
 		"capacity, temp_threshold, time_online, time_in_standby, downtime, "
-		"shutdown_capacity, no_restart_capacity, num_condenser_trains, "
+		"shutdown_capacity, no_restart_capacity, "
+		"shutdown_efficiency, no_restart_efficiency, num_condenser_trains, "
 		"fans_per_train, radiators_per_train, num_salt_steam_trains, num_fwh, "
 		"num_salt_pumps, num_water_pumps, num_turbines, condenser_eff_cold, "
 		"condenser_eff_hot", "(table:cycle_inputs):table");
@@ -387,11 +390,32 @@ void _power_cycle(lk::invoke_t &cxt)
 	double no_restart_capacity = 0.9;
 	if (h->find("no_restart_capacity") != h->end())
 		no_restart_capacity = h->at("no_restart_capacity")->as_number();
+	
+	double shutdown_efficiency = 0.45;
+	if (h->find("shutdown_efficiency") != h->end())
+		shutdown_efficiency = h->at("shutdown_efficiency")->as_number();
 
-	cycle.SetPlantAttributes(maintenance_interval, maintenance_duration,
-		downtime_threshold, hours_to_maintenance, power_output,
-		current_standby, capacity, temp_threshold, time_online, time_in_standby, downtime,
-		shutdown_capacity, no_restart_capacity);
+	double no_restart_efficiency = 0.9;
+	if (h->find("no_restart_efficiency") != h->end())
+		no_restart_efficiency = h->at("no_restart_efficiency")->as_number();
+
+	cycle.SetPlantAttributes(
+		maintenance_interval, 
+		maintenance_duration,
+		downtime_threshold, 
+		hours_to_maintenance, 
+		power_output,
+		current_standby, 
+		capacity, 
+		temp_threshold, 
+		time_online, 
+		time_in_standby, 
+		downtime, 
+		shutdown_capacity, 
+		no_restart_capacity,
+		shutdown_efficiency,
+		no_restart_efficiency
+		);
 
 	// Power cycle components
 
@@ -496,17 +520,21 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("cycle_hourly_labor_cost") != h->end())
 		eps = h->at("cycle_hourly_labor_cost")->as_number();
 
+	bool stop_at_first_failure = false;
+	if (h->find("stop_cycle_at_first_failure") != h->end())
+		stop_at_first_failure = h->at("stop_cycle_at_first_failure")->as_boolean();
+
+
 	cycle.SetSimulationParameters(
 		read_periods,
 		sim_length,
 		steplength,
-		eps, 
-		output, 
+		eps,
+		output,
 		num_scenarios,
-		cycle_hourly_labor_cost
+		cycle_hourly_labor_cost,
+		stop_at_first_failure
 		);
-
-	
 
 	std::unordered_map<std::string, std::vector<double> > dispatch;
 	dispatch["cycle_power"] = { 0,0,0,0,0,0,0,0,9,9,9,9,9,9,9,9,0,0,0,0,0,0,0,0,

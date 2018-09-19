@@ -211,6 +211,7 @@ parameters::parameters()
     (*this)["is_ampl_engine"] = &is_ampl_engine;
     (*this)["is_stochastic_disp"] = &is_stochastic_disp;
 	(*this)["current_standby"] = &current_standby;
+	(*this)["stop_cycle_at_first_failure"] = &stop_cycle_at_first_failure;
     (*this)["ampl_data_dir"] = &ampl_data_dir;
     (*this)["solar_resource_file"] = &solar_resource_file;
     (*this)["disp_steps_per_hour"] = &disp_steps_per_hour;
@@ -415,13 +416,21 @@ cycle_outputs::cycle_outputs()
 {
 	std::vector< double > empty_vec;
 
-    cycle_efficiency.set(            empty_vec,             "cycle_efficiency",       true,                     "Cycle efficiency time series",        "-",                     "Cycle|Outputs" );
-    cycle_capacity.set(              empty_vec,               "cycle_capacity",       true,                       "Cycle capacity time series",        "-",                     "Cycle|Outputs" );
-	cycle_labor_cost.set(                  nan,             "cycle_labor_cost",       true,      "Expected labor costs for power cycle repair",        "-",                     "Cycle|Outputs" );
+    cycle_efficiency.set(    empty_vec,                       "cycle_efficiency",  true,                             "Cycle efficiency time series",  "-",  "Cycle|Outputs" );
+    cycle_capacity.set(      empty_vec,                         "cycle_capacity",  true,                               "Cycle capacity time series",  "-",  "Cycle|Outputs" );
+	cycle_labor_cost.set(          nan,                       "cycle_labor_cost",  true,              "Expected labor costs for power cycle repair",  "$",  "Cycle|Outputs" );
+	turbine_efficiency.set(        nan,                     "turbine_efficiency",  true,                               "Current turbine efficiency",  "-",  "Cycle|Outputs" );
+	turbine_capacity.set(          nan,                       "turbine_capacity",  true,                                 "Current turbine capacity",  "-",  "Cycle|Outputs" );
+	cycle_labor_cost.set(          nan,    "expected_time_to_next_cycle_failure",  true,   "Expected operating hours before next component failure",  "h",  "Cycle|Outputs" );
+	cycle_labor_cost.set(          nan,  "expected_starts_to_next_cycle_failure",  true,  "Expected number of starts before next component failure",  "-",  "Cycle|Outputs" );
 
 	(*this)["cycle_efficiency"] = &cycle_efficiency;
 	(*this)["cycle_capacity"] = &cycle_capacity;
 	(*this)["cycle_labor_cost"] = &cycle_labor_cost;
+	(*this)["turbine_efficiency"] = &turbine_efficiency;
+	(*this)["turbine_capacity"] = &turbine_capacity;
+	(*this)["expected_time_to_next_cycle_failure"] = &expected_time_to_next_cycle_failure;
+	(*this)["expected_starts_to_next_cycle_failure"] = &expected_starts_to_next_cycle_failure;
 }
 
 simulation_outputs::simulation_outputs()
@@ -1396,7 +1405,8 @@ bool Project::C()
 		1.e-8,
 		false,
 		m_parameters.num_scenarios.as_integer(),
-		m_parameters.cycle_hourly_labor_cost.as_number()
+		m_parameters.cycle_hourly_labor_cost.as_number(),
+		m_parameters.stop_cycle_at_first_failure.as_boolean()
 	);
 	
 	//Plant Components
@@ -1435,12 +1445,15 @@ bool Project::C()
 		m_parameters.time_in_standby.as_number(),
 		m_parameters.downtime.as_number(),
 		m_parameters.shutdown_capacity.as_number(),
-		m_parameters.no_restart_capacity.as_number()
+		m_parameters.no_restart_capacity.as_number(),
+		m_parameters.shutdown_efficiency.as_number(),
+		m_parameters.no_restart_efficiency.as_number()
 	);
 
 	pc.Initialize();
 
-	//Assign Dispatch
+	//Assign Dispatch  
+	//ajz: needs to be updated to pull these params from SSC after S() is called
 	std::unordered_map < std::string, std::vector < double > > dispatch;
 	dispatch["standby"] = {};
 	dispatch["cycle_power"] = {};
@@ -1455,7 +1468,7 @@ bool Project::C()
 	
 	pc.SetDispatch(dispatch);
 
-	pc.Simulate(true);
+	pc.Simulate(false,false,false);
 
 	//Annualize repair cost
 	//double ann_fact = 8760. / (double)(pc.GetSteplength() * pc.GetWriteInterval());
@@ -1467,13 +1480,11 @@ bool Project::C()
 	m_cycle_outputs.cycle_capacity.vec()->resize(pc.GetSimLength());
 	m_cycle_outputs.cycle_efficiency.vec()->resize(pc.GetSimLength());
 
-	//m_parameters.sim_length.assign(200);
-
 	m_cycle_outputs.cycle_labor_cost.assign(pc.m_results.avg_labor_cost);
-	//m_parameters.sim_length.assign(300);
 	m_cycle_outputs.cycle_capacity.assign_vector(pc.m_results.avg_cycle_capacity);
-	//m_parameters.sim_length.assign(350);
 	m_cycle_outputs.cycle_efficiency.assign_vector(pc.m_results.avg_cycle_efficiency);
+	m_cycle_outputs.expected_starts_to_next_cycle_failure.assign(pc.m_results.expected_starts_to_failure);
+	m_cycle_outputs.expected_time_to_next_cycle_failure.assign(pc.m_results.expected_time_to_failure);
 
 	is_cycle_avail_valid = true;
 
@@ -1757,8 +1768,8 @@ bool Project::Z()
 	{
 		is_sf_avail_valid = false;
 		is_sf_optical_valid = false;
-		is_cycle_avail_valid = false;
 		is_simulation_valid = false;
+		is_cycle_avail_valid = false;
 		is_explicit_valid = false;
 		is_financial_valid = false;
 		D();
@@ -1771,6 +1782,7 @@ bool Project::Z()
 	{
 		is_sf_optical_valid = false;
 		is_simulation_valid = false;
+		is_cycle_avail_valid = false;
 		is_financial_valid = false;
 		M();
 	}		
@@ -1782,12 +1794,22 @@ bool Project::Z()
 	if (!is_sf_optical_valid)
 	{
 		is_simulation_valid = false;
+		is_cycle_avail_valid = false;
 		is_financial_valid = false;
 		O();
 	}
 	else
 		message_handler("Using existing heliostat field soiling/degradation results in objective function");
 
+	// Simulation
+	if (!is_simulation_valid)
+	{
+		is_cycle_avail_valid = false;
+		is_financial_valid = false;
+		S();
+	}
+	else
+		message_handler("Using existing annual performance results in objective function");
 
 	// Cycle efficiency/capacity
 	if (!is_cycle_avail_valid)
@@ -1797,15 +1819,6 @@ bool Project::Z()
 	}
 	else
 		message_handler("Using existing cycle availability results in objective function");
-
-	// Simulation
-	if (!is_simulation_valid)
-	{
-		is_financial_valid = false;
-		S();
-	}
-	else
-		message_handler("Using existing annual performance results in objective function");
 
 	// Explicit cost terms
 	if (!is_explicit_valid)
