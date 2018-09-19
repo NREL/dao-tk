@@ -89,6 +89,7 @@ parameters::parameters()
     is_ampl_engine.set(                  false,               "is_ampl_engine",      false,                               "Use AMPL optimizer",        "-",                          "Settings" );
     is_stochastic_disp.set(              false,           "is_stochastic_disp",      false,                          "Run stochastic dispatch",        "-",                          "Settings" );
     current_standby.set(                 false,              "current_standby",      false,                     "Start power cycle in standby",        "-",                  "Cycle|Parameters" );
+	stop_cycle_at_first_failure.set     (false,  "stop_cycle_at_first_failure",      false, "Stop cycle model after first failure or maintenance event", "-",                "Cycle|Paramaeters" );
 
 	std::string empty_string = "";
     ampl_data_dir.set(                      "",                "ampl_data_dir",      false,                                 "AMPL data folder",        "-",                          "Settings" );
@@ -154,9 +155,11 @@ parameters::parameters()
     time_online.set(                        0.,                  "time_online",      false,              "Initial power cycle output duration",        "h",                  "Cycle|Parameters" );
     time_in_standby.set(                    0.,              "time_in_standby",      false,               "Initial power cycle time in stndby",        "h",                  "Cycle|Parameters" );
     downtime.set(                           0.,                     "downtime",      false,                     "Initial power cycle downtime",        "h",                  "Cycle|Parameters" );
-    shutdown_capacity.set(                 0.3,            "shutdown_capacity",      false,            "Threshold capacity to shut plant down",        "h",                  "Cycle|Parameters" );
-    no_restart_capacity.set(               0.9,          "no_restart_capacity",      false,   "Threshold capacity for maintenance on shutdown",        "h",                  "Cycle|Parameters" );
-	cycle_hourly_labor_cost.set           (50.,       "cycle_hourly_labor_cost",     false,       "Hourly cost for repair of cycle components",        "h",                  "Cycle|Parameters" );
+    shutdown_capacity.set(                 0.3,            "shutdown_capacity",      false,            "Threshold capacity to shut plant down",        "-",                  "Cycle|Parameters" );
+    no_restart_capacity.set(               0.8,          "no_restart_capacity",      false,   "Threshold capacity for maintenance on shutdown",        "-",                  "Cycle|Parameters" );
+	shutdown_efficiency.set(               0.7,          "shutdown_efficiency",      false,          "Threshold efficiency to shut plant down",        "-",                  "Cycle|Parameters" );
+	no_restart_efficiency.set(             0.9,        "no_restart_efficiency",      false, "Threshold efficiency for maintenance on shutdown",        "-",                  "Cycle|Parameters" );
+	cycle_hourly_labor_cost.set(           50.,       "cycle_hourly_labor_cost",     false,       "Hourly cost for repair of cycle components",        "h",                  "Cycle|Parameters" );
 
 	std::vector< double > pval = { 0., 7., 200., 12000. };
     c_ces.set(                            pval,                        "c_ces",      false );
@@ -421,8 +424,8 @@ cycle_outputs::cycle_outputs()
 	cycle_labor_cost.set(          nan,                       "cycle_labor_cost",  true,              "Expected labor costs for power cycle repair",  "$",  "Cycle|Outputs" );
 	turbine_efficiency.set(        nan,                     "turbine_efficiency",  true,                               "Current turbine efficiency",  "-",  "Cycle|Outputs" );
 	turbine_capacity.set(          nan,                       "turbine_capacity",  true,                                 "Current turbine capacity",  "-",  "Cycle|Outputs" );
-	cycle_labor_cost.set(          nan,    "expected_time_to_next_cycle_failure",  true,   "Expected operating hours before next component failure",  "h",  "Cycle|Outputs" );
-	cycle_labor_cost.set(          nan,  "expected_starts_to_next_cycle_failure",  true,  "Expected number of starts before next component failure",  "-",  "Cycle|Outputs" );
+	expected_time_to_next_cycle_failure.set(          nan,    "expected_time_to_next_cycle_failure",  true,   "Expected operating hours before next component failure",  "h",  "Cycle|Outputs" );
+	expected_starts_to_next_cycle_failure.set(          nan,  "expected_starts_to_next_cycle_failure",  true,  "Expected number of starts before next component failure",  "-",  "Cycle|Outputs" );
 
 	(*this)["cycle_efficiency"] = &cycle_efficiency;
 	(*this)["cycle_capacity"] = &cycle_capacity;
@@ -1394,8 +1397,10 @@ bool Project::C()
 		message_handler(error_msg.c_str());
 		return false;
 	}
-
-	PowerCycle pc;
+	
+	PowerCycle pc = PowerCycle();
+	WELLFiveTwelve gen(0);
+	pc.AssignGenerator(&gen);
 
 	//Simulation parameters
 	pc.SetSimulationParameters(

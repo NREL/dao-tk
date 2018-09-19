@@ -8,8 +8,6 @@
 
 PowerCycle::PowerCycle()
 {
-	WELLFiveTwelve *gen(0);
-	AssignGenerator(gen);
 	SetSimulationParameters();
 	SetPlantAttributes();
 	GeneratePlantComponents();

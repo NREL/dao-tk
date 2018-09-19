@@ -184,7 +184,7 @@ public:
 		double time_in_standby = 0.,
 		double downtime = 0.,
 		double shutdown_capacity = 0.3,
-		double no_restart_capacity = 0.5,
+		double no_restart_capacity = 0.8,
 		double shutdown_efficiency = 0.7,
 		double no_restart_efficiency = 0.9
 	);
