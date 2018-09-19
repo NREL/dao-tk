@@ -69,6 +69,8 @@ struct cycle_results
 	std::unordered_map <int, double> turbine_capacity;
 	double avg_turbine_efficiency;
 	double avg_turbine_capacity;
+	double expected_time_to_failure;
+	double expected_starts_to_failure;
 	cycle_results();
 };
 

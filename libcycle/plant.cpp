@@ -1613,6 +1613,8 @@ void PowerCycle::StoreScenarioResults(std::vector <double> cycle_efficiencies,
 	m_results.labor_costs[m_current_scenario] = GetLaborCosts(0);
 	m_results.turbine_capacity[m_current_scenario] = GetTurbineCapacity(true, true);
 	m_results.turbine_efficiency[m_current_scenario] = GetTurbineEfficiency(true, true);
+	m_results.expected_time_to_failure = GetEstimatedMinimumLifetime();
+	m_results.expected_starts_to_failure = GetExpectedStartsToNextFailure();
 }
 
 void PowerCycle::Simulate(bool read_state_from_file, bool read_state_from_memory,
@@ -1702,3 +1704,50 @@ bool PowerCycle::AnyFailuresOccurred()
 	return false;
 }
 
+double PowerCycle::GetEstimatedMinimumLifetime(double frac_operational)
+{
+	/*
+	Estimates the number of hours before the next failure occurs, assuming
+	operation of the power cycle for a fixed fraction of each day.  Does not 
+	account for the increase in hazard rate that accompanies cycle starts.
+	*/
+	double min_life = INFINITY;
+	for (Component c : m_components)
+	{
+		for (FailureType f : c.GetFailureTypes())
+		{
+			if (!f.GetFailureDist()->IsBinary())
+			{
+				min_life = std::min(
+					min_life, f.GetLifeRemaining() / c.GetHazardRate()
+				);
+			}
+		}
+	}
+	return min_life / frac_operational;
+}
+
+double PowerCycle::GetExpectedStartsToNextFailure()
+{
+	/*
+	Estimates the number of starts before the next failure occurs, assuming
+	operation of the power cycle for a fixed fraction of each day.  Does not 
+	account for the increase in hazard rate that accompanies cycle starts.
+	*/
+	double p = 1.0;
+	for (Component c : m_components)
+	{
+		for (FailureType f : c.GetFailureTypes())
+		{
+			if (f.GetFailureDist()->IsBinary())
+			{
+				p *= (1 - f.GetFailureProbability()*c.GetHazardRate());
+			}
+		}
+	}
+	if (1.0 - p < m_sim_params.epsilon)
+	{
+		return INFINITY;
+	}
+	return (1.0 - p) / p;
+}

@@ -91,4 +91,7 @@ cycle_results::cycle_results()
 	turbine_capacity = {};
 	avg_turbine_efficiency = 1.;
 	avg_turbine_capacity = 1.;
+	expected_time_to_failure = 0.;
+	expected_starts_to_failure = 0.;
 }
+

@@ -235,6 +235,8 @@ public:
 	void PrintComponentStatus();
 	void ClearFailureEvents();
 	bool AnyFailuresOccurred();
+	double GetEstimatedMinimumLifetime(double frac_operational = 1.0);
+	double GetExpectedStartsToNextFailure();
 };
 
 
