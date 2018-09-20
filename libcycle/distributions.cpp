@@ -66,7 +66,7 @@ double ExponentialDist::GetVariate(WELLFiveTwelve &gen)
 	distribution
 	*/
 	double unif = gen.getVariate();
-	return -1.0 * (log(1. - unif) / GetAlpha()) + GetBeta();
+	return (-1.0 * log(1. - unif) * GetAlpha()) + GetBeta();
 }
 
 

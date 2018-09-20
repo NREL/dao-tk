@@ -66,6 +66,7 @@ class Component
 	double m_cooldown_time;
 	bool m_new_repair;
 	bool m_new_failure;
+	double m_mean_repair_time;
 	std::string m_repair_mode; // "A"=Anytime; "S"=standby or downtime; "D"=downtime only
     ComponentStatus m_status;
 
@@ -79,7 +80,7 @@ public:
     Component();
 
     Component(std::string name, std::string type, //std::string dist_type, double failure_alpha, double failure_beta, 
-		double repair_rate, double repair_cooldown_time,
+		double mean_repair_time, double repair_cooldown_time,
 		std::unordered_map< std::string, failure_event > *failure_events, 
 		double availability_reduction = 1.0, 
 		double efficiency_reduction = 1.0, double repair_cost = 0.0,
@@ -106,6 +107,8 @@ public:
     double GetHazardRate();
     
     double GetRepairCost();
+
+	double GetMeanRepairTime();
 
 	double GetCapacityReduction();
 

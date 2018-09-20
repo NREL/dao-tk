@@ -34,7 +34,7 @@ Component::Component()
 
 Component::Component(std::string name, std::string type,
 		//std::string dist_type, double failure_alpha, double failure_beta, 
-		double repair_rate, double repair_cooldown_time,
+		double mean_repair_time, double repair_cooldown_time,
 		std::unordered_map< std::string, failure_event > *failure_events,
 		double capacity_reduction, double efficiency_reduction, double repair_cost, std::string repair_mode,
 		std::vector<std::string> *failure_event_labels)
@@ -64,6 +64,7 @@ Component::Component(std::string name, std::string type,
 	m_efficiency_reduction = efficiency_reduction;
 	m_cooldown_time = repair_cooldown_time;
 	m_repair_mode = repair_mode;
+	m_mean_repair_time = mean_repair_time;
 	m_new_failure = false;
 	m_new_repair = false;
 
@@ -73,7 +74,7 @@ Component::Component(std::string name, std::string type,
 	m_status.repair_event_time = 0.0;
 	m_status.age = 0.0;
 
-	Distribution *edist = new ExponentialDist(repair_rate, repair_cooldown_time, "exponential");
+	Distribution *edist = new ExponentialDist(mean_repair_time, repair_cooldown_time, "exponential");
 	m_repair_dist = (ExponentialDist *) edist;
 
     m_parent_failure_events = failure_events;
@@ -160,6 +161,11 @@ double Component::GetRepairCost()
 	with repairs. 
 	*/
 	return m_repair_cost;
+}
+
+double Component::GetMeanRepairTime()
+{
+	return m_mean_repair_time;
 }
 
 double Component::GetCapacityReduction()

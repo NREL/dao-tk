@@ -760,7 +760,7 @@ void PowerCycle::AddWaterPumps(int num_pumps)
 	{
 		m_num_water_pumps += 1;
 		component_name = "WP" + std::to_string(m_num_water_pumps);
-		AddComponent(component_name, "Water pump", 0.5, 40., 1., 1, 7.777, "D");
+		AddComponent(component_name, "Water pump", 0.5, 0., 1., 1, 7.777, "D");
 		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
 		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
 		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "gamma", 1.5, 3750);
@@ -1471,15 +1471,29 @@ void PowerCycle::RunDispatch()
 		if (t > m_results.period_of_last_repair[m_current_scenario] &&
 			NewRepairOccurred())
 		{
-			//If a new failure occurs, and our solution approach dictates
-			//that we must re-optimize, then fill the remaining 
+			//If we get to this point, a new repair has ocurred.
+			//Set all component downtimes to their mean downtime, 
+			//and assume no new failures for the rest of the time
+			//horizon.  
 			m_new_repair_occurred = true;
 			m_results.period_of_last_repair[m_current_scenario] = t;
 			if (m_sim_params.stop_at_first_repair)
 			{
+				for (size_t i = 0; i < m_components.size(); i++)
+				{
+					if (!m_components.at(i).IsOperational())
+					{
+						m_components.at(i).SetDowntimeRemaining(m_components.at(i).GetMeanRepairTime());
+					}
+				}
 				for (int tp = t+1; tp < m_sim_params.sim_length; tp++)
 				{
+					//We assume that components with online repairs may 
+					//continue to be repairedand will be back online after 
+					//the mean repair time.  Any other components won't be 
+					//repaired for the rest of the day.
 					SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
+					AdvanceDowntime("OO");
 					cycle_capacities[tp] = m_cycle_capacity * 1.0;
 					cycle_efficiencies[tp] = m_cycle_efficiency * 1.0;
 				}
@@ -1489,6 +1503,8 @@ void PowerCycle::RunDispatch()
     }
 	StoreScenarioResults(cycle_efficiencies, cycle_capacities);
 }
+
+
 
 void PowerCycle::OperatePlant(double power_out, int t, std::string start, std::string mode)
 {
