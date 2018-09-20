@@ -64,6 +64,8 @@ class Component
 	double m_capacity_reduction;
 	double m_efficiency_reduction;
 	double m_cooldown_time;
+	bool m_new_repair;
+	bool m_new_failure;
 	std::string m_repair_mode; // "A"=Anytime; "S"=standby or downtime; "D"=downtime only
     ComponentStatus m_status;
 
@@ -109,13 +111,19 @@ public:
 
 	double GetEfficiencyReduction();
 
-	double GetEfficiency();
+	double GetEfficiency(bool override = false);
 
-	double GetCapacity();
+	double GetCapacity(bool override = false);
 
 	double GetCooldownTime();
         
     bool IsOperational();
+
+	bool IsNewFailure();
+
+	bool IsNewRepair();
+
+	void ResetFailureAndRepairFlags();
         
     void Shutdown(double time);
         

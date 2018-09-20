@@ -60,7 +60,7 @@ simulation_params::simulation_params()
 	print_output = false;
 	num_scenarios = 1;
 	hourly_labor_cost = 50.;
-	stop_at_first_failure = false;
+	stop_at_first_repair = false;
 }
 
 void simulation_params::print()

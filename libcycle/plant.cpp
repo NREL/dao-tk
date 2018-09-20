@@ -84,7 +84,7 @@ void PowerCycle::SetSimulationParameters(
 	bool print_output,
 	int num_scenarios,
 	double hourly_labor_cost,
-	bool stop_at_first_failure
+	bool stop_at_first_repair
 )
 {
     m_sim_params.read_periods = read_periods;
@@ -94,7 +94,7 @@ void PowerCycle::SetSimulationParameters(
     m_sim_params.print_output = print_output;
 	m_sim_params.num_scenarios = num_scenarios;
 	m_sim_params.hourly_labor_cost = hourly_labor_cost;
-	m_sim_params.stop_at_first_failure = stop_at_first_failure;
+	m_sim_params.stop_at_first_repair = stop_at_first_repair;
 	m_current_scenario = 0;
 }
 
@@ -265,7 +265,7 @@ void PowerCycle::RecordFinalState()
 	m_gen->saveStates(m_current_scenario);
 }
 
-void PowerCycle::RevertToStartState()
+void PowerCycle::RevertToStartState(bool reset_rng)
 {
 	/*
 	Assigns beginning power cycle state to the current state.
@@ -289,8 +289,8 @@ void PowerCycle::RevertToStartState()
 	m_current_cycle_state.power_output = m_begin_cycle_state.power_output;
 
 	SetStartComponentStatus();
-
-	m_gen->assignStates(m_current_scenario);
+	if (reset_rng)
+		m_gen->assignStates(m_current_scenario);
 }
 
 void PowerCycle::WriteStateToFiles(bool current, std::string component_filename, std::string plant_filename)
@@ -491,6 +491,40 @@ bool PowerCycle::IsOnStandby()
     mode.
 	*/
     return m_current_cycle_state.is_on_standby;
+}
+
+bool PowerCycle::NewRepairOccurred()
+{
+	for (size_t i = 0; i < m_components.size(); i++)
+	{
+		if (m_components.at(i).IsNewRepair())
+		{
+			//std::cerr << m_components.at(i).GetName() << " repair detected." << m_components.at(i).IsNewRepair() << "\n";
+			return true;
+		}
+	}
+	return false;
+}
+
+bool PowerCycle::NewFailureOccurred()
+{
+	for (size_t i = 0; i < m_components.size(); i++)
+	{
+		if (m_components.at(i).IsNewFailure())
+		{
+			//std::cerr << m_components.at(i).GetName() << " failure detected." << m_components.at(i).IsNewFailure() << "\n";
+			return true;
+		}
+	}
+	return false;
+}
+
+void PowerCycle::ResetCycleEventFlags()
+{
+	for (size_t i = 0; i < m_components.size(); i++)
+	{
+		m_components.at(i).ResetFailureAndRepairFlags();
+	}
 }
 
 double PowerCycle::GetTimeInStandby()
@@ -923,7 +957,7 @@ double PowerCycle::GetTurbineEfficiency(bool age, bool include_failures)
 		{
 			if (m_components.at(i).IsOperational() || include_failures)
 			{
-				eff += m_components.at(i).GetEfficiency() * m_components.at(i).GetCapacityReduction();
+				eff += m_components.at(i).GetEfficiency(include_failures) * m_components.at(i).GetCapacityReduction();
 				total_cap += m_components.at(i).GetCapacityReduction();
 			}
 		}
@@ -960,7 +994,7 @@ double PowerCycle::GetTurbineCapacity(bool age, bool include_failures)
 			//The first component is an age-weighted index, while the second is baseline 
 			//relative capacity vs. that of all turbines in the system.
 			if (age)
-				cap += m_components.at(i).GetCapacity() * m_components.at(i).GetCapacityReduction();
+				cap += m_components.at(i).GetCapacity(include_failures) * m_components.at(i).GetCapacityReduction();
 			else
 				cap += m_components.at(i).GetCapacityReduction();
 		}
@@ -1196,7 +1230,8 @@ void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, s
 	{
 		if (m_components.at(i).IsOperational())
 			m_components.at(i).Operate(
-				m_sim_params.steplength, ramp_mult, *m_gen, false, t, 
+				m_sim_params.steplength, ramp_mult, *m_gen, 
+				t > m_results.period_of_last_repair[m_current_scenario], t, 
 				hazard_increase, mode, m_current_scenario
 			);
 		else
@@ -1360,31 +1395,33 @@ void PowerCycle::RunDispatch()
     
 	*/
 	m_new_failure_occurred = false;
-	ClearFailureEvents();
+	m_new_repair_occurred = false;
     std::vector< double > cycle_capacities( m_sim_params.sim_length, 0 );
-	std::vector< double > cycle_efficiencies(m_sim_params.sim_length, 0);
+	std::vector< double > cycle_efficiencies( m_sim_params.sim_length, 0 );
 	size_t num_previous_failures = 0;
+	double power_output = 0.;
 	for( int t = 0; t < m_sim_params.sim_length; t++)
     {
+		ResetCycleEventFlags();
 		//Shut all components down for maintenance if such an event is 
 		//read in inputs, or the hours to maintenance is <= zero.
 		//record the event at the period to be read in next.
-		if( m_current_cycle_state.hours_to_maintenance <= 0 ) // && t >= m_sim_params.read_periods )
+		if( m_current_cycle_state.hours_to_maintenance <= 0  && t > m_results.period_of_last_repair[m_current_scenario] )
         {
             PlantMaintenanceShutdown(t, true, true);
         }
 		
-		/*
+		
 		//Read in any component failures, if in the read-only stage.
-		if (t < m_sim_params.read_periods)
+		if (t <= m_results.period_of_last_repair[m_current_scenario])
 		{
 			ReadInMaintenanceEvents(t);
 			ReadInComponentFailures(t);
 		}
-		*/
+		
 		// If cycle Capacity is zero or there is no power output, advance downtime.  
 		// Otherwise, check for failures, and operate if there is still Capacity.
-		double power_output = m_dispatch.at("cycle_power").at(t);
+		power_output = m_dispatch.at("cycle_power").at(t);
 		SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
 		std::string start = GetStartMode(t);
 		std::string mode = GetOperatingMode(t);
@@ -1394,52 +1431,60 @@ void PowerCycle::RunDispatch()
 			mode = "OFF";
 		}
 		//ajz: This was formerly for only periods after read-in
-		double ramp_mult = GetRampMult(power_output);
-		TestForComponentFailures(ramp_mult, t, start, mode);
-		SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
-		//if the cycle Capacity is set to zero, this means the plant is in maintenace
-		//or a critical failure has occurred, so shut the plant down.
-		if (m_cycle_capacity < m_sim_params.epsilon)
+		if (t >= m_results.period_of_last_repair[m_current_scenario])
 		{
-			power_output = 0.0;
-			mode = "OFF";
+			double ramp_mult = GetRampMult(power_output);
+			TestForComponentFailures(ramp_mult, t, start, mode);
+			SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
+			//if the cycle Capacity is set to zero, this means the plant is in maintenace
+			//or a critical failure has occurred, so shut the plant down.
+			if (m_cycle_capacity < m_sim_params.epsilon)
+			{
+				power_output = 0.0;
+				mode = "OFF";
+			}
+			else if (m_cycle_capacity < m_shutdown_capacity || m_cycle_efficiency < m_shutdown_efficiency)
+			{
+				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
+			}
+			else if (
+				mode == "OFF" && (
+					m_cycle_capacity < m_no_restart_capacity ||
+					m_cycle_efficiency < m_no_restart_efficiency
+					)
+				)
+			{
+				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
+			}
+			SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
+			power_output = std::min(power_output, m_cycle_capacity*m_current_cycle_state.capacity);
 		}
-		else if (m_cycle_capacity < m_shutdown_capacity || m_cycle_efficiency < m_shutdown_efficiency)
-		{
-			PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
-		}
-		else if (
-			mode == "OFF" && (
-				m_cycle_capacity < m_no_restart_capacity || 
-				m_cycle_efficiency < m_no_restart_efficiency
-				) 
-			)
-		{
-			PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
-		}
-		SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
-		power_output = std::min(power_output, m_cycle_capacity*m_current_cycle_state.capacity);
 		OperatePlant(power_output, t, start, mode);
 		cycle_capacities[t] = m_cycle_capacity;
 		cycle_efficiencies[t] = m_cycle_efficiency;
-		if (m_sim_params.stop_at_first_failure &&
-			t > m_results.period_of_last_failure[m_current_scenario] &&
-			m_failure_event_labels.size() > num_previous_failures)
+		if (t > m_results.period_of_last_failure[m_current_scenario] &&
+			NewFailureOccurred())
+		{
+			m_new_failure_occurred = true;
+			m_results.period_of_last_failure[m_current_scenario] = t;
+		}
+		if (t > m_results.period_of_last_repair[m_current_scenario] &&
+			NewRepairOccurred())
 		{
 			//If a new failure occurs, and our solution approach dictates
 			//that we must re-optimize, then fill the remaining 
-			m_new_failure_occurred = true;
-			m_results.period_of_last_failure[m_current_scenario] = t;
-			for (int tp = t; tp < m_sim_params.sim_length; tp++)
+			m_new_repair_occurred = true;
+			m_results.period_of_last_repair[m_current_scenario] = t;
+			if (m_sim_params.stop_at_first_repair)
 			{
-				cycle_capacities[tp] = cycle_capacities[t] * 1.0;
-				cycle_efficiencies[tp] = cycle_efficiencies[t] * 1.0;
+				for (int tp = t+1; tp < m_sim_params.sim_length; tp++)
+				{
+					SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
+					cycle_capacities[tp] = m_cycle_capacity * 1.0;
+					cycle_efficiencies[tp] = m_cycle_efficiency * 1.0;
+				}
+				break;
 			}
-			break;
-		}
-		if (t == m_results.period_of_last_failure[m_current_scenario])
-		{
-			num_previous_failures = m_failure_event_labels.size();
 		}
     }
 	StoreScenarioResults(cycle_efficiencies, cycle_capacities);
@@ -1539,14 +1584,15 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory)
 	}
 	m_start_component_status = GetComponentStates();
 	RunDispatch();
-	if (m_new_failure_occurred && m_sim_params.stop_at_first_failure)
+	if ((m_new_repair_occurred || m_new_failure_occurred) && m_sim_params.stop_at_first_repair)
 	{
-		RevertToStartState();
+		RevertToStartState(false);
 	}
 	else
 	{
 		StoreCycleState();
 		m_results.period_of_last_failure[m_current_scenario] = -1;
+		m_results.period_of_last_repair[m_current_scenario] = -1;
 	}
 	RecordFinalState();
 }
@@ -1692,6 +1738,8 @@ void PowerCycle::ClearFailureEvents()
 {
 	m_failure_events.clear();
 	m_failure_event_labels.clear();
+	m_results.period_of_last_failure[m_current_scenario] = -1;
+	m_results.period_of_last_repair[m_current_scenario] = -1;
 }
 
 bool PowerCycle::AnyFailuresOccurred()
