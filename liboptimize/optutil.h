@@ -471,8 +471,6 @@ template <typename T>
 static Vector<int> filter_where(Vector<T> &source, T compare, bool (*ftest)(T item, T cval))
 {
     /*
-    like numpy::where()
-
     Take the vector 'compare' and run the function 'ftest' element-wise. When the function returns true,
     include the corresponding value index from 'compare' in the result vector.
     */
@@ -482,6 +480,25 @@ static Vector<int> filter_where(Vector<T> &source, T compare, bool (*ftest)(T it
             res.push_back(i);
 
     return res;
+};
+
+template <typename T>
+static Vector<T> where(Vector<T> &A, Vector<T> &B, bool (*ftest)(T& aval, T& bval))
+{
+    /* 
+    like numpy::where()
+
+    Compare elements of A and B. When true, fill result with element in A. When False, fill with B.
+    */
+
+    if( A.size() != B.size() )
+        std::runtime_error("Vector size mismatch in where()");
+
+    Vector<int> res;
+    for(int i=0; i<A.size(); i++)
+        res.push_back( ftest(A(i), B(i)) ? A(i) : B(i) );
+
+    return res;    
 };
 
 #endif

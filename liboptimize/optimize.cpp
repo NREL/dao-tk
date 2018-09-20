@@ -373,19 +373,19 @@ std::vector<double> Optimize::main(double (*func)(std::vector<int>&), std::vecto
 
         bool eval_performed_flag = false;
 
-#ifdef __junk
+//#ifdef __junk
         // Evaluate objective at the point with smallest eta value
         if( trust )
         {
 
             while(true)
             {
-                std::vector<int> points_within_delta_of_xstar;
+                Vector<int> points_within_delta_of_xstar;
 
                 if( convex_flag )
-                    points_within_delta_of_xstar = np.where(np.logical_and(eta < obj_ub, sp.spatial.distance.cdist([x_star], grid[:,1:], lambda u, v: np.linalg.norm(u-v,np.inf))[0]<=delta))[0]
+                    points_within_delta_of_xstar = where(np.logical_and(eta < obj_ub, sp.spatial.distance.cdist([x_star], grid[:,1:], lambda u, v: np.linalg.norm(u-v,np.inf))[0]<=delta))[0]
                 else
-                    points_within_delta_of_xstar = np.where(np.logical_and(np.isnan(F), sp.spatial.distance.cdist([x_star], grid[:,1:], lambda u, v: np.linalg.norm(u-v,np.inf))[0]<=delta))[0]
+                    points_within_delta_of_xstar = where(np.logical_and(np.isnan(F), sp.spatial.distance.cdist([x_star], grid[:,1:], lambda u, v: np.linalg.norm(u-v,np.inf))[0]<=delta))[0]
 
                 if( !points_within_delta_of_xstar.empty() )
                 {
