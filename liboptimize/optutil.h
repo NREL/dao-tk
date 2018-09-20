@@ -5,6 +5,8 @@
 #include <exception>
 #include <vector>
 #include <set>
+#include <ctime>
+#include <chrono>
 
 template <typename T>
 class Vector : public std::vector< T >
@@ -42,6 +44,16 @@ public:
         return *std::min(this->begin(), this->end());
     };
 
+    int argMin()
+    {
+        return (int)( std::min_element(this->begin(), this->end()) - this->begin() );
+    };
+
+    int argMax()
+    {
+        return (int)( std::max_element(this->begin(), this->end()) - this->begin() );
+    };
+
     T& operator()(int index){return this->at(index);};
 
     T operator()(int index) const {return this->at(index);};
@@ -76,6 +88,24 @@ public:
         return *this;
     };
 
+    Vector<T>& operator+(Vector<T> &rhs)
+    {
+        if( this->size() != rhs.size() )
+            std::runtime_error("Vector addition size mismatch");
+        for(int i=0; i<rhs.size(); i++)
+            (*this)(i) += rhs(i);
+        return *this;
+    };
+
+    Vector<T>& operator-(Vector<T> &rhs)
+    {
+        if( this->size() != rhs.size() )
+            std::runtime_error("Vector subtraction size mismatch");
+        for(int i=0; i<rhs.size(); i++)
+            (*this)(i) -= rhs(i);
+        return *this;
+    };
+
     T dot( const Vector<T> &rhs )
     {
         //dot product
@@ -91,6 +121,17 @@ public:
 
         return result;
     };
+
+    Eigen::Matrix<T, Eigen::Dynamic, 1> AsEigenVectorType()
+    {
+        Eigen::Matrix<T, Eigen::Dynamic, 1> res(this->size(), 1);
+
+        for(size_t i=0; i<this->size(); i++)
+            res(i,1) = this->at(i);
+        
+        return res;
+    };
+
 
 };
 
@@ -500,5 +541,7 @@ static Vector<T> where(Vector<T> &A, Vector<T> &B, bool (*ftest)(T& aval, T& bva
 
     return res;    
 };
+
+
 
 #endif
