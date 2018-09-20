@@ -778,13 +778,6 @@ void _simulate_performance(lk::invoke_t &cxt)
 
 	MainWindow &mw = MainWindow::Instance();
 	Project* P = mw.GetProject();
-
-	std::string error_msg;
-	if (!P->Validate(Project::CALLING_SIM::SIMULATION, &error_msg))
-	{
-		mw.Log(error_msg);
-		return;
-	}
 	P->S();
 	mw.UpdateDataTable();
 

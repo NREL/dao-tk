@@ -297,6 +297,7 @@ struct parameters : public lk::varhash_t
 	parameter is_use_clusters;
 	parameter is_run_continuous;
 	parameter is_hard_partitions;
+	parameter is_cycle_ssc_integration;
     //strings
 	parameter ampl_data_dir;
 	parameter solar_resource_file;
@@ -575,8 +576,9 @@ class Project
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
 	
 	
-	bool simulate_system();
+	bool simulate_system(PowerCycle &pc);
 	void calc_avg_annual_schedule(double original_ts, double new_ts, const parameter &full_sch, std::vector<double> &output_sch);
+	bool simulate_cycle_and_system(PowerCycle &pc, double start_time, double end_time, std::unordered_map<std::string, std::vector<double>> &soln);
 
 public:
 
