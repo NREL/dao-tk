@@ -314,6 +314,7 @@ struct parameters : public lk::varhash_t
 	parameter num_salt_steam_trains;
 	parameter num_fwh;
 	parameter num_salt_pumps;
+	parameter num_salt_pumps_required;
 	parameter num_water_pumps;
 	parameter num_turbines;
 	parameter read_periods;

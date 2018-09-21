@@ -145,10 +145,12 @@ void PowerCycle::ClearComponents()
 	m_condenser_idx.clear();
 	m_turbine_idx.clear();
 	m_sst_idx.clear();
+	m_salt_pump_idx.clear();
 	m_start_component_status.clear();
 	m_num_condenser_trains = 0;
 	m_num_feedwater_heaters = 0;
 	m_num_salt_pumps = 0;
+	m_num_salt_pumps_required = 0;
 	m_num_salt_steam_trains = 0;
 	m_num_turbines = 0;
 	m_num_water_pumps = 0;
@@ -608,10 +610,12 @@ void PowerCycle::AddComponent(std::string name,
 		&m_failure_event_labels));
 	if (type == "Turbine")
 		m_turbine_idx.push_back(m_components.size() - 1);
-	if (type == "Condenser train")
+	else if (type == "Condenser train")
 		m_condenser_idx.push_back(m_components.size() - 1);
-	if (type == "Salt-to-steam train")
+	else if (type == "Salt-to-steam train")
 		m_sst_idx.push_back(m_components.size() - 1);
+	else if (type == "Molten salt pump")
+		m_salt_pump_idx.push_back(m_components.size() - 1);
 }
 
 void PowerCycle::AddFailureType(std::string component, std::string id, std::string failure_mode,
@@ -700,7 +704,7 @@ void PowerCycle::AddSaltToSteamTrains(int num_trains)
 	{
 		m_num_salt_steam_trains += 1;
 		component_name = "SST" + std::to_string(m_num_salt_steam_trains);
-		AddComponent(component_name, "Salt-to-steam train", 2.14, 72, capacity_reduction, 0., 7.777, "A");
+		AddComponent(component_name, "Salt-to-steam train", 2.14, 72, capacity_reduction, 0.035, 7.777, "A");
 		AddFailureType(component_name, "Boiler External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
 		AddFailureType(component_name, "Boiler External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
 		AddFailureType(component_name, "Boiler External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
@@ -727,7 +731,7 @@ void PowerCycle::AddFeedwaterHeaters(int num_fwh)
 	{
 		m_num_feedwater_heaters += 1;
 		component_name = "FWH" + std::to_string(m_num_feedwater_heaters);
-		AddComponent(component_name, "Feedwater heater", 2.14, 48., 0.05, 0.05, 7.777, "A");
+		AddComponent(component_name, "Feedwater heater", 2.14, 48., 0., 0.05, 7.777, "A");
 		AddFailureType(component_name, "External_Leak_Large_(shell)", "O", "gamma", 0.3, 75000000);
 		AddFailureType(component_name, "External_Leak_Large_(tube)", "O", "gamma", 0.3, 10000000);
 		AddFailureType(component_name, "External_Leak_Small_(shell)", "O", "gamma", 0.5, 10000000);
@@ -735,14 +739,15 @@ void PowerCycle::AddFeedwaterHeaters(int num_fwh)
 	}
 }
 
-void PowerCycle::AddSaltPumps(int num_pumps)
+void PowerCycle::AddSaltPumps(int num_pumps, int num_required)
 {
 	std::string component_name;
+	m_num_salt_pumps_required = num_required;
 	for (int i = 0; i < num_pumps; i++)
 	{
 		m_num_salt_pumps += 1;
 		component_name = "SP" + std::to_string(m_num_salt_pumps);
-		AddComponent(component_name, "Molten salt pump", 0.5, 0., 1., 1., 7.777, "D");
+		AddComponent(component_name, "Molten salt pump", 7.09, 72., 0., 0., 7.777, "A");
 		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
 		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
 		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "gamma", 1.5, 3750);
@@ -775,6 +780,8 @@ void PowerCycle::AddTurbines(int num_turbines)
 	Adds turbines to the plant; assumes that the turbine-generator shaft shares a 
 	single failure rate, based on anecdotal feedback of maintenance every ~6 years, and 
 	the incidence of turbine failures being rare.
+
+	source for efficiency reduction: anecdotal (2-5% decrease)
 	*/
 	std::string component_name;
 	double capacity_reduction = 1.0 / num_turbines;
@@ -782,7 +789,7 @@ void PowerCycle::AddTurbines(int num_turbines)
 	{
 		m_num_turbines += 1;
 		component_name = "T" + std::to_string(m_num_turbines);
-		AddComponent(component_name, "Turbine", 32.7, 72, capacity_reduction, 0, 7.777, "D");
+		AddComponent(component_name, "Turbine", 32.7, 72, capacity_reduction, 0.035, 7.777, "D");
 		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
 		//AddFailureType(component_name, "MBTF_High-pressure", "O", "gamma", 1, 51834.31953);
 		//AddFailureType(component_name, "MBTF_Medium-pressure", "O", "gamma", 1, 51834.31953);
@@ -797,6 +804,7 @@ void PowerCycle::GeneratePlantComponents(
 	int num_salt_steam_trains,
 	int num_fwh,
 	int num_salt_pumps,
+	int num_salt_pumps_required,
 	int num_water_pumps,
 	int num_turbines,
 	std::vector<double> condenser_eff_cold,
@@ -817,7 +825,7 @@ void PowerCycle::GeneratePlantComponents(
 	AddCondenserTrains(num_condenser_trains, fans_per_train, radiators_per_train);
 	AddSaltToSteamTrains(num_salt_steam_trains);
 	AddFeedwaterHeaters(num_fwh);
-	AddSaltPumps(num_salt_pumps);
+	AddSaltPumps(num_salt_pumps, num_salt_pumps_required);
 	AddWaterPumps(num_water_pumps);
 	AddTurbines(num_turbines);
 	m_condenser_efficiencies_cold = condenser_eff_cold;
@@ -865,6 +873,8 @@ void PowerCycle::SetPlantAttributes(
 	m_current_cycle_state.downtime = downtime;
 	m_shutdown_capacity = shutdown_capacity;
 	m_no_restart_capacity = no_restart_capacity;
+	m_shutdown_efficiency = shutdown_efficiency;
+	m_no_restart_efficiency = no_restart_efficiency;
 }
 
 void PowerCycle::SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing)
@@ -1019,6 +1029,40 @@ double PowerCycle::GetSaltSteamTrainCapacity()
 	return cap;
 }
 
+double PowerCycle::GetSaltPumpCapacity()
+{
+	/*
+	Returns the relative capacity of all salt pumps that
+	are operational.
+	*/
+	double num_pumps_operational = 0.;
+	for (size_t i : m_salt_pump_idx)
+	{
+		if (m_components.at(i).IsOperational())
+		{
+			num_pumps_operational += 1;
+		}
+	}
+	return std::min(1.0, num_pumps_operational / m_num_salt_pumps_required);
+}
+
+double PowerCycle::GetSaltPumpEfficiency()
+{
+	/*
+	Returns the relative efficiency of all salt pumps that
+	are operational.
+	*/
+	double num_pumps_operational = 0.;
+	for (size_t i : m_salt_pump_idx)
+	{
+		if (m_components.at(i).IsOperational())
+		{
+			num_pumps_operational += 1;
+		}
+	}
+	return 1.0 - 0.035 * std::max(0.0, num_pumps_operational - m_num_salt_pumps_required);
+}
+
 void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
 {
 	/* 
@@ -1044,6 +1088,8 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
 	double turbine_eff = GetTurbineEfficiency(age, false);
 	double turbine_cap = GetTurbineCapacity(age, false);
 	double sst_cap = GetSaltSteamTrainCapacity();
+	double pump_cap = GetSaltPumpCapacity();
+	double pump_eff = GetSaltPumpEfficiency();
 	double rem_eff = 1.0;
 	for (size_t i = 0; i < m_components.size(); i++)
 	{
@@ -1052,9 +1098,10 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
 	}
 	//efficiency and capacity reductions assumed equal for all components but
 	//turbines and salt-to-steam trains
-	m_cycle_capacity = std::max(0., std::min(turbine_cap,sst_cap)*condenser_eff*rem_eff);
-	//salt
-	m_cycle_efficiency = std::max(0., turbine_eff*condenser_eff*rem_eff); 
+	m_cycle_capacity = std::max(0., std::min(
+		pump_cap,std::min(turbine_cap,sst_cap)
+		)*condenser_eff*rem_eff);
+	m_cycle_efficiency = std::max(0., pump_eff*turbine_eff*condenser_eff*rem_eff); 
 }
 
 double PowerCycle::GetCycleCapacity()
@@ -1398,7 +1445,6 @@ void PowerCycle::RunDispatch()
 	m_new_repair_occurred = false;
     std::vector< double > cycle_capacities( m_sim_params.sim_length, 0 );
 	std::vector< double > cycle_efficiencies( m_sim_params.sim_length, 0 );
-	size_t num_previous_failures = 0;
 	double power_output = 0.;
 	for( int t = 0; t < m_sim_params.sim_length; t++)
     {

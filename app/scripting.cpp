@@ -318,18 +318,19 @@ void _generate_solarfield(lk::invoke_t &cxt)
 
 void _power_cycle(lk::invoke_t &cxt)
 {
-	LK_DOC("power_cycle", "Simulate the power cycle capacity over time, after accounting for maintenance and failures. "
+	LK_DOC("power_cycle", "Simulate the power cycle capacity over time, "
+		"after accounting for maintenance and failures. "
 		"Table keys include: cycle_power, ambient_temperature, standby, "
 		"read_periods, sim_length, eps, output, num_scenarios, "
 		"cycle_hourly_labor_cost, stop_cycle_at_first_failure, "
 		"maintenance_interval, maintenance_duration, downtime_threshold, "
 		"steplength, hours_to_maintenance, power_output, current_standby, "
 		"capacity, temp_threshold, time_online, time_in_standby, downtime, "
-		"shutdown_capacity, no_restart_capacity, "
-		"shutdown_efficiency, no_restart_efficiency, num_condenser_trains, "
-		"fans_per_train, radiators_per_train, num_salt_steam_trains, num_fwh, "
-		"num_salt_pumps, num_water_pumps, num_turbines, condenser_eff_cold, "
-		"condenser_eff_hot", "(table:cycle_inputs):table");
+		"shutdown_capacity, no_restart_capacity, shutdown_efficiency, "
+		"no_restart_efficiency, num_condenser_trains, fans_per_train, "
+		"radiators_per_train, num_salt_steam_trains, num_fwh, num_salt_pumps, "
+		"num_salt_pumps_required, num_water_pumps, num_turbines,"
+		" condenser_eff_cold, condenser_eff_hot", "(table:cycle_inputs):table");
 
 	MainWindow &mw = MainWindow::Instance();
 
@@ -439,9 +440,13 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("num_fwh") != h->end())
 		num_fwh = h->at("num_fwh")->as_integer();
 
-	int num_salt_pumps = 2;
+	int num_salt_pumps = 4;
 	if (h->find("num_salt_pumps") != h->end())
 		num_salt_pumps = h->at("num_salt_pumps")->as_integer();
+
+	int num_salt_pumps_required = 3;
+	if (h->find("num_salt_pumps_required") != h->end())
+		num_salt_pumps_required = h->at("num_salt_pumps_required")->as_integer();
 
 	int num_water_pumps = 2;
 	if (h->find("num_water_pumps") != h->end())
@@ -484,6 +489,7 @@ void _power_cycle(lk::invoke_t &cxt)
 		num_salt_steam_trains,
 		num_fwh,
 		num_salt_pumps,
+		num_salt_pumps_required,
 		num_water_pumps,
 		num_turbines,
 		condenser_eff_cold,

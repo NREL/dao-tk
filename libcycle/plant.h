@@ -21,6 +21,7 @@ class PowerCycle
 	std::vector< size_t > m_turbine_idx;  //turbine indices of component vector
  	std::vector< size_t > m_sst_idx;   //salt-to-steam train indices of component vector
 	std::vector< size_t > m_condenser_idx; //condenser train indices of component vector
+	std::vector< size_t > m_salt_pump_idx; //salt pump indices of component vector
 	
 	int m_num_condenser_trains = 0;
 	int m_fans_per_condenser_train = 0;
@@ -31,6 +32,7 @@ class PowerCycle
 	int m_num_feedwater_heaters = 0;
 	int m_num_salt_steam_trains = 0;
 	int m_num_salt_pumps = 0;
+	int m_num_salt_pumps_required = 0;   //number required for capacity operation
 	int m_num_water_pumps = 0;
 	int m_num_turbines = 0; // HP, IP, LP turbines and generator count 
 							// as a single component
@@ -162,7 +164,7 @@ public:
 	void AddCondenserTrains(int num_trains, int num_fans, int num_radiators);
 	void AddSaltToSteamTrains(int num_trains);
 	void AddFeedwaterHeaters(int num_fwh);
-	void AddSaltPumps(int num_pumps);
+	void AddSaltPumps(int num_pumps, int num_required);
 	void AddWaterPumps(int num_pumps);
 	void AddTurbines(int num_turbines);
 	void GeneratePlantComponents(
@@ -171,7 +173,8 @@ public:
 		int radiators_per_train = 1,
 		int num_salt_steam_trains = 2,
 		int num_fwh = 6,
-		int num_salt_pumps = 2,
+		int num_salt_pumps = 4,
+		int num_salt_pumps_required = 3,
 		int num_water_pumps = 2,
 		int num_turbines = 1,
 		std::vector<double> condenser_eff_cold = { 0.,1.,1. },
@@ -200,6 +203,8 @@ public:
 	double GetTurbineEfficiency(bool age, bool include_failures = false);
 	double GetTurbineCapacity(bool age, bool include_failures = false);
 	double GetSaltSteamTrainCapacity();
+	double GetSaltPumpCapacity();
+	double GetSaltPumpEfficiency();
 	void SetCycleCapacityAndEfficiency(double temp, bool age = false);
 	double GetCycleCapacity();
 	double GetCycleEfficiency();

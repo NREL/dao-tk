@@ -105,8 +105,9 @@ parameters::parameters()
     radiators_per_train.set(                 2,          "radiators_per_train",      false,          "Number of radiators per condenser train",        "-",                  "Cycle|Parameters" );
     num_salt_steam_trains.set(               2,        "num_salt_steam_trains",      false,                   "Number of salt-to-steam trains",        "-",                  "Cycle|Parameters" );
     num_fwh.set(                             6,                      "num_fwh",      false,                      "Number of feedwater heaters",        "-",                  "Cycle|Parameters" );
-    num_salt_pumps.set(                      2,               "num_salt_pumps",      false,                         "Number of hot salt pumps",        "-",                  "Cycle|Parameters" );
-    num_water_pumps.set(                     2,              "num_water_pumps",      false,                 "Number of boiler and water pumps",        "-",                  "Cycle|Parameters" );
+    num_salt_pumps.set(                      4,               "num_salt_pumps",      false,                         "Number of hot salt pumps",        "-",                  "Cycle|Parameters" );
+	num_salt_pumps_required.set(             3,      "num_salt_pumps_required",      false,  "Number of hot salt pumps to operate at capacity",        "-",                  "Cycle|Parameters" );
+	num_water_pumps.set(                     2,              "num_water_pumps",      false,                 "Number of boiler and water pumps",        "-",                  "Cycle|Parameters" );
     num_turbines.set(                        1,                 "num_turbines",      false,               "Number of turbine-generator shafts",        "-",                  "Cycle|Parameters" );
     read_periods.set(                        0,                 "read_periods",      false,                      "Number of read-only periods",        "-",                  "Cycle|Parameters" );
     sim_length.set(                         48,                   "sim_length",      false,            "Number of periods in cycle simulation",        "-",                  "Cycle|Parameters" );
@@ -1430,6 +1431,7 @@ bool Project::C()
 		m_parameters.num_salt_steam_trains.as_integer(),
 		m_parameters.num_fwh.as_integer(),
 		m_parameters.num_salt_pumps.as_integer(),
+		m_parameters.num_salt_pumps_required.as_integer(),
 		m_parameters.num_water_pumps.as_integer(),
 		m_parameters.num_turbines.as_integer(),
 		c_eff_cold,
