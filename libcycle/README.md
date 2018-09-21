@@ -22,6 +22,10 @@ Members and methods used to describe type of failures that may occur for a given
 
 Contains some dependencies used in SAM, e.g., descriptions of the size_t variable.
 
+### plant_struct.h
+
+Data structures for CSP power cycle parameters, simulation model parameters, and results.
+
 ### plant.h
 
 Parameters and methods specific to a the CSP power cycle as a whole (e.g., operating time between maintenance events).
@@ -54,7 +58,8 @@ The power cycle composition should be defined by the user, but defaults are incl
 | radiators_per_train | Integer | Number of radiators in each condenser train | 1 |
 | num_salt_steam_trains | Integer | Number of salt-to-steam trains in power cycle | 2 |
 | num_fwh | Integer | Number of feedwater heaters in power cycle | 6 |
-| num_salt_pumps | Integer | Number of molten salt pumps in power cycle | 2 |
+| num_salt_pumps | Integer | Number of molten salt pumps in power cycle | 4 |
+| num_salt_pumps_required | Integer | Number of molten salt pumps required to operate power cycle at capacity | 3 |
 | num_water_pumps | Integer | Number of water pumps in power cycle | 2 |
 | num_turbines |  Integer | Number of turbine-generator shafts in power cycle | 1 |
 | condenser_eff_cold | Vector of floating point numbers | Efficiency of condenser according to how many trains are operational for low ambient temperatures | {0,1,1} |
@@ -82,6 +87,8 @@ Plant parameters are all scalars, so no sets are included in the table that foll
 | downtime | Floating point number | Time elapsed since plant was last in standby or generating power (h) | 0 |
 | shutdown_capacity | Floating point number | Capacity threshold for power cycle immediate shutdown (fraction) | 0.45 |
 | no_restart_capacity | Floating point number | Capacity threshold for power cycle immediate shutdown (fraction) | 0.9 |
+| shutdown_efficiency | Floating point number | Efficiency threshold for power cycle immediate shutdown (fraction) | 0.45 |
+| no_restart_efficiency | Floating point number | Efficiency threshold for power cycle immediate shutdown (fraction) | 0.9 |
 
 ### Simulation Parameters
 
@@ -100,6 +107,7 @@ Simulation parameters are all scalars, so no sets are included in the table that
 | output | Boolean | True if information on failure events is printed to the console, false o.w. | false |
 | num_scenarios | Integer between 1 and 100 | Number of scenarios in simulation | 1 | 
 | hourly_labor_cost | Floating point number | Hourly labor cost for repair of a failed component ($) | 35 |
+| stop_at_first_failure | Boolean | True if cycle model terminates after first failure, false o.w. | false |
 
 ### Dispatch Parameters
 
@@ -122,5 +130,11 @@ The simulation model provides the following outputs:
 | t | avg_cycle_capacity | Floating point number | Effective capacity of system due to component failures (fraction of total capacity) |
 | t | avg_cycle_efficiency | Floating point number | Effective capacity of system due to component failures (fraction of total capacity) |
 | s | labor_costs | Floating point number | Total labor cost of component repairs for scenario s ($) |
+| s | turbine_efficiency | Floating point number | Relative capacity of system due to component failures (fraction of total capacity) |
+| s | turbine_capacity | Floating point number | Total labor cost of component repairs for scenario s ($) |
+| s | period_of_last_failure | Integer | Time period in which last compnent failure occurred | 
 |  | avg_labor_cost | Floating point number | Average total labor cost for component repairs ($) |
+
+
+
 
