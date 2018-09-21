@@ -578,7 +578,12 @@ class Project
 	
 	bool simulate_system(PowerCycle &pc);
 	void calc_avg_annual_schedule(double original_ts, double new_ts, const parameter &full_sch, std::vector<double> &output_sch);
-	bool simulate_cycle_and_system(PowerCycle &pc, double start_time, double end_time, std::unordered_map<std::string, std::vector<double>> &soln);
+	
+	bool integrate_cycle_and_simulation(PowerCycle &pc, double start_time, double end_time, double horizon, bool start_stored_pc_state,
+									std::unordered_map<std::string, std::vector<double>>&initial_ssc_soln,
+									std::unordered_map<std::string, std::vector<double>> &soln);
+	
+
 
 public:
 
