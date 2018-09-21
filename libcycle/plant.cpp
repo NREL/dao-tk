@@ -1060,7 +1060,7 @@ double PowerCycle::GetSaltPumpEfficiency()
 			num_pumps_operational += 1;
 		}
 	}
-	return 1.0 - 0.035 * std::max(0.0, num_pumps_operational - m_num_salt_pumps_required);
+	return 1.0 - 0.035 * std::max(0.0, m_num_salt_pumps_required - num_pumps_operational);
 }
 
 void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
@@ -1677,7 +1677,15 @@ void PowerCycle::GetSummaryResults()
 		avg_labor += m_results.labor_costs[s];
 		avg_turb_cap += m_results.turbine_capacity[s];
 		avg_turb_eff += m_results.turbine_efficiency[s];
-		for (int t = 0; t < m_sim_params.sim_length; t++)
+	}
+	m_results.avg_labor_cost = avg_labor / m_sim_params.num_scenarios;
+	m_results.avg_turbine_capacity = avg_turb_cap / m_sim_params.num_scenarios;
+	m_results.avg_turbine_efficiency = avg_turb_eff / m_sim_params.num_scenarios;
+	for (int t = 0; t < m_sim_params.sim_length; t++)
+	{
+		avg_eff = 0;
+		avg_cap = 0;
+		for (int s = 0; s < m_sim_params.num_scenarios; s++)
 		{
 			avg_eff += m_results.cycle_efficiency[s].at(t);
 			avg_cap += m_results.cycle_capacity[s].at(t);
@@ -1685,9 +1693,7 @@ void PowerCycle::GetSummaryResults()
 		m_results.avg_cycle_efficiency.push_back(avg_eff / m_sim_params.num_scenarios);
 		m_results.avg_cycle_capacity.push_back(avg_cap / m_sim_params.num_scenarios);
 	}
-	m_results.avg_labor_cost = avg_labor / m_sim_params.num_scenarios;
-	m_results.avg_turbine_capacity = avg_turb_cap / m_sim_params.num_scenarios;
-	m_results.avg_turbine_efficiency = avg_turb_eff / m_sim_params.num_scenarios;
+	
 }
 
 double PowerCycle::GetLaborCosts(size_t start_fail_idx)
