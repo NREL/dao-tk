@@ -67,6 +67,7 @@ class PowerCycle
 	double m_cycle_efficiency;
 	double m_cycle_capacity;
 	bool m_new_failure_occurred;
+	bool m_new_repair_occurred;
 	
 
 public:
@@ -92,7 +93,7 @@ public:
 		bool print_output = false,
 		int num_scenarios = 1,
 		double hourly_labor_cost = 50.,
-		bool stop_at_first_failure = false
+		bool stop_at_first_repair = false
 	);
 	void SetCondenserEfficienciesCold(std::vector<double> eff_cold);
 	void SetCondenserEfficienciesHot(std::vector<double> eff_hot);
@@ -106,7 +107,7 @@ public:
 	void StorePlantParamsState();
 	void StoreCycleState();
 	void RecordFinalState();
-	void RevertToStartState();
+	void RevertToStartState(bool reset_rng);
 	void WriteStateToFiles(
 		bool current_state,
 		std::string component_filename, 
@@ -120,10 +121,15 @@ public:
 	std::vector< double > GetComponentLifetimes();
 	std::vector< double >  GetComponentDowntimes();
 	double GetHoursToMaintenance();
+
 	bool AirstreamOnline();
 	bool FWHOnline();
 	bool IsOnline();
 	bool IsOnStandby();
+	bool NewRepairOccurred();
+	bool NewFailureOccurred();
+	void ResetCycleEventFlags();
+
 	double GetTimeInStandby();
 	double GetTimeOnline();
 	double GetRampThreshold();

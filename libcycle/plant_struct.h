@@ -47,7 +47,7 @@ struct simulation_params
 	bool print_output;
 	int num_scenarios;
 	double hourly_labor_cost;
-	bool stop_at_first_failure;
+	bool stop_at_first_repair;
 	simulation_params();
 	void print();
 };
@@ -65,6 +65,7 @@ struct cycle_results
 	std::vector < std::string > failure_event_labels;
 	std::unordered_map < std::string, failure_event > failure_events;
 	std::unordered_map <int, int> period_of_last_failure;
+	std::unordered_map <int, int> period_of_last_repair;
 	std::unordered_map <int, double> turbine_efficiency;
 	std::unordered_map <int, double> turbine_capacity;
 	double avg_turbine_efficiency;
