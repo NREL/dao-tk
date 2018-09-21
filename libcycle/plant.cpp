@@ -1861,3 +1861,32 @@ double PowerCycle::GetExpectedStartsToNextFailure()
 	}
 	return 1.0 / (1.0 - p);
 }
+
+void PowerCycle::WriteAMPLParams(int day_idx)
+{
+	/* 
+	Writes the cycle efficiency and capacity over time, as well as 
+	the period of the final repair, to file.
+	*/
+	std::string filename = m_filenames.ampl_param_file;
+	filename += std::to_string(day_idx);
+	filename += ".dat";
+	std::fstream ofile;
+	ofile.open(filename);
+
+	ofile << "param last_fixed_period := " << m_results.period_of_last_repair[0] << ";\n\n";
+	ofile << "param Feff := \n\n";
+	for (int i = 0; i < m_sim_params.sim_length; i++)
+	{
+		ofile << (i + 1) << "  " << m_results.cycle_efficiency[0].at(i) << "\n";
+	}
+	ofile << "\n\n";
+	ofile << "param Fcap := \n\n";
+	for (int i = 0; i < m_sim_params.sim_length; i++)
+	{
+		ofile << (i + 1) << "  " << m_results.cycle_capacity[0].at(i) << "\n";
+	}
+	ofile << "\n\n";
+	ofile.close();
+}
+

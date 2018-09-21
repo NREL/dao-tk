@@ -11,6 +11,7 @@ cycle_file_settings::cycle_file_settings()
 	plant_out_state = "plant_state_out";
 	component_in_state = "component_state_in";
 	component_out_state = "component_state_out";
+	ampl_param_file = "MxSim";
 }
 
 cycle_state::cycle_state()

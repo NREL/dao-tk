@@ -250,6 +250,7 @@ public:
 	bool AnyFailuresOccurred();
 	double GetEstimatedMinimumLifetime(double frac_operational = 1.0);
 	double GetExpectedStartsToNextFailure();
+	void WriteAMPLParams(int day_idx = 0);
 };
 
 

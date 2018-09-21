@@ -13,6 +13,7 @@ struct cycle_file_settings
 	std::string component_out_state;
 	std::string plant_in_state;
 	std::string plant_out_state;
+	std::string ampl_param_file;
 	cycle_file_settings();
 };
 
