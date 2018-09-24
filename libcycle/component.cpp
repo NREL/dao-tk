@@ -499,7 +499,7 @@ void Component::GenerateFailure(WELLFiveTwelve &gen, int t, int fail_idx, int sc
     GenerateTimeToRepair(gen);
     m_failure_types.at(fail_idx).GenerateFailureVariate(gen);
     ResetHazardRate();
-	double labor = m_status.downtime_remaining - m_cooldown_time;
+	double labor = m_status.downtime_remaining - GetCooldownTime();
     //add a new failure to the parent (CSPPlant) failure queue
 	std::string label = "S"+std::to_string(scen_index)+"T"+std::to_string(t)+GetName()+std::to_string(fail_idx);
     (*m_parent_failure_events)[label] = failure_event(
