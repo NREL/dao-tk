@@ -299,6 +299,8 @@ void _test(lk::invoke_t &cxt)
 	mw.Log(wxString::Format("Average soiling: %.2f", P->m_optical_outputs.avg_soil.as_number()));
 	mw.Log(wxString::Format("Average degradation: %.2f", P->m_optical_outputs.avg_degr.as_number()));
 	mw.Log(wxString::Format("Average cycle repair labor costs: %.2f", P->m_cycle_outputs.cycle_labor_cost.as_number()));
+	mw.Log(wxString::Format("Number of failed components: %d", P->m_cycle_outputs.num_failures.as_integer()));
+
 
 	mw.SetProgress(0.);
 	mw.UpdateDataTable();
@@ -323,6 +325,7 @@ void _power_cycle(lk::invoke_t &cxt)
 		"Table keys include: cycle_power, ambient_temperature, standby, "
 		"read_periods, sim_length, eps, output, num_scenarios, "
 		"cycle_hourly_labor_cost, stop_cycle_at_first_failure, "
+		"stop_cycle_at_first_repair, "
 		"maintenance_interval, maintenance_duration, downtime_threshold, "
 		"steplength, hours_to_maintenance, power_output, current_standby, "
 		"capacity, temp_threshold, time_online, time_in_standby, downtime, "
@@ -334,7 +337,7 @@ void _power_cycle(lk::invoke_t &cxt)
 
 	MainWindow &mw = MainWindow::Instance();
 
-	PowerCycle cycle;
+	PowerCycle cycle = PowerCycle();
 
 	lk::varhash_t *h = cxt.arg(0).hash();
 
@@ -530,6 +533,9 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("stop_cycle_at_first_failure") != h->end())
 		stop_at_first_failure = h->at("stop_cycle_at_first_failure")->as_boolean();
 
+	bool stop_at_first_repair = false;
+	if (h->find("stop_cycle_at_first_repair") != h->end())
+		stop_at_first_repair = h->at("stop_cycle_at_first_repair")->as_boolean();
 
 	cycle.SetSimulationParameters(
 		read_periods,
@@ -539,7 +545,8 @@ void _power_cycle(lk::invoke_t &cxt)
 		output,
 		num_scenarios,
 		cycle_hourly_labor_cost,
-		stop_at_first_failure
+		stop_at_first_failure,
+		stop_at_first_repair
 		);
 
 	std::unordered_map<std::string, std::vector<double> > dispatch;

@@ -89,7 +89,8 @@ parameters::parameters()
     is_ampl_engine.set(                  false,               "is_ampl_engine",      false,                               "Use AMPL optimizer",        "-",                          "Settings" );
     is_stochastic_disp.set(              false,           "is_stochastic_disp",      false,                          "Run stochastic dispatch",        "-",                          "Settings" );
     current_standby.set(                 false,              "current_standby",      false,                     "Start power cycle in standby",        "-",                  "Cycle|Parameters" );
-	stop_cycle_at_first_failure.set     (false,  "stop_cycle_at_first_failure",      false, "Stop cycle model after first failure or maintenance event", "-",                "Cycle|Paramaeters" );
+	stop_cycle_at_first_failure.set(     false,  "stop_cycle_at_first_failure",      false,   "Stop cycle model after first new failure event",        "-",                  "Cycle|Parameters" );
+	stop_cycle_at_first_repair.set(      false,   "stop_cycle_at_first_repair",      false,    "Stop cycle model after first new repair event",        "-",                  "Cycle|Parameters" );
 
 	std::string empty_string = "";
     ampl_data_dir.set(                      "",                "ampl_data_dir",      false,                                 "AMPL data folder",        "-",                          "Settings" );
@@ -216,6 +217,7 @@ parameters::parameters()
     (*this)["is_stochastic_disp"] = &is_stochastic_disp;
 	(*this)["current_standby"] = &current_standby;
 	(*this)["stop_cycle_at_first_failure"] = &stop_cycle_at_first_failure;
+	(*this)["stop_cycle_at_first_repair"] = &stop_cycle_at_first_repair;
     (*this)["ampl_data_dir"] = &ampl_data_dir;
     (*this)["solar_resource_file"] = &solar_resource_file;
     (*this)["disp_steps_per_hour"] = &disp_steps_per_hour;
@@ -1390,7 +1392,7 @@ bool Project::C()
 	cycle_efficiency    Time series of mean cycle efficiency 
 	cycle_capacity      Time series of mean cycle capacity
 	*/
-
+	
 	// error if invalid design
 	std::string error_msg;
 	if (!Validate(Project::CALLING_SIM::CYCLE_AVAIL, &error_msg))
@@ -1399,6 +1401,7 @@ bool Project::C()
 		return false;
 	}
 	
+
 	PowerCycle pc = PowerCycle();
 	WELLFiveTwelve gen(0);
 	pc.AssignGenerator(&gen);
@@ -1412,7 +1415,8 @@ bool Project::C()
 		false,
 		m_parameters.num_scenarios.as_integer(),
 		m_parameters.cycle_hourly_labor_cost.as_number(),
-		m_parameters.stop_cycle_at_first_failure.as_boolean()
+		m_parameters.stop_cycle_at_first_failure.as_boolean(),
+		m_parameters.stop_cycle_at_first_repair.as_boolean()
 	);
 	
 	//Plant Components
@@ -1484,14 +1488,15 @@ bool Project::C()
 
 	//Assign results to structure
 	pc.GetSummaryResults();
-	m_cycle_outputs.cycle_capacity.vec()->resize(pc.GetSimLength());
-	m_cycle_outputs.cycle_efficiency.vec()->resize(pc.GetSimLength());
+	m_cycle_outputs.cycle_capacity.empty_vector();
+	m_cycle_outputs.cycle_efficiency.empty_vector();
 
 	m_cycle_outputs.cycle_labor_cost.assign(pc.m_results.avg_labor_cost);
-	m_cycle_outputs.cycle_capacity.assign_vector(pc.m_results.avg_cycle_capacity);
-	m_cycle_outputs.cycle_efficiency.assign_vector(pc.m_results.avg_cycle_efficiency);
+	m_cycle_outputs.cycle_capacity.assign_vector( pc.m_results.cycle_capacity[0] );
+	m_cycle_outputs.cycle_efficiency.assign_vector( pc.m_results.cycle_efficiency[0] );
 	m_cycle_outputs.expected_starts_to_next_cycle_failure.assign(pc.m_results.expected_starts_to_failure);
 	m_cycle_outputs.expected_time_to_next_cycle_failure.assign(pc.m_results.expected_time_to_failure);
+	m_cycle_outputs.num_failures.assign(pc.m_results.failure_event_labels.size());
 
 	is_cycle_avail_valid = true;
 
