@@ -49,6 +49,7 @@ struct simulation_params
 	int num_scenarios;
 	double hourly_labor_cost;
 	bool stop_at_first_repair;
+	bool stop_at_first_failure;
 	simulation_params();
 	void print();
 };

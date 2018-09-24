@@ -3,7 +3,6 @@
 #include <iostream>
 #include <fstream>
 #include "plant.h"
-#include "lib_util.h"
 
 
 PowerCycle::PowerCycle()
@@ -84,7 +83,8 @@ void PowerCycle::SetSimulationParameters(
 	bool print_output,
 	int num_scenarios,
 	double hourly_labor_cost,
-	bool stop_at_first_repair
+	bool stop_at_first_repair,
+	bool stop_at_first_failure
 )
 {
     m_sim_params.read_periods = read_periods;
@@ -95,6 +95,7 @@ void PowerCycle::SetSimulationParameters(
 	m_sim_params.num_scenarios = num_scenarios;
 	m_sim_params.hourly_labor_cost = hourly_labor_cost;
 	m_sim_params.stop_at_first_repair = stop_at_first_repair;
+	m_sim_params.stop_at_first_failure = stop_at_first_failure;
 	m_current_scenario = 0;
 }
 
@@ -188,7 +189,8 @@ void PowerCycle::SetStartComponentStatus()
 {
 	/*
 	Sets the status of all components to what is stored in
-	m_start_component_status.
+	m_start_component_status. Any components not stored in the status dictionary
+	are currently skipped.
 	*/
 	for (std::vector< Component >::iterator it = m_components.begin(); 
 			it != m_components.end(); it++)
@@ -704,7 +706,7 @@ void PowerCycle::AddSaltToSteamTrains(int num_trains)
 	{
 		m_num_salt_steam_trains += 1;
 		component_name = "SST" + std::to_string(m_num_salt_steam_trains);
-		AddComponent(component_name, "Salt-to-steam train", 2.14, 72, capacity_reduction, 0.035, 7.777, "A");
+		AddComponent(component_name, "Salt-to-steam train", 2.14, 72, capacity_reduction, 0., 7.777, "A");
 		AddFailureType(component_name, "Boiler External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
 		AddFailureType(component_name, "Boiler External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
 		AddFailureType(component_name, "Boiler External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
@@ -765,7 +767,7 @@ void PowerCycle::AddWaterPumps(int num_pumps)
 	{
 		m_num_water_pumps += 1;
 		component_name = "WP" + std::to_string(m_num_water_pumps);
-		AddComponent(component_name, "Water pump", 0.5, 0., 1., 1, 7.777, "D");
+		AddComponent(component_name, "Water pump", 0.5, 0., 1., 1., 7.777, "D");
 		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
 		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
 		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "gamma", 1.5, 3750);
@@ -789,7 +791,7 @@ void PowerCycle::AddTurbines(int num_turbines)
 	{
 		m_num_turbines += 1;
 		component_name = "T" + std::to_string(m_num_turbines);
-		AddComponent(component_name, "Turbine", 32.7, 72, capacity_reduction, 0.035, 7.777, "D");
+		AddComponent(component_name, "Turbine", 32.7, 72, capacity_reduction, 0., 7.777, "D");
 		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
 		//AddFailureType(component_name, "MBTF_High-pressure", "O", "gamma", 1, 51834.31953);
 		//AddFailureType(component_name, "MBTF_Medium-pressure", "O", "gamma", 1, 51834.31953);
@@ -1091,17 +1093,27 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
 	double pump_cap = GetSaltPumpCapacity();
 	double pump_eff = GetSaltPumpEfficiency();
 	double rem_eff = 1.0;
+	double rem_cap = 1.0;
 	for (size_t i = 0; i < m_components.size(); i++)
 	{
 		if (!m_components.at(i).IsOperational())
-			rem_eff -= m_components.at(i).GetCapacityReduction();
+		{
+			rem_eff -= m_components.at(i).GetEfficiencyReduction();
+			rem_cap -= m_components.at(i).GetCapacityReduction();
+		}
 	}
 	//efficiency and capacity reductions assumed equal for all components but
 	//turbines and salt-to-steam trains
-	m_cycle_capacity = std::max(0., std::min(
-		pump_cap,std::min(turbine_cap,sst_cap)
-		)*condenser_eff*rem_eff);
-	m_cycle_efficiency = std::max(0., pump_eff*turbine_eff*condenser_eff*rem_eff); 
+	m_cycle_capacity = std::max(0., 
+		std::min(pump_cap,
+			std::min(turbine_cap,
+				std::min(sst_cap, rem_cap)
+			) 
+		) 
+	);
+	m_cycle_efficiency = std::max(
+		0., pump_eff*turbine_eff*condenser_eff*rem_eff
+	); 
 }
 
 double PowerCycle::GetCycleCapacity()
@@ -1513,6 +1525,28 @@ void PowerCycle::RunDispatch()
 		{
 			m_new_failure_occurred = true;
 			m_results.period_of_last_failure[m_current_scenario] = t;
+			if (m_sim_params.stop_at_first_failure)
+			{
+				for (size_t i = 0; i < m_components.size(); i++)
+				{
+					if (!m_components.at(i).IsOperational())
+					{
+						m_components.at(i).SetDowntimeRemaining(m_components.at(i).GetMeanRepairTime());
+					}
+				}
+				for (int tp = t + 1; tp < m_sim_params.sim_length; tp++)
+				{
+					//We assume that components with online repairs may 
+					//continue to be repaired and will be back online after 
+					//the mean repair time.  Any other components won't be 
+					//repaired for the rest of the day.
+					SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
+					AdvanceDowntime("OO");
+					cycle_capacities[tp] = m_cycle_capacity * 1.0;
+					cycle_efficiencies[tp] = m_cycle_efficiency * 1.0;
+				}
+				break;
+			}
 		}
 		if (t > m_results.period_of_last_repair[m_current_scenario] &&
 			NewRepairOccurred())
@@ -1646,8 +1680,10 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory)
 	}
 	m_start_component_status = GetComponentStates();
 	RunDispatch();
-	if ((m_new_repair_occurred || m_new_failure_occurred) && m_sim_params.stop_at_first_repair)
+	if ((m_new_repair_occurred && m_sim_params.stop_at_first_repair) 
+		|| (m_new_failure_occurred && m_sim_params.stop_at_first_failure) )
 	{
+
 		RevertToStartState(false);
 	}
 	else
@@ -1759,7 +1795,6 @@ void PowerCycle::Simulate(bool read_state_from_file, bool read_state_from_memory
 	
 	//Obtain Summary Statistics
 	GetSummaryResults();
-
 }
 
 void PowerCycle::ResetPlant()

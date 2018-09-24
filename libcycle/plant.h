@@ -9,6 +9,7 @@
 #include "well512.h"
 #include "distributions.h"
 #include "plant_struct.h"
+#include "lib_util.h"
 
 
 class PowerCycle
@@ -95,7 +96,8 @@ public:
 		bool print_output = false,
 		int num_scenarios = 1,
 		double hourly_labor_cost = 50.,
-		bool stop_at_first_repair = false
+		bool stop_at_first_repair = false,
+		bool stop_at_first_failure = false
 	);
 	void SetCondenserEfficienciesCold(std::vector<double> eff_cold);
 	void SetCondenserEfficienciesHot(std::vector<double> eff_hot);
