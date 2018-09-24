@@ -3,6 +3,7 @@
 
 #include <string>
 #include "distributions.h"
+#include "well512.h"
 
 class FailureType
 {
@@ -49,7 +50,6 @@ public:
 
 	void GenerateFailureVariate(WELLFiveTwelve &gen);
 
-	void TestForFailure(double time, double ramp_mult, WELLFiveTwelve &gen, int t, std::string mode);
 };
 
 #endif
