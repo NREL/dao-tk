@@ -47,7 +47,7 @@ This section defines the sets and inputs that are used for the
 
 ### Power Cycle Composition Parameters
 
-The plant component information stores how many of each component type are in the CSP power cycle.  Each component type described here has a collection of failure modes and distributional information on the frequency of failure; we assume that these modes and distributions are fixed, with IEEE and NUREG guidelines as the sources for distributions that govern failure and repair events.  All component parameters are scalars, so no sets are included in the table that follows.
+The component information stores how many of each component type are in the CSP power cycle.  Each component type described here has a collection of failure modes and distributional information on the frequency of failure; we assume that these modes and distributions are fixed, with IEEE and NUREG guidelines as the sources for distributions that govern failure and repair events.  All component parameters are scalars, so no sets are included in the table that follows.
 
 The power cycle composition should be defined by the user, but defaults are included as a guide.
 
@@ -65,53 +65,59 @@ The power cycle composition should be defined by the user, but defaults are incl
 | condenser_eff_cold | Vector of floating point numbers | Efficiency of condenser according to how many trains are operational for low ambient temperatures | {0,1,1} |
 | condenser_eff_hot | Vector of floating point numbers | Efficiency of condenser according to how many trains are operational for high ambient temperatures | {0,0.95,1} |
 
-### Plant Parameters
+### Power Cycle Parameters
 
-These plant parameters may be user-defined, but have default values as a starting point.
+These plant-level parameters may be user-defined, but have default values as a starting point.
 
-Plant parameters are all scalars, so no sets are included in the table that follows.
+Power cycle parameters are all scalars, so no sets are included in the table that follows.   These can be adjusted via the method "SetPlantAttributes".
 
 | Parameter | Data Type | Description (Units) | Default Value (if any) |
 | --- | --- | --- | --- | 
 | maintenance_interval	|	Floating point number	|	Operation time before maintenance (h)	| 5,000 | 
 | maintenance_duration	|	Floating point number	|	Maintenance event duration (h)	| 168 |
 | downtime_threshold	|	Floating point number	|	Length of downtime required to qualify as a cold start (h)	| 24 |
-| steplength	|	Floating point number	|	Time period length (h)	| 1 |
 | hours_to_maintenance | Floating point number | Operation duration before the next maintenance event (h) | 5,000 | 
+| is_online | Boolean | true if plant is currently online, false otherwise | false |
+| is_on_standby | Boolean | true if plant is currently on standby, false otherwise | false |
 | power_output | Floating point number | Plant power cycle output at start of simulation (W) | 0 |
-| current_standby | Boolean | true if plant is currently on standby, false otherwise | false |
 | capacity | Floating point number | Upper bound for power cycle output (W) | 500,000 |
 | temp_threshold | Floating point number | Threshold for two condenser streams required for cooling the plant (Celsius) | 20 | 
 | time_online | Floating point number | Time elapsed since plant was last offline or in standby (h) | 0 |
 | time_in_standby | Floating point number | Time elapsed since plant was last offline or generating power (h) | 0 |
 | downtime | Floating point number | Time elapsed since plant was last in standby or generating power (h) | 0 |
-| shutdown_capacity | Floating point number | Capacity threshold for power cycle immediate shutdown (fraction) | 0.45 |
-| no_restart_capacity | Floating point number | Capacity threshold for power cycle immediate shutdown (fraction) | 0.9 |
-| shutdown_efficiency | Floating point number | Efficiency threshold for power cycle immediate shutdown (fraction) | 0.45 |
-| no_restart_efficiency | Floating point number | Efficiency threshold for power cycle immediate shutdown (fraction) | 0.9 |
+
+
+### Policy parameters
+
+These parameters indicate when the simulation model shuts the power cycle down for unplanned maintenance.  These can be adjusted via the method "SetPlantAttributes".
+
+| Parameter | Data Type | Description (Units) | Default Value (if any) |
+| shutdown_capacity | Floating point number | Capacity threshold for power cycle immediate shutdown (fraction) | 0.3 |
+| no_restart_capacity | Floating point number | Capacity threshold for maintenance at next power cycle shutdown (fraction) | 0.8 |
+| shutdown_efficiency | Floating point number | Efficiency threshold for power cycle immediate shutdown (fraction) | 0.7 |
+| no_restart_efficiency | Floating point number | Efficiency threshold for maintenance at next power cycle shutdown (fraction) | 0.9 |
 
 ### Simulation Parameters
 
 These are not expected to be user-defined inputs, but are required to run the model.
 
-Simulation parameters are all scalars, so no sets are included in the table that follows.
+Cycle simulation parameters are all scalars, so no sets are included in the table that follows.   These can be adjusted via the method "SetSimulationParameters" or by directly adjusting the structure "m_sim_params".
 
 | Parameter | Data Type | Description (Units) | Default (if any) |
 | --- | --- | --- | --- | 
 | read_periods | Integer | Number of time periods that are read-only | 0 |
 | sim_length | Integer | Length of simulation time horizon, in periods | 48 | 
-| start_period | Integer | Index of starting period to use from dispatch inputs | 0 |
-| next_start_period | Integer | Index of next starting period to use from dispatch inputs (in rolling horizon) | 0 |
-| write_interval | Integer | Number of time periods for which failure events are recorded | 48 |
-| eps | Floating point number | Threshold on lifetimes for which a failure occurs | 1e-10 |
-| output | Boolean | True if information on failure events is printed to the console, false o.w. | false |
+| steplength	|	Floating point number	|	Time period length (h)	| 1 |
+| epsilon | Floating point number | Threshold on lifetimes for which a failure occurs | 1e-10 |
+| print_output | Boolean | True if information on failure events is printed to the console, false o.w. | false |
 | num_scenarios | Integer between 1 and 100 | Number of scenarios in simulation | 1 | 
 | hourly_labor_cost | Floating point number | Hourly labor cost for repair of a failed component ($) | 35 |
+| stop_at_first_repair | Boolean | True if cycle model terminates after first repair, false o.w. | false |
 | stop_at_first_failure | Boolean | True if cycle model terminates after first failure, false o.w. | false |
 
 ### Dispatch Parameters
 
-These are the inputs that we expect to come from the optimization model and/or SAM.
+These are the inputs that come from the optimization model and SAM.
 
 | Sets | Parameter | Data Type | Description (Units) |
 | --- | --- | --- | --- | 
@@ -121,7 +127,7 @@ These are the inputs that we expect to come from the optimization model and/or S
 
 ## Outputs
 
-The simulation model provides the following outputs: 
+The cycle simulation model provides the following outputs: 
  
 | Sets | Parameter | Data Type | Description |
 | --- | --- | --- | --- | 
@@ -130,10 +136,15 @@ The simulation model provides the following outputs:
 | t | avg_cycle_capacity | Floating point number | Effective capacity of system due to component failures (fraction of total capacity) |
 | t | avg_cycle_efficiency | Floating point number | Effective capacity of system due to component failures (fraction of total capacity) |
 | s | labor_costs | Floating point number | Total labor cost of component repairs for scenario s ($) |
-| s | turbine_efficiency | Floating point number | Relative capacity of system due to component failures (fraction of total capacity) |
-| s | turbine_capacity | Floating point number | Total labor cost of component repairs for scenario s ($) |
+| s | turbine_efficiency | Floating point number | Relative efficiency of system due to turbine aging (fraction of total capacity) |
+| s | turbine_capacity | Floating point number | Relative capacity of system due to turbine aging (fraction of total capacity) |
 | s | period_of_last_failure | Integer | Time period in which last compnent failure occurred | 
+| s | period_of_last_repair | Integer | Time period in which last compnent failure occurred | 
 |  | avg_labor_cost | Floating point number | Average total labor cost for component repairs ($) |
+|  | avg_turbine_efficiency | Floating point number | Average relative efficiency of system due to turbine aging (fraction of total capacity) |
+|  | avg_turbine_capacity | Floating point number | Average relative capacity of system due to turbine aging (fraction of total capacity) |
+|  | expected_time_to_failure | Floating point number | Estimated runtime to the next component failure (h) |
+|  | expected_starts_to_failure | Floating point number | Estimated number of scycle starts to the next component failure |
 
 
 
