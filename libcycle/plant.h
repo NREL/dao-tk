@@ -41,8 +41,8 @@ class PowerCycle
 	std::unordered_map<std::string, std::vector<double> > m_dispatch;
 
 	//Failure Events
-	std::unordered_map< std::string, failure_event > m_failure_events;
-	std::vector <std::string> m_failure_event_labels;
+	std::unordered_map< std::string, failure_event >  m_failure_events;
+	std::vector <std::string>  m_failure_event_labels;
 
 	std::unordered_map< std::string, ComponentStatus > m_start_component_status;
 
@@ -78,7 +78,7 @@ public:
 	void Initialize();
 	cycle_state m_current_cycle_state;
 	cycle_state m_begin_cycle_state;
-	cycle_file_settings m_filenames;
+	cycle_file_settings m_file_settings;
 	cycle_results m_results;
 	simulation_params m_sim_params;
 	std::vector< std::string > output_log;
@@ -252,7 +252,7 @@ public:
 	bool AnyFailuresOccurred();
 	double GetEstimatedMinimumLifetime(double frac_operational = 1.0);
 	double GetExpectedStartsToNextFailure();
-	void WriteAMPLParams(int day_idx = 0);
+	void WriteAMPLParams();
 };
 
 

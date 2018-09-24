@@ -7,11 +7,13 @@
 
 cycle_file_settings::cycle_file_settings()
 {
-	plant_in_state = "plant_state_in";
-	plant_out_state = "plant_state_out";
-	component_in_state = "component_state_in";
-	component_out_state = "component_state_out";
-	ampl_param_file = "MxSim";
+	plant_in_state = "./plant_state_in";
+	plant_out_state = "./plant_state_out";
+	component_in_state = "./component_state_in";
+	component_out_state = "./component_state_out";
+	ampl_param_file = "./MxSim";
+	output_ampl_file = false;
+	day_idx = 0;
 }
 
 cycle_state::cycle_state()

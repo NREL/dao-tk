@@ -14,6 +14,8 @@ struct cycle_file_settings
 	std::string plant_in_state;
 	std::string plant_out_state;
 	std::string ampl_param_file;
+	bool output_ampl_file;
+	int day_idx;
 	cycle_file_settings();
 };
 
@@ -64,8 +66,8 @@ struct cycle_results
 	double avg_labor_cost;
 	std::unordered_map<int, std::unordered_map< std::string, ComponentStatus > > component_status;
 	std::unordered_map<int, cycle_state >  plant_status;
-	std::vector < std::string > failure_event_labels;
-	std::unordered_map < std::string, failure_event > failure_events;
+	std::unordered_map < int, std::vector < std::string > > failure_event_labels;
+	std::unordered_map < int, std::unordered_map < std::string, failure_event > > failure_events;
 	std::unordered_map <int, int> period_of_last_failure;
 	std::unordered_map <int, int> period_of_last_repair;
 	std::unordered_map <int, double> turbine_efficiency;

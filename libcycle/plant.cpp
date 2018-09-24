@@ -22,6 +22,9 @@ void PowerCycle::Initialize()
 	for (int i = 0; i < m_sim_params.num_scenarios; i++)
 	{
 		m_results.period_of_last_failure[i] = -1;
+		m_results.period_of_last_repair[i] = -1;
+		m_results.cycle_capacity[i] = std::vector<double>(m_sim_params.sim_length,1.);
+		m_results.cycle_efficiency[i] = std::vector<double>(m_sim_params.sim_length, 1.);
 	}
 }
 
@@ -97,6 +100,13 @@ void PowerCycle::SetSimulationParameters(
 	m_sim_params.stop_at_first_repair = stop_at_first_repair;
 	m_sim_params.stop_at_first_failure = stop_at_first_failure;
 	m_current_scenario = 0;
+	for (int i = 0; i < m_sim_params.num_scenarios; i++)
+	{
+		m_results.period_of_last_failure[i] = -1;
+		m_results.period_of_last_repair[i] = -1;
+		m_results.cycle_capacity[i] = std::vector<double>(m_sim_params.sim_length, 1.);
+		m_results.cycle_efficiency[i] = std::vector<double>(m_sim_params.sim_length, 1.);
+	}
 }
 
 void PowerCycle::SetCondenserEfficienciesCold(std::vector<double> eff_cold)
@@ -183,6 +193,8 @@ void PowerCycle::ReadCycleStateFromResults(int scen_idx)
 	m_start_component_status = m_results.component_status[m_current_scenario];
 	SetStartComponentStatus();
 	m_gen->assignStates(scen_idx);
+	m_failure_events = m_results.failure_events[m_current_scenario];
+	m_failure_event_labels = m_results.failure_event_labels[m_current_scenario];
 }
 
 void PowerCycle::SetStartComponentStatus()
@@ -1581,6 +1593,21 @@ void PowerCycle::RunDispatch()
 			}
 		}
     }
+	//One additional check: if no new failures or repairs occurred, but the 
+	//last repair duration did not match the last run in the simulation, the 
+	//optimization model needs to rerun.  In this case, the period of last 
+	//failure and repair will be set to the simulation length.  This can only
+	//happen if the last periods efficiency/capacity do not match those of the
+	//results from the last run, or there would be a prior event triggered.
+	if (!m_new_failure_occurred && !m_new_repair_occurred && (
+		cycle_efficiencies[m_sim_params.sim_length - 1] != m_results.cycle_efficiency[m_current_scenario].at(m_sim_params.sim_length - 1) ||
+		cycle_capacities[m_sim_params.sim_length - 1] != m_results.cycle_capacity[m_current_scenario].at(m_sim_params.sim_length - 1)
+		))
+	{
+		m_results.period_of_last_failure[m_current_scenario] = m_sim_params.sim_length;
+		m_results.period_of_last_repair[m_current_scenario] = m_sim_params.sim_length;
+
+	}
 	StoreScenarioResults(cycle_efficiencies, cycle_capacities);
 }
 
@@ -1664,11 +1691,11 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory)
 	if (read_state_from_file)
 	{
 		std::string cfilename = (
-			m_filenames.component_in_state + 
+			m_file_settings.component_in_state + 
 			std::to_string(m_current_scenario) + ".csv"
 			);
 		std::string pfilename = (
-			m_filenames.plant_in_state + 
+			m_file_settings.plant_in_state + 
 			std::to_string(m_current_scenario) + ".csv"
 			);
 		ReadStateFromFiles(cfilename, pfilename);
@@ -1683,7 +1710,6 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory)
 	if ((m_new_repair_occurred && m_sim_params.stop_at_first_repair) 
 		|| (m_new_failure_occurred && m_sim_params.stop_at_first_failure) )
 	{
-
 		RevertToStartState(false);
 	}
 	else
@@ -1691,7 +1717,10 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory)
 		StoreCycleState();
 		m_results.period_of_last_failure[m_current_scenario] = -1;
 		m_results.period_of_last_repair[m_current_scenario] = -1;
+		ClearFailureEvents();
 	}
+	if (m_file_settings.output_ampl_file)
+		WriteAMPLParams();
 	RecordFinalState();
 }
 
@@ -1786,12 +1815,15 @@ void PowerCycle::Simulate(bool read_state_from_file, bool read_state_from_memory
 	{
 		m_current_scenario = i;
 		if (!run_only_previous_failures || m_results.period_of_last_failure[i] > -1)
+		{
 			SingleScen(read_state_from_file, read_state_from_memory);
+
+			//Record failure events
+			m_results.failure_events[m_current_scenario] = m_failure_events;
+			m_results.failure_event_labels[m_current_scenario] = m_failure_event_labels;
+		}
 	}
 	
-	//Record failure events
-	m_results.failure_events = m_failure_events;
-	m_results.failure_event_labels = m_failure_event_labels;
 	
 	//Obtain Summary Statistics
 	GetSummaryResults();
@@ -1903,31 +1935,44 @@ double PowerCycle::GetExpectedStartsToNextFailure()
 	return 1.0 / (1.0 - p);
 }
 
-void PowerCycle::WriteAMPLParams(int day_idx)
+void PowerCycle::WriteAMPLParams()
 {
 	/* 
 	Writes the cycle efficiency and capacity over time, as well as 
 	the period of the final repair, to file.
 	*/
-	std::string filename = m_filenames.ampl_param_file;
-	filename += std::to_string(day_idx);
+	std::string filename = m_file_settings.ampl_param_file;
+	if (m_current_scenario > 0)
+	{
+		filename += std::to_string(m_current_scenario);
+		filename += "_";
+	}
+	filename += std::to_string(m_file_settings.day_idx);
 	filename += ".dat";
-	std::fstream ofile;
-	ofile.open(filename);
-
-	ofile << "param last_fixed_period := " << m_results.period_of_last_repair[0] << ";\n\n";
-	ofile << "param Feff := \n\n";
+	std::ofstream outfile;
+	outfile.open(filename);
+	int period = 0;
+	if (m_sim_params.stop_at_first_failure && !m_sim_params.stop_at_first_repair && NewFailureOccurred())
+		period = m_results.period_of_last_failure[0] + 1;
+	else if (!m_sim_params.stop_at_first_failure && m_sim_params.stop_at_first_repair && NewRepairOccurred())
+		period = m_results.period_of_last_repair[0] + 1;
+	else if (m_sim_params.stop_at_first_failure && m_sim_params.stop_at_first_repair && (NewRepairOccurred() || NewFailureOccurred()))
+		period = std::max(m_results.period_of_last_repair[0], m_results.period_of_last_failure[0]) + 1;
+	else  // here, either no failures and no repairs occurred, or settings don't require stoppage at a failure or repair
+		period = std::max(m_results.period_of_last_repair[0], m_results.period_of_last_failure[0]);
+	outfile << "param last_fixed_period := " << period << ";\n\n";
+	outfile << "param Feff := \n";
 	for (int i = 0; i < m_sim_params.sim_length; i++)
 	{
-		ofile << (i + 1) << "  " << m_results.cycle_efficiency[0].at(i) << "\n";
+		outfile << (i + 1) << "  " << m_results.cycle_efficiency[0].at(i) << "\n";
 	}
-	ofile << "\n\n";
-	ofile << "param Fcap := \n\n";
+	outfile << ";\n\n";
+	outfile << "param Fcap := \n";
 	for (int i = 0; i < m_sim_params.sim_length; i++)
 	{
-		ofile << (i + 1) << "  " << m_results.cycle_capacity[0].at(i) << "\n";
+		outfile << (i + 1) << "  " << m_results.cycle_capacity[0].at(i) << "\n";
 	}
-	ofile << "\n\n";
-	ofile.close();
+	outfile << ";\n\n";
+	outfile.close();
 }
 
