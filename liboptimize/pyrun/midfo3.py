@@ -107,6 +107,7 @@ def main(func, LB, UB, X, pflag=False, data_out=False, trust=False, convex_flag=
                 points_better_than_obj_ub = np.where(eta < obj_ub)[0]
 
                 # Any grid point outside of exactly n of the n+1 facets is in a cone and should be updated.
+                points_better_than_obj_ub_dp = np.dot(c_mat,grid[points_better_than_obj_ub].T)
                 points_to_possibly_update = points_better_than_obj_ub[sum(np.dot(c_mat,grid[points_better_than_obj_ub].T) >= -1e-9) == n ]
 
                 # Find the hyperplane through grid[comb] (via np.linalg.solve) and the value of hyperplane at grid[points_to_possibly_update] (via np.dot) 

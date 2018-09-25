@@ -8,32 +8,57 @@
 #include <ctime>
 #include <chrono>
 
+//-------------------- static methods ---------------------
+template<typename T> class Vector;
+template<typename T> class Matrix;
+
+template <typename T>
+static Vector<T> Zeros(int len)
+{
+    return Vector<T>(len, (T)0);
+};
+
+template <typename T>
+static Vector<T> Ones(int len)
+{
+    return Vector<T>(len, (T)1);
+};
+
+template <typename T>
+static Matrix<T> Zeros(int nrow, int ncol)
+{
+    /* 
+    Static function: returns a matrix of (T)0 values of size 'nrow' x 'ncol'
+    */
+    return Matrix<T>(nrow, Vector<T>(ncol, (T)0));
+};
+
+template <typename T>
+static Matrix<T> Ones(int nrow, int ncol)
+{
+    /* 
+    Static function: returns a matrix of (T)1 values of size 'nrow' x 'ncol'
+    */
+    return Matrix<T>(nrow, Vector<T>(ncol, (T)1));
+};
+//-------------------------------------------------------
+
+//------------------------------------------------------------------------
 template <typename T>
 class Vector : public std::vector< T >
 {
-
 public:
     Vector() {};
     Vector(int len)
     {
-        this->resize(len);
+        this->std::vector<T>::resize(len);
     };
 
     Vector(int len, const T& init)
     {
-        this->resize(len, init);
+        this->std::vector<T>::resize(len, init);
     };
     
-    static Vector<T> Zeros(int len)
-    {
-        return Vector<T>(len, (T)0);
-    };
-
-    static Vector<T> Ones(int len)
-    {
-        return Vector<T>(len, (T)1);
-    };
-
     T maxCoeff()
     {
         return *std::max(this->begin(), this->end());
@@ -93,7 +118,7 @@ public:
         if( this->size() != rhs.size() )
             std::runtime_error("Vector addition size mismatch");
         for(int i=0; i<rhs.size(); i++)
-            (*this)(i) += rhs(i);
+            this->operator()(i) += rhs(i);
         return *this;
     };
 
@@ -102,8 +127,13 @@ public:
         if( this->size() != rhs.size() )
             std::runtime_error("Vector subtraction size mismatch");
         for(int i=0; i<rhs.size(); i++)
-            (*this)(i) -= rhs(i);
+            this->operator()(i) -= rhs(i);
         return *this;
+    };
+
+    void clear()
+    {
+        this->std::vector<T>::clear();
     };
 
     T dot( const Vector<T> &rhs )
@@ -117,7 +147,7 @@ public:
         T result=(T)0;
 
         for(int i=0; i<n; i++)
-            result += (*this)(i)*rhs(i);
+            result += this->operator()(i)*rhs(i);
 
         return result;
     };
@@ -127,145 +157,206 @@ public:
         Eigen::Matrix<T, Eigen::Dynamic, 1> res(this->size(), 1);
 
         for(size_t i=0; i<this->size(); i++)
-            res(i,1) = this->at(i);
+            res(i,0) = this->at(i);
         
         return res;
     };
 
 
-};
+};   //-------------------------- end vector -
 
+//------------------------------------------------------------------------
 template <typename T>
 class Matrix : public std::vector< Vector< T > >
 {
 protected:
-    int m_nrow, m_ncol;
-    Matrix<T> *m_transpose;
-
-    void _init()
-    {
-        m_transpose = 0;
-    };
-
 
 public:
-    ~Matrix()
-    {
-        if (m_transpose)
-            delete m_transpose;
-    };
-
-    Matrix() { _init(); };
+    Matrix() {};
     Matrix(int nrow, int ncol)
     {
-        Resize(nrow,ncol);
-        m_nrow=nrow;
-        m_ncol=ncol;
-        _init();
+        resize(nrow, Vector<T>(ncol));
     };
 
     Matrix(int nrow, int ncol, const T& init)
     {
-        this->resize( Vector<T>(ncol, init) );
-        m_nrow = nrow;
-        m_ncol = ncol;
-        _init();
+        resize(nrow, Vector<T>(ncol, init));
     };
 
     Matrix(int nrow, const Vector<T>& init)
     {
-        this->resize( nrow, init );
-        m_nrow = nrow;
-        m_ncol = (int)init.size();
-        _init();
+        resize(nrow, init);
     };
 
     Matrix(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &other)
     {
         Set(other);
-        _init();
     };
 
     int rows()
     {
-        return m_nrow;
+        return this->size();
     };
 
     int cols()
     {
-        return m_ncol;
+        return this->front().size();
     };
 
-    void Resize(int nrow, int ncol)
+    Vector<T>& push_back( Vector<T> row )
     {
-        this->resize(nrow, Vector<T>(ncol));
-        m_nrow=nrow;
-        m_ncol=ncol;
+        std::vector< Vector<T> >::push_back( row );
+        return this->back();
     };
 
-    static Matrix<T> Zeros(int nrow, int ncol)
+    void erase(int where, bool is_col=false)
     {
-        return Matrix<T>(nrow, Vector<T>(ncol, (T)0));
-    };
-
-    static Matrix<T> Ones(int nrow, int ncol)
-    {
-        return Matrix<T>(nrow, Vector<T>(ncol, (T)1));
-    };
+        if( is_col )
+        {
+            assert(where < cols() && where > -1);
+            transposeInPlace();
+            std::vector< Vector<T> >::erase(this->begin()+where, this->begin()+where+1);
+            transposeInPlace();
+        }
+        else
+        {
+            assert(where < this->size() && where > -1);
+            
+            std::vector< Vector<T> >::erase(this->begin()+where, this->begin()+where+1);
+        }
+        
+        return;
+    }
 
     T& operator() (int row, int col)
     {
-        if( row > m_nrow-1 || row < 0 || col > m_ncol-1 || col < 0 )
+        /* 
+        Returns a reference to the value stored at 'row','col'
+        */
+        if( row > rows()-1 || row < 0 || col > cols()-1 || col < 0 )
             std::runtime_error("Index out of bounds in class Matrix()");
 
-        return this->at(row).at(col);
+        return this->operator[](row).operator[](col);
     };
 
     Vector<T>& operator()(int row)
     {
+        /* 
+        Returns a reference to the row vector at 'row'
+        */
         return this->at(row);
     };
 
-    Matrix<T>& transpose()
+    void clear()
     {
-        //always update the local transpose matrix when calling to ensure it contains the right values
-        if (!m_transpose)
-            m_transpose = new Matrix<T>; //instantiate if needed
+        this->std::vector< Vector<T> >::clear();
+    };
 
-        m_transpose->Resize(this->m_ncol, this->m_nrow);
+    void resize(int nrow, int ncol)
+    {
+        this->std::vector< Vector<T> >::resize(nrow, ncol);
+    };
 
-        for(int i=0; i<this->m_nrow; i++)
-            for(int j=0; j<this->m_ncol; j++)
-                (*m_transpose)(j,i) = (*this)(i,j);
+    void resize(int nrow, int ncol, T& init)
+    {
+        this->std::vector< Vector<T> >::resize(nrow, Vector<T>(ncol, init));
+    };
 
-        return *m_transpose;
+    void resize(int nrow, Vector<T>& init)
+    {
+        this->std::vector< Vector<T> >::resize(nrow, init);
+    };
+
+    void resize(int nrow, Vector<T> init)
+    {
+        this->std::vector< Vector<T> >::resize(nrow, init);
+    };
+
+    Vector<T> row(int index)
+    {
+        /* 
+        Returns a copy of the row values at 'index'
+        */
+        assert(index > -1 && index < rows());
+
+        return this->at(index);
+    };
+
+    Vector<T> col(int index)
+    {
+        /*
+        Returns a copy of the column values at 'index'
+        */
+        assert(index > -1 && index < cols() );
+
+        Vector<T> newcol;
+        for(int i=0; i<rows(); i++)
+            newcol.push_back( this->operator()(i,index) );
+        return newcol;
+    };
+
+    void set_col(int index, const Vector<T>& col_values)
+    {
+        /* 
+        Assign values from 'col_values' to a specified column in at 'index'
+        */
+        assert(index > -1 && index < cols() && col_values.size() == rows());
+
+        for(int i=0; i<rows(); i++)
+            operator()(i, index) = col_values(i);
+    };
+
+    Matrix<T>& operator=(Matrix<T> rhs)
+    {
+        this->std::vector< Vector<T> >::resize(rhs.rows(), rhs.cols());
+        for(int i=0; i<rhs.rows(); i++)
+            for(int j=0; j<rhs.cols(); j++)
+                this->operator()(i,j) = rhs(i,j);       //deep copy
+
+        return *this;
+    };
+
+    Matrix<T> transpose()
+    {
+        Matrix<T> result(cols(), rows());
+
+        for(int i=0; i<rows(); i++)
+            for(int j=0; j<cols(); j++)
+                result(j,i) = operator()(i,j);
+
+        return result;
     };
 
     Matrix<T> &transposeInPlace()
     {
-        Matrix<T> current = *this;
+        Matrix<T> temp = (*this).transpose();
 
-        Resize(this->m_ncol, this->m_nrow);
-
-        *this = current.transpose();
+        clear();
+        resize(temp.rows(), temp.cols());
+        for(int i=0; i<temp.rows(); i++)
+            for(int j=0; j<temp.cols(); j++)
+                this->operator()(i,j) = temp(i,j);
 
         return *this;
     };
 
     Matrix<T>& Set(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &other)
     {
-        Matrix<T> res( (int)other.rows(), Vector<T>( (int)other.cols()) );
         for(int i=0; i< (int)other.rows(); i++)
+        {
+            Vector<T> rowi;            
             for(int j=0; j< (int)other.cols(); j++)
-                (*this)(i,j) = other(i, j);
+                rowi.push_back( other(i, j) );
+            this->push_back(rowi);
+        }
         return *this;
     };
 
     Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> AsEigenMatrixType()
     {
-        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> res(m_nrow, m_ncol);
-        for(size_t i=0; i<m_nrow; i++)
-            for(size_t j=0; j<m_ncol; j++)
+        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> res(rows(), cols());
+        for(size_t i=0; i<rows(); i++)
+            for(size_t j=0; j<cols(); j++)
                 res(i,j) = this->at(i).at(j);
         
         return res;
@@ -273,11 +364,11 @@ public:
 
     Matrix<T>& operator*(double scale)
     {
-        for(int i=0; i<this->m_nrow; i++)
+        for(int i=0; i<rows(); i++)
             this->at(i) *= scale;
     };
 
-    Matrix<T> dot( const Vector<T> &rhs )
+    Matrix<T> dot( Vector<T> rhs )
     {
         //dot product
         int n = rhs.size();
@@ -288,20 +379,25 @@ public:
         Vector<T> result(this->rows(),0.);
         for(int i=0; i<this->rows(); i++)
             for(int j=0; j<n; j++)
-                result(i) += (*this)(i,j)*rhs(j);
+                result(i) += this->operator()(i,j)*rhs(j);
 
         return result;
     };
 
-    Matrix<T> dot( Matrix<T> &rhs)
+    Matrix<T> dot( Matrix<T> rhs)
     {
-        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> A = this->AsEigenMatrixType();
-        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> B = rhs.AsEigenMatrixType();
+        assert(cols() == rhs.rows());
 
-        return Matrix<T>( A*B );
+        Matrix<T> result = Zeros<T>( rows(), rhs.cols() );
+
+        for(int i=0; i<rows(); i++)
+            for(int k=0; k<rhs.cols(); k++)
+                for(int j=0; j<cols(); j++)
+                    result(i,k) += this->operator()(i,j)*rhs(j,k);
+        return result;
     };
 
-};
+};  //--------------------- end matrix
 
 static bool increment(Vector<int> &limits,  Vector<int> &indices )
 {

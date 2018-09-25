@@ -94,7 +94,7 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
     int m=1;
     for(int i=0; i<n; i++)
         m *= (UB(i)+1-LB(i));
-    grid.Resize(m, n+1);
+    grid.resize(m, n+1);
 
     Matrix<int> ranges;
     for(int i=0; i<n; i++)
@@ -126,11 +126,11 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
 
 
     // F = np.nan*np.ones(m)  # Function values
-    Vector<double> F = Vector<double>::Ones(m)*std::numeric_limits<double>::quiet_NaN();
+    Vector<double> F = Ones<double>(m)*std::numeric_limits<double>::quiet_NaN();
     
     // c_mat = np.zeros((n+1,n+1))  # Holds the facets
     Matrix<double> c_mat;
-    c_mat.Zeros(n + 1, n + 1);
+    c_mat = Zeros<double>(n + 1, n + 1);
     
     // if data_out:
     Matrix<double> eta_i;
@@ -174,7 +174,7 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
     Vector<int> not_nans;
     nanfilter(F, &not_nans);
 
-    Vector<double> eta = Vector<double>::Ones(m) * std::numeric_limits<double>::quiet_NaN();
+    Vector<double> eta = Ones<double>(m) * (-std::numeric_limits<double>::infinity());
     assign_where(eta, F, &assign_filter_nan);
 
     // eta_gen = np.nan*np.ones((m,n+1)) # To store the set of n+1 points that generate the value eta at each grid point
@@ -247,8 +247,8 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
         int feas_secants = 0;
 
         // for count,comb in enumerate(newcombs):
-        int count=0; //record value later
-        for( ; count<newcombs.rows(); count++)
+        int count; //record value later
+        for( count=0; count<newcombs.rows(); count++)
         {
             //int comb_size = newcombs.cols();
             Matrix<double> grid_comb(n+1, n+1);
@@ -283,38 +283,23 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
                 // for j in range(n+1): 
                 for(int j=0; j<n+1; j++)
                 {
-                    // Q1,_ = sp.linalg.qr_delete(Q,R,n-j,1,'col',check_finite=False)
                     Matrix<double> grid_temp = grid_comb;
-                    grid_temp.erase(grid_temp.begin()+j,grid_temp.begin()+j+1);
+                    // grid_temp.erase(j, true);
+                    grid_temp.transposeInPlace();
+                    grid_temp.std::vector< Vector<double> >::erase(grid_temp.begin()+j, grid_temp.begin()+j+1);
+                    grid_temp.transposeInPlace();
 
-                    // Eigen::MatrixXd grid_temp(n+1,n);
-                    // int kk=0;
-                    // for(int k=0; k<n+1; k++) //over all columns
-                    // {
-                    //     if( k != n-j )
-                    //     {
-                    //         for(int jj=0; jj<n+1; jj++) //over all rows
-                    //             grid_temp(jj,kk) = grid_comb(jj,k);
-                    //         //only increment the column number for grid_temp if we aren't deleting
-                    //         kk++;
-                    //     }
-                    // }
                     //redo the factorization
-                    // grid_comb.resize(n+1,n);
-                    // grid_comb = grid_temp;
                     Eigen::MatrixXd grid_temp_e = grid_temp.AsEigenMatrixType();
                     Eigen::HouseholderQR<Eigen::MatrixXd> qr1 = grid_temp_e.householderQr();
-                    // Eigen::MatrixXd Q1 = qr1.householderQ();
                     Matrix<double> Q1( qr1.householderQ() );
                     
                     // Check if the sign is right by comparing against the point # being left out
-                    // if np.dot(Q1[:,-1],grid[comb[n-j]]) > 0:
-                    for(int k=0; k<n+1; k++)
-                        c_mat(j,k) = Q1(n-1,k);
+                    c_mat.set_col(j, Q1.col(n)); //last column in Q1
 
-                    if( Q1.at(n-1).dot(grid_comb.at(n-j)) > 0.)
-                        c_mat.at(j)*=-1.;
-                    grid_comb = grid_temp;
+                    if( Q1.col(n).dot(grid_comb.at(n-j)) > 0.)
+                        for(int i=0; i<n+1; i++)
+                            c_mat(i,j)*=-1.;
                 }
 
                 // points_better_than_obj_ub = np.where(eta < obj_ub)[0]
@@ -328,8 +313,8 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
                 for(int i=0; i<points_better_than_obj_ub.size(); i++)
                     for(int j=0; j<n+1; j++)
                         points_better_than_obj_ub_gridvals(i,j) = grid(points_better_than_obj_ub.at(i),j);
-                // Eigen::MatrixXd points_better_than_obj_ub_dp(n+1,points_better_than_obj_ub.size);
                 Eigen::MatrixXd points_better_than_obj_ub_dp = c_mat.dot( points_better_than_obj_ub_gridvals.transpose() ).AsEigenMatrixType();
+                // Eigen::MatrixXd points_better_than_obj_ub_dp = points_better_than_obj_ub_gridvals.dot(c_mat).transpose().AsEigenMatrixType();
                 
                 Vector<int> points_to_possibly_update;
                 
@@ -337,7 +322,7 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
                 {
                     int ok_ct=0;
                     for(int j=0; j<n+1; j++)
-                        if( points_better_than_obj_ub_dp.col(i)(j) >= -1.e-9 )
+                        if( points_better_than_obj_ub_dp(j,i) >= -1.e-9 )
                             ok_ct++;
                     if(ok_ct == n)
                         points_to_possibly_update.push_back(points_better_than_obj_ub.at(i));
