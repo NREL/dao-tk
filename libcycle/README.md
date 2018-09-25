@@ -16,7 +16,7 @@ Parameters and methods for each probability distribution we use to generate fail
 
 ### failure.h
 
-Members and methods used to describe type of failures that may occur for a given component in the power block.  Members include the operating mode(s) in which a failure may occur, and the probability of failure or lifetime remaining.
+Members and methods used to describe types of failures that may occur for a given component in the power block.  Members include the operating mode(s) in which a failure may occur, and the probability of failure or lifetime remaining.
 
 ### lib_util.h
 
@@ -34,16 +34,20 @@ Parameters and methods specific to a the CSP power cycle as a whole (e.g., opera
 
 An implementation of the WELL512 pseudo-random number generator we use to generate random variates of the distributions in distributions.h, which, in turn, serve as inputs to the simulation model.
 
-## Inputs
 
-This section defines the sets and inputs that are used for the 
+## Sets
 
-### Sets
+The following sets and indices are used in the descriptions of the power cycle model's inputs and outputs that follow.
 
 | Set Index | Description |
 | --- | --- |
 | s | Scenarios |
 | t | time periods (e.g., hours) |
+
+## Inputs
+
+This section defines the inputs that are used for the power cycle model.
+
 
 ### Power Cycle Composition Parameters
 
@@ -110,7 +114,7 @@ Cycle simulation parameters are all scalars, so no sets are included in the tabl
 | steplength	|	Floating point number	|	Time period length (h)	| 1 |
 | epsilon | Floating point number | Threshold on lifetimes for which a failure occurs | 1e-10 |
 | print_output | Boolean | True if information on failure events is printed to the console, false o.w. | false |
-| num_scenarios | Integer between 1 and 100 | Number of scenarios in simulation | 1 | 
+| num_scenarios | Integer between 1 and 100 | Number of replications in simulation | 1 | 
 | hourly_labor_cost | Floating point number | Hourly labor cost for repair of a failed component ($) | 35 |
 | stop_at_first_repair | Boolean | True if cycle model terminates after first repair, false o.w. | false |
 | stop_at_first_failure | Boolean | True if cycle model terminates after first failure, false o.w. | false |
@@ -138,8 +142,8 @@ The cycle simulation model provides the following outputs:
 | s | labor_costs | Floating point number | Total labor cost of component repairs for scenario s ($) |
 | s | turbine_efficiency | Floating point number | Relative efficiency of system due to turbine aging (fraction of total capacity) |
 | s | turbine_capacity | Floating point number | Relative capacity of system due to turbine aging (fraction of total capacity) |
-| s | period_of_last_failure | Integer | Time period in which last compnent failure occurred | 
-| s | period_of_last_repair | Integer | Time period in which last compnent failure occurred | 
+| s | period_of_last_failure | Integer | Time period in which last component failure occurred | 
+| s | period_of_last_repair | Integer | Time period in which last component failure occurred | 
 |  | avg_labor_cost | Floating point number | Average total labor cost for component repairs ($) |
 |  | avg_turbine_efficiency | Floating point number | Average relative efficiency of system due to turbine aging (fraction of total capacity) |
 |  | avg_turbine_capacity | Floating point number | Average relative capacity of system due to turbine aging (fraction of total capacity) |
