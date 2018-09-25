@@ -144,6 +144,8 @@ public:
 	int GetSimLength();
 	void SetShutdownCapacity(double capacity);
 	void SetNoRestartCapacity(double capacity);
+	void SetShutdownEfficiency(double efficiency);
+	void SetNoRestartEfficiency(double efficiency);
 	std::unordered_map< std::string, failure_event > GetFailureEvents();
 	std::vector<std::string> GetFailureEventLabels();
 	void AddComponent(std::string name, 

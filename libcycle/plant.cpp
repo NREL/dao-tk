@@ -26,6 +26,8 @@ void PowerCycle::Initialize()
 		m_results.cycle_capacity[i] = std::vector<double>(m_sim_params.sim_length,1.);
 		m_results.cycle_efficiency[i] = std::vector<double>(m_sim_params.sim_length, 1.);
 	}
+	StoreComponentState();
+	StorePlantParamsState();
 }
 
 void PowerCycle::InitializeCyclingDists()
@@ -607,6 +609,16 @@ void PowerCycle::SetNoRestartCapacity(double capacity)
 	m_no_restart_capacity = capacity;
 }
 
+void PowerCycle::SetShutdownEfficiency(double efficiency)
+{
+	m_shutdown_efficiency = efficiency;
+}
+
+void PowerCycle::SetNoRestartEfficiency(double efficiency)
+{
+	m_no_restart_efficiency = efficiency;
+}
+
 
 void PowerCycle::AddComponent(std::string name,
 	std::string type,
@@ -695,7 +707,7 @@ void PowerCycle::AddCondenserTrains(int num_trains, int num_fans, int num_radiat
 	std::string component_name, train_name;
 	for (int j = 0; j < num_trains; j++)
 	{
-		train_name = "C" + std::to_string(m_num_condenser_trains);
+		train_name = "C" + std::to_string(j+1);
 		AddComponent(train_name + "-T", "Condenser train", 15.55, 0, 0, 0, 7.777, "S");
 		for (int i = 1; i <= num_fans; i++)
 		{
@@ -1066,6 +1078,8 @@ double PowerCycle::GetSaltPumpEfficiency()
 	Returns the relative efficiency of all salt pumps that
 	are operational.
 	*/
+	return 1.0;
+	/*
 	double num_pumps_operational = 0.;
 	for (size_t i : m_salt_pump_idx)
 	{
@@ -1075,6 +1089,7 @@ double PowerCycle::GetSaltPumpEfficiency()
 		}
 	}
 	return 1.0 - 0.035 * std::max(0.0, m_num_salt_pumps_required - num_pumps_operational);
+	*/
 }
 
 void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
@@ -1717,6 +1732,7 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory)
 		StoreCycleState();
 		m_results.period_of_last_failure[m_current_scenario] = -1;
 		m_results.period_of_last_repair[m_current_scenario] = -1;
+		//JW: this is where you'd output failures to file.
 		ClearFailureEvents();
 	}
 	if (m_file_settings.output_ampl_file)
