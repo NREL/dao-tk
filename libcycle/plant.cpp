@@ -1498,7 +1498,8 @@ void PowerCycle::RunDispatch()
 		
 		
 		//Read in any component failures, if in the read-only stage.
-		if (t <= m_results.period_of_last_repair[m_current_scenario])
+		if (t <= m_results.period_of_last_repair[m_current_scenario] ||
+			t <= m_results.period_of_last_failure[m_current_scenario])
 		{
 			ReadInMaintenanceEvents(t);
 			ReadInComponentFailures(t);
@@ -1516,7 +1517,8 @@ void PowerCycle::RunDispatch()
 			mode = "OFF";
 		}
 		//ajz: This was formerly for only periods after read-in
-		if (t >= m_results.period_of_last_repair[m_current_scenario])
+		if (t > m_results.period_of_last_repair[m_current_scenario]  && 
+			t > m_results.period_of_last_failure[m_current_scenario])
 		{
 			double ramp_mult = GetRampMult(power_output);
 			TestForComponentFailures(ramp_mult, t, start, mode);
