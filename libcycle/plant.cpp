@@ -12,8 +12,12 @@ PowerCycle::PowerCycle()
 	GeneratePlantComponents();
 }
 
-void PowerCycle::Initialize()
+void PowerCycle::Initialize(double age)
 {
+	/*
+	Initializes the plant by generating random lifetimes/probabilities for all 
+	components and failure modes, and ages the plant for a single scenario.
+	*/
 	InitializeCyclingDists();
 	GeneratePlantCyclingPenalties();
 	ResetPlant();
@@ -26,8 +30,8 @@ void PowerCycle::Initialize()
 		m_results.cycle_capacity[i] = std::vector<double>(m_sim_params.sim_length,1.);
 		m_results.cycle_efficiency[i] = std::vector<double>(m_sim_params.sim_length, 1.);
 	}
-	StoreComponentState();
-	StorePlantParamsState();
+	AgePlant(age);
+	StoreCycleState();
 }
 
 void PowerCycle::InitializeCyclingDists()
@@ -1992,5 +1996,65 @@ void PowerCycle::WriteAMPLParams()
 	}
 	outfile << ";\n\n";
 	outfile.close();
+}
+
+void PowerCycle::AgePlant(double age)
+{
+	/*
+	Ages the plant by running pre-specified dispatch for a collection of days. 
+	To keep the runtime of this minimal, we assume "40 hours on, 20 hours off" 
+	for dispatch, which yields 146 warm starts and 219 days of runtime per
+	year of age.
+	*/
+	//skip this if age = 0.0
+	if (age < m_sim_params.epsilon)
+	{
+		return;
+	}
+
+	//save old steplength and downtime threshold
+	double t = m_sim_params.steplength*1.0;
+	double threshold = m_current_cycle_state.downtime_threshold;
+
+	//set aging steplength and downtime threshold
+	m_sim_params.steplength = 20;
+	m_current_cycle_state.downtime_threshold = 48;
+	m_begin_cycle_state.downtime_threshold = 48;
+	
+	//determine number of start/stop cycles
+	int num_cycles = (int)(146 * age);
+	
+	//set up dispatch
+	m_dispatch["power_output"] = { 0, m_ramp_threshold_min*0.5, m_ramp_threshold_min*0.5 };
+	m_dispatch["standby"] = { 0,0,0 };
+	m_dispatch["ambient_temperature"] = { 0,0,0 };
+
+	//run dispatch
+	m_sim_params.stop_at_first_failure = false;
+	m_sim_params.stop_at_first_repair = false;
+	for (int i = 0; i < num_cycles; i++)
+	{
+		RunDispatch();
+		m_results.period_of_last_failure[m_current_scenario] = -1;
+		m_results.period_of_last_repair[m_current_scenario] = -1;
+		ClearFailureEvents();
+	}
+
+	//stop to repair any components that have still failed
+	double m = GetMaxComponentDowntime();
+	if (m > m_sim_params.epsilon)
+	{
+		m_sim_params.steplength = 2 * m;
+		AdvanceDowntime("OFF");
+	}
+
+	//reset steplength and downtime thresholds
+	m_sim_params.steplength = t;
+	m_current_cycle_state.downtime_threshold = threshold;
+	m_begin_cycle_state.downtime_threshold = threshold;
+
+	//store states
+	StoreCycleState();
+
 }
 

@@ -75,7 +75,7 @@ class PowerCycle
 
 public:
 	PowerCycle::PowerCycle();
-	void Initialize();
+	void Initialize(double age = 0.);
 	cycle_state m_current_cycle_state;
 	cycle_state m_begin_cycle_state;
 	cycle_file_settings m_file_settings;
@@ -255,6 +255,7 @@ public:
 	double GetEstimatedMinimumLifetime(double frac_operational = 1.0);
 	double GetExpectedStartsToNextFailure();
 	void WriteAMPLParams();
+	void AgePlant(double age);
 };
 
 
