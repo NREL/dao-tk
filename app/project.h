@@ -547,6 +547,20 @@ struct objective_outputs : public lk::varhash_t
 	objective_outputs();
 };
 
+struct optimization_outputs : public lk::varhash_t
+{
+    parameter eta_i; //Matrix<double> 
+    //Vector<double> 
+    parameter obj_ub_i;
+    parameter secants_i;
+    parameter feas_secants_i;
+    parameter eval_order;
+    //Vector<long long> 
+    parameter wall_time_i;
+
+    optimization_outputs();
+};
+
 //main class
 class Project
 {
@@ -586,6 +600,7 @@ public:
 	explicit_outputs m_explicit_outputs;
 	financial_outputs m_financial_outputs;
 	objective_outputs m_objective_outputs;
+    optimization_outputs m_optimization_outputs;
 
 	s_metric_outputs metric_outputs;
 	s_cluster_outputs cluster_outputs;

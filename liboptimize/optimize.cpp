@@ -8,7 +8,6 @@
 #include <iostream>
 #include <stdio.h>
 
-
 //------------------------------------------
 template <typename T>
 static inline bool assign_filter_nan(T c, void*)
@@ -24,8 +23,9 @@ static inline bool filter_where_lt(T c, T d)
 //------------------------------------------
 
 
-std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*func)(std::vector<int>&), std::vector<int> _LB, std::vector<int> _UB,
-                std::vector< std::vector< int > > _X, bool data_out, bool trust, bool convex_flag, int max_delta )
+//std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*func)(std::vector<int>&), std::vector<int> _LB, std::vector<int> _UB,
+//                std::vector< std::vector< int > > _X, bool data_out, bool m_settings.trust, bool m_settings.convex_flag, int max_delta )
+bool optimization::run_integer_optimization()
 {
     /*
     Performs in implementation of our cutting plane approach for mixed-integer
@@ -39,8 +39,8 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
     UB:          [n x 1 numpy array] Upper bounds on parameters
     X:           [m x n numpy array] Initial points to sample
     data_out:    [Bool] if storing per-iteration data
-    trust:       [Bool] if a trust region should be used
-    convex_flag: [Bool] Is the problem is not known to be convex?
+    m_settings.trust:       [Bool] if a m_settings.trust region should be used
+    m_settings.convex_flag: [Bool] Is the problem is not known to be convex?
     max_delta:   [Int] For nonconvex problem, how large of an infinity-norm neighborhood around the best point should be evaluated before terminating 
 
     Returns: 
@@ -51,18 +51,18 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
     std::chrono::time_point<std::chrono::system_clock> startcputime = std::chrono::system_clock::now();
 
     
-    if( convex_flag )
-        if( ! trust )
+    if( m_settings.convex_flag )
+        if( ! m_settings.trust )
             std::runtime_error("Must have trust=True when convex_flag=True");
 
     //require dimensions of matrices to align
     int n, nx;
     // n = len(LB)
-    n = (int)_LB.size();
-    if( _X.front().size() == 0 )
+    n = (int)m_settings.lower_bounds.size();
+    if( m_settings.X.front().size() == 0 )
         std::runtime_error("Malformed data in optimization routine. Dimensionality of X is invalid.");
-    nx = (int)_X.size();
-    if( _UB.size() != n || _LB.size() != n )
+    nx = (int)m_settings.X.size();
+    if( m_settings.upper_bounds.size() != n || m_settings.lower_bounds.size() != n )
         std::runtime_error("Dimensionality mismatch in optimization routine input data.");
 
     //transfer input data into eigen containers
@@ -70,14 +70,14 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
     Matrix<int> X( nx, n);
     
     for(int i=0; i<n; i++)
-        LB(i) = _LB.at(i);
+        LB(i) = m_settings.lower_bounds.at(i);
     for(int i=0; i<n; i++)
-        UB(i) = _UB.at(i);
+        UB(i) = m_settings.upper_bounds.at(i);
     for(int i=0; i<nx; i++)
         for(int j=0; j<n; j++)
-            X(i,j) = _X.at(i).at(j);
+            X(i,j) = m_settings.X.at(i).at(j);
 
-    if ( convex_flag && !trust )
+    if ( m_settings.convex_flag && !m_settings.trust )
         std::runtime_error("Must have trust=True when convex_flag=True");
 
     //check for boundedness
@@ -132,10 +132,6 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
     Matrix<double> c_mat;
     c_mat = Zeros<double>(n + 1, n + 1);
     
-    // if data_out:
-    Matrix<double> eta_i;
-    Vector<double> obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order;
-
     // # Evaluate func at points in X 
     for(int i=0; i<nx; i++)
     {
@@ -154,12 +150,12 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
             std::runtime_error("One of the initial points was not in the grid.");
         
 
-        F(row_in_grid) = func(x);
+        F(row_in_grid) = m_settings.f_objective(x);
     }
 
     Vector<int> x_star(n);
-    double delta;
-    if(trust)
+    double delta = std::numeric_limits<double>::quiet_NaN();
+    if(m_settings.trust)
     {
         int i_fmin = argmin(F, true);
 
@@ -366,7 +362,7 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
         bool eval_performed_flag = false;
 
         // Evaluate objective at the point with smallest eta value
-        if( trust )
+        if( m_settings.trust )
         {
 
             while(true)
@@ -379,7 +375,7 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
 
                 for(int i=0; i<grid.rows(); i++)
                 {
-                    if( (convex_flag && eta(i) < obj_ub) || (!convex_flag && F(i)!=F(i)) )
+                    if( (m_settings.convex_flag && eta(i) < obj_ub) || (!m_settings.convex_flag && F(i)!=F(i)) )
                     {
                         //calculate the spatial distance between x_star and other grid points
                         Vector<int> x(n);
@@ -396,7 +392,6 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
                 if( !points_within_delta_of_xstar.empty() )
                 {
                     // new_ind = points_within_delta_of_xstar[np.argmin(eta[points_within_delta_of_xstar])]
-                    int new_ind = 0;
                     double eta_min_iter = 9.e36;
                     for(int i=0; i<points_within_delta_of_xstar.size(); i++)
                     {
@@ -414,7 +409,7 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
                     for(int i=0; i<n; i++)
                         x_star_maybe.push_back(grid(new_ind,i+1));
 
-                    Fnew = func(x_star_maybe);
+                    Fnew = m_settings.f_objective(x_star_maybe);
 
                     // Update x_star
                     if (Fnew < obj_ub)
@@ -430,52 +425,52 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
                 else
                 {
 
-                    // if convex_flag and np.logical_or(obj_ub - np.min(eta) <= optimality_gap, delta > max(UB-LB))
-                    if( convex_flag && ( obj_ub - eta.minCoeff() < optimality_gap || delta > (UB-LB).maxCoeff() ))
+                    // if m_settings.convex_flag and np.logical_or(obj_ub - np.min(eta) <= optimality_gap, delta > max(UB-LB))
+                    if( m_settings.convex_flag && ( obj_ub - eta.minCoeff() < optimality_gap || delta > (UB-LB).maxCoeff() ))
                         break;
-                    // if not convex_flag and not any(np.isnan(F))
-                    if( !convex_flag && !any_nan_F )
+                    // if not m_settings.convex_flag and not any(np.isnan(F))
+                    if( !m_settings.convex_flag && !any_nan_F )
                         break;
-                    // if not convex_flag and delta >= max_delta
-                    if( !convex_flag && delta >= max_delta )
+                    // if not m_settings.convex_flag and delta >= max_delta
+                    if( !m_settings.convex_flag && delta >= m_settings.max_delta )
                         break;
                     delta++;
                 }
             }
         }
         else
-            new_ind = std::min_element(eta.begin(), eta.end()) - eta.begin();
+            new_ind = (int)( std::min_element(eta.begin(), eta.end()) - eta.begin() );
 
         Vector<int> x_eval;
         for(int i=0; i<n; i++)
             x_eval.push_back(grid(new_ind,i+1));
 
-        Fnew = func(x_eval);    // Include this value in F in the next iteration (after all combinations with new_ind are formed)
+        Fnew = m_settings.f_objective(x_eval);    // Include this value in F in the next iteration (after all combinations with new_ind are formed)
         obj_ub = Fnew < obj_ub ? Fnew : obj_ub;   // Update upper bound on the value of the global optimizer
         eta(new_ind) = Fnew;
         eta_gen(new_ind) = new_ind;
 
-        // Store information about the iteration (do not store if trust and no evaluation)
-        if ( (data_out and trust && eval_performed_flag) || (data_out && !trust) )
+        // Store information about the iteration (do not store if m_settings.trust and no evaluation)
+        if ( m_settings.trust && eval_performed_flag || !m_settings.trust )
         {
             // if( eta_i.empty() )
             // if not len(eta_i):
                 // eta_i = eta.copy()
             // else
                 // eta_i = np.vstack((eta_i,eta.copy()))
-            eta_i.push_back( eta );
+            m_results.eta_i.push_back( eta );
 
             // obj_ub_i = np.hstack((obj_ub_i,obj_ub))
-            obj_ub_i.push_back(obj_ub);
+            m_results.obj_ub_i.push_back(obj_ub);
             // wall_time_i = np.hstack((wall_time_i,time.time()))
-            wall_time_i.push_back( (std::chrono::system_clock::now() - startcputime).count() );
+            m_results.wall_time_i.push_back( (double)( (std::chrono::system_clock::now() - startcputime).count() ) );
             
             // secants_i = np.hstack((secants_i,count+1))
-            secants_i.push_back(count+1);
+            m_results.secants_i.push_back(count+1);
             // feas_secants_i = np.hstack((feas_secants_i, feas_secants))
-            feas_secants_i.push_back(feas_secants);
+            m_results.feas_secants_i.push_back(feas_secants);
             // eval_order = np.hstack((eval_order, new_ind))
-            eval_order.push_back(new_ind);
+            m_results.eval_order.push_back(new_ind);
         }
 
         // print(obj_ub - np.min(eta), count+1, sum(eta<obj_ub),sum(~np.isnan(F)), grid[new_ind, 1:]);sys.stdout.flush()
@@ -485,7 +480,7 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
                 sum_eta_lt_obj_ub ++;
         int sum_F_defined=0;
         for(int i=0; i<F.size(); i++)
-            if(! F(i) != F(i) )
+            if(! isnan(F(i)) )
                 sum_F_defined++;
 
         std::cout << obj_ub - eta.minCoeff() << "\t" 
@@ -495,17 +490,17 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
         for(int i=0; i<n; i++)
             std::cout << grid(new_ind,i+1) << ( i<n-1 ? ", " : "\n" );
 
-        // if (convex_flag and obj_ub - np.min(eta) <= optimality_gap) or (not convex_flag and not any(np.isnan(F))) or (not convex_flag and not(any(points_within_delta_of_xstar)) and delta >= max_delta):
+        // if (m_settings.convex_flag and obj_ub - np.min(eta) <= optimality_gap) or (not m_settings.convex_flag and not any(np.isnan(F))) or (not m_settings.convex_flag and not(any(points_within_delta_of_xstar)) and delta >= max_delta):
         if
         ( 
-            convex_flag && (obj_ub - eta.minCoeff() <= optimality_gap ) ||
-            !convex_flag && !sum_F_defined > 0 ||
-            !convex_flag && points_within_delta_of_xstar.size() > 0 && delta >= max_delta
+            m_settings.convex_flag && (obj_ub - eta.minCoeff() <= optimality_gap ) ||
+            !m_settings.convex_flag && !(sum_F_defined > 0) ||
+            !m_settings.convex_flag && points_within_delta_of_xstar.size() > 0 && delta >= m_settings.max_delta
         )
         {
             // F[new_ind] = Fnew
             F(new_ind) = Fnew;
-            // print(grid[np.nanargmin(F),1:],sum(~np.isnan(F)),trust,func)
+            // print(grid[np.nanargmin(F),1:],sum(~np.isnan(F)),m_settings.trust,func)
             Vector<int> x_at_fmin = grid.at( argmin(F, true) );
             std::vector<double> x_best;
 
@@ -514,32 +509,16 @@ std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*fu
                 std::cout << x_at_fmin(i+1) << (i<n-1 ? ", " : "\t");
                 x_best.push_back((double)x_at_fmin(i+1));
             }
-            std::cout << sum_F_defined << "\t" << trust << "\t" << func << "\n";
+            std::cout << sum_F_defined << "\t" << m_settings.trust << "\t" << m_settings.f_objective << "\n";
 
             std::unordered_map< std::string, std::vector<double> > retdict;
-            if( data_out )
+            //if( data_out )
                 // return grid[np.nanargmin(F),1:], eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order
-            {
-                for(int i=0; i<eta_i.rows(); i++)
-                {
-                    char etaname[10];
-                    sprintf(etaname, "eta_%d", i+1);
-                    retdict[etaname] = (std::vector<double>)eta_i.at(i);
-                }
-                retdict["obj_ub_i"] = (std::vector<double>)obj_ub_i;
-                retdict["wall_time_i"] = (std::vector<double>)wall_time_i;
-                retdict["secants_i"] = (std::vector<double>)secants_i;
-                retdict["feas_secants_i"] = (std::vector<double>)feas_secants_i;
-                retdict["eval_order"] = (std::vector<double>)eval_order;
-            }
             // return grid[np.nanargmin(F),1:]
-            retdict["x_best"] = x_best;
 
-            return retdict;
+            return true;
         }
         
     }
 }
-        // }}}//>>>>>
-// #ifdef __junk
 // #endif 

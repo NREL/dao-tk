@@ -195,12 +195,12 @@ public:
 
     int rows()
     {
-        return this->size();
+        return (int)this->size();
     };
 
     int cols()
     {
-        return this->front().size();
+        return (int)this->front().size();
     };
 
     Vector<T>& push_back( Vector<T> row )

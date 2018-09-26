@@ -61,6 +61,9 @@
     <ProjectReference Include="libsolar.vcxproj">
       <Project>{3058c490-552e-4428-a409-f29eb2c50d3f}</Project>
     </ProjectReference>
+    <ProjectReference Include="liboptimize.vcxproj">
+      <Project>{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>dao-tk</ProjectName>
