@@ -298,6 +298,10 @@ struct parameters : public lk::varhash_t
 	parameter is_run_continuous;
 	parameter is_hard_partitions;
 	parameter is_cycle_ssc_integration;
+	parameter is_reoptimize_at_repairs;
+	parameter is_reoptimize_at_failures;
+	parameter is_use_target_heuristic;
+
     //strings
 	parameter ampl_data_dir;
 	parameter solar_resource_file;
@@ -582,6 +586,8 @@ class Project
 	bool integrate_cycle_and_simulation(PowerCycle &pc, double start_time, double end_time, double horizon, bool start_stored_pc_state,
 									std::unordered_map<std::string, std::vector<double>>&initial_ssc_soln,
 									std::unordered_map<std::string, std::vector<double>> &soln);
+
+	double estimate_capacity_factor(double sm, double tes);
 	
 
 

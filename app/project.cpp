@@ -206,6 +206,9 @@ parameters::parameters()
 
 	// Cycle availability and simulation integration
 	is_cycle_ssc_integration.set(false, "is_cycle_ssc_integration", false, "Integrate cycle failure and dispatch optimization models?", "-", "Settings");
+	is_reoptimize_at_repairs.set(true, "is_reoptimize_at_repairs", false, "Re-optimize at cycle repairs?", "-", "Settings");
+	is_reoptimize_at_failures.set(false, "is_reoptimize_at_failures", false, "Re-optimize at cycle failures?", "-", "Settings");
+	is_use_target_heuristic.set(false, "is_use_target_heuristic", false, "Use heuristic to adjust dispatch targets due to cycle failures?", "-", "Settings");
 
 
     (*this)["print_messages"] = &print_messages;
@@ -305,6 +308,9 @@ parameters::parameters()
 	(*this)["clustering_feature_divisions"] = &clustering_feature_divisions;
 
 	(*this)["is_cycle_ssc_integration"] = &is_cycle_ssc_integration;
+	(*this)["is_reoptimize_at_repairs"] = &is_reoptimize_at_repairs;
+	(*this)["is_reoptimize_at_failures"] = &is_reoptimize_at_failures;
+	(*this)["is_use_target_heuristic"] = &is_use_target_heuristic;
 
 }
 
@@ -2063,9 +2069,13 @@ bool Project::simulate_system(PowerCycle &pc)
 
 	//--- Initialize results
 	double annual_generation, revenue_units, rec_starts, cycle_starts, cycle_ramp, max_generation;
-	std::vector<std::string> ssc_keys = { "gen", "P_cycle", "e_ch_tes", "T_tes_hot", "T_tes_cold", "Q_thermal", "q_pb", "q_pc_startup", "beam", "tdry", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected" };
-	int n_hourly_keys = (int)ssc_keys.size();
 
+	//std::vector<std::string> ssc_keys = { "gen", "Q_thermal", "e_ch_tes",  "beam", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected" };
+	
+	std::vector<std::string> ssc_keys = { "gen", "P_cycle", "P_out_net", "e_ch_tes", "T_tes_hot", "T_tes_cold", "Q_thermal", "q_pb", "q_pc_startup", "beam", "tdry", "pricing_mult", 
+										  "disp_qsfprod_expected", "disp_wpb_expected", "q_dot_pc_target", "q_dot_pc_max", "is_rec_su_allowed" , "is_pc_su_allowed", "is_pc_sb_allowed" };
+	
+	int n_hourly_keys = (int)ssc_keys.size();
 	unordered_map < std::string, std::vector<double>> collect_ssc_data, full_data, empty_map;
 	for (int i = 0; i < n_hourly_keys; i++)
 	{
@@ -2532,13 +2542,25 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 	// soln = final ssc solution after integration with cycle availability model and re-optimization accounting for downtime
 
 
-	soln.clear();
 	double nan = std::numeric_limits<double>::quiet_NaN();
+	soln.clear();
+
+	bool is_use_target_heuristic = m_parameters.is_use_target_heuristic.as_boolean();		// Use heuristics to adjust q_pb_target and is_pc_su_allowed when running from pre-computed targets after capacity reduction
+
+	// How often should dispatch optimization be re-run? 
+	bool is_reoptimize_at_repairs = m_parameters.is_reoptimize_at_repairs.as_boolean();		// Re-run dispatch optimization and cycle availability each time a component is repaired
+	bool is_reoptimize_at_failures = m_parameters.is_reoptimize_at_failures.as_boolean();     // Re-run dispatch optimization and cycle availability each time a component fails 
+
+
+	
+	//--- Get time step and design values from current ssc inputs
 	double tes_capacity = (m_variables.P_ref.as_number() / m_variables.design_eff.as_number()) * m_variables.tshours.as_number();  // TES capacity (MWh)
-
-
-	//--- Get time step size from current ssc inputs
-	ssc_number_t steps_per_hour;
+	double q_pc_des = (m_variables.P_ref.as_number() / m_variables.design_eff.as_number());  // Design point cycle thermal inputs (MW)	
+	double q_rec_des = m_variables.solarm.as_number() * q_pc_des;		// Design point receiver thermal power (MW)
+	ssc_number_t q_sby_frac, cycle_cutoff_frac, f_rec_min, steps_per_hour;
+	ssc_data_get_number(m_ssc_data, "q_sby_frac", &q_sby_frac);
+	ssc_data_get_number(m_ssc_data, "cycle_cutoff_frac", &cycle_cutoff_frac);
+	ssc_data_get_number(m_ssc_data, "f_rec_min", &f_rec_min);
 	ssc_data_get_number(m_ssc_data, "time_steps_per_hour", &steps_per_hour);
 	double steplength = 1. / (double)steps_per_hour;
 	int nsteps_tot = (int)ceil((end_time - start_time) / steplength);
@@ -2547,14 +2569,16 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 
 	//--- Initialize results
 	unordered_map < std::string, std::vector<double>> current_soln, pc_dispatch;
-	std::vector<std::string> ssc_keys = { "gen", "P_cycle", "e_ch_tes", "T_tes_hot", "T_tes_cold", "Q_thermal", "q_pb", "q_pc_startup", "beam", "tdry", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected" };
 	std::vector<std::string> pc_keys = { "cycle_power", "ambient_temperature", "standby" };
+	std::vector<std::string> ssc_keys = { "gen", "P_cycle", "P_out_net", "e_ch_tes", "T_tes_hot", "T_tes_cold", "Q_thermal", "q_pb", "q_pc_startup", "beam", "tdry", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected", 
+										  "q_dot_pc_target", "q_dot_pc_max", "is_rec_su_allowed" , "is_pc_su_allowed", "is_pc_sb_allowed" };
 
+	
 
 	//-- Use provided initial ssc solution, or rerun? Only use provided initial ssc solution if the solution exists for all variables and for all time points between the specified start and end times
-	bool use_initial_ssc_soln = true;
+	bool use_existing_ssc_soln = true;
 	if (initial_ssc_soln.size() == 0)  
-		use_initial_ssc_soln = false;
+		use_existing_ssc_soln = false;
 	else
 	{
 		std::unordered_map < std::string, std::vector<double> >::iterator it;
@@ -2562,24 +2586,35 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 		{
 			it = initial_ssc_soln.find(ssc_keys[k]);
 			if (it == initial_ssc_soln.end() || it->second.size() != nsteps_tot)  
-				use_initial_ssc_soln = false;
+				use_existing_ssc_soln = false;
 		}
 	}
 
 
-	//--- Set initial states
-	ssc_number_t tes_charge, tes_thot, tes_thot_des, tes_tcold, tes_tcold_des, is_rec_on, is_pc_on, is_pc_standby;
+	//--- Initial states
+	ssc_number_t tes_charge, tes_thot, tes_thot_des, tes_tcold, tes_tcold_des, is_dispatch;
+	bool is_rec_on, is_pc_on, is_pc_standby, is_reoptimize;
+	double capacity_last, efficiency_last;
+	std::vector<double> q_pc_target, q_pc_max, is_rec_su_allowed, is_pc_su_allowed, is_pc_sb_allowed;
 	ssc_data_get_number(m_ssc_data, "T_htf_hot_des", &tes_thot_des);
 	ssc_data_get_number(m_ssc_data, "T_htf_cold_des", &tes_tcold_des);
 	ssc_data_get_number(m_ssc_data, "csp.pt.tes.init_hot_htf_percent", &tes_charge);
+	ssc_data_get_number(m_ssc_data, "is_dispatch", &is_dispatch);
+
 	tes_thot = tes_thot_des;
 	tes_tcold = tes_tcold_des;
 	is_rec_on = 0;
 	is_pc_on = 0;
 	is_pc_standby = 0;
+	capacity_last = 1.0;
+	efficiency_last = 1.0;
+	is_reoptimize = true;
 	
+
 	bool use_stored_state = start_stored_pc_state;
-	bool stop_first_failure = true;  
+	bool stop_first_repair = is_reoptimize_at_repairs;
+	bool stop_first_failure = is_reoptimize_at_failures;
+
 
 	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean());
 	ssc_module_t mod_mspt = ssc_module_create("tcsmolten_salt");
@@ -2594,7 +2629,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 		double current_horizon = horizon;
 		if (horizon == 0)
 		{
-			double fop = 0.5;		// hard-coded for now... need to set based on either SM heuristic or past results
+			double fop = estimate_capacity_factor(m_variables.solarm.as_number(), m_variables.tshours.as_number());  // rough estimate of annual capacity factor based on configuration
 			current_horizon = pc.GetEstimatedMinimumLifetime(fop);
 		}
 
@@ -2604,8 +2639,10 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 		
 
 		//-- Initialize solutions for this model horizon
-		std::vector<double> cycle_capacity(nsteps, 1.0);
-		std::vector<double> cycle_efficiency(nsteps, 1.0);
+		std::vector<int> failures, repairs;
+		is_reoptimize = true;
+		std::vector<double> cycle_capacity(nsteps, capacity_last);
+		std::vector<double> cycle_efficiency(nsteps, efficiency_last);
 
 		for (int k = 0; k < (int)pc_keys.size(); k++)
 			pc_dispatch[pc_keys[k]].assign(nsteps, nan);
@@ -2613,7 +2650,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 		for (int k = 0; k < (int)ssc_keys.size(); k++)
 			current_soln[ssc_keys[k]].assign(nsteps, nan);
 
-		if (use_initial_ssc_soln) 
+		if (use_existing_ssc_soln)
 		{
 			for (int k = 0; k < (int)ssc_keys.size(); k++)
 			{
@@ -2624,14 +2661,14 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 		}
 		
 
-		//-- Alternate ssc and cycle availability solutions
+		//-- Alternate between ssc and cycle availability solutions
 		int step_now = 0;
 		while (step_now < nsteps)  
 		{
 			double hour_now = time_completed + step_now * steplength;
 
 			//--- Run ssc and dispatch optimization solution
-			if (!use_initial_ssc_soln)
+			if (!use_existing_ssc_soln)
 			{
 				ssc_data_set_number(m_ssc_data, "csp.pt.tes.init_hot_htf_percent", tes_charge);
 				ssc_data_set_number(m_ssc_data, "hot_tank_Tinit", tes_thot);
@@ -2642,8 +2679,62 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 				ssc_data_set_number(m_ssc_data, "is_rec_on_initial", is_rec_on);
 				ssc_data_set_number(m_ssc_data, "is_pc_on_initial", is_pc_on);
 				ssc_data_set_number(m_ssc_data, "is_pc_standby_initial", is_pc_standby);
-				//Set dispatch time series reduction in cycle availability based on failure and turbine age
+				
+				if (is_reoptimize)  // Optimize dispatch 
+				{
+					ssc_data_set_number(m_ssc_data, "is_dispatch", is_dispatch);
+					ssc_data_set_number(m_ssc_data, "is_dispatch_targets", false);
+					ssc_data_set_number(m_ssc_data, "is_dispatch_constr", true);
 
+					int n = nsteps - step_now;
+					ssc_number_t *p_data = new ssc_number_t[n];
+
+					for (int i = 0; i < n; i++)
+						p_data[i] = cycle_capacity[step_now + i];
+					ssc_data_set_array(m_ssc_data, "disp_cap_constr", p_data, n);
+
+					for (int i = 0; i < n; i++)
+						p_data[i] = cycle_efficiency[step_now + i];
+					ssc_data_set_array(m_ssc_data, "disp_eff_constr", p_data, n);
+
+					delete[] p_data;
+
+				}
+
+				else   // Set targets for cycle operation from previous optimization
+				{
+					ssc_data_set_number(m_ssc_data, "is_dispatch", false);
+					ssc_data_set_number(m_ssc_data, "is_dispatch_targets", true);
+					ssc_data_set_number(m_ssc_data, "is_dispatch_constr", false);
+					
+					int n = (int)q_pc_target.size();
+					ssc_number_t *p_data = new ssc_number_t[n];
+
+					for (int i = 0; i < n; i++)
+						p_data[i] = q_pc_target[i];
+					ssc_data_set_array(m_ssc_data, "q_pc_target_in", p_data, n);
+
+					for (int i = 0; i < n; i++)
+						p_data[i] = q_pc_max[i];
+					ssc_data_set_array(m_ssc_data, "q_pc_max_in", p_data, n);
+
+					for (int i = 0; i < n; i++)
+						p_data[i] = is_rec_su_allowed[i];
+					ssc_data_set_array(m_ssc_data, "is_rec_su_allowed_in", p_data, n);
+
+					for (int i = 0; i < n; i++)
+						p_data[i] = is_pc_su_allowed[i];
+					ssc_data_set_array(m_ssc_data, "is_pc_su_allowed_in", p_data, n);
+
+					for (int i = 0; i < n; i++)
+						p_data[i] = is_pc_sb_allowed[i];
+					ssc_data_set_array(m_ssc_data, "is_pc_sb_allowed_in", p_data, n);
+
+					delete[] p_data;
+				}
+
+
+				
 				if (!ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0))
 				{
 					message_handler("SSC simulation failed");
@@ -2661,45 +2752,170 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 				}
 
 			}
-			use_initial_ssc_soln = false;		// always re-run ssc after first call
+
+			use_existing_ssc_soln = false;		// always re-run ssc after first call
 
 
 
-			//--- Run cycle availability model and get results
-			for (int i = step_now; i < nsteps; i++)
+			//--- Run cycle availability model if a new dispatch optimization solution was created
+			if (is_reoptimize)
 			{
-				pc_dispatch["cycle_power"][i] = current_soln["P_cycle"][i]* 1.e6;		// cycle power output [W]
-				pc_dispatch["ambient_temperature"][i] = current_soln["tdry"][i];		// ambient temperature [C]
-				pc_dispatch["standby"][i] = 0;
-				if (current_soln["P_cycle"][i] < 1.e-6 && current_soln["q_pb"][i] > 0.0 && current_soln["q_pc_startup"][i] < current_soln["q_pb"][i])  // Thermal energy going to power block, but no electrical output
-					current_soln["is_standby"][i] = 1.0;
+				for (int i = step_now; i < nsteps; i++)
+				{
+					pc_dispatch["cycle_power"][i] = current_soln["P_cycle"][i] * 1.e6;		// cycle power output [W]
+					pc_dispatch["ambient_temperature"][i] = current_soln["tdry"][i];		// ambient temperature [C]
+					pc_dispatch["standby"][i] = 0;
+					if (current_soln["P_cycle"][i] < 1.e-6 && current_soln["q_pb"][i] > 0.0 && current_soln["q_pc_startup"][i] < current_soln["q_pb"][i])  // Thermal energy going to power block, but no electrical output
+						pc_dispatch["standby"][i] = 1.0;
+				}
+				pc.SetSimulationParameters(0, nsteps, steplength, 1.e-8, false, m_parameters.num_scenarios.as_integer(), m_parameters.cycle_hourly_labor_cost.as_number(), stop_first_repair);
+				pc.SetDispatch(pc_dispatch, true);
+				//pc.Simulate(false, use_stored_state);
+				use_stored_state = true;  // Use stored state for all PC calls after first call	
+
+				int sc = 0; //scenario number
+				cycle_capacity = pc.m_results.cycle_capacity[sc];		// Capacity reduction
+				cycle_efficiency = pc.m_results.cycle_efficiency[sc];	// Efficiency reduction
+
+
+
+				// Made-up arrays of cycle capacity for testing
+				cycle_efficiency.resize(nsteps, 1.0);
+				cycle_capacity.resize(nsteps, 1.0);
+				int m = 0;
+				int q = 0;
+				while (q < nsteps)
+				{
+					if (m >= 20 && m<47)
+						cycle_capacity[q] = 0.7;
+					else if (m >= 89 && m<130)
+						cycle_capacity[q] = 0.0;
+					else if (m >= 130 && m<159)
+						cycle_capacity[q] = 0.5;
+					q++;
+					m++;
+					if (m == 168)
+						m = 0;
+				}
+
+
+				//--- Identify all failure and repair events
+				failures.clear();
+				repairs.clear();
+				for (int i = 0; i < nsteps; i++)
+				{
+					double cap_prev, eff_prev;
+					if (i == 0)
+					{
+						cap_prev = capacity_last;
+						eff_prev = efficiency_last;
+					}
+					else
+					{
+						cap_prev = cycle_capacity[i - 1];
+						eff_prev = cycle_efficiency[i - 1];
+					}
+
+					if (cycle_capacity[i] > cap_prev || cycle_efficiency[i] > eff_prev)
+						repairs.push_back(i);
+
+					if (cycle_capacity[i] < cap_prev || cycle_efficiency[i] < eff_prev)
+						failures.push_back(i);
+				}
 			}
 
-			pc.SetSimulationParameters(0, nsteps, steplength, 1.e-8, false, m_parameters.num_scenarios.as_integer(), m_parameters.cycle_hourly_labor_cost.as_number(), true);
-			pc.SetDispatch(pc_dispatch, true);
-			pc.Simulate(false, use_stored_state);
-			use_stored_state = true;  // Use stored state for all PC calls after first call	
-
-			int sc = 0; //scenario number
-			int f = pc.m_results.period_of_last_failure[sc];		// Last failure
-			cycle_capacity = pc.m_results.cycle_capacity[sc];		// Capacity reduction
-			cycle_efficiency = pc.m_results.cycle_efficiency[sc];	// Efficiency reduction
-
-
-			f = fmin(step_now + 63, current_horizon);		// hard code for now...
+			
 
 
 
-			//--- Accept previous ssc solution for all points up to f
+			//--- Find next failure or repair
+			int next_failure = nsteps + 1000;
+			for (size_t i = 0; i < failures.size(); i++)
+			{
+				if (failures[i] > step_now)
+				{
+					next_failure = failures[i];
+					break;
+				}
+			}
+
+			int next_repair = nsteps + 1000;
+			for (size_t i = 0; i < repairs.size(); i++)
+			{
+				if (repairs[i] > step_now)
+				{
+					next_repair = repairs[i];
+					break;
+				}
+			}
+
+			int next_start_pt = std::min(nsteps, std::min(next_failure, next_repair));
+			bool is_repair = (next_repair == next_start_pt);
+			bool is_failure = (!is_repair && next_failure == next_start_pt);
+
+
+
+			//--- What to do in next call to ssc?  
+			// is_reoptmize = true: re-optmize dispatch using new capacity/efficiency constraints
+			// is_reoptimize = false: run from previous dispatch targets adjusted for capacity constraints 
+			if (next_start_pt < nsteps)
+			{
+				if (!is_reoptimize_at_failures && !is_reoptimize_at_repairs)  // No re-optimization, call ssc once more from first failure/repair and run from dispatch targets adjusted for capacity reduction
+				{
+					is_reoptimize = false;
+					if (step_now != 0)   
+						next_start_pt = nsteps;
+				}
+
+				else if ((is_repair && is_reoptimize_at_repairs) || (is_failure && is_reoptimize_at_failures))  // Reoptimize starting from first failure/repair
+					is_reoptimize = true;
+
+				else if (is_reoptimize)  // Previous calls re-optimized and re-ran dispatch solution -> call ssc again from first failure/repair
+					is_reoptimize = false;
+
+				else   // Previous calls did not re-optimize or re-run dispatch solution
+				{
+					if ((is_repair && next_failure > nsteps) || (is_failure && next_repair > nsteps))  // All failures/repairs accounted for
+					{
+						next_start_pt = nsteps;
+						is_reoptimize = false;
+					}
+					else  // Re-optimize from the the failure/repair after the first repair/failure
+					{
+						next_start_pt = std::max(next_failure, next_repair);
+						is_reoptimize = true;
+					}
+				}
+			}
+
+
+
+
+			//--- Accept current ssc solution for all points prior to "next_start_pt"
 			for (int k = 0; k < (int)ssc_keys.size(); k++)
 			{
 				std::string key = ssc_keys[k];
-				for (int i = step_now; i < f; i++)
-					soln[key].push_back(current_soln[key][i]);
+				for (int i = step_now; i < next_start_pt; i++)
+				{
+					double p_parasitic = current_soln["P_cycle"][i] - current_soln["P_out_net"][i];
+					double p_gross_adj = current_soln["P_cycle"][i] * cycle_efficiency[i];  // Reduce gross electricity generation by cycle efficiency penalty (efficiency penalty is not accounted for in ssc solution)
+					double p_net_adj = p_gross_adj - p_parasitic;
+					double fadj = current_soln["gen"][i] / (current_soln["P_out_net"][i]*1000.);
+					
+					if (key == "P_cycle")
+						soln[key].push_back(p_gross_adj); 
+					else if (key == "P_out_net")
+						soln[key].push_back(p_net_adj);
+					else if (key == "gen")
+						soln[key].push_back(p_net_adj*1000.*fadj);
+					else
+						soln[key].push_back(current_soln[key][i]);
+
+				}
 			}
 
 
-			//--- Update initial states and constraints for next ssc model calls
+			//--- Update initial states for next ssc model calls
 			tes_thot = soln["T_tes_hot"].back();
 			tes_tcold = soln["T_tes_cold"].back();
 			tes_charge = (soln["e_ch_tes"].back() / tes_capacity) * ((tes_thot_des - tes_tcold_des) / (tes_thot - tes_tcold_des))* 100.;  // ssc output "e_ch_tes" based on actual hot T and design point cold T
@@ -2715,8 +2931,111 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 			else if (soln["q_pb"].back() > 0.0 && soln["q_pc_startup"].back() < soln["q_pb"].back())
 				is_pc_standby = true;
 
-			step_now = f;
+
+			//--- Set dispatch targets if next ssc call will not involve re-optimization
+			double e_ch_tes_adj = nan;
+			if (!is_reoptimize && next_start_pt < nsteps)
+			{
+
+				int n = nsteps - next_start_pt;
+				q_pc_target.resize(n, 0);
+				q_pc_max.resize(n, 0);
+				is_rec_su_allowed.resize(n, 0);
+				is_pc_su_allowed.resize(n, 0);
+				is_pc_sb_allowed.resize(n, 0);
+
+				double op_cutoff = 0.999*(q_pc_des * cycle_cutoff_frac);
+				double stby_cutoff = 0.999*(q_pc_des * q_sby_frac);
+
+				for (int i = 0; i < n; i++)
+				{
+					int p = next_start_pt + i; 
+
+					q_pc_target[i] = current_soln["q_dot_pc_target"][p];
+					q_pc_max[i] = current_soln["q_dot_pc_max"][p];
+					is_rec_su_allowed[i] = current_soln["is_rec_su_allowed"][p];
+					is_pc_su_allowed[i] = current_soln["is_pc_su_allowed"][p];
+					is_pc_sb_allowed[i] = current_soln["is_pc_sb_allowed"][p];
+
+					if (cycle_capacity[p] < 0.999)  // Modify targets based on reduced cycle capacity
+					{
+						q_pc_target[i] = fmin(q_pc_target[i], q_pc_des * cycle_capacity[p]);  
+						q_pc_max[i] = q_pc_des * cycle_capacity[p];
+
+						if (q_pc_target[i] < op_cutoff)
+							is_pc_su_allowed[i] = 0;
+
+						if (q_pc_target[i] < stby_cutoff)
+							is_pc_sb_allowed[i] = 0;
+
+						if (is_pc_su_allowed[i] == 0 && is_pc_sb_allowed[i] == 0)
+							q_pc_target[i] = 0.0;
+					}
+
+					// Adjust q_pb_target and is_pc_su_allowed in cases where additional TES is present due to outages
+					if (is_use_target_heuristic)  
+					{
+						if (i == 0)
+							e_ch_tes_adj = current_soln["e_ch_tes"][p];
+						else
+						{
+							double e_ch_tes_prev = current_soln["e_ch_tes"][p - 1];
+							double tes_extra = fmax(0.0, e_ch_tes_adj - e_ch_tes_prev);  // extra TES relative to original dispatch solution without cycle failrues
+
+							if (tes_extra > 0.0)
+							{
+								double q_pb_added = 0.0;
+
+								// new target -> keep running as close as possible to previous target, or at maximum if constrained capacity changes
+								double new_target = q_pc_target[i - 1];
+								if (abs(cycle_capacity[p] - cycle_capacity[p - 1]) > 0.01)
+									new_target = q_pc_max[i];
+
+								// power block was already planned to run during this timestep but was supposed to decrease thermal input 
+								if (is_pc_su_allowed[i] == 1 && q_pc_target[i - 1] - q_pc_target[i] > 0)
+									q_pb_added = fmin(0.98*tes_extra / steplength, new_target - q_pc_target[i]);
+
+								// power block was not planned to run during this timestep but was running during previous timestep and extra TES is sufficient for at least minimum operation
+								else if ((is_pc_su_allowed[i] + is_pc_sb_allowed[i] == 0) && (is_pc_su_allowed[i - 1] == 1) && (tes_extra / steplength > q_pc_des*cycle_cutoff_frac))
+									q_pb_added = fmin(0.98*tes_extra / steplength, new_target);
+
+								q_pc_target[i] += q_pb_added;
+
+								if (q_pc_target[i] > 0.0 && is_pc_sb_allowed[i] == 0)
+									is_pc_su_allowed[i] = 1;
+							}
+
+
+							// calculate approximate expected TES charge state at end of this step
+							double q_thermal = current_soln["Q_thermal"][p];
+							double e_ch_tes_adj_base = e_ch_tes_adj + q_thermal - q_pc_target[i];  // Expected TES charge state based on original receiver output and new PC target
+
+							if (e_ch_tes_adj_base < tes_capacity)
+								e_ch_tes_adj = e_ch_tes_adj_base;
+							else
+							{
+								double q_rec_adj = q_thermal - (e_ch_tes_adj_base - tes_capacity);  // Reduced receiver output required to keep TES within limits
+								if (q_thermal > 0.0 && current_soln["Q_thermal"][p - 1]> 0.0 && q_rec_adj < q_rec_des*f_rec_min)  // Does receiver need to be shut off? (only for steps without receiver startup)
+									q_rec_adj = 0.0;
+
+								e_ch_tes_adj += q_rec_adj - q_pc_target[i];
+							}
+
+						}
+
+					}
+
+				}
+
+
+			}
+
+			step_now = next_start_pt;
+
 		}
+
+		capacity_last = cycle_capacity.back();
+		efficiency_last = cycle_efficiency.back();
 
 		time_completed += current_horizon;
 	}
@@ -2724,7 +3043,23 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 
 	ssc_module_free(mod_mspt);
 
+
 	return true;
 
 }
 
+double Project::estimate_capacity_factor(double sm, double tes)
+{
+	// rough correlation between annual capacity factor and solar multiple, tes size
+	sm = fmax(0.6, fmin(sm, 3.0));
+	tes = fmax(2.0, fmin(tes, 16.0));
+
+	double cf;
+	if (sm <= 1.5)
+		cf = -2.3 + 29.3*sm - 0.3*tes + 0.05*sm*tes;
+	else
+		cf = 7.4 + 28.0*sm - 0.86*tes + 2.1*sm*tes - 6.6*sm*sm - 0.137*tes*tes;
+
+	return cf / 100.;
+
+}
