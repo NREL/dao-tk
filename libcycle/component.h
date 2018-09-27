@@ -63,7 +63,6 @@ class Component
     std::string m_type;
 	double m_capacity_reduction;
 	double m_efficiency_reduction;
-	double m_cooldown_time;
 	bool m_new_repair;
 	bool m_new_failure;
 	double m_mean_repair_time;

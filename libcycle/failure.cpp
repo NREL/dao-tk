@@ -1,6 +1,4 @@
 #include "failure.h"
-#include "distributions.h"
-#include "well512.h"
 #include <cmath>
 
 //##################################################################################

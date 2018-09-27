@@ -89,7 +89,8 @@ parameters::parameters()
     is_ampl_engine.set(                  false,               "is_ampl_engine",      false,                               "Use AMPL optimizer",        "-",                          "Settings" );
     is_stochastic_disp.set(              false,           "is_stochastic_disp",      false,                          "Run stochastic dispatch",        "-",                          "Settings" );
     current_standby.set(                 false,              "current_standby",      false,                     "Start power cycle in standby",        "-",                  "Cycle|Parameters" );
-	stop_cycle_at_first_failure.set     (false,  "stop_cycle_at_first_failure",      false, "Stop cycle model after first failure or maintenance event", "-",                "Cycle|Paramaeters" );
+	stop_cycle_at_first_failure.set(     false,  "stop_cycle_at_first_failure",      false,   "Stop cycle model after first new failure event",        "-",                  "Cycle|Parameters" );
+	stop_cycle_at_first_repair.set(      false,   "stop_cycle_at_first_repair",      false,    "Stop cycle model after first new repair event",        "-",                  "Cycle|Parameters" );
 
 	std::string empty_string = "";
     ampl_data_dir.set(                      "",                "ampl_data_dir",      false,                                 "AMPL data folder",        "-",                          "Settings" );
@@ -105,8 +106,9 @@ parameters::parameters()
     radiators_per_train.set(                 2,          "radiators_per_train",      false,          "Number of radiators per condenser train",        "-",                  "Cycle|Parameters" );
     num_salt_steam_trains.set(               2,        "num_salt_steam_trains",      false,                   "Number of salt-to-steam trains",        "-",                  "Cycle|Parameters" );
     num_fwh.set(                             6,                      "num_fwh",      false,                      "Number of feedwater heaters",        "-",                  "Cycle|Parameters" );
-    num_salt_pumps.set(                      2,               "num_salt_pumps",      false,                         "Number of hot salt pumps",        "-",                  "Cycle|Parameters" );
-    num_water_pumps.set(                     2,              "num_water_pumps",      false,                 "Number of boiler and water pumps",        "-",                  "Cycle|Parameters" );
+    num_salt_pumps.set(                      4,               "num_salt_pumps",      false,                         "Number of hot salt pumps",        "-",                  "Cycle|Parameters" );
+	num_salt_pumps_required.set(             3,      "num_salt_pumps_required",      false,  "Number of hot salt pumps to operate at capacity",        "-",                  "Cycle|Parameters" );
+	num_water_pumps.set(                     2,              "num_water_pumps",      false,                 "Number of boiler and water pumps",        "-",                  "Cycle|Parameters" );
     num_turbines.set(                        1,                 "num_turbines",      false,               "Number of turbine-generator shafts",        "-",                  "Cycle|Parameters" );
     read_periods.set(                        0,                 "read_periods",      false,                      "Number of read-only periods",        "-",                  "Cycle|Parameters" );
     sim_length.set(                         48,                   "sim_length",      false,            "Number of periods in cycle simulation",        "-",                  "Cycle|Parameters" );
@@ -219,6 +221,7 @@ parameters::parameters()
     (*this)["is_stochastic_disp"] = &is_stochastic_disp;
 	(*this)["current_standby"] = &current_standby;
 	(*this)["stop_cycle_at_first_failure"] = &stop_cycle_at_first_failure;
+	(*this)["stop_cycle_at_first_repair"] = &stop_cycle_at_first_repair;
     (*this)["ampl_data_dir"] = &ampl_data_dir;
     (*this)["solar_resource_file"] = &solar_resource_file;
     (*this)["disp_steps_per_hour"] = &disp_steps_per_hour;
@@ -1398,7 +1401,7 @@ bool Project::C()
 	cycle_efficiency    Time series of mean cycle efficiency 
 	cycle_capacity      Time series of mean cycle capacity
 	*/
-
+	
 	// error if invalid design
 	std::string error_msg;
 	if (!Validate(Project::CALLING_SIM::CYCLE_AVAIL, &error_msg))
@@ -1407,6 +1410,7 @@ bool Project::C()
 		return false;
 	}
 	
+
 	PowerCycle pc = PowerCycle();
 	WELLFiveTwelve gen(0);
 	pc.AssignGenerator(&gen);
@@ -1420,7 +1424,8 @@ bool Project::C()
 		false,
 		m_parameters.num_scenarios.as_integer(),
 		m_parameters.cycle_hourly_labor_cost.as_number(),
-		m_parameters.stop_cycle_at_first_failure.as_boolean()
+		m_parameters.stop_cycle_at_first_failure.as_boolean(),
+		m_parameters.stop_cycle_at_first_repair.as_boolean()
 	);
 	
 	//Plant Components
@@ -1439,6 +1444,7 @@ bool Project::C()
 		m_parameters.num_salt_steam_trains.as_integer(),
 		m_parameters.num_fwh.as_integer(),
 		m_parameters.num_salt_pumps.as_integer(),
+		m_parameters.num_salt_pumps_required.as_integer(),
 		m_parameters.num_water_pumps.as_integer(),
 		m_parameters.num_turbines.as_integer(),
 		c_eff_cold,
@@ -1491,14 +1497,15 @@ bool Project::C()
 
 	//Assign results to structure
 	pc.GetSummaryResults();
-	m_cycle_outputs.cycle_capacity.vec()->resize(pc.GetSimLength());
-	m_cycle_outputs.cycle_efficiency.vec()->resize(pc.GetSimLength());
+	m_cycle_outputs.cycle_capacity.empty_vector();
+	m_cycle_outputs.cycle_efficiency.empty_vector();
 
 	m_cycle_outputs.cycle_labor_cost.assign(pc.m_results.avg_labor_cost);
-	m_cycle_outputs.cycle_capacity.assign_vector(pc.m_results.avg_cycle_capacity);
-	m_cycle_outputs.cycle_efficiency.assign_vector(pc.m_results.avg_cycle_efficiency);
+	m_cycle_outputs.cycle_capacity.assign_vector( pc.m_results.cycle_capacity[0] );
+	m_cycle_outputs.cycle_efficiency.assign_vector( pc.m_results.cycle_efficiency[0] );
 	m_cycle_outputs.expected_starts_to_next_cycle_failure.assign(pc.m_results.expected_starts_to_failure);
 	m_cycle_outputs.expected_time_to_next_cycle_failure.assign(pc.m_results.expected_time_to_failure);
+	m_cycle_outputs.num_failures.assign(pc.m_results.failure_event_labels.size());
 
 	is_cycle_avail_valid = true;
 

@@ -62,7 +62,6 @@ Component::Component(std::string name, std::string type,
     m_repair_cost = repair_cost;
 	m_capacity_reduction = capacity_reduction;
 	m_efficiency_reduction = efficiency_reduction;
-	m_cooldown_time = repair_cooldown_time;
 	m_repair_mode = repair_mode;
 	m_mean_repair_time = mean_repair_time;
 	m_new_failure = false;
@@ -213,9 +212,8 @@ double Component::GetCooldownTime()
 	/*
 	Accessor to component's remaining cooldown time.
 	*/
-	return m_cooldown_time;
+	return m_repair_dist->GetBeta();
 }
-
         
 bool Component::IsOperational()
 {
@@ -303,7 +301,7 @@ void Component::GenerateTimeToRepair(WELLFiveTwelve &gen)
     */
     m_status.downtime_remaining = m_repair_dist->GetVariate(gen);
 	m_status.repair_event_time = m_status.downtime_remaining*1.0;
-	std::cerr << "NEW FAILURE - DOWNTIME: " << std::to_string(m_status.downtime_remaining) << "\n";
+	//std::cerr << "NEW FAILURE - DOWNTIME: " << std::to_string(m_status.downtime_remaining) << "\n";
 }
 
         
@@ -497,9 +495,9 @@ void Component::GenerateFailure(WELLFiveTwelve &gen, int t, int fail_idx, int sc
     m_status.operational = false;
 	m_new_failure = true;
     GenerateTimeToRepair(gen);
+	double labor = m_status.downtime_remaining - GetCooldownTime();
     m_failure_types.at(fail_idx).GenerateFailureVariate(gen);
     ResetHazardRate();
-	double labor = m_status.downtime_remaining - m_cooldown_time;
     //add a new failure to the parent (CSPPlant) failure queue
 	std::string label = "S"+std::to_string(scen_index)+"T"+std::to_string(t)+GetName()+std::to_string(fail_idx);
     (*m_parent_failure_events)[label] = failure_event(
@@ -600,7 +598,6 @@ void Component::Reset(WELLFiveTwelve &gen)
 
 	gen -- RNG Engine
 	*/
-	m_cooldown_time = 0.;
 	m_status.downtime_remaining = 0.;
 	m_status.hazard_rate = 1.;
 	m_status.operational = true;

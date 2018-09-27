@@ -7,10 +7,13 @@
 
 cycle_file_settings::cycle_file_settings()
 {
-	plant_in_state = "plant_state_in";
-	plant_out_state = "plant_state_out";
-	component_in_state = "component_state_in";
-	component_out_state = "component_state_out";
+	plant_in_state = "./plant_state_in";
+	plant_out_state = "./plant_state_out";
+	component_in_state = "./component_state_in";
+	component_out_state = "./component_state_out";
+	ampl_param_file = "./MxSim";
+	output_ampl_file = false;
+	day_idx = 0;
 }
 
 cycle_state::cycle_state()
@@ -61,6 +64,7 @@ simulation_params::simulation_params()
 	num_scenarios = 1;
 	hourly_labor_cost = 50.;
 	stop_at_first_repair = false;
+	stop_at_first_failure = false;
 }
 
 void simulation_params::print()
@@ -71,7 +75,9 @@ void simulation_params::print()
 		<< "epsilon: " << epsilon << "\n"
 		<< "print_output: " << print_output << "\n"
 		<< "num_scenarios: " << num_scenarios << "\n"
-		<< "hourly_labor_cost: " << hourly_labor_cost << "\n";
+		<< "hourly_labor_cost: " << hourly_labor_cost << "\n"
+		<< "stop_at_first_repair: " << stop_at_first_repair << "\n"
+		<< "stop_at_first_failure: " << stop_at_first_failure << "\n";
 }
 
 cycle_results::cycle_results()

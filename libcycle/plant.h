@@ -9,6 +9,7 @@
 #include "well512.h"
 #include "distributions.h"
 #include "plant_struct.h"
+#include "lib_util.h"
 
 
 class PowerCycle
@@ -21,6 +22,7 @@ class PowerCycle
 	std::vector< size_t > m_turbine_idx;  //turbine indices of component vector
  	std::vector< size_t > m_sst_idx;   //salt-to-steam train indices of component vector
 	std::vector< size_t > m_condenser_idx; //condenser train indices of component vector
+	std::vector< size_t > m_salt_pump_idx; //salt pump indices of component vector
 	
 	int m_num_condenser_trains = 0;
 	int m_fans_per_condenser_train = 0;
@@ -31,6 +33,7 @@ class PowerCycle
 	int m_num_feedwater_heaters = 0;
 	int m_num_salt_steam_trains = 0;
 	int m_num_salt_pumps = 0;
+	int m_num_salt_pumps_required = 0;   //number required for capacity operation
 	int m_num_water_pumps = 0;
 	int m_num_turbines = 0; // HP, IP, LP turbines and generator count 
 							// as a single component
@@ -38,8 +41,8 @@ class PowerCycle
 	std::unordered_map<std::string, std::vector<double> > m_dispatch;
 
 	//Failure Events
-	std::unordered_map< std::string, failure_event > m_failure_events;
-	std::vector <std::string> m_failure_event_labels;
+	std::unordered_map< std::string, failure_event >  m_failure_events;
+	std::vector <std::string>  m_failure_event_labels;
 
 	std::unordered_map< std::string, ComponentStatus > m_start_component_status;
 
@@ -72,10 +75,10 @@ class PowerCycle
 
 public:
 	PowerCycle::PowerCycle();
-	void Initialize();
+	void Initialize(double age = 0.);
 	cycle_state m_current_cycle_state;
 	cycle_state m_begin_cycle_state;
-	cycle_file_settings m_filenames;
+	cycle_file_settings m_file_settings;
 	cycle_results m_results;
 	simulation_params m_sim_params;
 	std::vector< std::string > output_log;
@@ -93,7 +96,8 @@ public:
 		bool print_output = false,
 		int num_scenarios = 1,
 		double hourly_labor_cost = 50.,
-		bool stop_at_first_repair = false
+		bool stop_at_first_repair = false,
+		bool stop_at_first_failure = false
 	);
 	void SetCondenserEfficienciesCold(std::vector<double> eff_cold);
 	void SetCondenserEfficienciesHot(std::vector<double> eff_hot);
@@ -140,6 +144,8 @@ public:
 	int GetSimLength();
 	void SetShutdownCapacity(double capacity);
 	void SetNoRestartCapacity(double capacity);
+	void SetShutdownEfficiency(double efficiency);
+	void SetNoRestartEfficiency(double efficiency);
 	std::unordered_map< std::string, failure_event > GetFailureEvents();
 	std::vector<std::string> GetFailureEventLabels();
 	void AddComponent(std::string name, 
@@ -162,7 +168,7 @@ public:
 	void AddCondenserTrains(int num_trains, int num_fans, int num_radiators);
 	void AddSaltToSteamTrains(int num_trains);
 	void AddFeedwaterHeaters(int num_fwh);
-	void AddSaltPumps(int num_pumps);
+	void AddSaltPumps(int num_pumps, int num_required);
 	void AddWaterPumps(int num_pumps);
 	void AddTurbines(int num_turbines);
 	void GeneratePlantComponents(
@@ -171,7 +177,8 @@ public:
 		int radiators_per_train = 1,
 		int num_salt_steam_trains = 2,
 		int num_fwh = 6,
-		int num_salt_pumps = 2,
+		int num_salt_pumps = 4,
+		int num_salt_pumps_required = 3,
 		int num_water_pumps = 2,
 		int num_turbines = 1,
 		std::vector<double> condenser_eff_cold = { 0.,1.,1. },
@@ -200,6 +207,8 @@ public:
 	double GetTurbineEfficiency(bool age, bool include_failures = false);
 	double GetTurbineCapacity(bool age, bool include_failures = false);
 	double GetSaltSteamTrainCapacity();
+	double GetSaltPumpCapacity();
+	double GetSaltPumpEfficiency();
 	void SetCycleCapacityAndEfficiency(double temp, bool age = false);
 	double GetCycleCapacity();
 	double GetCycleEfficiency();
@@ -245,6 +254,8 @@ public:
 	bool AnyFailuresOccurred();
 	double GetEstimatedMinimumLifetime(double frac_operational = 1.0);
 	double GetExpectedStartsToNextFailure();
+	void WriteAMPLParams();
+	void AgePlant(double age);
 };
 
 

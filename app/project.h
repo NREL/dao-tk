@@ -294,6 +294,7 @@ struct parameters : public lk::varhash_t
 	parameter is_stochastic_disp;
 	parameter current_standby;
 	parameter stop_cycle_at_first_failure;
+	parameter stop_cycle_at_first_repair;
 	parameter is_use_clusters;
 	parameter is_run_continuous;
 	parameter is_hard_partitions;
@@ -319,6 +320,7 @@ struct parameters : public lk::varhash_t
 	parameter num_salt_steam_trains;
 	parameter num_fwh;
 	parameter num_salt_pumps;
+	parameter num_salt_pumps_required;
 	parameter num_water_pumps;
 	parameter num_turbines;
 	parameter read_periods;
@@ -471,6 +473,7 @@ struct cycle_outputs : public lk::varhash_t
 	parameter expected_time_to_next_cycle_failure;
 	parameter expected_starts_to_next_cycle_failure;
 	parameter period_of_last_failure;
+	parameter num_failures;
 
 	cycle_outputs();
 };
