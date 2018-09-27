@@ -1673,11 +1673,11 @@ bool Project::S()
 			m_parameters.num_salt_steam_trains.as_integer(),
 			m_parameters.num_fwh.as_integer(),
 			m_parameters.num_salt_pumps.as_integer(),
+			m_parameters.num_salt_pumps_required.as_integer(),
 			m_parameters.num_water_pumps.as_integer(),
 			m_parameters.num_turbines.as_integer(),
 			c_eff_cold,
-			c_eff_hot
-		);
+			c_eff_hot);
 
 		pc.AssignGenerator(&gen);
 
