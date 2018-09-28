@@ -498,6 +498,9 @@ struct simulation_outputs : public lk::varhash_t
 	parameter annual_cycle_ramp_disp;
 	parameter cycle_ramp_index_disp;
 
+	parameter cycle_capacity_avail;
+	parameter cycle_efficiency_avail;
+
 	simulation_outputs();
 };
 
@@ -588,7 +591,7 @@ class Project
 	
 	bool integrate_cycle_and_simulation(PowerCycle &pc, double start_time, double end_time, double horizon, bool start_stored_pc_state,
 									std::unordered_map<std::string, std::vector<double>>&initial_ssc_soln,
-									std::unordered_map<std::string, std::vector<double>> &soln);
+									std::unordered_map<std::string, std::vector<double>> &soln, std::vector<double> &capacity, std::vector<double> &efficiency);
 
 	double estimate_capacity_factor(double sm, double tes);
 	
