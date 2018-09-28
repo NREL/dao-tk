@@ -61,12 +61,18 @@ public:
     
     T maxCoeff()
     {
-        return *std::max(this->begin(), this->end());
+        /* 
+        Returns the maximum value in the vector
+        */
+        return *std::max_element(this->begin(), this->end());
     };
 
     T minCoeff()
     {
-        return *std::min(this->begin(), this->end());
+        /*
+        Returns the minimum value in the vector
+        */
+        return *std::min_element(this->begin(), this->end());
     };
 
     int argMin()
@@ -91,13 +97,22 @@ public:
         return &(*this);
     };
 
-    Eigen::Matrix<T, Eigen::Dynamic, 1> operator=(const Vector<T>)
+    Vector<T>& operator=(const Vector<T>& other)
     {
-        Eigen::Matrix<T, Eigen::Dynamic, 1> res(this->size());
-        for(size_t i=0; i<this->size(); i++)
-            res(i) = this->at(i);
-        return res;
+        //Eigen::Matrix<T, Eigen::Dynamic, 1> res(this->size());
+        clear();
+        for(size_t i=0; i<other.size(); i++)
+            push_back( other(i) );
+
+        return *this;
     };
+
+    //Vector<T>& operator=(Vector<T> &other)
+    //{
+    //    clear();
+    //    for (size_t i = 0; i < other.size(); i++)
+    //        push_back(other(i));
+    //};
 
     Vector<T>& operator*(double scale)
     {
@@ -209,24 +224,24 @@ public:
         return this->back();
     };
 
-    void erase(int where, bool is_col=false)
-    {
-        if( is_col )
-        {
-            assert(where < cols() && where > -1);
-            transposeInPlace();
-            std::vector< Vector<T> >::erase(this->begin()+where, this->begin()+where+1);
-            transposeInPlace();
-        }
-        else
-        {
-            assert(where < this->size() && where > -1);
-            
-            std::vector< Vector<T> >::erase(this->begin()+where, this->begin()+where+1);
-        }
-        
-        return;
-    }
+    //void erase(int where, bool is_col=false)
+    //{
+    //    if( is_col )
+    //    {
+    //        assert(where < cols() && where > -1);
+    //        transposeInPlace();
+    //        std::vector< Vector<T> >::erase(this->begin()+where, this->begin()+where+1);
+    //        transposeInPlace();
+    //    }
+    //    else
+    //    {
+    //        assert(where < this->size() && where > -1);
+    //        
+    //        std::vector< Vector<T> >::erase(this->begin()+where, this->begin()+where+1);
+    //    }
+    //    
+    //    return;
+    //}
 
     T& operator() (int row, int col)
     {

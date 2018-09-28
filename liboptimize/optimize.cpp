@@ -250,26 +250,20 @@ bool optimization::run_integer_optimization()
             Matrix<double> grid_comb(n+1, n+1);
             Vector<int> comb;
                         
-            for(int j=0; j<n+1; j++) //for each row index in newcombs(count)...
+            for (int j = 0; j < n + 1; j++) //for each row index in newcombs(count)...
+            {
                 for(int k=0; k<n+1; k++) //for each value in the row corresponding to newcombs(count,j)
-                {
                     grid_comb(j,k) = (double)grid( newcombs(count,j), k );
-                    comb.push_back(newcombs(count,j));
-                }
-            grid_comb.transposeInPlace();
-
+                comb.push_back(newcombs(count,j));
+            }
+            
             // Q,R = np.linalg.qr(grid[comb].T,mode='complete')
-            Eigen::MatrixXd grid_comb_e = grid_comb.AsEigenMatrixType();
+            Eigen::MatrixXd grid_comb_e = grid_comb.transpose().AsEigenMatrixType();
             Eigen::HouseholderQR<Eigen::MatrixXd> qr = grid_comb_e.householderQr();
             
-            Eigen::MatrixXd R_e = qr.matrixQR();
-            Eigen::MatrixXd Q_e = qr.householderQ();
-            Matrix<double> R = R_e;
-            Matrix<double> Q = Q_e;
-
             // Check if combination is poised
             // if np.min(np.abs(np.diag(R))) > 1e-8:
-            if( R_e.diagonal().cwiseAbs().minCoeff() > 1.e-8 )
+            if( qr.matrixQR().diagonal().cwiseAbs().minCoeff() > 1.e-8 )
             {
                 feas_secants += 1;
 
@@ -279,23 +273,26 @@ bool optimization::run_integer_optimization()
                 // for j in range(n+1): 
                 for(int j=0; j<n+1; j++)
                 {
-                    Matrix<double> grid_temp = grid_comb;
-                    // grid_temp.erase(j, true);
-                    grid_temp.transposeInPlace();
-                    grid_temp.std::vector< Vector<double> >::erase(grid_temp.begin()+j, grid_temp.begin()+j+1);
-                    grid_temp.transposeInPlace();
+                    //first, delete the appropriate row (n-j) of the untransposed matrix
+                    Matrix<double> grid_temp;
+                    for (Matrix<double>::iterator v = grid_comb.begin(); v != grid_comb.end(); v++)
+                        if (v != (grid_comb.begin() + (n - j)))
+                            grid_temp.push_back(*v);
+                    //grid_temp.transposeInPlace();
 
                     //redo the factorization
-                    Eigen::MatrixXd grid_temp_e = grid_temp.AsEigenMatrixType();
-                    Eigen::HouseholderQR<Eigen::MatrixXd> qr1 = grid_temp_e.householderQr();
-                    Matrix<double> Q1( qr1.householderQ() );
+                    //Eigen::MatrixXd grid_temp_e = grid_temp.AsEigenMatrixType();
+                    //Eigen::HouseholderQR<Eigen::MatrixXd> qr1 = grid_temp_e.householderQr();
+                    //Matrix<double> Q1( qr1.householderQ() );
+                    Matrix<double> Q1( grid_temp.transpose().AsEigenMatrixType().householderQr().householderQ() );
                     
                     // Check if the sign is right by comparing against the point # being left out
-                    c_mat.set_col(j, Q1.col(n)); //last column in Q1
 
-                    if( Q1.col(n).dot(grid_comb.at(n-j)) > 0.)
-                        for(int i=0; i<n+1; i++)
-                            c_mat(i,j)*=-1.;
+                    if (Q1.col(n).dot(grid_comb.at(n - j)) > 0.)
+                        c_mat(j) = Q1.col(n)*-1.; //last column in Q1
+                    else
+                        c_mat(j) = Q1.col(n);
+
                 }
 
                 // points_better_than_obj_ub = np.where(eta < obj_ub)[0]
