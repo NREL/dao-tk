@@ -1655,7 +1655,10 @@ void PowerCycle::RunDispatch()
 				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
 			}
 			SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
-			power_output = std::min(power_output, m_cycle_capacity*m_current_cycle_state.capacity);
+			if (m_cycle_capacity + m_sim_params.epsilon <= 1.0)
+			{
+				power_output = std::min(power_output, m_cycle_capacity*m_current_cycle_state.capacity);
+			}
 		}
 		OperatePlant(power_output, t, start, mode);
 		cycle_capacities[t] = m_cycle_capacity;
