@@ -2667,10 +2667,16 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 		
 		pc.SetSimulationParameters(0, nsteps, steplength, 1.e-8, false, m_parameters.num_scenarios.as_integer(), m_parameters.cycle_hourly_labor_cost.as_number(), true, true);
 
-		//-- Initialize solutions for this model horizon.  
+		//-- Initialize solutions for this model horizon 
+		//-- Start from "full" cycle capacity/efficiency to set dispatch targets unless reoptimizing at repairs (in which case targets will be re-computed at any increase in availability, so no reason not to use current capacity/efficiency in first call)
 		is_reoptimize = true;
 		double capacity_init = 1.0;
 		double efficiency_init = 1.0;
+		if (is_reoptimize_at_repairs && capacity_last > 0.0)
+		{
+			capacity_init = capacity_last;
+			efficiency_init = efficiency_last;
+		}
 		std::vector<double> cycle_capacity(nsteps, capacity_init);
 		std::vector<double> cycle_efficiency(nsteps, efficiency_init);
 
@@ -2700,7 +2706,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 		{
 			double hour_now = time_completed + step_now * steplength;
 
-			//--- Run ssc and dispatch optimization solution
+			//--- Run ssc 
 			if (!use_existing_ssc_soln)
 			{
 				ssc_data_set_number(m_ssc_data, "csp.pt.tes.init_hot_htf_percent", tes_charge);
@@ -2799,75 +2805,63 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 
 			}
 
-				
 			std::vector<double>cycle_efficiency_in = cycle_efficiency;
 
 
-			//--- Run cycle availability model
-			for (int i = step_now; i < nsteps; i++)
+			//--- Find next failure/repair event
+			bool is_repair, is_failure;
+			int next_start_pt = -1;
+
+			if (step_now == 0 && (cycle_capacity[0] - capacity_last > 0.01 || cycle_efficiency[0] - efficiency_last > 0.01))  // Capacity/efficiency used in ssc at first step is too high... treat like a failure
 			{
-				pc_dispatch["cycle_power"][i] = current_soln["P_cycle"][i] * 1.e6;		// cycle power output [W]
-				pc_dispatch["ambient_temperature"][i] = current_soln["tdry"][i];		// ambient temperature [C]
-				pc_dispatch["standby"][i] = 0;
-				if (current_soln["P_cycle"][i] < 1.e-6 && current_soln["q_pb"][i] > 0.0 && current_soln["q_pc_startup"][i] < current_soln["q_pb"][i])  // Thermal energy going to power block, but no electrical output
-					pc_dispatch["standby"][i] = 1.0;
+				next_start_pt = 0;
+				is_failure = true;
+				is_repair = false;
+				cycle_capacity.assign(nsteps, capacity_last);
+				cycle_efficiency.assign(nsteps, efficiency_last);
 			}
-			
-			pc.SetDispatch(pc_dispatch, true);
-			pc.Simulate(false, use_stored_state);
-			use_stored_state = true;  // Use stored state for all PC calls after first call	
-
-			int sc = 0; //scenario number
-			cycle_capacity = pc.m_results.cycle_capacity[sc];		// Capacity reduction
-			cycle_efficiency = pc.m_results.cycle_efficiency[sc];	// Efficiency reduction
-
-			int next_failure = pc.m_results.period_of_last_failure[sc];
-			int next_repair = pc.m_results.period_of_last_repair[sc];
-
-			
-			if (step_now == 0)  // Check if first time point has different capacity/efficiency than assumed in call to ssc
+			else if (step_now == 0 && (cycle_capacity[0] - capacity_last < -0.01 || cycle_efficiency[0] - efficiency_last < -0.01))   // Capacity/efficiency used in ssc at first step is too low... treat like a repair
 			{
-				if (capacity_init - cycle_capacity[0] > 0.01)
-					next_failure = 0;
-				else if (cycle_capacity[0] - capacity_init > 0.01)
-					next_repair = 0;
+				next_start_pt = 0;
+				is_failure = false;
+				is_repair = true;
+				cycle_capacity.assign(nsteps, capacity_last);
+				cycle_efficiency.assign(nsteps, efficiency_last);
 			}
-
-			if (next_failure <= step_now)
-				next_failure = nsteps + 1000;
-			if (next_repair <= step_now)
-				next_repair = nsteps + 1000;
-
-			int next_start_pt = std::min(nsteps, std::min(next_failure, next_repair));
-			bool is_repair = (next_repair == next_start_pt);
-			bool is_failure = (!is_repair && next_failure == next_start_pt);
-
-
-			//--- Make sure cycle capacity or cycle efficiency actually changes at this point.  If not, keep going until something changes
-			if (next_start_pt > 0 && next_start_pt < nsteps)
+			else  // Run cycle availability model
 			{
-				bool is_same = cycle_capacity[next_start_pt] == cycle_capacity[next_start_pt - 1] && cycle_efficiency[next_start_pt] == cycle_efficiency[next_start_pt - 1];
-
-				if (is_same)
+				for (int i = step_now; i < nsteps; i++)
 				{
-					int new_start_pt = next_start_pt;
-					while (is_same && new_start_pt < nsteps - 1)
-					{
-						new_start_pt += 1;
-						is_same = cycle_capacity[new_start_pt] == cycle_capacity[new_start_pt - 1] && cycle_efficiency[new_start_pt] == cycle_efficiency[new_start_pt - 1];
-					}
-
-					next_start_pt = nsteps;
-					if (!is_same)
-					{
-						next_start_pt = new_start_pt;
-						is_repair = cycle_capacity[next_start_pt] > cycle_capacity[next_start_pt - 1] || cycle_efficiency[next_start_pt] > cycle_efficiency[next_start_pt - 1];
-						is_failure = !is_repair;
-					}
-						
+					pc_dispatch["cycle_power"][i] = current_soln["P_cycle"][i] * 1.e6;		// cycle power output [W]
+					pc_dispatch["ambient_temperature"][i] = current_soln["tdry"][i];		// ambient temperature [C]
+					pc_dispatch["standby"][i] = 0;
+					if (current_soln["P_cycle"][i] < 1.e-6 && current_soln["q_pb"][i] > 0.0 && current_soln["q_pc_startup"][i] < current_soln["q_pb"][i])  // Thermal energy going to power block, but no electrical output
+						pc_dispatch["standby"][i] = 1.0;
 				}
-			}
 
+				pc.SetDispatch(pc_dispatch, true);
+				pc.Simulate(false, use_stored_state);
+				use_stored_state = true;  // Use stored state for all PC calls after first call	
+
+				int sc = 0; //scenario number
+				cycle_capacity = pc.m_results.cycle_capacity[sc];		
+				cycle_efficiency = pc.m_results.cycle_efficiency[sc];	
+
+				int next_failure = pc.m_results.period_of_last_failure[sc];
+				int next_repair = pc.m_results.period_of_last_repair[sc];
+
+				if (next_failure <= step_now)
+					next_failure = nsteps + 1000;
+				if (next_repair <= step_now)
+					next_repair = nsteps + 1000;
+
+				next_start_pt = std::min(nsteps, std::min(next_failure, next_repair));
+				is_repair = (next_repair == next_start_pt);
+				is_failure = (!is_repair && next_failure == next_start_pt);
+
+				if (is_repair && next_start_pt > 0 && next_start_pt < nsteps)  // repairs are reported from cycle model in the time step before capacity/efficiency increase
+					next_start_pt += 1;
+			}
 
 
 
@@ -2878,27 +2872,26 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 				std::fill(cycle_efficiency.begin() + next_start_pt, cycle_efficiency.end(), cycle_efficiency[next_start_pt]);
 			}
 
-
+			
 			//--- Write current solution to file
+			/*
+			std::ofstream ofs;
+			std::string filename = "C:/Users/jmartine/Desktop/cycle_ssc_results/time" + std::to_string(time_completed) + "_step" + std::to_string(step_now) + ".txt";
+			ofs.open(filename, std::ofstream::out);
+			ofs.clear();
+			ofs << "PC target (MWt), PC energy (MWt), TES (MWht), Receiver (MWt), Cycle gross output (MWe), Capacity, Efficiency\n";
 			for (int i = 0; i < nsteps; i++)
 			{
-				std::ofstream ofs;
-				std::string filename = "C:/Users/jmartine/Desktop/cycle_ssc_results.txt";
-				ofs.open(filename, std::ofstream::out);
-				ofs.clear();
-				ofs << "PC target (MWt), PC energy (MWt), TES/15 (MWht), Receiver (MWt), Cycle gross output (MWe), Capacity, Efficiency\n";
-				for (int i = 0; i < nsteps; i++)
-				{
-					ofs << current_targets["q_dot_pc_target"][i] << ", "
-						<< current_soln["q_pb"][i] << ", "
-						<< current_soln["e_ch_tes"][i]/15. << ", "
-						<< current_soln["Q_thermal"][i] << ", "
-						<< (current_soln["P_cycle"][i] * cycle_efficiency_in[i]) << ", "
-						<< cycle_capacity[i] << ", "
-						<< cycle_efficiency[i] <<"\n";
-				}
-				ofs.close();
+				ofs << current_targets["q_dot_pc_target"][i] << ", "
+					<< current_soln["q_pb"][i] << ", "
+					<< current_soln["e_ch_tes"][i] << ", "
+					<< current_soln["Q_thermal"][i] << ", "
+					<< (current_soln["P_cycle"][i] * cycle_efficiency_in[i]) << ", "
+					<< cycle_capacity[i] << ", "
+					<< cycle_efficiency[i] <<"\n";
 			}
+			ofs.close();
+			*/
 
 
 
