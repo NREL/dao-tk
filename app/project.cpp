@@ -2832,7 +2832,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 			{
 				for (int i = step_now; i < nsteps; i++)
 				{
-					pc_dispatch["cycle_power"][i] = current_soln["P_cycle"][i] * 1.e6;		// cycle power output [W]
+					pc_dispatch["cycle_power"][i] = current_soln["P_cycle"][i]* 1.e6;		// cycle power output [W]
 					pc_dispatch["ambient_temperature"][i] = current_soln["tdry"][i];		// ambient temperature [C]
 					pc_dispatch["standby"][i] = 0;
 					if (current_soln["P_cycle"][i] < 1.e-6 && current_soln["q_pb"][i] > 0.0 && current_soln["q_pc_startup"][i] < current_soln["q_pb"][i])  // Thermal energy going to power block, but no electrical output
