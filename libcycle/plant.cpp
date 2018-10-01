@@ -71,16 +71,19 @@ void PowerCycle::GeneratePlantCyclingPenalties()
 
 void PowerCycle::SetHotStartPenalty(double pen)
 {
+	/* mutator for plant's hot-start penalty. */
 	m_current_cycle_state.hot_start_penalty = pen;
 }
 
 void PowerCycle::SetWarmStartPenalty(double pen)
 {
+	/* mutator for plant's warm-start penalty. */
 	m_current_cycle_state.warm_start_penalty = pen;
 }
 
 void PowerCycle::SetColdStartPenalty(double pen)
 {
+	/* mutator for plant's cold-start penalty. */
 	m_current_cycle_state.cold_start_penalty = pen;
 }
 
@@ -95,7 +98,23 @@ void PowerCycle::SetSimulationParameters(
 	bool stop_at_first_repair,
 	bool stop_at_first_failure
 )
-{
+{   /*
+	Sets all simulation parameters for the power cycle
+	model.  This is done with default values at initialization,
+	and may also be called in C() in the DAO-tk solution.
+    
+	read_periods -- number of read-only periods (obsolete)
+	sim_length -- length of simulation, in time periods
+	steplength -- length of single time period (hours)
+	epsilon -- threshold for logical differences between floating-point numbers
+	print_output -- true if outputting failure events to a log
+	num_scenarios -- number of replicates called by Simulate()
+	hourly_labor_cost -- assumed cost/hour for repair labor ($)
+	stop_at_first_repair -- terminates each replicate at first new failure (not
+		read in from failure events) if true
+	stop_at_first_repair -- terminates each replicate at first new failure (not
+		read in from failure events) if true
+	*/
     m_sim_params.read_periods = read_periods;
     m_sim_params.sim_length = sim_length;
 	m_sim_params.steplength = steplength;
@@ -186,6 +205,7 @@ void PowerCycle::ReadComponentStatus(
 
 void PowerCycle::ClearComponentStatus()
 {
+	/* clears stored status of all components. */
 	m_start_component_status.clear();
 }
 
@@ -250,25 +270,26 @@ void PowerCycle::StoreComponentState()
 
 void PowerCycle::StorePlantParamsState()
 {
-	m_begin_cycle_state.capacity = m_current_cycle_state.capacity;
-	m_begin_cycle_state.cold_start_penalty = m_current_cycle_state.cold_start_penalty;
-	m_begin_cycle_state.warm_start_penalty = m_current_cycle_state.warm_start_penalty;
-	m_begin_cycle_state.hot_start_penalty = m_current_cycle_state.hot_start_penalty;
-	m_begin_cycle_state.downtime = m_current_cycle_state.downtime;
-	m_begin_cycle_state.downtime_threshold = m_current_cycle_state.downtime_threshold;
-	m_begin_cycle_state.is_online = m_current_cycle_state.is_online;
-	m_begin_cycle_state.is_on_standby = m_current_cycle_state.is_on_standby;
-	m_begin_cycle_state.maintenance_duration = m_current_cycle_state.maintenance_duration;
-	m_begin_cycle_state.maintenance_interval = m_current_cycle_state.maintenance_interval;
-	m_begin_cycle_state.hours_to_maintenance = m_current_cycle_state.hours_to_maintenance;
-	m_begin_cycle_state.temp_threshold = m_current_cycle_state.temp_threshold;
-	m_begin_cycle_state.time_in_standby = m_current_cycle_state.time_in_standby;
-	m_begin_cycle_state.time_online = m_current_cycle_state.time_online;
-	m_begin_cycle_state.power_output = m_current_cycle_state.power_output;
+	m_begin_cycle_state.capacity = m_current_cycle_state.capacity*1.0;
+	m_begin_cycle_state.cold_start_penalty = m_current_cycle_state.cold_start_penalty*1.0;
+	m_begin_cycle_state.warm_start_penalty = m_current_cycle_state.warm_start_penalty*1.0;
+	m_begin_cycle_state.hot_start_penalty = m_current_cycle_state.hot_start_penalty*1.0;
+	m_begin_cycle_state.downtime = m_current_cycle_state.downtime*1.0;
+	m_begin_cycle_state.downtime_threshold = m_current_cycle_state.downtime_threshold*1.0;
+	m_begin_cycle_state.is_online = m_current_cycle_state.is_online && true;
+	m_begin_cycle_state.is_on_standby = m_current_cycle_state.is_on_standby && true;
+	m_begin_cycle_state.maintenance_duration = m_current_cycle_state.maintenance_duration*1.0;
+	m_begin_cycle_state.maintenance_interval = m_current_cycle_state.maintenance_interval*1.0;
+	m_begin_cycle_state.hours_to_maintenance = m_current_cycle_state.hours_to_maintenance*1.0;
+	m_begin_cycle_state.temp_threshold = m_current_cycle_state.temp_threshold*1.0;
+	m_begin_cycle_state.time_in_standby = m_current_cycle_state.time_in_standby*1.0;
+	m_begin_cycle_state.time_online = m_current_cycle_state.time_online*1.0;
+	m_begin_cycle_state.power_output = m_current_cycle_state.power_output*1.0;
 }
 
 void PowerCycle::StoreCycleState()
 {
+	/* stores a copy of component, plant and RNG engine status. */
 	StoreComponentState();
 	StorePlantParamsState();
 	m_gen->saveStates(m_current_scenario);
@@ -294,21 +315,21 @@ void PowerCycle::RevertToStartState(bool reset_rng)
 	Done if any component failures are found in the run, or if the 
 	capacity or efficiency change from the prior run.
 	*/
-	m_current_cycle_state.capacity = m_begin_cycle_state.capacity;
-	m_current_cycle_state.cold_start_penalty = m_begin_cycle_state.cold_start_penalty;
-	m_current_cycle_state.warm_start_penalty = m_begin_cycle_state.warm_start_penalty;
-	m_current_cycle_state.hot_start_penalty = m_begin_cycle_state.hot_start_penalty;
-	m_current_cycle_state.downtime = m_begin_cycle_state.downtime;
-	m_current_cycle_state.downtime_threshold = m_begin_cycle_state.downtime_threshold;
-	m_current_cycle_state.is_online = m_begin_cycle_state.is_online;
-	m_current_cycle_state.is_on_standby = m_begin_cycle_state.is_on_standby;
-	m_current_cycle_state.maintenance_duration = m_begin_cycle_state.maintenance_duration;
-	m_current_cycle_state.maintenance_interval = m_begin_cycle_state.maintenance_interval;
-	m_current_cycle_state.hours_to_maintenance = m_begin_cycle_state.hours_to_maintenance;
-	m_current_cycle_state.temp_threshold = m_begin_cycle_state.temp_threshold;
-	m_current_cycle_state.time_in_standby = m_begin_cycle_state.time_in_standby;
-	m_current_cycle_state.time_online = m_begin_cycle_state.time_online;
-	m_current_cycle_state.power_output = m_begin_cycle_state.power_output;
+	m_current_cycle_state.capacity = m_begin_cycle_state.capacity*1.0;
+	m_current_cycle_state.cold_start_penalty = m_begin_cycle_state.cold_start_penalty*1.0;
+	m_current_cycle_state.warm_start_penalty = m_begin_cycle_state.warm_start_penalty*1.0;
+	m_current_cycle_state.hot_start_penalty = m_begin_cycle_state.hot_start_penalty*1.0;
+	m_current_cycle_state.downtime = m_begin_cycle_state.downtime * 1.0;
+	m_current_cycle_state.downtime_threshold = m_begin_cycle_state.downtime_threshold * 1;
+	m_current_cycle_state.is_online = m_begin_cycle_state.is_online && true;
+	m_current_cycle_state.is_on_standby = m_begin_cycle_state.is_on_standby && true;
+	m_current_cycle_state.maintenance_duration = m_begin_cycle_state.maintenance_duration*1.0;
+	m_current_cycle_state.maintenance_interval = m_begin_cycle_state.maintenance_interval*1.0;
+	m_current_cycle_state.hours_to_maintenance = m_begin_cycle_state.hours_to_maintenance*1.0;
+	m_current_cycle_state.temp_threshold = m_begin_cycle_state.temp_threshold*1.0;
+	m_current_cycle_state.time_in_standby = m_begin_cycle_state.time_in_standby*1.0;
+	m_current_cycle_state.time_online = m_begin_cycle_state.time_online*1.0;
+	m_current_cycle_state.power_output = m_begin_cycle_state.power_output*1.0;
 
 	SetStartComponentStatus();
 	if (reset_rng)
@@ -451,12 +472,14 @@ std::vector< double > PowerCycle::GetComponentLifetimes()
 
 double PowerCycle::GetHoursToMaintenance()
 {
+	/* accessor for hours left to calendar-based maintenance. */
 	return m_current_cycle_state.hours_to_maintenance;
 }
 
 std::vector< double >  PowerCycle::GetComponentDowntimes()
 {
     /*
+	accessor to component downtimes (zero if component is operational).
 	retval -- linked list of downtime remaining of each component.
 	*/
     std::vector<double> down;
@@ -517,6 +540,9 @@ bool PowerCycle::IsOnStandby()
 
 bool PowerCycle::NewRepairOccurred()
 {
+	/*
+	returns true if a new repair occurred in the current period of dispatch.
+	*/
 	for (size_t i = 0; i < m_components.size(); i++)
 	{
 		if (m_components.at(i).IsNewRepair())
@@ -530,6 +556,9 @@ bool PowerCycle::NewRepairOccurred()
 
 bool PowerCycle::NewFailureOccurred()
 {
+	/*
+	returns true if a new failure occurred in the current period of dispatch.
+	*/
 	for (size_t i = 0; i < m_components.size(); i++)
 	{
 		if (m_components.at(i).IsNewFailure())
@@ -543,6 +572,7 @@ bool PowerCycle::NewFailureOccurred()
 
 void PowerCycle::ResetCycleEventFlags()
 {
+	/* resets new failure and new repair flags for components. */
 	for (size_t i = 0; i < m_components.size(); i++)
 	{
 		m_components.at(i).ResetFailureAndRepairFlags();
@@ -551,31 +581,48 @@ void PowerCycle::ResetCycleEventFlags()
 
 double PowerCycle::GetTimeInStandby()
 {
+	/* 
+	accessor to time elapsed since the start of standby 
+	for the plant, if the plant is in standby; returns
+	zero otherwise.
+	*/
 	return m_current_cycle_state.time_in_standby;
 }
 
 double PowerCycle::GetTimeOnline()
 {
+	/*
+	accessor to time elapsed since the start of online mode
+	for the plant, if the power cycle's generator is active; returns
+	zero otherwise.
+	*/
 	return m_current_cycle_state.time_online;
 }
 
 double PowerCycle::GetRampThreshold()
 {
+	/* 
+	accessor to ramping threshold (reference value for power cycle output
+	without a ramping multplier)
+	*/
 	return m_ramp_threshold;
 }
 
 double PowerCycle::GetSteplength()
 {
+	/* accessor to length of a time period (in hours).	*/
 	return m_sim_params.steplength;
 }
 
 std::unordered_map< std::string, failure_event > PowerCycle::GetFailureEvents()
 {
+	/* accessor to dictionary of failure events. */
 	return m_failure_events;
 }
 
 std::vector<std::string> PowerCycle::GetFailureEventLabels()
 {
+	/* accessor to linked list of failure event dictionary keys. */
 	return m_failure_event_labels;
 }
 
@@ -599,32 +646,44 @@ double PowerCycle::GetColdStartPenalty()
 
 int PowerCycle::GetSimLength()
 {
+	/* accessor for simulation length (in time periods) */
 	return m_sim_params.sim_length;
 }
 
 void PowerCycle::SetShutdownCapacity(double capacity) 
 {
+	/* accessor to cycle capacity threshold for immediate shutdown. */
 	m_shutdown_capacity = capacity;
 }
 
 
 void PowerCycle::SetNoRestartCapacity(double capacity)
 {
+	/* 
+	accessor to cycle capacity threshold for beginning repairs at next 
+	power cycle shutdown. 
+	*/
 	m_no_restart_capacity = capacity;
 }
 
 void PowerCycle::SetShutdownEfficiency(double efficiency)
 {
+	/* accessor to cycle efficiency threshold for immediate shutdown. */
 	m_shutdown_efficiency = efficiency;
 }
 
 void PowerCycle::SetNoRestartEfficiency(double efficiency)
 {
+	/*
+	accessor to cycle efficiency threshold for beginning repairs at next
+	power cycle shutdown.
+	*/
 	m_no_restart_efficiency = efficiency;
 }
 
 
-void PowerCycle::AddComponent(std::string name,
+void PowerCycle::AddComponent(
+	std::string name,
 	std::string type,
 	double repair_rate,
 	double repair_cooldown_time,
@@ -634,6 +693,19 @@ void PowerCycle::AddComponent(std::string name,
 	std::string repair_mode
 )
 {
+	/* 
+	adds a component to the power cycle via the Component(...) constructor.
+	components are stored as a vector.
+
+	name -- component identifer
+    type -- component type description
+    repair_rate -- rate at which repairs take place (events/h)
+    repair_cooldown_time -- added required downtime for repair (h)
+	capacity_reduction -- reduction in cycle capacity if component fails (fraction)
+	efficiency_reduction -- reduction in cycle capacity if component fails (fraction)
+    repair_cost -- dollar cost of repairs, not including revenue lost ($)
+    repair_mode -- indicator of in which modes the component may be repaired
+	*/
 	m_components.push_back(Component(name, type,
 		repair_rate, repair_cooldown_time, &m_failure_events,
 		capacity_reduction, efficiency_reduction, repair_cost, repair_mode,
@@ -845,6 +917,18 @@ void PowerCycle::GeneratePlantComponents(
 	Generates all the components in the plant.  Aggregates the other 
 	component-specific methods.  Starts by clearing any existing components,
 	i.e., assumes that the plant specification in the arguments is complete.
+
+	num_condenser_trains -- number of condenser trains/airstreams
+	fans_per_train -- number of fans in each condenser train
+	radiators_per_train -- number of radiators in each condenser train
+	num_salt_steam_trains -- Number of salt-to-steam trains in power cycle
+	num_fwh -- Number of feedwater heaters in power cycle
+	num_salt_pumps -- Number of molten salt pumps in power cycle
+	num_salt_pumps_required -- Number of molten salt pumps required to operate power cycle at capacity
+	num_water_pumps -- Number of water pumps in power cycle
+	num_turbines -- Number of turbine-generator shafts in power cycle
+	condenser_eff_cold -- Efficiency of condenser according to how many trains are operational for low ambient temperatures 
+	condenser_eff_hot -- Efficiency of condenser according to how many trains are operational for high ambient temperatures 
 	*/
 	ClearComponents();
 	if (condenser_eff_cold.size() != (num_condenser_trains+1) ||
@@ -882,8 +966,22 @@ void PowerCycle::SetPlantAttributes(
 {
     /*
 	Initializes plant attributes.
-    retval - none
     
+	maintenance_interval -- Operation time before maintenance (h)
+	maintenance_duration -- Maintenance event duration (h)
+	downtime_threshold -- Length of downtime required to qualify as a cold start (h)
+	hours_to_maintenance -- Operation duration before the next maintenance event (h)
+	power_output -- Plant power cycle output at start of simulation (W)
+	current_standby -- true if plant is currently on standby, false otherwise
+	capacity -- Upper bound for power cycle output (W)
+	temp_threshold -- Threshold for two condenser streams required for cooling the plant (Celsius)
+	time_online -- Time elapsed since plant was last offline or in standby (h)
+	time_in_standby -- Time elapsed since plant was last offline or generating power (h)
+	downtime -- Time elapsed since plant was last in standby or generating power (h)
+	shutdown_capacity -- Capacity threshold for power cycle immediate shutdown (fraction)
+	no_restart_capacity -- Capacity threshold for maintenance at next power cycle shutdown (fraction)
+	shutdown_efficiency -- Efficiency threshold for power cycle immediate shutdown (fraction)
+	no_restart_efficiency -- Efficiency threshold for maintenance at next power cycle shutdown (fraction)
 	*/
 
     m_current_cycle_state.maintenance_interval = maintenance_interval;
@@ -954,6 +1052,13 @@ int PowerCycle::NumberOfAirstreamsOnline()
 
 double PowerCycle::GetCondenserEfficiency(double temp)
 {
+	/*
+	Returns the condener efficiency according to any fans and trains are down,
+	as well as the ambient temperature.
+
+	temp -- ambient temperature (Celsius)
+	retval -- efficiency of power cycle condenser (fraction)
+	*/
 	double baseline_efficiency;
 	int num_streams = 0;
 	int num_online_fans_down = 0;
@@ -1149,11 +1254,13 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
 
 double PowerCycle::GetCycleCapacity()
 {
+	/* accessor for current cycle capacity. */
 	return m_cycle_capacity;
 }
 
 double PowerCycle::GetCycleEfficiency()
 {
+	/* accessor for current cycle efficiency. */
 	return m_cycle_efficiency;
 }
 
@@ -2052,6 +2159,7 @@ void PowerCycle::AgePlant(double age)
 	m_sim_params.steplength = t;
 	m_current_cycle_state.downtime_threshold = threshold;
 	m_begin_cycle_state.downtime_threshold = threshold;
+
 
 	//store states
 	StoreCycleState();
