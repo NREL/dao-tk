@@ -2833,7 +2833,10 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 				for (int i = step_now; i < nsteps; i++)
 				{
 					pc_dispatch["cycle_power"][i] = current_soln["P_cycle"][i]* 1.e6;		// cycle power output [W]
-					pc_dispatch["ambient_temperature"][i] = current_soln["tdry"][i];		// ambient temperature [C]
+					if (cycle_capacity[i] < 0.999)  // limit dispatch input to cycle model to avoid mismatch between power output in simulated / read-only periods
+						pc_dispatch["cycle_power"][i] = fmin(pc_dispatch["cycle_power"][i], m_variables.P_ref.as_number() * cycle_capacity[i] * 1.e6);
+					
+					pc_dispatch["ambient_temperature"][i] = current_soln["tdry"][i];
 					pc_dispatch["standby"][i] = 0;
 					if (current_soln["P_cycle"][i] < 1.e-6 && current_soln["q_pb"][i] > 0.0 && current_soln["q_pc_startup"][i] < current_soln["q_pb"][i])  // Thermal energy going to power block, but no electrical output
 						pc_dispatch["standby"][i] = 1.0;
@@ -2892,6 +2895,8 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 			}
 			ofs.close();
 			*/
+
+			
 
 
 
