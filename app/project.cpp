@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
  int double_scale(double val, int *scale)
  {
@@ -456,7 +457,7 @@ simulation_outputs::simulation_outputs()
 	std::vector< double > empty_vec;
 
     generation_arr.set(              empty_vec,               "generation_arr",       true,                             "Net power generation",      "kWe",                "Simulation|Outputs" );
-    solar_field_power_arr.set(       empty_vec,        "solar_field_power_arr",       true,                         "Solarfield thermal power",      "kWt",                "Simulation|Outputs" );
+	solar_field_power_arr.set(       empty_vec,        "solar_field_power_arr",       true,                         "Solarfield thermal power",      "kWt",                "Simulation|Outputs" );
     tes_charge_state.set(            empty_vec,                     "e_ch_tes",       true,                     "Thermal storage charge state",     "MWht",                "Simulation|Outputs" );
     dni_arr.set(                     empty_vec,                      "dni_arr",       true,                        "Direct normal irradiation",     "W/m2",                "Simulation|Outputs" );
     price_arr.set(                   empty_vec,                    "price_arr",       true,                                     "Price signal",        "-",                "Simulation|Outputs" );
@@ -1661,6 +1662,7 @@ bool Project::S()
 	//--- Initialize cycle availability model and check for incompatible model settings
 	PowerCycle pc;
 	WELLFiveTwelve gen(0);
+
 	if (m_parameters.is_cycle_ssc_integration.as_boolean())
 	{
 
@@ -1692,17 +1694,30 @@ bool Project::S()
 
 		double capacity = m_variables.P_ref.as_number() * 1.e6;
 
+		// call once to set number of scenarios 
 		pc.SetPlantAttributes(m_parameters.maintenance_interval.as_number(), m_parameters.maintenance_duration.as_number(), m_parameters.downtime_threshold.as_number(),
 			m_parameters.hours_to_maintenance.as_number(), 0.0, 0, capacity, m_parameters.temp_threshold.as_number(),
-			0.0, 0.0, 0.0, m_parameters.shutdown_capacity.as_number(), m_parameters.no_restart_capacity.as_number());
+			0.0, 0.0, 0.0, m_parameters.shutdown_capacity.as_number(), m_parameters.no_restart_capacity.as_number());  
 
 		pc.Initialize();
 
-
+		// call again to set hours to maintenance (reset to maintenance interval in Initialize())
+		pc.SetPlantAttributes(m_parameters.maintenance_interval.as_number(), m_parameters.maintenance_duration.as_number(), m_parameters.downtime_threshold.as_number(),
+			m_parameters.hours_to_maintenance.as_number(), 0.0, 0, capacity, m_parameters.temp_threshold.as_number(),
+			0.0, 0.0, 0.0, m_parameters.shutdown_capacity.as_number(), m_parameters.no_restart_capacity.as_number());  
+		
+		// update "initial" cycle state
+		pc.StoreCycleState(); 
 
 		if (!m_parameters.is_dispatch.as_boolean())
 		{
 			message_handler("Integration of cycle availability and plant simulation models is only available when dispatch optimization is enabled.");
+			return false;
+		}
+
+		if (m_parameters.num_scenarios.as_integer() > 1)
+		{
+			message_handler(wxString::Format("Integration of cycle availability and plant simulation models is only available for a single scenario. Parameter 'num_scenarios' is currently %d. \n", m_parameters.num_scenarios.as_integer()));
 			return false;
 		}
 
@@ -2647,7 +2662,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean());
 	ssc_module_t mod_mspt = ssc_module_create("tcsmolten_salt");
 
-
+	
 	//--- Loop over model horizons  
 	double time_completed = start_time;
 	while (time_completed < end_time)  
@@ -2746,6 +2761,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 					ssc_data_set_number(m_ssc_data, "is_dispatch_targets", true);
 					ssc_data_set_number(m_ssc_data, "is_dispatch_constr", false);
 
+					
 					int n = (int)q_pc_target.size();
 					ssc_number_t *p_data = new ssc_number_t[n];
 
@@ -2770,6 +2786,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 					ssc_data_set_array(m_ssc_data, "is_pc_sb_allowed_in", p_data, n);
 
 					delete[] p_data;
+					
 				}
 
 
@@ -2804,9 +2821,9 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 				}
 
 			}
-
+			
+			std::vector<double>cycle_capacity_in = cycle_capacity;
 			std::vector<double>cycle_efficiency_in = cycle_efficiency;
-
 
 			//--- Find next failure/repair event
 			bool is_repair, is_failure;
@@ -2830,6 +2847,9 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 			}
 			else  // Run cycle availability model
 			{
+				int sc = 0; //scenario number
+				int prev_repair = pc.m_results.period_of_last_repair[sc];
+
 				for (int i = step_now; i < nsteps; i++)
 				{
 					pc_dispatch["cycle_power"][i] = current_soln["P_cycle"][i]* 1.e6;		// cycle power output [W]
@@ -2846,12 +2866,15 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 				pc.Simulate(false, use_stored_state);
 				use_stored_state = true;  // Use stored state for all PC calls after first call	
 
-				int sc = 0; //scenario number
 				cycle_capacity = pc.m_results.cycle_capacity[sc];		
 				cycle_efficiency = pc.m_results.cycle_efficiency[sc];	
 
 				int next_failure = pc.m_results.period_of_last_failure[sc];
 				int next_repair = pc.m_results.period_of_last_repair[sc];
+				
+
+				if (next_repair > prev_repair) 
+					next_repair += 1;  // repairs are reported from cycle model in the time step before capacity/efficiency increase
 
 				if (next_failure <= step_now)
 					next_failure = nsteps + 1000;
@@ -2862,8 +2885,21 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 				is_repair = (next_repair == next_start_pt);
 				is_failure = (!is_repair && next_failure == next_start_pt);
 
-				if (is_repair && next_start_pt > 0 && next_start_pt < nsteps)  // repairs are reported from cycle model in the time step before capacity/efficiency increase
-					next_start_pt += 1;
+
+				if (next_start_pt == nsteps)
+				{
+					capacity_last = cycle_capacity.back();
+					efficiency_last = cycle_efficiency.back();
+				}
+
+				if (next_repair == nsteps) // repair occurred at last time point in this horizon... call cycle model again to store state and manually increase capacity/efficiency for beginning of next horizon
+				{
+					pc.Simulate(false, use_stored_state);
+					capacity_last = 1.0;
+					efficiency_last = 1.0;
+				}
+
+
 			}
 
 
@@ -2875,9 +2911,9 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 				std::fill(cycle_efficiency.begin() + next_start_pt, cycle_efficiency.end(), cycle_efficiency[next_start_pt]);
 			}
 
+
 			
-			//--- Write current solution to file
-			/*
+			//--- Write current solution to file		
 			std::ofstream ofs;
 			std::string filename = "C:/Users/jmartine/Desktop/cycle_ssc_results/time" + std::to_string(time_completed) + "_step" + std::to_string(step_now) + ".txt";
 			ofs.open(filename, std::ofstream::out);
@@ -2894,11 +2930,9 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 					<< cycle_efficiency[i] <<"\n";
 			}
 			ofs.close();
-			*/
-
 			
 
-
+			
 
 
 			//--- Accept current solution for all points prior to "next_start_pt"
@@ -3030,7 +3064,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 									q_pb_added = fmin(0.98*tes_extra / steplength, new_target - q_pc_target[i]);
 
 								// power block was not planned to run during this timestep but was running during previous timestep and extra TES is sufficient for at least minimum operation
-								else if ((is_pc_su_allowed[i] + is_pc_sb_allowed[i] == 0) && (is_pc_su_allowed[i - 1] == 1) && (tes_extra / steplength > q_pc_des*cycle_cutoff_frac))
+								else if ((is_pc_su_allowed[i] + is_pc_sb_allowed[i] == 0) && (is_pc_su_allowed[i - 1] == 1) && (0.98*tes_extra / steplength > q_pc_des*cycle_cutoff_frac))
 									q_pb_added = fmin(0.98*tes_extra / steplength, new_target);
 
 								q_pc_target[i] += q_pb_added;
@@ -3041,38 +3075,30 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, double start_time, 
 
 
 							// calculate approximate expected TES charge state at end of this step
-							double q_thermal = current_targets["Q_thermal"][p];
-							double e_ch_tes_adj_base = e_ch_tes_adj + q_thermal - q_pc_target[i];  // Expected TES charge state based on original receiver output and new PC target
+							double expected_tes_change = current_targets["e_ch_tes"][p] - current_targets["e_ch_tes"][p - 1];
+							e_ch_tes_adj = e_ch_tes_adj + expected_tes_change + steplength * (current_targets["q_dot_pc_target"][p] - q_pc_target[i]);  // Approximate TES charge state using new targets
 
-							if (e_ch_tes_adj_base < tes_capacity)
-								e_ch_tes_adj = e_ch_tes_adj_base;
-							else
+							if (e_ch_tes_adj > tes_capacity)
 							{
-								double q_rec_adj = q_thermal - (e_ch_tes_adj_base - tes_capacity);  // Reduced receiver output required to keep TES within limits
-								if (q_thermal > 0.0 && current_targets["Q_thermal"][p - 1]> 0.0 && q_rec_adj < q_rec_des*f_rec_min)  // Does receiver need to be shut off? (only for steps without receiver startup)
-									q_rec_adj = 0.0;
+								double q_thermal = current_targets["Q_thermal"][p];  // expected receiver output
+								double q_decrease = (e_ch_tes_adj - tes_capacity)/steplength;	// Decrease in receiver output required to keep TES within limits
+								if (q_thermal > 0.0 && current_targets["Q_thermal"][p - 1] > 0.0 && (q_thermal - q_decrease) < q_rec_des*f_rec_min)  // Does receiver need to be shut off? (only for steps without receiver startup)
+									q_decrease = q_thermal;
 
-								e_ch_tes_adj += q_rec_adj - q_pc_target[i];
+								e_ch_tes_adj -= q_decrease * steplength; 
 							}
-
 						}
-
 					}
-
 				}
-
-
 			}
 
 			step_now = next_start_pt;
 
 		}
 
-		capacity_last = cycle_capacity.back();
-		efficiency_last = cycle_efficiency.back();
-
 		time_completed += current_horizon;
 	}
+	
 
 
 	ssc_module_free(mod_mspt);
