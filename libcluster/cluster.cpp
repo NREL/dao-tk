@@ -677,7 +677,7 @@ void cluster_alg::create_clusters(const matrix<double> &data)
 			else
 			{
 				// Iterate over preference multiplier to create specified number of clusters
-				double urf = 1.0;
+				double urf = 0.9;
 				int q = 0;
 				int ncprev = 0;
 				double mult = inputs.pref_mult;
