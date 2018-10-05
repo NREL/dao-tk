@@ -84,7 +84,9 @@ Power cycle parameters are all scalars, so no sets are included in the table tha
 | is_online | Boolean | true if plant is currently online, false otherwise | false |
 | is_on_standby | Boolean | true if plant is currently on standby, false otherwise | false |
 | power_output | Floating point number | Plant power cycle output at start of simulation (W) | 0 |
+| thermal_output | Floating point number | Plant thermal power sent to cycle at start of simulation (W) | 0 |
 | capacity | Floating point number | Upper bound for power cycle output (W) | 500,000 |
+| thermal_capacity | Floating point number | Upper bound for thermal input to power cycle (W) | 500,000 |
 | temp_threshold | Floating point number | Threshold for two condenser streams required for cooling the plant (Celsius) | 20 | 
 | time_online | Floating point number | Time elapsed since plant was last offline or in standby (h) | 0 |
 | time_in_standby | Floating point number | Time elapsed since plant was last offline or generating power (h) | 0 |
@@ -126,6 +128,7 @@ These are the inputs that come from the optimization model and SAM.
 | Sets | Parameter | Data Type | Description (Units) |
 | --- | --- | --- | --- | 
 | t | cycle_power | Floating point number | Cycle power output in time period t (W) |
+| t | thermal_power | Floating point number | Thermal power sent to cycle in time period t (W) |
 | t | ambient_temperature | Floating point number | Ambient temperature in time period t (Celsius) | 
 | t | standby | Binary | 1 if the power cycle is in standby, 0 otherwise |
 
