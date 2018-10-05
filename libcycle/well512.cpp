@@ -1,5 +1,6 @@
 #include "well512.h"
 #include <random>
+#include <string>
 #include <strstream>
 #include <fstream>
 
@@ -231,4 +232,65 @@ void WELLFiveTwelve::saveStates(int scenario)
 {
 	m_stored_states[scenario] = state;
 	m_stored_state_is[scenario] = state_i;
+}
+
+void WELLFiveTwelve::UpdateStoredState(
+	int scenario, std::vector< uint32_t > new_state, int new_state_i
+)
+{
+	/*
+	Updates a specific stored state; can be used for custom seed
+	generation or reading in a state from disk.
+	*/
+	for (int i = 0; i < 16; i++)
+	{
+		state[i] = new_state[i] * 1.0;
+	}
+	state_i = new_state_i;
+}
+
+
+void WELLFiveTwelve::ReadRNGStateFile(std::string filename, int scenario)
+{
+	std::ifstream pfile;
+	std::string delimiter = ",";
+	size_t pos = 0;
+	int cindex = 0;
+	std::string pline;
+	std::vector<std::string> split_line = {};
+	std::string token;
+	pfile.open(filename);
+	getline(pfile, pline);
+	while (pos != std::string::npos)
+	{
+		pos = pline.find(delimiter);
+		token = pline.substr(0, pos);
+		split_line.push_back(token);
+		pline.erase(0, pos + delimiter.length());
+	}
+	std::vector<uint32_t> new_state;
+	for (int i = 0; i < 16; i++)
+	{
+		new_state.push_back(std::stoul(split_line[i]));
+	}
+	int new_state_i = std::stoi(split_line[16]);
+
+	this->UpdateStoredState(scenario, new_state, new_state_i);
+	this->saveStates(scenario);
+
+	pfile.close();
+
+}
+
+
+void WELLFiveTwelve::WriteRNGStateFile(std::string filename, int scenario)
+{
+	std::ofstream pfile;
+	pfile.open(filename);
+	for (int i = 0; i < 16; i++)
+	{
+		pfile << this->m_stored_states[scenario].at(i) << ",";
+	}
+	pfile << this->m_stored_state_is[scenario];
+	pfile.close();
 }
