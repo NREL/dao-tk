@@ -12,12 +12,13 @@ PowerCycle::PowerCycle()
 	GeneratePlantComponents();
 }
 
-void PowerCycle::Initialize(double age)
+void PowerCycle::Initialize(double age, int scen_idx)
 {
 	/*
 	Initializes the plant by generating random lifetimes/probabilities for all 
 	components and failure modes, and ages the plant for a single scenario.
 	*/
+	m_gen->assignStates(scen_idx);
 	InitializeCyclingDists();
 	GeneratePlantCyclingPenalties();
 	ResetPlant();
@@ -184,12 +185,16 @@ void PowerCycle::ClearComponents()
 	m_salt_pump_idx.clear();
 	m_start_component_status.clear();
 	m_num_condenser_trains = 0;
+	m_fans_per_condenser_train = 0;
+	m_radiators_per_condenser_train = 0;
 	m_num_feedwater_heaters = 0;
 	m_num_salt_pumps = 0;
 	m_num_salt_pumps_required = 0;
 	m_num_salt_steam_trains = 0;
 	m_num_turbines = 0;
 	m_num_water_pumps = 0;
+	m_condenser_efficiencies_cold.clear();
+	m_condenser_efficiencies_hot.clear();
 }
 
 void PowerCycle::ReadComponentStatus(
@@ -285,6 +290,7 @@ void PowerCycle::StorePlantParamsState()
 	m_begin_cycle_state.time_in_standby = m_current_cycle_state.time_in_standby*1.0;
 	m_begin_cycle_state.time_online = m_current_cycle_state.time_online*1.0;
 	m_begin_cycle_state.power_output = m_current_cycle_state.power_output*1.0;
+	m_begin_cycle_state.thermal_output = m_current_cycle_state.thermal_output*1.0;
 }
 
 void PowerCycle::StoreCycleState()
@@ -330,21 +336,78 @@ void PowerCycle::RevertToStartState(bool reset_rng)
 	m_current_cycle_state.time_in_standby = m_begin_cycle_state.time_in_standby*1.0;
 	m_current_cycle_state.time_online = m_begin_cycle_state.time_online*1.0;
 	m_current_cycle_state.power_output = m_begin_cycle_state.power_output*1.0;
+	m_current_cycle_state.thermal_output = m_begin_cycle_state.thermal_output*1.0;
 
 	SetStartComponentStatus();
 	if (reset_rng)
 		m_gen->assignStates(m_current_scenario);
 }
 
-void PowerCycle::WriteStateToFiles(bool current, std::string component_filename, std::string plant_filename)
+void PowerCycle::WriteStateToFiles(int extra_periods)
 {
 	/*
 	Writes the current state of the plant to output files, one for all components and one for the plant.
 	*/
-	//components
+	WritePlantLayoutFile();
+	WriteComponentFile();
+	WritePlantStateFile();
+	WriteSimParamsFile();
+	m_gen->WriteRNGStateFile(
+		m_file_settings.rng_state_filename
+		//+std::to_string(m_current_scenario)
+		+".csv",
+		m_current_scenario
+		);
+	WriteFailuresFile();
+	WriteAMPLParams(extra_periods);
+	WriteCapEffFile();
+}
+
+void PowerCycle::WritePlantLayoutFile()
+{ 
+	std::string filename = (
+		m_file_settings.plant_comp_info +
+		//std::to_string(m_current_scenario) + 
+		".csv"
+		);
+	std::ofstream ofile;
+	ofile.open(filename);
+	ofile << "num_condener_trains,fans_per_train,radiators_per_train,"
+		<< "num_salt_steam_trains,num_fwh,num_salt_pumps,"
+		<< "num_salt_pumps_required,num_water_pumps,num_turbines\n";
+	ofile << m_num_condenser_trains << ","
+		<< m_fans_per_condenser_train << ","
+		<< m_radiators_per_condenser_train << ","
+		<< m_num_salt_steam_trains << ","
+		<< m_num_feedwater_heaters << ","
+		<< m_num_salt_pumps << ","
+		<< m_num_salt_pumps_required << ","
+		<< m_num_water_pumps << ","
+		<< m_num_turbines << "\n";
+	for (size_t i = 0; i < m_condenser_efficiencies_cold.size()-1; i++)
+	{
+		ofile << m_condenser_efficiencies_cold.at(i) << ",";
+	}
+	ofile << m_condenser_efficiencies_cold.at(m_condenser_efficiencies_cold.size() - 1) << "\n";
+	for (size_t i = 0; i < m_condenser_efficiencies_hot.size()-1; i++)
+	{
+		ofile << m_condenser_efficiencies_hot.at(i) << ",";
+	}
+	ofile << m_condenser_efficiencies_hot.at(m_condenser_efficiencies_hot.size() - 1) << "\n";
+	ofile.close();
+}
+
+void PowerCycle::WriteComponentFile()
+{
+	std::string component_filename = (
+		m_file_settings.component_out_state +
+		//std::to_string(m_current_scenario) + 
+		".csv"
+		);
 	std::ofstream cfile;
 	std::unordered_map <std::string, ComponentStatus> component_status;
-	if (current)
+	if (m_results.period_of_last_failure[m_current_scenario] == -1 && 
+		m_results.period_of_last_repair[m_current_scenario] == -1)
 		component_status = GetComponentStates();
 	else
 		component_status = m_start_component_status;
@@ -361,28 +424,322 @@ void PowerCycle::WriteStateToFiles(bool current, std::string component_filename,
 		}
 		cfile << "\n";
 	}
-
-	//plant state
-	cycle_state cstate;
-	if (current)
-		cstate = m_current_cycle_state;
-	else
-		cstate = m_begin_cycle_state;
-
-	std::ofstream pfile;
-	pfile.open(plant_filename);
-	pfile << "hours_to_maintenance,power_output,standby,time_online,time_in_standby,downtime,hs_penalty,ws_penalty,cs_penalty\n";
-	pfile << cstate.hours_to_maintenance << "," << cstate.power_output << ",";
-	pfile << cstate.is_on_standby << "," << cstate.time_online << ",";
-	pfile << cstate.time_in_standby << "," << cstate.downtime << ",";
-	pfile << cstate.hot_start_penalty << "," << cstate.warm_start_penalty << ",";
-	pfile << cstate.cold_start_penalty << "\n";
-
 }
 
-void PowerCycle::ReadStateFromFiles(std::string component_filename, std::string plant_filename)
+void PowerCycle::WritePlantStateFile()
 {
-	//set up reading of component file
+	std::string plant_filename = (
+		m_file_settings.plant_out_state +
+		//std::to_string(m_current_scenario) + 
+		".csv"
+		);
+	std::ofstream pfile;
+	pfile.open(plant_filename);
+	pfile << "capacity,cs_penalty,ws_penalty,hs_penalty,downtime,dt_threshold,is_on,is_standby,"
+		<< "mx_dur,mx_int,hrs_to_mx,temp_threshold,time_in_standby,time_online,cycle_output\n";
+	pfile << m_current_cycle_state.capacity << "," << m_current_cycle_state.cold_start_penalty << ","
+		<< m_current_cycle_state.warm_start_penalty << "," << m_current_cycle_state.hot_start_penalty << ","
+		<< m_current_cycle_state.downtime << "," << m_current_cycle_state.downtime_threshold << ","
+		<< m_current_cycle_state.is_online << "," << m_current_cycle_state.is_on_standby << ","
+		<< m_current_cycle_state.maintenance_duration << "," << m_current_cycle_state.maintenance_interval << ","
+		<< m_current_cycle_state.hours_to_maintenance << "," << m_current_cycle_state.temp_threshold << ","
+		<< m_current_cycle_state.time_in_standby << "," << m_current_cycle_state.time_online << ","
+		<< m_current_cycle_state.power_output << "," << m_current_cycle_state.thermal_output << "\n";
+	pfile.close();
+}
+
+void PowerCycle::WriteSimParamsFile()
+{
+	/*
+	int read_periods = 0,
+		int sim_length = 48,
+		double steplength = 1,
+		double epsilon = 1.E-10,
+		bool print_output = false,
+		int num_scenarios = 1,
+		double hourly_labor_cost = 50.,
+		bool stop_at_first_repair = false,
+		bool stop_at_first_failure = false
+	*/
+	std::string rng_filename = (
+		m_file_settings.sim_params_filename +
+		//std::to_string(m_current_scenario) + 
+		".csv"
+		);
+	std::ofstream pfile;
+	pfile.open(rng_filename);
+	pfile << "read_periods,sim_length,steplength,epsilon,print_output,"
+		<< "num_scenarios,hourly_labor_cost,stop_at_first_repair,"
+		<< "stop_at_first_failure\n";
+	pfile << m_sim_params.read_periods << ","
+		<< m_sim_params.sim_length << ","
+		<< m_sim_params.steplength << ","
+		<< m_sim_params.epsilon << ","
+		<< m_sim_params.print_output << ","
+		<< m_sim_params.num_scenarios << ","
+		<< m_sim_params.hourly_labor_cost << ","
+		<< m_sim_params.stop_at_first_repair << ","
+		<< m_sim_params.stop_at_first_failure << "\n";
+	pfile.close();
+}
+
+void PowerCycle::WriteFailuresFile()
+{
+	std::string failure_filename = (
+		m_file_settings.failure_file +
+		//std::to_string(m_current_scenario) + 
+		".csv"
+		);
+	std::ofstream ofile;
+	ofile.open(failure_filename);
+	for (size_t i = 0; i < m_failure_event_labels.size(); i++)
+	{
+		ofile << m_failure_event_labels.at(i) << ","
+			<< m_failure_events[m_failure_event_labels.at(i)].time << ","
+			<< m_failure_events[m_failure_event_labels.at(i)].component << ","
+			<< m_failure_events[m_failure_event_labels.at(i)].fail_idx << ","
+			<< m_failure_events[m_failure_event_labels.at(i)].duration << ","
+			<< m_failure_events[m_failure_event_labels.at(i)].labor << ","
+			<< m_failure_events[m_failure_event_labels.at(i)].new_life << ","
+			<< m_failure_events[m_failure_event_labels.at(i)].scen_index
+			<< "\n";
+	}
+	ofile.close();
+}
+
+
+void PowerCycle::WriteAMPLParams(int extra_periods)
+{
+	/*
+	Writes the cycle efficiency and capacity over time, as well as
+	the period of the final repair, to file.
+	*/
+	std::string filename = (
+		m_file_settings.ampl_param_file
+		//+ m_file_settings.day_idx 
+		+ ".dat"
+		);
+	if (m_current_scenario > 0)
+	{
+		filename += std::to_string(m_current_scenario);
+		filename += "_";
+	}
+	filename += std::to_string(m_file_settings.day_idx);
+	filename += ".dat";
+	std::ofstream outfile;
+	outfile.open(filename);
+	int period = 0;
+	if (m_sim_params.stop_at_first_failure &&
+		!m_sim_params.stop_at_first_repair && NewFailureOccurred())
+		period = m_results.period_of_last_failure[m_current_scenario] + 1;
+	else if (!m_sim_params.stop_at_first_failure &&
+		m_sim_params.stop_at_first_repair && NewRepairOccurred())
+		period = m_results.period_of_last_repair[m_current_scenario] + 1;
+	else if (
+		m_sim_params.stop_at_first_failure &&
+		m_sim_params.stop_at_first_repair &&
+		(NewRepairOccurred() || NewFailureOccurred())
+		)
+		period = std::max(m_results.period_of_last_repair[m_current_scenario], m_results.period_of_last_failure[m_current_scenario]) + 1;
+	else  // here, either no failures and no repairs occurred, or settings don't require stoppage at a failure or repair
+		period = std::max(m_results.period_of_last_repair[m_current_scenario], m_results.period_of_last_failure[m_current_scenario]);
+	outfile << "param last_fixed_period := " << period << ";\n\n";
+	outfile << "param Feff := \n";
+	for (int i = 0; i < m_sim_params.sim_length; i++)
+	{
+		outfile << (i + 1) << "  " << m_results.cycle_efficiency[m_current_scenario].at(i) << "\n";
+	}
+	for (
+		int i = m_sim_params.sim_length;
+		i < m_sim_params.sim_length + extra_periods;
+		i++
+		)
+	{
+		outfile << (i + 1) << "  " << "1.0" << "\n";
+	}
+	outfile << ";\n\n";
+	outfile << "param Fcap := \n";
+	for (int i = 0; i < m_sim_params.sim_length; i++)
+	{
+		outfile << (i + 1) << "  " << m_results.cycle_capacity[m_current_scenario].at(i) << "\n";
+	}
+	for (
+		int i = m_sim_params.sim_length;
+		i < m_sim_params.sim_length + extra_periods;
+		i++
+		)
+	{
+		outfile << (i + 1) << "  " << "1.0" << "\n";
+	}
+	outfile << ";\n\n";
+	outfile << "param Wdot_fixed := \n";
+	double x;
+	for (int i = 0; i < m_sim_params.sim_length; i++)
+	{
+		x = m_current_cycle_state.thermal_capacity * m_results.cycle_capacity[m_current_scenario].at(i);
+		outfile << (i + 1) << "  " 
+			<< std::min(x, m_dispatch["thermal_power"].at(i))
+			<< "\n";
+	}
+	for (
+		int i = m_sim_params.sim_length;
+		i < m_sim_params.sim_length + extra_periods;
+		i++
+		)
+	{
+		outfile << (i + 1) << "  " << "1.0" << "\n";
+	}
+	outfile << ";\n\n";
+
+
+	outfile.close();
+}
+
+void PowerCycle::WriteCapEffFile()
+{
+	/*
+	The capacity and efficiency file consists of four lines:
+	(1) A time series of cycle capacity
+	(2) A time series of cycle efficiency
+	(3) The period of last failure and the period of last repair
+	*/
+	std::string cap_eff_file = (
+		m_file_settings.cap_eff_filename
+		//+ m_current_scenario
+		+".csv"
+		);
+	std::ofstream ofile;
+	ofile.open(cap_eff_file);
+	//period of last failure
+	ofile << m_results.period_of_last_failure[m_current_scenario] << ",";
+	//period of last repair
+	ofile << m_results.period_of_last_repair[m_current_scenario] << "\n";
+	//capacity time series
+	for (size_t i = 0; i < m_results.cycle_capacity[m_current_scenario].size() - 1; i++)
+	{
+		ofile << m_results.cycle_capacity[m_current_scenario].at(i) << ",";
+	}
+	ofile << m_results.cycle_capacity[m_current_scenario].at(m_results.cycle_capacity[m_current_scenario].size() - 1) << "\n";
+	//efficiency time series
+	for (size_t i = 0; i < m_results.cycle_efficiency[m_current_scenario].size() - 1; i++)
+	{
+		ofile << m_results.cycle_efficiency[m_current_scenario].at(i) << ",";
+	}
+	ofile << m_results.cycle_efficiency[m_current_scenario].at(m_results.cycle_efficiency[m_current_scenario].size() - 1) << "\n";
+	ofile.close();
+}
+
+void PowerCycle::ReadStateFromFiles(bool init)
+{
+	ReadPolicyFile();
+	ReadDayIDXFile();
+	ReadPlantLayoutFile();
+	ReadSimParamsFile();
+	ReadDispatchFile();
+	if (init)
+	{
+		Initialize(0., m_current_scenario);
+		return;
+	}
+	ReadComponentFile();
+	ReadPlantFile();
+	ReadFailuresFromFile();
+	ReadCapEffFile();
+}
+
+void PowerCycle::ReadPlantLayoutFile()
+{
+	std::string filename = (
+		m_file_settings.plant_comp_info +
+		//std::to_string(m_current_scenario) + 
+		".csv"
+		);
+	std::ifstream pfile;
+	int cindex = 0;
+	size_t pos = 0;
+	std::string delimiter = ",";
+	pfile.open(filename);
+	std::string pline;
+	std::string token;
+	std::vector<std::string> split_line = {};
+	getline(pfile, pline);
+	std::cerr << pline << "\n";
+	cindex++;
+	getline(pfile, pline);
+	std::cerr << pline << "\n";
+	cindex++;
+	while (pos != std::string::npos)
+	{
+		pos = pline.find(delimiter);
+		token = pline.substr(0, pos);
+		split_line.push_back(token);
+		pline.erase(0, pos + delimiter.length());
+	}
+	int num_condenser_trains = std::stoi(split_line[0]);
+	int fans_per_condenser_train = std::stoi(split_line[1]);
+	int radiators_per_condenser_train = std::stoi(split_line[2]);
+	int num_salt_steam_trains = std::stoi(split_line[3]);
+	int num_feedwater_heaters = std::stoi(split_line[4]);
+	int num_salt_pumps = std::stoi(split_line[5]);
+	int num_salt_pumps_required = std::stoi(split_line[6]);
+	int num_water_pumps = std::stoi(split_line[7]);
+	int num_turbines = std::stoi(split_line[8]);
+	split_line.clear();
+	//condener efficiencies cold
+	getline(pfile, pline);
+	std::cerr << pline << "\n";
+	pos = pline.find(delimiter);
+	while (pos != std::string::npos)
+	{
+		pos = pline.find(delimiter);
+		token = pline.substr(0, pos);
+		split_line.push_back(token);
+		pline.erase(0, pos + delimiter.length());
+	}
+	std::vector<double> eff_cold = {};
+	for (int i = 0; i <= num_condenser_trains; i++)
+	{
+		eff_cold.push_back(std::stod(split_line[i]));
+	}
+	//condener efficiencies hot
+	split_line.clear();
+	getline(pfile, pline);
+	std::cerr << pline << "\n";
+	pos = pline.find(delimiter);
+	while (pos != std::string::npos)
+	{
+		pos = pline.find(delimiter);
+		token = pline.substr(0, pos);
+		split_line.push_back(token);
+		pline.erase(0, pos + delimiter.length());
+	}
+	std::vector<double> eff_hot = {};
+	for (int i = 0; i <= num_condenser_trains; i++)
+	{
+		eff_hot.push_back(std::stod(split_line[i]));
+	}
+	GeneratePlantComponents(
+		num_condenser_trains,
+		fans_per_condenser_train,
+		radiators_per_condenser_train,
+		num_salt_steam_trains,
+		num_feedwater_heaters,
+		num_salt_pumps,
+		num_salt_pumps_required,
+		num_water_pumps,
+		num_turbines,
+		eff_cold,
+		eff_hot
+	);
+}
+
+void PowerCycle::ReadComponentFile()
+{
+	std::string component_filename = (
+		m_file_settings.component_in_state +
+		//std::to_string(m_current_scenario) + 
+		".csv"
+		);
 	std::ifstream cfile;
 	size_t pos = 0;
 	std::string delimiter = ",";
@@ -421,34 +778,334 @@ void PowerCycle::ReadStateFromFiles(std::string component_filename, std::string 
 		split_line.clear();
 		cindex++;
 	}
+	StoreComponentState();
+}
+
+void PowerCycle::ReadPlantFile()
+{
+	std::string plant_filename = (
+		m_file_settings.plant_in_state +
+		//std::to_string(m_current_scenario) + 
+		".csv"
+		);
 	std::ifstream pfile;
-	pos = 0;
-	pfile.open(plant_filename);
+	std::string delimiter = ",";
+	size_t pos = 0;
 	std::string pline;
+	std::vector<std::string> split_line = {};
+	std::string token;
+	pfile.open(plant_filename);
 	getline(pfile, pline);
 	getline(pfile, pline);
-	while (pos != std::string::npos) {
+	while (pos != std::string::npos) 
+	{
 		pos = pline.find(delimiter);
 		token = pline.substr(0, pos);
 		split_line.push_back(token);
-		cline.erase(0, pos + delimiter.length());
+		pline.erase(0, pos + delimiter.length());
 	}
-	m_current_cycle_state.hours_to_maintenance = std::stod(split_line[0]);
-	m_current_cycle_state.power_output = std::stod(split_line[1]);
-	m_current_cycle_state.is_on_standby = std::stod(split_line[2]);
-	m_current_cycle_state.time_online = std::stod(split_line[3]);
-	m_current_cycle_state.time_in_standby = std::stod(split_line[4]);
-	m_current_cycle_state.downtime = std::stod(split_line[5]);
-	m_current_cycle_state.hot_start_penalty = std::stod(split_line[6]);
-	m_current_cycle_state.warm_start_penalty = std::stod(split_line[7]);
-	m_current_cycle_state.cold_start_penalty = std::stod(split_line[8]);
+	m_current_cycle_state.capacity = std::stod(split_line[0]);
+	m_current_cycle_state.cold_start_penalty = std::stod(split_line[1]);
+	m_current_cycle_state.warm_start_penalty = std::stod(split_line[2]);
+	m_current_cycle_state.hot_start_penalty = std::stod(split_line[3]);
+	m_current_cycle_state.downtime = std::stod(split_line[4]);
+	m_current_cycle_state.downtime_threshold = std::stod(split_line[5]);
+	m_current_cycle_state.is_online = std::stoi(split_line[6]);
+	m_current_cycle_state.is_on_standby = std::stoi(split_line[7]);
+	m_current_cycle_state.maintenance_duration = std::stod(split_line[8]);
+	m_current_cycle_state.maintenance_interval = std::stod(split_line[9]);
+	m_current_cycle_state.hours_to_maintenance = std::stod(split_line[10]);
+	m_current_cycle_state.temp_threshold = std::stod(split_line[11]);
+	m_current_cycle_state.time_in_standby = std::stod(split_line[12]);
+	m_current_cycle_state.time_online = std::stod(split_line[13]);
+	m_current_cycle_state.power_output = std::stod(split_line[14]);
+	m_current_cycle_state.thermal_output = std::stod(split_line[15]);
+
+	StorePlantParamsState();
+}
+
+void PowerCycle::ReadSimParamsFile()
+{
+	std::string sp_filename = (
+		m_file_settings.sim_params_filename +
+		//std::to_string(m_current_scenario) + 
+		".csv"
+		);
+	std::ifstream pfile;
+	std::string delimiter = ",";
+	size_t pos = 0;
+	std::string pline;
+	std::vector<std::string> split_line = {};
+	std::string token;
+	pfile.open(sp_filename);
+	getline(pfile, pline);
+	getline(pfile, pline);
+	while (pos != std::string::npos)
+	{
+		pos = pline.find(delimiter);
+		token = pline.substr(0, pos);
+		split_line.push_back(token);
+		pline.erase(0, pos + delimiter.length());
+	}
+	m_sim_params.read_periods = std::stoi(split_line[0]);
+	m_sim_params.sim_length = std::stoi(split_line[1]);
+	m_sim_params.steplength = std::stod(split_line[2]);
+	m_sim_params.epsilon = std::stod(split_line[3]);
+	m_sim_params.print_output = std::stoi(split_line[4]);
+	m_sim_params.num_scenarios = std::stoi(split_line[5]);
+	m_sim_params.hourly_labor_cost = std::stod(split_line[6]);
+	m_sim_params.stop_at_first_repair = std::stoi(split_line[7]);
+	m_sim_params.stop_at_first_failure = std::stoi(split_line[8]);
+}
+
+void PowerCycle::ReadDayIDXFile()
+{
+	std::string policy_filename = (
+		m_file_settings.day_idx_filename + ".dat"
+		);
+	std::ifstream pfile;
+	std::string delimiter = ";";
+	size_t pos = 0;
+	int cindex = 0;
+	std::string pline;
+	std::vector<std::string> split_line = {};
+	std::string token;
+	pfile.open(policy_filename);
+	for (int i = 0; i < 4; i++)
+	{
+		getline(pfile, pline);
+		//std::cerr << pline << "\n";
+		cindex++;
+	} 
+	while (pos != std::string::npos)
+	{
+		pos = pline.find(delimiter);
+		token = pline.substr(0, pos);
+		split_line.push_back(token);
+		pline.erase(0, pos + delimiter.length());
+	}
+	m_file_settings.day_idx = std::stoi(split_line.at(0).substr(21,std::string::npos));
+}
+
+void PowerCycle::ReadPolicyFile()
+{
+	std::string policy_filename = (
+		m_file_settings.policy_filename + ".csv"
+		);
+	std::ifstream pfile;
+	std::string delimiter = ",";
+	size_t pos = 0;
+	std::string pline;
+	std::vector<std::string> split_line = {};
+	std::string token;
+	pfile.open(policy_filename);
+	getline(pfile, pline);
+	while (pos != std::string::npos)
+	{
+		pos = pline.find(delimiter);
+		token = pline.substr(0, pos);
+		split_line.push_back(token);
+		pline.erase(0, pos + delimiter.length());
+	}
+	
+	m_shutdown_capacity = std::stod(split_line[0]);
+	m_no_restart_capacity = std::stod(split_line[1]);
+	m_shutdown_efficiency = std::stod(split_line[2]);
+	m_no_restart_efficiency = std::stod(split_line[3]);
+	m_current_scenario = std::stoi(split_line[4]);
+	
+	pfile.close();
+
+}
+
+void PowerCycle::ReadFailuresFromFile()
+{
+	std::string failure_filename = (
+		m_file_settings.failure_file +
+		//std::to_string(m_current_scenario) + 
+		".csv"
+		);
+	std::ifstream cfile;
+	size_t pos = 0;
+	std::string delimiter = ",";
+	cfile.open(failure_filename);
+	std::string cline;
+	std::vector<std::string> split_line = {};
+	//getline(cfile, cline);
 	//std::vector <double> lifes_probs;
+	std::string label;
+	int time;
+	std::string component;
+	int fail_idx;
+	double duration; 
+	double labor; 
+	double new_life;
+	int scen_index;
+	//(int time, std::string component, int fail_idx, double duration,
+	//	double labor, double new_life, int scen_index)
+	int cindex = 0;
+	std::string token;
+
+
+	while (!cfile.eof())
+	{
+		//lifes_probs.clear();
+		m_failure_events.clear();
+		m_failure_event_labels.clear();
+		pos = 0;
+		getline(cfile, cline);
+		//std::cerr << cline;
+		while (pos != std::string::npos) {
+			pos = cline.find(delimiter);
+			token = cline.substr(0, pos);
+			split_line.push_back(token);
+			cline.erase(0, pos + delimiter.length());
+		}
+		if (split_line.size() > 6)
+		{
+			label = split_line[0];
+			time = std::stoi(split_line[1]);
+			component = split_line[2];
+			fail_idx = std::stoi(split_line[3]);
+			duration = std::stod(split_line[4]);
+			labor = std::stod(split_line[5]);
+			new_life = std::stod(split_line[6]);
+			scen_index = std::stoi(split_line[7]);
+			
+			m_failure_event_labels.push_back(label);
+			m_failure_events[label] = failure_event(
+				time,
+				component,
+				fail_idx,
+				duration,
+				labor,
+				new_life,
+				scen_index
+			);
+		}
+		split_line.clear();
+		cindex++;
+	}
+}
+
+void PowerCycle::ReadDispatchFile()
+{
+	std::unordered_map<std::string, std::vector <double> > data = {};
+	data["standby"] = {};
+	data["cycle_power"] = {};
+	data["ambient_temperature"] = {};
+	data["thermal_power"] = {};
+	std::string dispatch_file = (
+		m_file_settings.ampl_dispatch_file +
+		//std::to_string(m_file_settings.day_idx) +
+		".csv"
+		);
+	std::ifstream dfile;
+	size_t pos = 0;
+	std::string delimiter = ",";
+	dfile.open(dispatch_file);
+	std::string dline;
+	std::vector<std::string> split_line = {};
+	std::string token;
+	getline(dfile, dline);
+	while (!dfile.eof())
+	{
+		pos = 0;
+		getline(dfile, dline);
+		while (pos != std::string::npos) {
+			pos = dline.find(delimiter);
+			token = dline.substr(0, pos);
+			split_line.push_back(token);
+			dline.erase(0, pos + delimiter.length());
+		}
+		if (split_line.size() > 3)
+		{
+			data["thermal_power"].push_back(std::stod(split_line[0]));
+			data["standby"].push_back(std::stod(split_line[1]));
+			data["ambient_temperature"].push_back(std::stod(split_line[2]));
+			data["cycle_power"].push_back(std::stod(split_line[3]));
+		}
+		split_line.clear();
+	}
+
+	SetDispatch(data, true);
+}
+
+void PowerCycle::ReadCapEffFile()
+{
+	/*
+	send cycle capacity, cycle_efficiency, last period of failure and 
+	last period of repair to results.  if the last period of failure
+	and last period of repair are equal to -1, then cycle_efficiency
+	and cycle_capacity are overridden to all ones.
+	*/
+	std::string cap_eff_filename = "capeff.csv";
+	std::ifstream pfile;
+	std::string delimiter = ",";
+	size_t pos = 0;
+	std::string pline;
+	std::vector<std::string> split_line = {};
+	std::string token;
+	pfile.open(cap_eff_filename);
+	//first line: failure and repair periods
+	getline(pfile, pline);
+	while (pos != std::string::npos)
+	{
+		pos = pline.find(delimiter);
+		token = pline.substr(0, pos);
+		split_line.push_back(token);
+		pline.erase(0, pos + delimiter.length());
+	}
+	m_results.period_of_last_failure[m_current_scenario] = std::stoi(split_line[0]);
+	m_results.period_of_last_repair[m_current_scenario] = std::stoi(split_line[1]);
+	if (
+		m_results.period_of_last_failure[m_current_scenario] == -1 &&
+		m_results.period_of_last_repair[m_current_scenario] == -1
+		)
+	{
+		m_results.cycle_capacity[m_current_scenario] = std::vector<double>(m_sim_params.sim_length, 1.);
+		m_results.cycle_efficiency[m_current_scenario] = std::vector<double>(m_sim_params.sim_length, 1.);
+		return;
+	}
+	//if the period of last failure/repair is not -1, then read in the 
+	//cycle efficiency and cycle capacity from the file. 
+	split_line.clear();
+	getline(pfile, pline);
+	pos = 0;
+	while (pos != std::string::npos)
+	{
+		pos = pline.find(delimiter);
+		token = pline.substr(0, pos);
+		split_line.push_back(token);
+		pline.erase(0, pos + delimiter.length());
+	}
+	m_results.cycle_capacity[m_current_scenario].clear();
+	m_results.cycle_efficiency[m_current_scenario].clear();
+	for (int i = 0; i < m_sim_params.sim_length; i++)
+	{
+		m_results.cycle_capacity[m_current_scenario].push_back(std::stod(split_line[i]));
+	}
+	split_line.clear();
+	getline(pfile, pline);
+	pos = 0;
+	while (pos != std::string::npos)
+	{
+		pos = pline.find(delimiter);
+		token = pline.substr(0, pos);
+		split_line.push_back(token);
+		pline.erase(0, pos + delimiter.length());
+	}
+	for (int i = 0; i < m_sim_params.sim_length; i++)
+	{
+		m_results.cycle_efficiency[m_current_scenario].push_back(std::stod(split_line[i]));
+	}
+	pfile.close();
 }
 
 std::vector< Component > &PowerCycle::GetComponents()
 {
     /*
-	accessor for components list.
+	accessor for components in the plant, stored as a vector.
 	*/
     return m_components;
 }
@@ -650,6 +1307,31 @@ int PowerCycle::GetSimLength()
 	return m_sim_params.sim_length;
 }
 
+double PowerCycle::GetShutdownCapacity()
+{
+	return m_shutdown_capacity;
+}
+
+double PowerCycle::GetNoRestartCapacity()
+{
+	return m_no_restart_capacity;
+}
+
+double PowerCycle::GetShutdownEfficiency()
+{
+	return m_shutdown_efficiency;
+}
+
+double PowerCycle::GetNoRestartEfficiency()
+{
+	return m_no_restart_efficiency;
+}
+
+int PowerCycle::GetScenarioIndex()
+{
+	return m_current_scenario;
+}
+
 void PowerCycle::SetShutdownCapacity(double capacity) 
 {
 	/* accessor to cycle capacity threshold for immediate shutdown. */
@@ -679,6 +1361,11 @@ void PowerCycle::SetNoRestartEfficiency(double efficiency)
 	power cycle shutdown.
 	*/
 	m_no_restart_efficiency = efficiency;
+}
+
+void PowerCycle::SetScenarioIndex(int idx)
+{
+	m_current_scenario = idx;
 }
 
 
@@ -780,6 +1467,7 @@ void PowerCycle::AddCondenserTrains(int num_trains, int num_fans, int num_radiat
 {
 	m_num_condenser_trains = num_trains;
 	m_fans_per_condenser_train = num_fans;
+	m_radiators_per_condenser_train = num_radiators;
 	std::string component_name, train_name;
 	for (int j = 0; j < num_trains; j++)
 	{
@@ -931,8 +1619,9 @@ void PowerCycle::GeneratePlantComponents(
 	condenser_eff_hot -- Efficiency of condenser according to how many trains are operational for high ambient temperatures 
 	*/
 	ClearComponents();
-	if (condenser_eff_cold.size() != (num_condenser_trains+1) ||
-		condenser_eff_hot.size() != (num_condenser_trains+1))
+	bool b1 = condenser_eff_cold.size() != (num_condenser_trains + 1);
+	bool b2 = condenser_eff_hot.size() != (num_condenser_trains + 1);
+	if (b1 || b2)
 	{
 		throw std::runtime_error("condenser efficiencies do not reconcile with number of trains.");
 	}
@@ -952,8 +1641,10 @@ void PowerCycle::SetPlantAttributes(
 	double downtime_threshold,
 	double hours_to_maintenance,
 	double power_output,
+	double thermal_output,
 	bool current_standby,
 	double capacity,
+	double thermal_capacity,
 	double temp_threshold,
 	double time_online,
 	double time_in_standby,
@@ -985,16 +1676,15 @@ void PowerCycle::SetPlantAttributes(
 	*/
 
     m_current_cycle_state.maintenance_interval = maintenance_interval;
-    m_current_cycle_state.maintenance_duration = maintenance_duration;
-    m_ramp_threshold = capacity * 0.2;  //using Gas-CC as source, Kumar 2012,
-	m_ramp_threshold_min = 1.1*m_ramp_threshold;   //Table 1-1
-	m_ramp_threshold_max = 2.0*m_ramp_threshold;   
+    m_current_cycle_state.maintenance_duration = maintenance_duration; 
     m_current_cycle_state.downtime_threshold = downtime_threshold;
     m_current_cycle_state.hours_to_maintenance = hours_to_maintenance;
     m_current_cycle_state.power_output = power_output;
+	m_current_cycle_state.thermal_output = thermal_output;
     m_current_cycle_state.is_on_standby = current_standby;
     m_current_cycle_state.is_online = m_current_cycle_state.power_output > 0.;
 	m_current_cycle_state.capacity = capacity;
+	m_current_cycle_state.thermal_capacity = thermal_capacity;
 	m_current_cycle_state.time_in_standby = time_in_standby;
 	m_current_cycle_state.time_online = time_online;
 	m_condenser_temp_threshold = temp_threshold;
@@ -1003,6 +1693,14 @@ void PowerCycle::SetPlantAttributes(
 	m_no_restart_capacity = no_restart_capacity;
 	m_shutdown_efficiency = shutdown_efficiency;
 	m_no_restart_efficiency = no_restart_efficiency;
+	SetRampingThresholds();
+}
+
+void PowerCycle::SetRampingThresholds()
+{
+	m_ramp_threshold = m_current_cycle_state.thermal_capacity * 0.2;  //using Gas-CC as source, Kumar 2012,  updated 10/03 to be based on thermal
+	m_ramp_threshold_min = 1.1*m_ramp_threshold;   //Table 1-1
+	m_ramp_threshold_max = 2.0*m_ramp_threshold;
 }
 
 void PowerCycle::SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing)
@@ -1374,7 +2072,7 @@ void PowerCycle::AdvanceDowntime(std::string mode)
 	}
 }
 
-double PowerCycle::GetRampMult(double power_out)
+double PowerCycle::GetRampMult(double thermal_out)
 {
 
 	/*
@@ -1384,16 +2082,15 @@ double PowerCycle::GetRampMult(double power_out)
 	provided as input, the ramping penalty is returned; otherwise, a
 	multiplier of 1 (i.e., no penalty due to ramping) is returned.
 
-	power_out -- power out for current time period
+	thermal_out -- thermal power out for current time period
 	retval -- floating point multiplier
-
 	*/
-	if (power_out <= m_sim_params.epsilon)
+	if (thermal_out <= m_sim_params.epsilon)
 		return 1.0;
-	if (std::fabs(power_out - m_current_cycle_state.power_output) >= m_ramp_threshold_min)
+	if (std::fabs(thermal_out - m_current_cycle_state.thermal_output) >= m_ramp_threshold_min)
 	{
 		double ramp_penalty = m_ramping_penalty_min + (m_ramping_penalty_max - m_ramping_penalty_min)*
-			(std::fabs(power_out - m_current_cycle_state.power_output) - m_ramp_threshold_min ) / (m_ramp_threshold_max - m_ramp_threshold_min);
+			(std::fabs(thermal_out - m_current_cycle_state.thermal_output) - m_ramp_threshold_min ) / (m_ramp_threshold_max - m_ramp_threshold_min);
 		ramp_penalty = std::min(ramp_penalty, m_ramping_penalty_max);
 		return ramp_penalty;
 	}
@@ -1427,9 +2124,9 @@ void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, s
 	{
 		if (m_components.at(i).IsOperational())
 			m_components.at(i).Operate(
-				m_sim_params.steplength, ramp_mult, *m_gen, 
-				t > m_results.period_of_last_repair[m_current_scenario], t, 
-				hazard_increase, mode, m_current_scenario
+				m_sim_params.steplength, ramp_mult,
+				t > m_results.period_of_last_repair[m_current_scenario], 
+				hazard_increase, mode
 			);
 		else
 		{
@@ -1596,6 +2293,7 @@ void PowerCycle::RunDispatch()
     std::vector< double > cycle_capacities( m_sim_params.sim_length, 0 );
 	std::vector< double > cycle_efficiencies( m_sim_params.sim_length, 0 );
 	double power_output = 0.;
+	double thermal_output = 0.;
 	for( int t = 0; t < m_sim_params.sim_length; t++)
     {
 		ResetCycleEventFlags();
@@ -1619,6 +2317,7 @@ void PowerCycle::RunDispatch()
 		// If cycle Capacity is zero or there is no power output, advance downtime.  
 		// Otherwise, check for failures, and operate if there is still Capacity.
 		power_output = m_dispatch.at("cycle_power").at(t);
+		thermal_output = m_dispatch.at("thermal_power").at(t);
 		SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
 		std::string start = GetStartMode(t);
 		std::string mode = GetOperatingMode(t);
@@ -1631,7 +2330,7 @@ void PowerCycle::RunDispatch()
 		if (t > m_results.period_of_last_repair[m_current_scenario]  && 
 			t > m_results.period_of_last_failure[m_current_scenario])
 		{
-			double ramp_mult = GetRampMult(power_output);
+			double ramp_mult = GetRampMult(thermal_output);
 			TestForComponentFailures(ramp_mult, t, start, mode);
 			SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
 			//if the cycle Capacity is set to zero, this means the plant is in maintenace
@@ -1658,9 +2357,10 @@ void PowerCycle::RunDispatch()
 			if (m_cycle_capacity + m_sim_params.epsilon <= 1.0)
 			{
 				power_output = std::min(power_output, m_cycle_capacity*m_current_cycle_state.capacity);
+				thermal_output = std::min(thermal_output, m_cycle_capacity*m_current_cycle_state.thermal_capacity);
 			}
 		}
-		OperatePlant(power_output, t, start, mode);
+		OperatePlant(power_output, thermal_output, t, start, mode);
 		cycle_capacities[t] = m_cycle_capacity;
 		cycle_efficiencies[t] = m_cycle_efficiency;
 		if (t > m_results.period_of_last_failure[m_current_scenario] &&
@@ -1744,7 +2444,8 @@ void PowerCycle::RunDispatch()
 
 
 
-void PowerCycle::OperatePlant(double power_out, int t, std::string start, std::string mode)
+void PowerCycle::OperatePlant(double power_out, 
+	double thermal_out, int t, std::string start, std::string mode)
 {
 
     /*
@@ -1757,11 +2458,13 @@ void PowerCycle::OperatePlant(double power_out, int t, std::string start, std::s
         dispatch provided as input would reduce a component's life to zero;
         (iii) operating the plant and updating component lifetimes 
         otherwise.
-		power_out -- power output for plant (determines ramping multiple)
+		power_out -- electrical power output for plant (determines ramping multiple)
+		thermal_out -- thermal power output for plant (determines ramping multiple)
 		t -- time index
 		mode -- operation mode
 	*/
-	double ramp_mult = GetRampMult(power_out);
+	double ramp_mult = GetRampMult(thermal_out);
+	m_current_cycle_state.thermal_output = thermal_out;
 	m_current_cycle_state.power_output = power_out;
 	if (mode == "OFF")
 	{
@@ -1813,23 +2516,15 @@ void PowerCycle::OperatePlant(double power_out, int t, std::string start, std::s
 
 }
 
-void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory)
+void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory,
+	bool init)
 {
-
     /*failure_file = open(
         os.path.join(m_sim_params.print_output_dir,"component_failures.csv"),'w'
         )*/
 	if (read_state_from_file)
 	{
-		std::string cfilename = (
-			m_file_settings.component_in_state + 
-			std::to_string(m_current_scenario) + ".csv"
-			);
-		std::string pfilename = (
-			m_file_settings.plant_in_state + 
-			std::to_string(m_current_scenario) + ".csv"
-			);
-		ReadStateFromFiles(cfilename, pfilename);
+		ReadStateFromFiles(init);
 	}
 	else if (read_from_memory)
 	{
@@ -1928,8 +2623,12 @@ void PowerCycle::StoreScenarioResults(std::vector <double> cycle_efficiencies,
 	m_results.expected_starts_to_failure = GetExpectedStartsToNextFailure();
 }
 
-void PowerCycle::Simulate(bool read_state_from_file, bool read_state_from_memory,
-		bool run_only_previous_failures)
+void PowerCycle::Simulate(
+	bool read_state_from_file, 
+	bool read_state_from_memory,
+	bool run_only_previous_failures,
+	bool init
+)
 {
 	/*
 	Generates a collection of Monte Carlo realizations of failure and
@@ -1948,14 +2647,13 @@ void PowerCycle::Simulate(bool read_state_from_file, bool read_state_from_memory
 		m_current_scenario = i;
 		if (!run_only_previous_failures || m_results.period_of_last_failure[i] > -1)
 		{
-			SingleScen(read_state_from_file, read_state_from_memory);
+			SingleScen(read_state_from_file, read_state_from_memory, init);
 
 			//Record failure events
 			m_results.failure_events[m_current_scenario] = m_failure_events;
 			m_results.failure_event_labels[m_current_scenario] = m_failure_event_labels;
 		}
 	}
-	
 	
 	//Obtain Summary Statistics
 	GetSummaryResults();
@@ -2029,12 +2727,12 @@ double PowerCycle::GetEstimatedMinimumLifetime(double frac_operational)
 	double min_life = INFINITY;
 	for (Component c : m_components)
 	{
-		for (FailureType f : c.GetFailureTypes())
+		for (size_t i = 0; i < c.GetFailureTypes().size(); i++)
 		{
-			if (!f.GetFailureDist()->IsBinary())
+			if (!c.GetFailureTypes().at(i).GetFailureDist()->IsBinary())
 			{
 				min_life = std::min(
-					min_life, f.GetLifeRemaining() / c.GetHazardRate()
+					min_life, c.GetLifetimesAndProbs().at(i) / c.GetHazardRate()
 				);
 			}
 		}
@@ -2052,11 +2750,11 @@ double PowerCycle::GetExpectedStartsToNextFailure()
 	double p = 1.0;
 	for (Component c : m_components)
 	{
-		for (FailureType f : c.GetFailureTypes())
+		for (size_t i=0; i<c.GetFailureTypes().size(); i++)
 		{
-			if (f.GetFailureDist()->IsBinary())
+			if (c.GetFailureTypes().at(i).GetFailureDist()->IsBinary())
 			{
-				p *= (1 - f.GetFailureProbability()*c.GetHazardRate());
+				p *= (1 - c.GetLifetimesAndProbs().at(i)*c.GetHazardRate());
 			}
 		}
 	}
@@ -2065,47 +2763,6 @@ double PowerCycle::GetExpectedStartsToNextFailure()
 		return INFINITY;
 	}
 	return 1.0 / (1.0 - p);
-}
-
-void PowerCycle::WriteAMPLParams()
-{
-	/* 
-	Writes the cycle efficiency and capacity over time, as well as 
-	the period of the final repair, to file.
-	*/
-	std::string filename = m_file_settings.ampl_param_file;
-	if (m_current_scenario > 0)
-	{
-		filename += std::to_string(m_current_scenario);
-		filename += "_";
-	}
-	filename += std::to_string(m_file_settings.day_idx);
-	filename += ".dat";
-	std::ofstream outfile;
-	outfile.open(filename);
-	int period = 0;
-	if (m_sim_params.stop_at_first_failure && !m_sim_params.stop_at_first_repair && NewFailureOccurred())
-		period = m_results.period_of_last_failure[0] + 1;
-	else if (!m_sim_params.stop_at_first_failure && m_sim_params.stop_at_first_repair && NewRepairOccurred())
-		period = m_results.period_of_last_repair[0] + 1;
-	else if (m_sim_params.stop_at_first_failure && m_sim_params.stop_at_first_repair && (NewRepairOccurred() || NewFailureOccurred()))
-		period = std::max(m_results.period_of_last_repair[0], m_results.period_of_last_failure[0]) + 1;
-	else  // here, either no failures and no repairs occurred, or settings don't require stoppage at a failure or repair
-		period = std::max(m_results.period_of_last_repair[0], m_results.period_of_last_failure[0]);
-	outfile << "param last_fixed_period := " << period << ";\n\n";
-	outfile << "param Feff := \n";
-	for (int i = 0; i < m_sim_params.sim_length; i++)
-	{
-		outfile << (i + 1) << "  " << m_results.cycle_efficiency[0].at(i) << "\n";
-	}
-	outfile << ";\n\n";
-	outfile << "param Fcap := \n";
-	for (int i = 0; i < m_sim_params.sim_length; i++)
-	{
-		outfile << (i + 1) << "  " << m_results.cycle_capacity[0].at(i) << "\n";
-	}
-	outfile << ";\n\n";
-	outfile.close();
 }
 
 void PowerCycle::AgePlant(double age)
@@ -2135,7 +2792,8 @@ void PowerCycle::AgePlant(double age)
 	int num_cycles = (int)(146 * age);
 	
 	//set up dispatch
-	m_dispatch["power_output"] = { 0, m_ramp_threshold_min*0.5, m_ramp_threshold_min*0.5 };
+	m_dispatch["power_output"] = { 0, m_ramp_threshold_min*0.2, m_ramp_threshold_min*0.2 };
+	m_dispatch["thermal_output"] = { 0, m_ramp_threshold_min*0.5, m_ramp_threshold_min*0.5 };
 	m_dispatch["standby"] = { 0,0,0 };
 	m_dispatch["ambient_temperature"] = { 0,0,0 };
 
