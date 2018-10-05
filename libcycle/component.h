@@ -147,9 +147,13 @@ public:
 	void TestForFailure(double time, double ramp_mult, WELLFiveTwelve &gen, 
 		int t, double hazard_increase, std::string mode, int scen_index);
          
-    void Operate(double time, double ramp_mult, WELLFiveTwelve &gen, 
-		bool read_only, int t, double hazard_increase, std::string mode,
-		int scen_index);
+    void Operate(
+		double time, 
+		double ramp_mult,
+		bool read_only,
+		double hazard_increase, 
+		std::string mode
+	);
         
     void ReadFailure(double downtime, double life_remaining,
 		int fail_idx, bool reset_hazard);

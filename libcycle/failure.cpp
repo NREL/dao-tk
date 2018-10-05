@@ -27,8 +27,8 @@ FailureType::FailureType(std::string component, std::string id,
 	}
 	else
 		throw std::runtime_error("invalid distribution type provided as input.");
-	m_life_remaining = 0.0; 
-	m_probability = 0.0;
+	//m_life_remaining = 0.0; 
+	//m_probability = 0.0;
 }
 
 std::string FailureType::GetComponentName()
@@ -51,48 +51,7 @@ Distribution *FailureType::GetFailureDist()
 	return m_failure_dist;
 }
 
-double FailureType::GetLifeRemaining()
-{
-	return m_life_remaining;
-}
-
-void FailureType::SetLifeRemaining(double life_remaining)
-{
-	m_life_remaining = life_remaining;
-}
-
-void FailureType::ReduceLifeRemaining(double life_reduction)
-{
-	m_life_remaining -= life_reduction;
-}
-
-double FailureType::GetFailureProbability()
-{
-	return m_probability;
-}
-
-void FailureType::SetFailureProbability(double probability)
-{
-	m_probability = probability;
-}
-
-double FailureType::GetLifeOrProb()
-{
-	if (GetFailureDist()->IsBinary())
-		return m_probability;
-	else
-		return m_life_remaining;
-}
-
-void FailureType::SetLifeOrProb(double life_remaining)
-{
-	if (GetFailureDist()->IsBinary())
-		m_probability = life_remaining;
-	else
-		m_life_remaining = life_remaining;
-}
-
-void FailureType::GenerateTimeToFailure(WELLFiveTwelve &gen)
+double FailureType::GenerateTimeToFailure(WELLFiveTwelve &gen)
 {
 	/*
 	generate a random 'lifetime', which is the number of hours of
@@ -105,10 +64,10 @@ void FailureType::GenerateTimeToFailure(WELLFiveTwelve &gen)
 	//For Gamma or Exponentially distributed failure distribution
 	if (m_failure_dist->IsBinary())
 		throw std::runtime_error("lifetime generated with binary distribution.");
-	m_life_remaining = m_failure_dist->GetVariate(gen);
+	return m_failure_dist->GetVariate(gen);
 }
 
-void FailureType::GenerateFailureProbability(WELLFiveTwelve &gen)
+double FailureType::GenerateFailureProbability(WELLFiveTwelve &gen)
 {
 	/*
 	generate a random 'failure probability'
@@ -118,13 +77,13 @@ void FailureType::GenerateFailureProbability(WELLFiveTwelve &gen)
 	//For Beta distributed failure probability distribution
 	if (!(m_failure_dist->IsBinary()))
 		throw std::runtime_error("fail probability generated with non-beta distribution.");
-	m_probability = m_failure_dist->GetVariate(gen);
+	return m_failure_dist->GetVariate(gen);
 }
 
-void FailureType::GenerateFailureVariate(WELLFiveTwelve &gen)
+double FailureType::GenerateFailureVariate(WELLFiveTwelve &gen)
 {
 	if (m_failure_dist->IsBinary())
-		GenerateFailureProbability(gen);
+		return GenerateFailureProbability(gen);
 	else
-		GenerateTimeToFailure(gen);
+		return GenerateTimeToFailure(gen);
 }

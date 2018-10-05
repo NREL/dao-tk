@@ -72,6 +72,7 @@ Component::Component(std::string name, std::string type,
 	m_status.operational = true;
 	m_status.repair_event_time = 0.0;
 	m_status.age = 0.0;
+	m_status.lifetimes = {};
 
 	Distribution *edist = new ExponentialDist(mean_repair_time, repair_cooldown_time, "exponential");
 	m_repair_dist = (ExponentialDist *) edist;
@@ -88,10 +89,7 @@ void Component::ReadStatus( ComponentStatus &status )
 	m_status.operational = (m_status.downtime_remaining < 1e-8);
 	m_status.repair_event_time = status.repair_event_time;
 	m_status.age = status.age;
-	for (size_t j = 0; j < m_failure_types.size(); j++)
-	{
-		m_failure_types.at(j).SetLifeOrProb(status.lifetimes.at(j));
-	}
+	m_status.lifetimes = status.lifetimes;
 }
         
 std::string Component::GetName()
@@ -142,6 +140,7 @@ void Component::AddFailureMode(
 	beta -- numeric parameter for distribution
 	*/
 	m_failure_types.push_back(FailureType(component, id, failure_mode, dist_type, alpha, beta));
+	m_status.lifetimes.push_back(1.);
 }
         
 double Component::GetHazardRate()
@@ -164,6 +163,7 @@ double Component::GetRepairCost()
 
 double Component::GetMeanRepairTime()
 {
+	/* accessor to component's mean repair time. */
 	return m_mean_repair_time;
 }
 
@@ -323,7 +323,7 @@ double Component::HoursToFailure(double ramp_mult, std::string mode)
 		if (m_failure_types.at(j).GetFailureMode() == mode)
 		{
 			hours = std::min(hours, 
-				m_failure_types.at(j).GetLifeRemaining() / 
+				m_status.lifetimes.at(j) / 
 				(m_status.hazard_rate * ramp_mult)
 				);
 		}
@@ -349,12 +349,12 @@ void Component::TestForBinaryFailure(std::string mode, int t,
 	failure events
 	*/
 	double var = 0.0;
-	for (size_t j = 0; j < m_failure_types.size(); j++)
+	for (int j = 0; j < m_failure_types.size(); j++)
 	{
 		if (m_failure_types.at(j).GetFailureMode() == mode)
 		{
 			var = gen.getVariate();
-			if (var <= m_failure_types.at(j).GetFailureProbability()
+			if (var <= m_status.lifetimes.at(j)
 				* m_status.hazard_rate)
 			{
 				GenerateFailure(gen, t, j, scen_index);
@@ -389,16 +389,16 @@ void Component::TestForFailure(double time, double ramp_mult,
 	}
 	else
 		opmode = mode;
-	for (size_t j = 0; j < m_failure_types.size(); j++)
+	for (int j = 0; j < m_failure_types.size(); j++)
 	{
 		if (m_failure_types.at(j).GetFailureMode() == opmode || m_failure_types.at(j).GetFailureMode() == "ALL")
 		{
-			if (time * (m_status.hazard_rate + hazard_increase) * ramp_mult > m_failure_types.at(j).GetLifeRemaining())
+			if (time * (m_status.hazard_rate + hazard_increase) * ramp_mult > m_status.lifetimes.at(j))
 				GenerateFailure(gen, t, j, scen_index);
 		}
 		if (m_failure_types.at(j).GetFailureMode() == "O" && (opmode == "OO" || opmode == "OF" ) )
 		{
-			if (time * (m_status.hazard_rate + hazard_increase) * ramp_mult > m_failure_types.at(j).GetLifeRemaining())
+			if (time * (m_status.hazard_rate + hazard_increase) * ramp_mult > m_status.lifetimes.at(j))
 				GenerateFailure(gen, t, j, scen_index);
 		}
 	}
@@ -406,9 +406,13 @@ void Component::TestForFailure(double time, double ramp_mult,
 }
 
          
-void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen, 
-		bool read_only, int t, double hazard_increase, std::string mode,
-		int scen_index)
+void Component::Operate(
+	double time, 
+	double ramp_mult, 
+	bool read_only, 
+	double hazard_increase, 
+	std::string mode
+)
 {
     /* 
     assumes operation for a given period of time, with 
@@ -446,15 +450,15 @@ void Component::Operate(double time, double ramp_mult, WELLFiveTwelve &gen,
 	{
 		if (m_failure_types.at(j).GetFailureMode() == opmode || (opmode != "OFF" && m_failure_types.at(j).GetFailureMode() == "ALL"))
 		{
-			if (time * m_status.hazard_rate * ramp_mult > m_failure_types.at(j).GetLifeRemaining() && !read_only)
+			if (time * m_status.hazard_rate * ramp_mult > m_status.lifetimes.at(j) && !read_only)
 				throw std::runtime_error("failure should be thrown.");
-			m_failure_types.at(j).ReduceLifeRemaining(time * m_status.hazard_rate * ramp_mult);
+			m_status.lifetimes.at(j) -= (time * m_status.hazard_rate * ramp_mult);
 		}
 		if (m_failure_types.at(j).GetFailureMode() == "O" && (opmode == "OO" || opmode == "OF"))
 		{
-			if (time * m_status.hazard_rate * ramp_mult > m_failure_types.at(j).GetLifeRemaining() && !read_only)
+			if (time * m_status.hazard_rate * ramp_mult > m_status.lifetimes.at(j) && !read_only)
 				throw std::runtime_error("failure should be thrown.");
-			m_failure_types.at(j).ReduceLifeRemaining(time * m_status.hazard_rate * ramp_mult);
+			m_status.lifetimes.at(j) -= (time * m_status.hazard_rate * ramp_mult);
 		}
 	}		
 	if (opmode == "OO" || opmode == "OF")
@@ -474,7 +478,7 @@ void Component::ReadFailure(double downtime, double life_remaining,
     */
 	m_status.operational = false;
     SetDowntimeRemaining(downtime);
-    m_failure_types.at(fail_idx).SetLifeOrProb(life_remaining);
+	m_status.lifetimes.at(fail_idx) = (life_remaining);
 	if (reset_hazard)
 	{
 		ResetHazardRate();
@@ -496,13 +500,13 @@ void Component::GenerateFailure(WELLFiveTwelve &gen, int t, int fail_idx, int sc
 	m_new_failure = true;
     GenerateTimeToRepair(gen);
 	double labor = m_status.downtime_remaining - GetCooldownTime();
-    m_failure_types.at(fail_idx).GenerateFailureVariate(gen);
+	m_status.lifetimes.at(fail_idx) = m_failure_types.at(fail_idx).GenerateFailureVariate(gen);
     ResetHazardRate();
     //add a new failure to the parent (CSPPlant) failure queue
 	std::string label = "S"+std::to_string(scen_index)+"T"+std::to_string(t)+GetName()+std::to_string(fail_idx);
     (*m_parent_failure_events)[label] = failure_event(
 		t, GetName(), fail_idx, m_status.downtime_remaining, labor,
-		m_failure_types.at(fail_idx).GetLifeOrProb(), scen_index
+		m_status.lifetimes.at(fail_idx), scen_index
 		);
 	(*m_parent_failure_event_labels).push_back(label);
 	//std::cerr << "FAILURE EVENT GENERATED. downtime: " << std::to_string(m_status.downtime_remaining) << " life_rem: " << std::to_string(m_failure_types.at(fail_idx).GetLifeOrProb()) << " fail idx: " << std::to_string(fail_idx) << " reset hazard rate: " << std::to_string(true) << "\n";
@@ -557,12 +561,7 @@ void Component::AdvanceDowntime(double time, std::string mode)
 std::vector<double> Component::GetLifetimesAndProbs()
 {
 	//returns a vector of component lifetimes/probabilities.
-	std::vector<double> lifetimes_and_probs = {};
-	for (size_t j=0; j < m_failure_types.size(); j++)
-	{
-		lifetimes_and_probs.push_back(m_failure_types.at(j).GetLifeOrProb());
-	}
-	return lifetimes_and_probs;
+	return m_status.lifetimes;
 }
             
 void Component::GenerateInitialLifesAndProbs(WELLFiveTwelve &gen)
@@ -571,10 +570,11 @@ void Component::GenerateInitialLifesAndProbs(WELLFiveTwelve &gen)
 	generates initial failures and probabilities for a component as if it were
 	brand new.
 	*/
-	for (std::vector<FailureType>::iterator it = m_failure_types.begin(); 
-		it != m_failure_types.end(); it++)
+	for (int i=0; i<m_failure_types.size(); i++)
 	{
-		it->GenerateFailureVariate(gen);
+		SetFailLifeOrProb (
+			i, m_failure_types.at(i).GenerateFailureVariate(gen)
+		);
 	}
 }
 
@@ -615,6 +615,6 @@ fail_idx -- index of failure to mutate
 life_prob -- value to assign to given lifetime / probability of failure
 */
 {
-	m_failure_types.at(fail_idx).SetLifeOrProb(life_prob);
+	m_status.lifetimes.at(fail_idx) = life_prob;
 }
 
