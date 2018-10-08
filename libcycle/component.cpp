@@ -503,7 +503,7 @@ void Component::GenerateFailure(WELLFiveTwelve &gen, int t, int fail_idx, int sc
 	m_status.lifetimes.at(fail_idx) = m_failure_types.at(fail_idx).GenerateFailureVariate(gen);
     ResetHazardRate();
     //add a new failure to the parent (CSPPlant) failure queue
-	std::string label = "S"+std::to_string(scen_index)+"T"+std::to_string(t)+GetName()+std::to_string(fail_idx);
+	std::string label = "S"+std::to_string(scen_index)+"T"+std::to_string(t)+GetName()+"F"+std::to_string(fail_idx);
     (*m_parent_failure_events)[label] = failure_event(
 		t, GetName(), fail_idx, m_status.downtime_remaining, labor,
 		m_status.lifetimes.at(fail_idx), scen_index

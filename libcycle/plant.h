@@ -131,7 +131,7 @@ public:
 	void ReadDayIDXFile();
 	void ReadPolicyFile();
 	void ReadFailuresFromFile();
-	void ReadDispatchFile();
+	void ReadDispatchFile(int max_rows=8760);
 	void ReadCapEffFile();
 
 	std::vector< Component >& GetComponents();
@@ -160,6 +160,7 @@ public:
 	double GetShutdownEfficiency();
 	double GetNoRestartEfficiency();
 	int GetScenarioIndex();
+	std::unordered_map<std::string, std::vector<double> > GetDispatch();
 
 	void SetShutdownCapacity(double capacity);
 	void SetNoRestartCapacity(double capacity);
@@ -206,10 +207,10 @@ public:
 		std::vector<double> condenser_eff_hot = { 0.,0.95,1. }
 	);
 	void SetPlantAttributes(
-		double maintenance_interval = 5000.,
+		double maintenance_interval = 1.e6,
 		double maintenance_duration = 168.,
 		double downtime_threshold = 24.,
-		double hours_to_maintenance = 5000.,
+		double hours_to_maintenance = 1.e6,
 		double power_output = 0.,
 		double thermal_output = 0.,
 		bool current_standby = false,
