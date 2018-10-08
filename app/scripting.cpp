@@ -265,6 +265,7 @@ void _test(lk::invoke_t &cxt)
 
 	P->m_parameters.sim_length.assign( 720 );
 	P->m_parameters.cycle_power.empty_vector();
+	P->m_parameters.thermal_power.empty_vector();
 	P->m_parameters.standby.empty_vector();
 	P->m_parameters.ambient_temperature.empty_vector();
 	for (int i = 0; i < 30; i++) //simulate 30 days of dispatch
@@ -272,18 +273,21 @@ void _test(lk::invoke_t &cxt)
 		for (int j = 0; j < 8; j++)
 		{
 			P->m_parameters.cycle_power.vec_append(0);
+			P->m_parameters.thermal_power.vec_append(0);
 			P->m_parameters.standby.vec_append(0);
 			P->m_parameters.ambient_temperature.vec_append(0);
 		}
 		for (int j = 0; j < 8; j++)
 		{
 			P->m_parameters.cycle_power.vec_append(1e5);
+			P->m_parameters.thermal_power.vec_append(3e5);
 			P->m_parameters.standby.vec_append(0);
 			P->m_parameters.ambient_temperature.vec_append(10);
 		}
 		for (int j = 0; j < 8; j++)
 		{
 			P->m_parameters.cycle_power.vec_append(0);
+			P->m_parameters.thermal_power.vec_append(0);
 			P->m_parameters.standby.vec_append(0);
 			P->m_parameters.ambient_temperature.vec_append(15);
 		}
@@ -325,10 +329,10 @@ void _power_cycle(lk::invoke_t &cxt)
 		"Table keys include: cycle_power, ambient_temperature, standby, "
 		"read_periods, sim_length, eps, output, num_scenarios, "
 		"cycle_hourly_labor_cost, stop_cycle_at_first_failure, "
-		"stop_cycle_at_first_repair, "
-		"maintenance_interval, maintenance_duration, downtime_threshold, "
-		"steplength, hours_to_maintenance, power_output, current_standby, "
-		"capacity, temp_threshold, time_online, time_in_standby, downtime, "
+		"stop_cycle_at_first_repair, maintenance_interval, maintenance_duration, "
+		"downtime_threshold,steplength, hours_to_maintenance, power_output, "
+		"thermal_output, current_standby, capacity, thermal_capacity, "
+		"temp_threshold, time_online, time_in_standby, downtime, "
 		"shutdown_capacity, no_restart_capacity, shutdown_efficiency, "
 		"no_restart_efficiency, num_condenser_trains, fans_per_train, "
 		"radiators_per_train, num_salt_steam_trains, num_fwh, num_salt_pumps, "
@@ -363,6 +367,10 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("power_output") != h->end())
 		power_output = h->at("power_output")->as_number();
 
+	double thermal_output = 0.;
+	if (h->find("thermal_output") != h->end())
+		thermal_output = h->at("thermal_output")->as_number();
+
 	bool current_standby = false;
 	if (h->find("current_standby") != h->end())
 		current_standby = h->at("current_standby")->as_boolean();
@@ -370,6 +378,10 @@ void _power_cycle(lk::invoke_t &cxt)
 	double capacity = 500000.;
 	if (h->find("capacity") != h->end())
 		capacity = h->at("capacity")->as_number();
+
+	double thermal_capacity = 1500000.;
+	if (h->find("thermal_capacity") != h->end())
+		thermal_capacity = h->at("thermal_capacity")->as_number();
 
 	double temp_threshold = 20.;
 	if (h->find("temp_threshold") != h->end())
@@ -409,8 +421,10 @@ void _power_cycle(lk::invoke_t &cxt)
 		downtime_threshold, 
 		hours_to_maintenance, 
 		power_output,
+		thermal_output,
 		current_standby, 
 		capacity, 
+		thermal_capacity,
 		temp_threshold, 
 		time_online, 
 		time_in_standby, 
@@ -551,6 +565,8 @@ void _power_cycle(lk::invoke_t &cxt)
 
 	std::unordered_map<std::string, std::vector<double> > dispatch;
 	dispatch["cycle_power"] = { 0,0,0,0,0,0,0,0,9,9,9,9,9,9,9,9,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,9,9,9,9,9,9,9,9,0,0,0,0,0,0,0,0 };
+	dispatch["thermal_power"] = { 0,0,0,0,0,0,0,0,9,9,9,9,9,9,9,9,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,9,9,9,9,9,9,9,9,0,0,0,0,0,0,0,0 };
 	dispatch["ambient_temperature"] = { 0,0,0,0,0,0,0,0,9,9,9,9,9,9,9,9,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,9,9,9,9,9,9,9,9,0,0,0,0,0,0,0,0 };

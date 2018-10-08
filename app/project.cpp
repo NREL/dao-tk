@@ -155,10 +155,12 @@ parameters::parameters()
     steplength.set(                         1.,                   "steplength",      false,                    "Simulation time period length",        "h",                  "Cycle|Parameters" );
     hours_to_maintenance.set(            5000.,         "hours_to_maintenance",      false,   "Runtime duration before next maintenance event",        "h",                  "Cycle|Parameters" );
     power_output.set(                       0.,                 "power_output",      false,                       "Initial power cycle output",        "W",                  "Cycle|Parameters" );
-    capacity.set(                      500000.,                     "capacity",      false,                             "Power cycle capacity",        "W",                  "Cycle|Parameters" );
-    temp_threshold.set(                    20.,               "temp_threshold",      false,     "Ambient temperature threshold for condensers",  "Celsius",                  "Cycle|Parameters" );
+	thermal_output.set(                     0.,               "thermal_output",      false,             "Initial thermal output sent to cycle",        "W",                  "Cycle|Parameters" );
+	capacity.set(                      500000.,                     "capacity",      false,                             "Power cycle capacity",        "W",                  "Cycle|Parameters" );
+	thermal_capacity.set(             1500000.,             "thermal_capacity",      false,               "Power cycle thermal input capacity",        "W",                  "Cycle|Parameters" );
+	temp_threshold.set(                    20.,               "temp_threshold",      false,     "Ambient temperature threshold for condensers",  "Celsius",                  "Cycle|Parameters" );
     time_online.set(                        0.,                  "time_online",      false,              "Initial power cycle output duration",        "h",                  "Cycle|Parameters" );
-    time_in_standby.set(                    0.,              "time_in_standby",      false,               "Initial power cycle time in stndby",        "h",                  "Cycle|Parameters" );
+    time_in_standby.set(                    0.,              "time_in_standby",      false,              "Initial power cycle time in standby",        "h",                  "Cycle|Parameters" );
     downtime.set(                           0.,                     "downtime",      false,                     "Initial power cycle downtime",        "h",                  "Cycle|Parameters" );
     shutdown_capacity.set(                 0.3,            "shutdown_capacity",      false,            "Threshold capacity to shut plant down",        "-",                  "Cycle|Parameters" );
     no_restart_capacity.set(               0.8,          "no_restart_capacity",      false,   "Threshold capacity for maintenance on shutdown",        "-",                  "Cycle|Parameters" );
@@ -281,7 +283,9 @@ parameters::parameters()
 	(*this)["steplength"] = &steplength;
 	(*this)["hours_to_maintenance"] = &hours_to_maintenance;
 	(*this)["power_output"] = &power_output;
+	(*this)["thermal_output"] = &thermal_output;
 	(*this)["capacity"] = &capacity;
+	(*this)["thermal_capacity"] = &thermal_capacity;
 	(*this)["temp_threshold"] = &temp_threshold;
 	(*this)["time_online"] = &time_online;
 	(*this)["time_in_standby"] = &time_in_standby;
@@ -1468,8 +1472,10 @@ bool Project::C()
 		m_parameters.downtime_threshold.as_number(),
 		m_parameters.hours_to_maintenance.as_number(),
 		m_parameters.power_output.as_number(),
+		m_parameters.thermal_output.as_number(),
 		m_parameters.current_standby.as_boolean(),
 		m_parameters.capacity.as_number(),
+		m_parameters.thermal_capacity.as_number(),
 		m_parameters.temp_threshold.as_number(),
 		m_parameters.time_online.as_number(),
 		m_parameters.time_in_standby.as_number(),
@@ -1488,12 +1494,14 @@ bool Project::C()
 	dispatch["standby"] = {};
 	dispatch["cycle_power"] = {};
 	dispatch["ambient_temperature"] = {};
+	dispatch["thermal_power"] = {};
 
 	for (int i = 0; i < m_parameters.sim_length.as_integer(); i++)
 	{
 		dispatch["cycle_power"].push_back(m_parameters.cycle_power.vec()->at(i).as_number());
 		dispatch["standby"].push_back(m_parameters.standby.vec()->at(i).as_number());
 		dispatch["ambient_temperature"].push_back(m_parameters.ambient_temperature.vec()->at(i).as_number());
+		dispatch["thermal_power"].push_back(m_parameters.thermal_power.vec()->at(i).as_number());
 	}
 	
 	pc.SetDispatch(dispatch);

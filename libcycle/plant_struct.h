@@ -9,11 +9,19 @@
 
 struct cycle_file_settings
 {
+	std::string ampl_dispatch_file;
+	std::string policy_filename; //scap,nrcap,seff,nreff,repidx
+	std::string rng_state_filename;
+	std::string plant_comp_info;
+	std::string sim_params_filename;
+	std::string day_idx_filename;
 	std::string component_in_state;
 	std::string component_out_state;
 	std::string plant_in_state;
 	std::string plant_out_state;
 	std::string ampl_param_file;
+	std::string failure_file;
+	std::string cap_eff_filename;
 	bool output_ampl_file;
 	int day_idx;
 	cycle_file_settings();
@@ -26,10 +34,12 @@ struct cycle_state
 	double maintenance_duration;
 	double downtime_threshold;
 	double hours_to_maintenance;
-	double power_output;
+	double power_output; //electrical power
+	double thermal_output;  //thermal power
 	bool is_online;
 	bool is_on_standby;
 	double capacity;
+	double thermal_capacity;
 	double temp_threshold;
 	double time_online;
 	double time_in_standby;

@@ -44,6 +44,9 @@ public:
     double getVariate();
 	std::unordered_map<int, std::vector< uint32_t > > m_stored_states;
 	std::unordered_map<int, int > m_stored_state_is;
+	void UpdateStoredState(int scenario, std::vector< uint32_t > new_state, int new_state_i);
+	void ReadRNGStateFile(std::string filename, int scenario);
+	void WriteRNGStateFile(std::string filename, int scenario);
 };
 
 

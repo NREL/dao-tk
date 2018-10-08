@@ -369,7 +369,9 @@ struct parameters : public lk::varhash_t
 	parameter steplength;
 	parameter hours_to_maintenance;
 	parameter power_output;
+	parameter thermal_output;
 	parameter capacity;
+	parameter thermal_capacity;
 	parameter temp_threshold;
 	parameter time_online;
 	parameter time_in_standby;
@@ -387,6 +389,7 @@ struct parameters : public lk::varhash_t
 	parameter condenser_eff_cold;
 	parameter condenser_eff_hot;
 	parameter cycle_power;
+	parameter thermal_power;
 	parameter ambient_temperature;
 	parameter standby;
 

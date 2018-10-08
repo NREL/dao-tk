@@ -26,6 +26,7 @@ class PowerCycle
 	
 	int m_num_condenser_trains = 0;
 	int m_fans_per_condenser_train = 0;
+	int m_radiators_per_condenser_train = 0;
 	double m_eff_loss_per_fan = 0.01;   //currently hard-coded as an assumption
 	double m_condenser_temp_threshold = 20.;
 	std::vector<double> m_condenser_efficiencies_cold;
@@ -75,7 +76,7 @@ class PowerCycle
 
 public:
 	PowerCycle::PowerCycle();
-	void Initialize(double age = 0.);
+	void Initialize(double age = 0., int scen_idx = 0);
 	cycle_state m_current_cycle_state;
 	cycle_state m_begin_cycle_state;
 	cycle_file_settings m_file_settings;
@@ -112,15 +113,27 @@ public:
 	void StoreCycleState();
 	void RecordFinalState();
 	void RevertToStartState(bool reset_rng);
-	void WriteStateToFiles(
-		bool current_state,
-		std::string component_filename, 
-		std::string plant_filename
-	);
-	void ReadStateFromFiles(
-		std::string component_filename, 
-		std::string plant_filename
-	);
+
+	void WriteStateToFiles(int extra_periods = 24);
+	void WritePlantLayoutFile();
+	void WriteComponentFile();
+	void WritePlantStateFile();
+	void WriteSimParamsFile();
+	void WriteFailuresFile();
+	void WriteAMPLParams(int extra_periods = 0);
+	void WriteCapEffFile();
+
+	void ReadStateFromFiles(bool init);
+	void ReadPlantLayoutFile();
+	void ReadComponentFile();
+	void ReadPlantFile();
+	void ReadSimParamsFile();
+	void ReadDayIDXFile();
+	void ReadPolicyFile();
+	void ReadFailuresFromFile();
+	void ReadDispatchFile();
+	void ReadCapEffFile();
+
 	std::vector< Component >& GetComponents();
 	std::vector< double > GetComponentLifetimes();
 	std::vector< double >  GetComponentDowntimes();
@@ -142,10 +155,18 @@ public:
 	double GetWarmStartPenalty();
 	double GetColdStartPenalty();
 	int GetSimLength();
+	double GetShutdownCapacity();
+	double GetNoRestartCapacity();
+	double GetShutdownEfficiency();
+	double GetNoRestartEfficiency();
+	int GetScenarioIndex();
+
 	void SetShutdownCapacity(double capacity);
 	void SetNoRestartCapacity(double capacity);
 	void SetShutdownEfficiency(double efficiency);
 	void SetNoRestartEfficiency(double efficiency);
+	void SetScenarioIndex(int idx);
+
 	std::unordered_map< std::string, failure_event > GetFailureEvents();
 	std::vector<std::string> GetFailureEventLabels();
 	void AddComponent(std::string name, 
@@ -190,8 +211,10 @@ public:
 		double downtime_threshold = 24.,
 		double hours_to_maintenance = 5000.,
 		double power_output = 0.,
+		double thermal_output = 0.,
 		bool current_standby = false,
-		double capacity = 500000.,
+		double capacity = 5.e5,
+		double thermal_capacity = 1.5e6,
 		double temp_threshold = 20.,
 		double time_online = 0.,
 		double time_in_standby = 0.,
@@ -201,6 +224,7 @@ public:
 		double shutdown_efficiency = 0.7,
 		double no_restart_efficiency = 0.9
 	);
+	void SetRampingThresholds();
 	void SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing = false);
 	int NumberOfAirstreamsOnline();
 	double GetCondenserEfficiency(double temp);
@@ -236,9 +260,10 @@ public:
 	void ReadInComponentFailures(int t);
 	void ReadInMaintenanceEvents(int t);
 	void RunDispatch();
-	void OperatePlant(double power_out, int t, 
+	void OperatePlant(double power_out, double thermal_out, int t, 
 		std::string start, std::string mode);
-	void SingleScen(bool reset_plant, bool read_state_from_file = false);
+	void SingleScen(bool reset_plant, bool read_state_from_file = false,
+		bool init = false);
 	void GetSummaryResults();
 	double GetLaborCosts(size_t start_fail_idx);
 	void StoreScenarioResults(std::vector <double> cycle_efficiencies,
@@ -246,7 +271,8 @@ public:
 	void Simulate(
 		bool read_state_from_file = false, 
 		bool read_state_from_memory = false,
-		bool run_only_previous_failures = false
+		bool run_only_previous_failures = false,
+		bool init = false
 	);
 	void ResetPlant();
 	void PrintComponentStatus();
@@ -254,7 +280,6 @@ public:
 	bool AnyFailuresOccurred();
 	double GetEstimatedMinimumLifetime(double frac_operational = 1.0);
 	double GetExpectedStartsToNextFailure();
-	void WriteAMPLParams();
 	void AgePlant(double age);
 };
 

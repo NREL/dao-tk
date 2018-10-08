@@ -12,8 +12,8 @@ class FailureType
 	std::string m_failure_mode;
 	Distribution *m_failure_dist;
 	double m_duration;
-	double m_probability;
-	double m_life_remaining;
+	//double m_probability;
+	//double m_life_remaining;
 
 public:
 	FailureType();
@@ -30,25 +30,11 @@ public:
 
 	Distribution *GetFailureDist();
 
-	double GetLifeRemaining();
+	double GenerateTimeToFailure(WELLFiveTwelve &gen);
 
-	void SetLifeRemaining(double life_remaining);
+	double GenerateFailureProbability(WELLFiveTwelve &gen);
 
-	void ReduceLifeRemaining(double life_reduction);
-
-	double GetFailureProbability();
-
-	void SetFailureProbability(double probability);
-
-	double GetLifeOrProb();
-
-	void SetLifeOrProb(double life_remaining);
-
-	void GenerateTimeToFailure(WELLFiveTwelve &gen);
-
-	void GenerateFailureProbability(WELLFiveTwelve &gen);
-
-	void GenerateFailureVariate(WELLFiveTwelve &gen);
+	double GenerateFailureVariate(WELLFiveTwelve &gen);
 
 };
 
