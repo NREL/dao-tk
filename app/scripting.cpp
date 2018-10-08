@@ -347,7 +347,7 @@ void _power_cycle(lk::invoke_t &cxt)
 
 	// Plant attributes
 
-	double maintenance_interval = 5000.;
+	double maintenance_interval = 1000000.;
 	if (h->find("maintenance_interval") != h->end())
 		maintenance_interval = h->at("maintenance_interval")->as_number();
 
@@ -359,7 +359,7 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("downtime_threshold") != h->end())
 		downtime_threshold = h->at("downtime_threshold")->as_number();
 
-	double hours_to_maintenance = 5000.;
+	double hours_to_maintenance = 1000000.;
 	if (h->find("hours_to_maintenance") != h->end())
 		hours_to_maintenance = h->at("hours_to_maintenance")->as_number();
 
