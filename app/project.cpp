@@ -2716,6 +2716,8 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean());
 	ssc_module_t mod_mspt = ssc_module_create("tcsmolten_salt");
 
+	std::vector<std::string> failure_label, failure_component;
+	std::vector<double>failure_time, failure_duration;
 
 	//==============================================
 
@@ -2780,6 +2782,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 		//-- Alternate between ssc and cycle availability solutions
 		int step_now = 0;
+		int pc_call = 0;
 		while (step_now < nsteps)
 		{
 			double hour_now = time_completed + step_now * steplength;
@@ -2892,7 +2895,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 			bool is_repair, is_failure;
 			int next_start_pt = -1;
 
-			if (step_now == 0 && (cycle_capacity[0] - capacity_last > 0.01 || cycle_efficiency[0] - efficiency_last > 0.01))  // Capacity/efficiency used in ssc at first step is too high... treat like a failure
+			if (pc_call == 0 && (cycle_capacity[0] - capacity_last > 0.01 || cycle_efficiency[0] - efficiency_last > 0.01))  // Capacity/efficiency used in ssc at first step is too high... treat like a failure
 			{
 				next_start_pt = 0;
 				is_failure = true;
@@ -2900,7 +2903,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 				cycle_capacity.assign(nsteps, capacity_last);
 				cycle_efficiency.assign(nsteps, efficiency_last);
 			}
-			else if (step_now == 0 && (cycle_capacity[0] - capacity_last < -0.01 || cycle_efficiency[0] - efficiency_last < -0.01))   // Capacity/efficiency used in ssc at first step is too low... treat like a repair
+			else if (pc_call == 0 && (cycle_capacity[0] - capacity_last < -0.01 || cycle_efficiency[0] - efficiency_last < -0.01))   // Capacity/efficiency used in ssc at first step is too low... treat like a repair
 			{
 				next_start_pt = 0;
 				is_failure = false;
@@ -2911,6 +2914,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 			else  // Run cycle availability model
 			{
 				int sc = 0; //scenario number
+				int prev_failure = pc.m_results.period_of_last_failure[sc];
 				int prev_repair = pc.m_results.period_of_last_repair[sc];
 
 				for (int i = step_now; i < nsteps; i++)
@@ -2937,32 +2941,88 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 				int next_repair = pc.m_results.period_of_last_repair[sc];
 				
 
-				if (next_repair > prev_repair) 
-					next_repair += 1;  // repairs are reported from cycle model in the time step before capacity/efficiency increase
+				//===============================================================
+				/*
+				std::ofstream ofs;
+				std::string filename = "C:/Users/jmartine/Desktop/debug/time" + std::to_string(time_completed) + "_step" + std::to_string(step_now) + "_call" + std::to_string(pc_call) + ".txt";
+				ofs.open(filename, std::ofstream::out);
+				ofs.clear();
+				ofs << "Previous repair, Next failure, Next repair\n";
+				ofs << prev_repair << ", " << next_failure << ", " << next_repair << "\n" << "\n";
+				ofs << "Failure events\n";
+				std::unordered_map< std::string, failure_event > current_failures = pc.GetFailureEvents();
+				for (auto it2 = current_failures.begin(); it2 != current_failures.end(); it2++)
+				{
+					ofs << "Name: " << it2->first << "\n";
+					ofs << "Time: " << it2->second.time << "\n";
+					ofs << "Component: " << it2->second.component << "\n";
+					ofs << "Duration: " << it2->second.duration << "\n";
+					ofs << "\n";
+				}
+				ofs << "Capacity used in dispatch, Efficiency used in dispatch, Cycle power, T, standby, Capacity, Efficiency\n";
+				for (int i = 0; i < nsteps; i++)
+				{
+					ofs << cycle_capacity_in[i] << ", "
+						<< cycle_efficiency_in[i] << ", "
+						<< pc_dispatch["cycle_power"][i] << ", "
+						<< pc_dispatch["ambient_temperature"][i] << ", "
+						<< pc_dispatch["standby"][i] << ", "
+						<< cycle_capacity[i] << ", "
+						<< cycle_efficiency[i] << "\n";
+				}
+				ofs.close();
+				//===============================================================
+				*/
 
-				if (next_failure <= step_now)
+				pc_call += 1;
+
+				if (next_failure <= prev_failure) // No new failures
 					next_failure = nsteps + 1000;
-				if (next_repair <= step_now)
+
+				if (next_repair <= prev_repair) // No new repairs
 					next_repair = nsteps + 1000;
+				else
+					next_repair +=1;  // repairs are reported from cycle model in the time step before capacity/efficiency increase
 
 				next_start_pt = std::min(nsteps, std::min(next_failure, next_repair));
 				is_repair = (next_repair == next_start_pt);
 				is_failure = (!is_repair && next_failure == next_start_pt);
+
+				if (is_failure)
+					n_failures += 1;
 
 
 				if (next_start_pt == nsteps)
 				{
 					capacity_last = cycle_capacity.back();
 					efficiency_last = cycle_efficiency.back();
-					n_failures += (int)pc.m_results.failure_event_labels[sc].size();
 					labor_cost += pc.m_results.labor_costs[0];
 				}
 
+				/*
 				if (next_repair == nsteps) // repair occurred at last time point in this horizon... call cycle model again to store state and manually increase capacity/efficiency for beginning of next horizon
 				{
 					pc.Simulate(false, use_stored_state);
 					capacity_last = 1.0;
 					efficiency_last = 1.0;
+				}
+				*/
+
+				// Save failure events
+				if (next_start_pt < nsteps)
+				{ 
+					std::unordered_map< std::string, failure_event > failures = pc.GetFailureEvents();
+					std::unordered_map< std::string, failure_event >::iterator itf;
+					for (itf = failures.begin(); itf != failures.end(); itf++)
+					{
+						if (itf->second.time > step_now && itf->second.time <= next_start_pt)
+						{
+							failure_label.push_back(itf->first);
+							failure_component.push_back(itf->second.component);
+							failure_duration.push_back(itf->second.duration);
+							failure_time.push_back(itf->second.time + time_completed);
+						}
+					}
 				}
 
 			}
@@ -2981,7 +3041,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 			//--- Write current solution to file
 			/*
 			std::ofstream ofs;
-			std::string filename = "C:/Users/jmartine/Desktop/cycle_ssc_results/time" + std::to_string(time_completed) + "_step" + std::to_string(step_now) + ".txt";
+			std::string filename = "C:/Users/jmartine/Desktop/cycle_ssc_results/weekly_data/time" + std::to_string(time_completed) + "_step" + std::to_string(step_now) + ".txt";
 			ofs.open(filename, std::ofstream::out);
 			ofs.clear();
 			ofs << "PC target (MWt), PC energy (MWt), TES (MWht), Receiver (MWt), Cycle gross output (MWe), Capacity, Efficiency\n";
@@ -2997,7 +3057,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 			}
 			ofs.close();
 			*/
-			
 
 			
 
@@ -3166,6 +3225,18 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 		time_completed += current_horizon;
 	}
+
+	// Write failure events to file
+	std::string filename = "C:/Users/jmartine/Desktop/cycle_ssc_results/failure_events.txt";
+	std::ofstream ofs;
+	ofs.open(filename, std::ofstream::out);
+	ofs.clear();
+	ofs << "Time, Name, Component, Duration\n";
+	for (size_t i = 0; i<failure_label.size(); i++)
+		ofs << failure_time[i] << ", " << failure_label[i] << ", " << failure_component[i] << ", " << failure_duration[i] << "\n";
+
+
+
 
 	ssc_module_free(mod_mspt);
 
