@@ -77,10 +77,10 @@ Power cycle parameters are all scalars, so no sets are included in the table tha
 
 | Parameter | Data Type | Description (Units) | Default Value (if any) |
 | --- | --- | --- | --- | 
-| maintenance_interval	|	Floating point number	|	Operation time before maintenance (h)	| 5,000 | 
+| maintenance_interval	|	Floating point number	|	Operation time before maintenance (h)	| 1e6 | 
 | maintenance_duration	|	Floating point number	|	Maintenance event duration (h)	| 168 |
 | downtime_threshold	|	Floating point number	|	Length of downtime required to qualify as a cold start (h)	| 24 |
-| hours_to_maintenance | Floating point number | Operation duration before the next maintenance event (h) | 5,000 | 
+| hours_to_maintenance | Floating point number | Operation duration before the next maintenance event (h) | 1e6 | 
 | is_online | Boolean | true if plant is currently online, false otherwise | false |
 | is_on_standby | Boolean | true if plant is currently on standby, false otherwise | false |
 | power_output | Floating point number | Plant power cycle output at start of simulation (W) | 0 |

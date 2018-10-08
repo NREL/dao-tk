@@ -988,7 +988,7 @@ void PowerCycle::ReadFailuresFromFile()
 	}
 }
 
-void PowerCycle::ReadDispatchFile()
+void PowerCycle::ReadDispatchFile(int max_rows)
 {
 	std::unordered_map<std::string, std::vector <double> > data = {};
 	data["standby"] = {};
@@ -1007,9 +1007,11 @@ void PowerCycle::ReadDispatchFile()
 	std::string dline;
 	std::vector<std::string> split_line = {};
 	std::string token;
+	int cindex = 0;
 	getline(dfile, dline);
-	while (!dfile.eof())
+	while (cindex <= max_rows && !dfile.eof())
 	{
+		cindex++;
 		pos = 0;
 		getline(dfile, dline);
 		while (pos != std::string::npos) {
@@ -1330,6 +1332,12 @@ double PowerCycle::GetNoRestartEfficiency()
 int PowerCycle::GetScenarioIndex()
 {
 	return m_current_scenario;
+}
+
+std::unordered_map<std::string, std::vector<double>> PowerCycle::GetDispatch()
+{
+	/* accessor to dispatch data. */
+	return m_dispatch;
 }
 
 void PowerCycle::SetShutdownCapacity(double capacity) 
@@ -2026,7 +2034,7 @@ void PowerCycle::PlantMaintenanceShutdown(int t, bool reset_time, bool record,
     failure_file - output file to record failure
     t -- period index
 	reset_time -- true if the maintenance clock should be reset, false o.w.
-    record -- true if outputting failure event to file, false o.w.
+    record -- true if outputting failure event to failure dictionary, false o.w.
     duration -- length of outage; this is only used when reset_time==false
 	*/
 	std::string label;
@@ -2049,7 +2057,7 @@ void PowerCycle::PlantMaintenanceShutdown(int t, bool reset_time, bool record,
 		m_failure_events[
 			"S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + label
 		] = failure_event(t, label, -1, duration, 0., 0., m_current_scenario);
-			m_failure_event_labels.push_back(std::to_string(t) + label);
+			m_failure_event_labels.push_back("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + label);
 	}
 
 	if (reset_time)
@@ -2225,13 +2233,13 @@ void PowerCycle::ReadInComponentFailures(int t)
 			if (m_failure_events.find(
 				"S" + std::to_string(m_current_scenario) + "T" + 
 				std::to_string(t) + m_components.at(j).GetName() + 
-				std::to_string(k)) != m_failure_events.end()
+				"F" + std::to_string(k)) != m_failure_events.end()
 				)
 			{
 				std::string label = (
 					"S" + std::to_string(m_current_scenario) + 
 					"T" + std::to_string(t) + m_components.at(j).GetName() + 
-					std::to_string(k)
+					"F" + std::to_string(k)
 					);
 				m_components.at(j).ReadFailure(
 					m_failure_events[label].duration,
@@ -2310,8 +2318,8 @@ void PowerCycle::RunDispatch()
 		if (t <= m_results.period_of_last_repair[m_current_scenario] ||
 			t <= m_results.period_of_last_failure[m_current_scenario])
 		{
+			ReadInComponentFailures(t);	
 			ReadInMaintenanceEvents(t);
-			ReadInComponentFailures(t);
 		}
 		
 		// If cycle Capacity is zero or there is no power output, advance downtime.  
@@ -2437,7 +2445,6 @@ void PowerCycle::RunDispatch()
 	{
 		m_results.period_of_last_failure[m_current_scenario] = m_sim_params.sim_length;
 		m_results.period_of_last_repair[m_current_scenario] = m_sim_params.sim_length;
-
 	}
 	StoreScenarioResults(cycle_efficiencies, cycle_capacities);
 }

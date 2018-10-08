@@ -149,11 +149,11 @@ parameters::parameters()
     startup_frac.set(                      0.5,                 "startup_frac",      false,                       "Power block startup energy",  "MWh/MWh",             "Simulation|Parameters" );
     v_wind_max.set(                        15.,                   "v_wind_max",      false,                    "Max operational wind velocity",      "m/s",             "Simulation|Parameters" );
     flux_max.set(                        1000.,                     "flux_max",      false,                            "Maximum receiver flux",    "kW/m2",             "Simulation|Parameters" );
-    maintenance_interval.set(            5000.,         "maintenance_interval",      false,      "Runtime duration between maintenance events",        "h",                  "Cycle|Parameters" );
+    maintenance_interval.set(             1.e6,         "maintenance_interval",      false,      "Runtime duration between maintenance events",        "h",                  "Cycle|Parameters" );
     maintenance_duration.set(             168.,         "maintenance_duration",      false,                   "Duration of maintenance events",        "h",                  "Cycle|Parameters" );
     downtime_threshold.set(                 24,           "downtime_threshold",      false,                "Downtime threshold for warm start",        "h",                  "Cycle|Parameters" );
     steplength.set(                         1.,                   "steplength",      false,                    "Simulation time period length",        "h",                  "Cycle|Parameters" );
-    hours_to_maintenance.set(            5000.,         "hours_to_maintenance",      false,   "Runtime duration before next maintenance event",        "h",                  "Cycle|Parameters" );
+    hours_to_maintenance.set(             1.e6,         "hours_to_maintenance",      false,   "Runtime duration before next maintenance event",        "h",                  "Cycle|Parameters" );
     power_output.set(                       0.,                 "power_output",      false,                       "Initial power cycle output",        "W",                  "Cycle|Parameters" );
 	thermal_output.set(                     0.,               "thermal_output",      false,             "Initial thermal output sent to cycle",        "W",                  "Cycle|Parameters" );
 	capacity.set(                      500000.,                     "capacity",      false,                             "Power cycle capacity",        "W",                  "Cycle|Parameters" );
