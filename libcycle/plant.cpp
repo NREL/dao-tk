@@ -517,7 +517,7 @@ void PowerCycle::WriteAMPLParams(int extra_periods)
 	std::string filename = (
 		m_file_settings.ampl_param_file
 		//+ m_file_settings.day_idx 
-		+ ".dat"
+		//+ ".dat"
 		);
 	if (m_current_scenario > 0)
 	{
