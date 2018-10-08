@@ -2561,10 +2561,26 @@ void Project::initialize_cycle_model(PowerCycle &pc)
 	pc.Initialize(0.0);
 	
 	double capacity = m_variables.P_ref.as_number() * 1.e6;
+	double thermal_capacity = capacity / m_variables.design_eff.as_number() * 1.e6;
 	
-	pc.SetPlantAttributes(m_parameters.maintenance_interval.as_number(), m_parameters.maintenance_duration.as_number(), m_parameters.downtime_threshold.as_number(),
-		m_parameters.hours_to_maintenance.as_number(), 0.0, 0, capacity, m_parameters.temp_threshold.as_number(),
-		0.0, 0.0, 0.0, m_parameters.shutdown_capacity.as_number(), m_parameters.no_restart_capacity.as_number());
+	pc.SetPlantAttributes(m_parameters.maintenance_interval.as_number(), 
+						  m_parameters.maintenance_duration.as_number(), 
+						  m_parameters.downtime_threshold.as_number(),
+						  m_parameters.hours_to_maintenance.as_number(), 
+						  0.0, 
+						  0.0, 
+						  0, 
+						  capacity, 
+						  thermal_capacity, 
+						  m_parameters.temp_threshold.as_number(),
+						  0.0, 
+						  0.0, 
+						  0.0, 
+						  m_parameters.shutdown_capacity.as_number(),
+						  m_parameters.no_restart_capacity.as_number(),
+						  m_parameters.shutdown_efficiency.as_number(), 
+						  m_parameters.no_restart_efficiency.as_number());
+
 
 	pc.StoreCycleState();
 
@@ -2667,7 +2683,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 	//--- Initialize results
 	unordered_map < std::string, std::vector<double>> current_soln, pc_dispatch, current_targets;
-	std::vector<std::string> pc_keys = { "cycle_power", "ambient_temperature", "standby" };
+	std::vector<std::string> pc_keys = { "cycle_power", "thermal_power", "ambient_temperature", "standby" };
 	std::vector<std::string> ssc_keys = { "gen", "P_cycle", "P_out_net", "e_ch_tes", "T_tes_hot", "T_tes_cold", "Q_thermal", "q_pb", "q_dot_pc_startup", "beam", "tdry", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected"};
 	std::vector<std::string> disp_target_keys = {"Q_thermal", "e_ch_tes", "q_dot_pc_target", "q_dot_pc_max", "is_rec_su_allowed", "is_pc_su_allowed", "is_pc_sb_allowed" };
 
@@ -2903,6 +2919,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 					if (cycle_capacity[i] < 0.999)  // limit dispatch input to cycle model to avoid mismatch between power output in simulated / read-only periods
 						pc_dispatch["cycle_power"][i] = fmin(pc_dispatch["cycle_power"][i], m_variables.P_ref.as_number() * cycle_capacity[i] * 1.e6);
 					
+					pc_dispatch["thermal_power"][i] = current_soln["q_pb"][i]*1.e6;			// cycle thermal power input [W]
 					pc_dispatch["ambient_temperature"][i] = current_soln["tdry"][i];
 					pc_dispatch["standby"][i] = 0;
 					if (current_soln["P_cycle"][i] < 1.e-6 && current_soln["q_pb"][i] > 0.0 && current_soln["q_dot_pc_startup"][i] < current_soln["q_pb"][i])  // Thermal energy going to power block, but no electrical output
