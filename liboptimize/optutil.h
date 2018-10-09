@@ -85,6 +85,26 @@ public:
         return (int)( std::max_element(this->begin(), this->end()) - this->begin() );
     };
 
+    Vector<T> Subset(Vector<int> &indices)
+    {
+        Vector<T> result;
+        for(size_t i=0; i<indices.size(); i++)
+        {
+            int ind_i = indices(i);
+            assert( ind_i > -1 && ind_i < this->size() );
+
+            result.push_back(operator()(ind_i));
+        }
+        return result;
+    };
+
+    Vector<T>& Set(const Eigen::Matrix<T, Eigen::Dynamic, 1> &other)
+    {
+        for(int i=0; i< (int)other.rows(); i++)
+            std::vector<T>::push_back( other(i) );
+        return *this;
+    };
+
     T& operator()(int index){return this->at(index);};
 
     T operator()(int index) const {return this->at(index);};
@@ -102,7 +122,7 @@ public:
         //Eigen::Matrix<T, Eigen::Dynamic, 1> res(this->size());
         clear();
         for(size_t i=0; i<other.size(); i++)
-            push_back( other(i) );
+            std::vector<T>::push_back( other(i) );
 
         return *this;
     };
@@ -116,7 +136,7 @@ public:
 
     Vector<T>& operator*(double scale)
     {
-        for(int i=0; i<this->size(); i++)
+        for(int i=0; i<(int)this->size(); i++)
             this->at(i)*= scale;
         return *this;
     };
@@ -141,7 +161,7 @@ public:
     {
         if( this->size() != rhs.size() )
             std::runtime_error("Vector subtraction size mismatch");
-        for(int i=0; i<rhs.size(); i++)
+        for(int i=0; i<(int)rhs.size(); i++)
             this->operator()(i) -= rhs(i);
         return *this;
     };
@@ -156,7 +176,7 @@ public:
         //dot product
         int n = (int)rhs.size();
         
-        if( this->size() != n )
+        if( (int)this->size() != n )
             std::runtime_error("Dimension mismatch in vector-vector dot product");
 
         T result=(T)0;
@@ -190,17 +210,17 @@ public:
     Matrix() {};
     Matrix(int nrow, int ncol)
     {
-        resize(nrow, Vector<T>(ncol));
+        std::vector< Vector<T> >::resize(nrow, Vector<T>(ncol));
     };
 
     Matrix(int nrow, int ncol, const T& init)
     {
-        resize(nrow, Vector<T>(ncol, init));
+        std::vector< Vector<T> >::resize(nrow, Vector<T>(ncol, init));
     };
 
     Matrix(int nrow, const Vector<T>& init)
     {
-        resize(nrow, init);
+        std::vector< Vector<T> >::resize(nrow, init);
     };
 
     Matrix(const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &other)
@@ -243,6 +263,19 @@ public:
     //    return;
     //}
 
+    Matrix<T> Subset(Vector<int> &indices)
+    {
+        Matrix<T> result;
+        for(size_t i=0; i<indices.size(); i++)
+        {
+            int ind_i = indices(i);
+            assert( ind_i > -1 && ind_i < rows() );
+
+            result.push_back(this->row(ind_i));
+        }
+        return result;
+    };
+
     T& operator() (int row, int col)
     {
         /* 
@@ -269,22 +302,22 @@ public:
 
     void resize(int nrow, int ncol)
     {
-        this->std::vector< Vector<T> >::resize(nrow, ncol);
+        std::vector< Vector<T> >::resize(nrow, ncol);
     };
 
     void resize(int nrow, int ncol, T& init)
     {
-        this->std::vector< Vector<T> >::resize(nrow, Vector<T>(ncol, init));
+        std::vector< Vector<T> >::resize(nrow, Vector<T>(ncol, init));
     };
 
     void resize(int nrow, Vector<T>& init)
     {
-        this->std::vector< Vector<T> >::resize(nrow, init);
+        std::vector< Vector<T> >::resize(nrow, init);
     };
 
     void resize(int nrow, Vector<T> init)
     {
-        this->std::vector< Vector<T> >::resize(nrow, init);
+        std::vector< Vector<T> >::resize(nrow, init);
     };
 
     Vector<T> row(int index)
@@ -370,8 +403,8 @@ public:
     Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> AsEigenMatrixType()
     {
         Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> res(rows(), cols());
-        for(size_t i=0; i<rows(); i++)
-            for(size_t j=0; j<cols(); j++)
+        for(int i=0; i<rows(); i++)
+            for(int j=0; j<cols(); j++)
                 res(i,j) = this->at(i).at(j);
         
         return res;
@@ -383,7 +416,8 @@ public:
             this->at(i) *= scale;
     };
 
-    Matrix<T> dot( Vector<T> rhs )
+    template <typename U>
+    Vector<T> dot( Vector<U> rhs )
     {
         //dot product
         int n = rhs.size();
@@ -508,7 +542,7 @@ static int argmin( Vector<T> & v, bool ignore_nan=false)
     */
     int i_fmin=-1;
     double fmin=9e39;
-    for( int i=0; i<v.size(); i++ )
+    for( int i=0; i<(int)v.size(); i++ )
     {
         if( ignore_nan )
             if( v(i) != v(i) )
@@ -551,7 +585,7 @@ static Vector<double> nanfilter(const Vector<double> &v, Vector<int> *not_nan_in
         // not_nan_indices->resize(v.size());  //oversize for now
 
     
-    for(int i=0; i<v.size(); i++)
+    for(int i=0; i<(int)v.size(); i++)
     {
         if( v(i) != v(i) )
             continue;
@@ -609,7 +643,7 @@ static void assign_where(Vector<T> &dest, const Vector<T> &compare, bool (*ftest
     */
 
     int m= (int)dest.size();
-    if( compare.size() != m )
+    if( (int)compare.size() != m )
         std::runtime_error("Attempting to compare to vectors of unequal length.");
     
     for(int i=0; i<m; i++)
@@ -627,7 +661,7 @@ static Vector<int> filter_where(Vector<T> &source, T compare, bool (*ftest)(T it
     include the corresponding value index from 'compare' in the result vector.
     */
     Vector<int> res;
-    for(int i=0; i<source.size(); i++)
+    for(int i=0; i<(int)source.size(); i++)
         if( ftest(source(i), compare) )
             res.push_back(i);
 
@@ -652,7 +686,6 @@ static Vector<T> where(Vector<T> &A, Vector<T> &B, bool (*ftest)(T& aval, T& bva
 
     return res;    
 };
-
 
 
 #endif

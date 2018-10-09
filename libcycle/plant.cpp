@@ -88,7 +88,7 @@ void PowerCycle::SetCondenserEfficienciesCold(std::vector<double> eff_cold)
 	{
 		throw std::runtime_error("condenser trains not created correctly");
 	}
-	if (eff_cold.size() != num_streams + 1)
+	if ((int)eff_cold.size() != num_streams + 1)
 		throw std::runtime_error("efficiencies must be equal to one plus number of streams"); 
 	m_condenser_efficiencies_cold = eff_cold;
 }
@@ -105,7 +105,7 @@ void PowerCycle::SetCondenserEfficienciesHot(std::vector<double> eff_hot)
 		if (m_components.at(i).GetType() == "Condenser train")
 			num_streams++;
 	}
-	if (eff_hot.size() != num_streams+1)
+	if ((int)eff_hot.size() != num_streams+1)
 		throw std::runtime_error("efficiencies must be equal to one plus number of streams");
 	m_condenser_efficiencies_hot = eff_hot;
 }
@@ -536,8 +536,8 @@ void PowerCycle::GeneratePlantComponents(
 	i.e., assumes that the plant specification in the arguments is complete.
 	*/
 	m_components.clear();
-	if (condenser_eff_cold.size() != (num_condenser_trains+1) ||
-		condenser_eff_hot.size() != (num_condenser_trains+1))
+	if ((int)condenser_eff_cold.size() != (num_condenser_trains+1) ||
+		(int)condenser_eff_hot.size() != (num_condenser_trains+1))
 	{
 		throw std::runtime_error("condenser efficiencies do not reconcile with number of trains.");
 	}
@@ -650,7 +650,7 @@ double PowerCycle::GetCondenserEfficiency(double temp)
 		if (m_components.at(i).IsOperational())
 		{
 			num_streams++;
-			for (size_t j = 1; j <= m_fans_per_condenser_train; j++)
+			for (size_t j = 1; j <= (size_t)m_fans_per_condenser_train; j++)
 			{
 				if (!m_components.at(i+j).IsOperational())
 				{
@@ -1018,19 +1018,23 @@ std::string PowerCycle::GetOperatingMode(int t)
 	if (power_out > m_eps)
 	{
 		if (IsOnline())
+        {
 			if (m_time_online <= 1.0 - m_eps)
 				return "OF"; //in the first hour of power cycle operation
 			else
 				return "OO"; //ongoing (>1 hour) power cycle operation
 			return "OS";  //starting power cycle operation
+        }
 	}
 	else if (standby >= 0.5)
 	{
 		if (IsOnStandby())
+        {
 			if (m_time_in_standby <= 1.0 - m_eps)
 				return "SF"; //in first hour of standby
 			else
 				return "SO"; // ongoing standby (>1 hour)
+        }
 		return "SS";  // if not currently on standby, then starting standby
 	}
 	return "OFF";

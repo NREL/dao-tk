@@ -144,13 +144,17 @@ public:
 
 			int len = 1;
 			if (v->type() == lk::vardata_t::VECTOR) 
+            {
 				if( v->vec()->empty() )
 					len = 0;
 				else
+                {
 					if(v->vec()->front().type() == lk::vardata_t::VECTOR)
 						len = v->vec()->front().vec()->size();
 					else
 						len = v->vec()->size();
+                }
+            }
 
 			if (len > max0) max0 = len;
 		}
@@ -394,7 +398,7 @@ void DataView::SetSelections(const wxArrayString &sel, const wxArrayString &labe
 		if(  m_names[i].IsEmpty() )
 			continue;
 		
-		lk::vardata_t *v = m_vt->at(m_names[i]);
+		// lk::vardata_t *v = m_vt->at(m_names[i]);
 		
 		wxArrayString parsename = wxSplit(labels[i], wxChar('@'));
 
@@ -527,7 +531,7 @@ void DataView::UpdateView()
 		padto += 2;
 
 
-		for( int ni=0; ni<varnames.size(); ni++)
+		for( int ni=0; ni<(int)varnames.size(); ni++)
 		{
 			lk_string name = varnames.at(ni);
 
@@ -541,8 +545,8 @@ void DataView::UpdateView()
 
 				wxString label = wxString::Format( "%s@%" + wxString::Format("-%ds",padto) , dv->group, dv->nice_name );
 
-				if( label.Find("Par") != wxNOT_FOUND)
-					double xadsf = 0.;
+				// if( label.Find("Par") != wxNOT_FOUND)
+				// 	double xadsf = 0.;
 
 				m_names.Add( name );
 				// for (int j=0;j< padto-(int)label.length();j++)
@@ -553,13 +557,17 @@ void DataView::UpdateView()
 				else if (dv->type() == lk::vardata_t::STRING)
 					label += "string " + wxString(v->as_string().c_str());
 				else if (dv->type() == lk::vardata_t::VECTOR)
+                {
 					if( v->vec()->empty() )
 						label += wxString::Format( "array [%d]", (int)v->vec()->size() );
 					else
+                    {
 						if( v->vec()->front().type() == lk::vardata_t::VECTOR)
 							label += wxString::Format("matrix [%d,%d]", (int)v->vec()->size(), (int)v->vec()->front().vec()->size() );
 						else
 							label += wxString::Format( "array [%d]", (int)v->vec()->size() );
+                    }
+                }
    				labels.Add( label );
 			}
 

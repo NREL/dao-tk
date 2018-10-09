@@ -61,7 +61,7 @@ bool optimization::run_integer_optimization()
     if( m_settings.X.front().size() == 0 )
         std::runtime_error("Malformed data in optimization routine. Dimensionality of X is invalid.");
     nx = (int)m_settings.X.size();
-    if( m_settings.upper_bounds.size() != n || m_settings.lower_bounds.size() != n )
+    if( (int)m_settings.upper_bounds.size() != n || (int)m_settings.lower_bounds.size() != n )
         std::runtime_error("Dimensionality mismatch in optimization routine input data.");
 
     //transfer input data into eigen containers
@@ -86,7 +86,7 @@ bool optimization::run_integer_optimization()
             std::runtime_error("Optimization input data outside of specified upper or lower bound range.");
 
     
-    Matrix<int> grid;
+    Matrix<double> grid;
     int m=1;
     for(int i=0; i<n; i++)
         m *= (UB(i)+1-LB(i));
@@ -140,7 +140,7 @@ bool optimization::run_integer_optimization()
         }
 
         int row_in_grid = (int)( std::find(indices_lookup.begin(), indices_lookup.end(), xstr.str() ) - indices_lookup.begin() );
-        if( row_in_grid > indices_lookup.size() )
+        if( row_in_grid > (int)indices_lookup.size() )
             std::runtime_error("One of the initial points was not in the grid.");
 
         F(row_in_grid) = m_settings.f_objective(x);
@@ -287,12 +287,13 @@ bool optimization::run_integer_optimization()
                 Collect the points that are better
                 */
                 Matrix<double> points_better_than_obj_ub_gridvals( (int)points_better_than_obj_ub.size(), n+1);
-                for(int i=0; i<points_better_than_obj_ub.size(); i++)
+                for(int i=0; i<(int)points_better_than_obj_ub.size(); i++)
                     for(int j=0; j<n+1; j++)
                         points_better_than_obj_ub_gridvals(i,j) = grid(points_better_than_obj_ub.at(i),j);
-                Eigen::MatrixXd points_better_than_obj_ub_dp = c_mat.dot( points_better_than_obj_ub_gridvals.transpose() ).AsEigenMatrixType();
+                Matrix<double> points_better_than_obj_ub_dp = c_mat.dot( points_better_than_obj_ub_gridvals.transpose() );
                 
                 Vector<int> points_to_possibly_update;
+                // Matrix<double> points_to_possibly_update_gridvals;
                 
                 for(int i=0; i<points_better_than_obj_ub_dp.cols(); i++)
                 {
@@ -301,33 +302,37 @@ bool optimization::run_integer_optimization()
                         if( points_better_than_obj_ub_dp(j,i) >= -1.e-9 )
                             ok_ct++;
                     if(ok_ct == n)
+                    {
                         points_to_possibly_update.push_back(points_better_than_obj_ub.at(i));
+                        // points_to_possibly_update_gridvals.push_back(grid.at(points_better_than_obj_ub.at(i)));;
+                    }
                 }
-            //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 // Find the hyperplane through grid[comb] (via np.linalg.solve) and the value of hyperplane at grid[points_to_possibly_update] (via np.dot) 
                 // vals = np.dot(grid[points_to_possibly_update], np.linalg.solve(grid[comb], F[comb]))
                 Vector<double> F_comb(n+1);
                 for (int i = 0; i < n + 1; i++)
                     F_comb(i) = F(comb(i));
 
-                Eigen::MatrixXd hyperplane = grid_comb.AsEigenMatrixType().bdcSvd().solve(F_comb.AsEigenVectorType().transpose());
-                Matrix<double> vals = points_better_than_obj_ub_gridvals.dot(hyperplane);
+                Vector<double> hyperplane;
+                hyperplane.Set( grid_comb.AsEigenMatrixType().householderQr().solve(F_comb.AsEigenVectorType()) );
+                Vector<double> vals = grid.Subset(points_to_possibly_update).dot(hyperplane);
+            //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
                 // Update lower bound eta at these points 
                 // flag = eta[points_to_possibly_update] < vals
                 // std::vector<bool> points_to_update;
-                for(int i=0; i<vals.rows(); i++)
+                for(int i=0; i<(int)vals.size(); i++)
                 {
-                    if(eta(points_to_possibly_update(i)) < vals(i, 0))
-                    {
-                        int point_to_update = points_to_possibly_update(i);
+                    int point_to_update = points_to_possibly_update(i);
                         
+                    if(eta(point_to_update) < vals(i))
+                    {
                         // eta([points_to_possibly_update[flag]]) = vals[flag]
-                        eta(point_to_update) = vals(point_to_update,0);
+                        eta(point_to_update) = vals(i);
 
                         // Update the set generating this lower bound
                         // eta_gen[points_to_possibly_update[flag]] = comb
-                        for(int j=0; j<comb.size(); j++)
+                        for(int j=0; j<(int)comb.size(); j++)
                             eta_gen(point_to_update,j) = comb(j);
                     }
                 }
@@ -368,7 +373,7 @@ bool optimization::run_integer_optimization()
                 {
                     // new_ind = points_within_delta_of_xstar[np.argmin(eta[points_within_delta_of_xstar])]
                     double eta_min_iter = 9.e36;
-                    for(int i=0; i<points_within_delta_of_xstar.size(); i++)
+                    for(int i=0; i<(int)points_within_delta_of_xstar.size(); i++)
                     {
                         int point_i = points_within_delta_of_xstar.at(i);
                         if( eta(point_i) < eta_min_iter )
@@ -426,7 +431,7 @@ bool optimization::run_integer_optimization()
         eta_gen(new_ind) = new_ind;
 
         // Store information about the iteration (do not store if m_settings.trust and no evaluation)
-        if ( m_settings.trust && eval_performed_flag || !m_settings.trust )
+        if ( ( m_settings.trust && eval_performed_flag ) || !m_settings.trust )
         {
             // if( eta_i.empty() )
             // if not len(eta_i):
@@ -450,12 +455,12 @@ bool optimization::run_integer_optimization()
 
         // print(obj_ub - np.min(eta), count+1, sum(eta<obj_ub),sum(~np.isnan(F)), grid[new_ind, 1:]);sys.stdout.flush()
         int sum_eta_lt_obj_ub=0;
-        for(int i=0; i<eta.size(); i++)
+        for(int i=0; i<(int)eta.size(); i++)
             if( eta(i) < obj_ub )
                 sum_eta_lt_obj_ub ++;
         int sum_F_defined=0;
-        for(int i=0; i<F.size(); i++)
-            if(! isnan(F(i)) )
+        for(int i=0; i<(int)F.size(); i++)
+            if(! std::isnan(F(i)) )
                 sum_F_defined++;
 
         std::cout << obj_ub - eta.minCoeff() << "\t" 
@@ -468,15 +473,15 @@ bool optimization::run_integer_optimization()
         // if (m_settings.convex_flag and obj_ub - np.min(eta) <= optimality_gap) or (not m_settings.convex_flag and not any(np.isnan(F))) or (not m_settings.convex_flag and not(any(points_within_delta_of_xstar)) and delta >= max_delta):
         if
         ( 
-            m_settings.convex_flag && (obj_ub - eta.minCoeff() <= optimality_gap ) ||
-            !m_settings.convex_flag && !(sum_F_defined > 0) ||
-            !m_settings.convex_flag && points_within_delta_of_xstar.size() > 0 && delta >= m_settings.max_delta
+            ( m_settings.convex_flag && (obj_ub - eta.minCoeff() <= optimality_gap ) ) ||
+            ( !m_settings.convex_flag && !(sum_F_defined > 0) ) ||
+            ( ( !m_settings.convex_flag && (int)points_within_delta_of_xstar.size() > 0 ) && ( delta >= m_settings.max_delta ) )
         )
         {
             // F[new_ind] = Fnew
             F(new_ind) = Fnew;
             // print(grid[np.nanargmin(F),1:],sum(~np.isnan(F)),m_settings.trust,func)
-            Vector<int> x_at_fmin = grid.at( argmin(F, true) );
+            Vector<double> x_at_fmin = grid.at( argmin(F, true) );
             std::vector<double> x_best;
 
             for(int i=0; i<n; i++)
