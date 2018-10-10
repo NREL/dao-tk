@@ -643,10 +643,6 @@ class Project
 										plant_state &final_state, std::unordered_map<std::string, std::vector<double>> &soln,
 										std::vector<double> &capacity, std::vector<double> &efficiency, int &n_failures, double &labor_cost);
 
-	bool integrate_cycle_and_clusters(const std::unordered_map<std::string, std::vector<double>> &cluster_soln,
-									 std::unordered_map<std::string, std::vector<double>> &soln,
-									 std::vector<double> &capacity, std::vector<double> &efficiency, int &n_failures, double &labor_cost);
-	
 	void save_cycle_outputs(std::vector<double>&capacity, std::vector<double>&efficiency, double n_failures, double labor_cost);
 	double estimate_capacity_factor(double sm, double tes);
 	

@@ -2140,12 +2140,10 @@ bool Project::simulate_clusters()
 
 	unordered_map < std::string, std::vector<double>> collect_ssc_data, full_ssc_data;
 	for (size_t i = 0; i < ssc_keys.size(); i++)
+	{
 		collect_ssc_data[ssc_keys[i]].assign(nrec, nan);
-
-	for (size_t i = 0; i < ssc_keys_short.size(); i++)
-		full_ssc_data[ssc_keys_short[i]].assign(nrec, nan);
-
-
+		full_ssc_data[ssc_keys[i]].assign(nrec, nan);
+	}
 
 
 	//--- Set up clusters unless already defined
@@ -2343,33 +2341,116 @@ bool Project::simulate_clusters()
 
 	ssc_module_free(mod_mspt);
 
-
-	//--- Integrate ssc solution with cycle availability model?
 	bool ok;
-	if (m_parameters.is_cycle_ssc_integration.as_boolean())
-	{
-		std::unordered_map<std::string, std::vector<double>> new_soln;
-		std::vector<double> new_capacity, new_efficiency, full_capacity, full_efficiency;
-		int n_failures;
-		double labor_cost;
-
-		ok = integrate_cycle_and_clusters(collect_ssc_data, new_soln, new_capacity, new_efficiency, n_failures, labor_cost);
-		
-		if (!ok)
-			return false;
-
-		csim.compute_annual_array_from_clusters(new_capacity, full_capacity);
-		csim.compute_annual_array_from_clusters(new_efficiency, full_efficiency);
-		save_cycle_outputs(full_capacity, full_efficiency, n_failures, labor_cost);
-	}
-
 
 	//--- Compute full annual array from array containing simulated values at cluster-exemplar time blocks
 	std::unordered_map < std::string, std::vector<double> >::iterator it;
 	for (it = full_ssc_data.begin(); it != full_ssc_data.end(); it++)
 		csim.compute_annual_array_from_clusters(collect_ssc_data[it->first], it->second);
 
-	ok = save_simulation_outputs(full_ssc_data);
+
+	if (!m_parameters.is_cycle_ssc_integration.as_boolean())
+		ok = save_simulation_outputs(full_ssc_data);
+
+	//=================================================================================
+	//--- Integrate ssc solution with cycle availability model?
+	if (m_parameters.is_cycle_ssc_integration.as_boolean())
+	{
+		//--- Revert to default inputs
+		ssc_number_t *p_vals = new ssc_number_t[365];
+		for (int i = 0; i < 365; i++)
+			p_vals[i] = 1;
+		ssc_data_set_array(m_ssc_data, "select_simulation_days", p_vals, 365);
+		delete[] p_vals;
+
+		//--- Initialize cycle availability model
+		PowerCycle pc;
+		WELLFiveTwelve gen(0);
+		pc.AssignGenerator(&gen);
+		initialize_cycle_model(pc);
+		std::vector<double> capacity(nrec, 1.0);
+		std::vector<double> efficiency(nrec, 1.0);
+		int n_failures, nf;
+		double labor_cost, lc;
+		n_failures = 0;
+		labor_cost = 0.0;
+
+		//--- Initialize modified solution
+		std::vector<double> local_cap, local_eff;
+		std::unordered_map<std::string, std::vector<double>> modified_soln, local_soln;
+		for (it = full_ssc_data.begin(); it != full_ssc_data.end(); it++)
+			modified_soln[it->first].assign(it->second.size(), 0.0);
+
+		plant_state final_state;
+		cycle_ssc_integration_inputs inputs;
+		inputs.use_fixed_horizon = true;
+		inputs.use_existing_ssc_soln = true;
+		inputs.use_stored_state = false;
+
+		//--- Loop over days of year
+		ng = (int)cluster_outputs.partition_matrix.nrows;
+		int nd = m_parameters.cluster_ndays.as_integer();
+		for (int g = 0; g < ng + 2; g++)
+		{
+			int doy, index;
+			double horizon;
+
+			if (g > 0 && g < ng + 1)
+			{
+				doy = (g - 1)*nd + 1;
+				index = cluster_outputs.index.at(g-1);
+				horizon = nd * 24;
+			}
+			else if (g == 0)
+			{
+				doy = 0;
+				index = csim.inputs.skip_first.index[0];
+				horizon = 24;
+			}
+			else
+			{
+				doy = ng*nd +1;
+				index = csim.inputs.skip_last.index[0];
+				horizon = (365-doy) * 24;
+			}
+
+			int exemplar = cluster_outputs.exemplars[index];
+			int doy_exemplar = exemplar * nd + 1;  
+			inputs.start_time = doy_exemplar * 24.;
+			inputs.end_time = inputs.start_time + horizon;
+			inputs.horizon = horizon;
+
+			
+			// extract initial solution
+			int j = doy * nperday;
+			int npts = (horizon / 24) * nperday;
+			inputs.initial_ssc_soln.clear();
+			for (it = full_ssc_data.begin(); it != full_ssc_data.end(); it++)
+				inputs.initial_ssc_soln[it->first].assign(it->second.begin() + j, it->second.begin() + j + npts);
+
+			// run 'integrate_cycle_and_simulation' for this time block starting from the existing solution (will not re-run ssc unless failures/repairs occur)
+			inputs.initial_state = final_state;
+			if (!integrate_cycle_and_simulation(pc, inputs, final_state, local_soln, local_cap, local_eff, nf, lc))
+				return false;
+
+			n_failures += nf;
+			labor_cost += lc;
+
+			for (int h = 0; h < npts; h++)
+			{
+				capacity.at(doy*nperday + h) = local_cap.at(h);
+				efficiency.at(doy*nperday + h) = local_eff.at(h);
+				for (it = local_soln.begin(); it != local_soln.end(); it++)
+					modified_soln[it->first].at(doy*nperday + h) += it->second.at(h);
+			}
+
+			inputs.use_stored_state = true;  // use stored state after g = 0
+		}
+
+		ok = save_simulation_outputs(modified_soln);
+		save_cycle_outputs(capacity, efficiency, n_failures, labor_cost);
+	}
+
 	
 	return ok;
 }
@@ -2644,7 +2725,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 	std::vector<double> q_pc_target, q_pc_max, is_rec_su_allowed, is_pc_su_allowed, is_pc_sb_allowed;
 
 	is_reoptimize = true;
-	ssc_data_get_number(m_ssc_data, "is_dispatch", &is_dispatch);
+	is_dispatch = m_parameters.is_dispatch.as_number();
 	ssc_data_get_number(m_ssc_data, "T_htf_hot_des", &tes_thot_des);
 	ssc_data_get_number(m_ssc_data, "T_htf_cold_des", &tes_tcold_des);
 
@@ -2687,10 +2768,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 	std::vector<std::string> ssc_keys = { "gen", "P_cycle", "P_out_net", "e_ch_tes", "T_tes_hot", "T_tes_cold", "Q_thermal", "q_pb", "q_dot_pc_startup", "beam", "tdry", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected"};
 	std::vector<std::string> disp_target_keys = {"Q_thermal", "e_ch_tes", "q_dot_pc_target", "q_dot_pc_max", "is_rec_su_allowed", "is_pc_su_allowed", "is_pc_sb_allowed" };
 
-	std::vector<std::string>allkeys = ssc_keys;
-	for (size_t k = 0; k < disp_target_keys.size(); k++)
-		allkeys.push_back(disp_target_keys[k]);
-
 	//-- Check if provided initial solution is complete
 	if (use_existing_ssc_soln)
 	{
@@ -2699,11 +2776,19 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 		else
 		{
 			std::unordered_map < std::string, std::vector<double> >::const_iterator it;
-			for (size_t k = 0; k < allkeys.size(); k++)
+			std::string key;
+			size_t k = 0;
+			while (k < ssc_keys.size() + disp_target_keys.size())
 			{
-				it = inputs.initial_ssc_soln.find(allkeys[k]);
+				if (k < ssc_keys.size())
+					key = ssc_keys[k];
+				else
+					key = disp_target_keys[k - ssc_keys.size()];
+				
+				it = inputs.initial_ssc_soln.find(key);
 				if (it == inputs.initial_ssc_soln.end() || it->second.size() != nsteps_tot)
 					use_existing_ssc_soln = false;
+				k++;
 			}
 		}
 		if (!use_existing_ssc_soln)
@@ -2728,7 +2813,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 		//-- Set amount of time to run ssc solution and cycle availability model
 		double current_horizon = horizon;
-		if (horizon == 0)
+		if (!inputs.use_fixed_horizon)
 		{
 			double fop = estimate_capacity_factor(m_variables.solarm.as_number(), m_variables.tshours.as_number());  // rough estimate of annual capacity factor based on configuration
 			current_horizon = pc.GetEstimatedMinimumLifetime(fop);
@@ -2746,7 +2831,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 		is_reoptimize = true;
 		double capacity_init = 1.0;
 		double efficiency_init = 1.0;
-		if (is_reoptimize_at_repairs && capacity_last > 0.0)
+		if (is_reoptimize_at_repairs && capacity_last > 0.0 && !use_existing_ssc_soln)
 		{
 			capacity_init = capacity_last;
 			efficiency_init = efficiency_last;
@@ -2944,7 +3029,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 				//===============================================================
 				/*
 				std::ofstream ofs;
-				std::string filename = "C:/Users/jmartine/Desktop/debug/time" + std::to_string(time_completed) + "_step" + std::to_string(step_now) + "_call" + std::to_string(pc_call) + ".txt";
+				std::string filename =  "C:/Users/jmartine/Desktop/cycle_ssc_results/debug/time" + std::to_string(time_completed) + "_step" + std::to_string(step_now) + "_call" + std::to_string(pc_call) + ".txt";
 				ofs.open(filename, std::ofstream::out);
 				ofs.clear();
 				ofs << "Previous repair, Next failure, Next repair\n";
@@ -2971,8 +3056,9 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 						<< cycle_efficiency[i] << "\n";
 				}
 				ofs.close();
-				//===============================================================
 				*/
+				//===============================================================
+				
 
 				pc_call += 1;
 
@@ -2999,14 +3085,13 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 					labor_cost += pc.m_results.labor_costs[0];
 				}
 
-				/*
-				if (next_repair == nsteps) // repair occurred at last time point in this horizon... call cycle model again to store state and manually increase capacity/efficiency for beginning of next horizon
+				if (next_repair == nsteps) // repair occurred at last time point in this horizon... call cycle model again and manually increase capacity/efficiency for beginning of next horizon
 				{
 					pc.Simulate(false, use_stored_state);
+					pc_call += 1;
 					capacity_last = 1.0;
 					efficiency_last = 1.0;
 				}
-				*/
 
 				// Save failure events
 				if (next_start_pt < nsteps)
@@ -3057,7 +3142,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 			}
 			ofs.close();
 			*/
-
 			
 
 
@@ -3110,20 +3194,23 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 
 			//--- Update initial states for next ssc model calls
-			tes_thot = soln["T_tes_hot"].back();
-			tes_tcold = soln["T_tes_cold"].back();
-			tes_charge = (soln["e_ch_tes"].back() / tes_capacity) * ((tes_thot_des - tes_tcold_des) / (tes_thot - tes_tcold_des))* 100.;  // ssc output "e_ch_tes" based on actual hot T and design point cold T
+			if (next_start_pt > 0)
+			{
+				tes_thot = soln["T_tes_hot"].back();
+				tes_tcold = soln["T_tes_cold"].back();
+				tes_charge = (soln["e_ch_tes"].back() / tes_capacity) * ((tes_thot_des - tes_tcold_des) / (tes_thot - tes_tcold_des))* 100.;  // ssc output "e_ch_tes" based on actual hot T and design point cold T
 
-			is_rec_on = false;
-			if (soln["Q_thermal"].back() > 0.0)
-				is_rec_on = true;
+				is_rec_on = false;
+				if (soln["Q_thermal"].back() > 0.0)
+					is_rec_on = true;
 
-			is_pc_on = false;
-			is_pc_standby = false;
-			if (soln["P_cycle"].back() > 0.0)
-				is_pc_on = true;
-			else if (soln["q_pb"].back() > 0.0 && soln["q_dot_pc_startup"].back() < soln["q_pb"].back())
-				is_pc_standby = true;
+				is_pc_on = false;
+				is_pc_standby = false;
+				if (soln["P_cycle"].back() > 0.0)
+					is_pc_on = true;
+				else if (soln["q_pb"].back() > 0.0 && soln["q_dot_pc_startup"].back() < soln["q_pb"].back())
+					is_pc_standby = true;
+			}
 
 
 
@@ -3171,7 +3258,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 					if (is_use_target_heuristic)  
 					{
 						if (i == 0)
-							e_ch_tes_adj = current_targets["e_ch_tes"][p];
+							e_ch_tes_adj = current_soln["e_ch_tes"][p];
 						else
 						{
 							double e_ch_tes_prev = current_targets["e_ch_tes"][p - 1];
@@ -3217,6 +3304,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 						}
 					}
 				}
+
 			}
 
 			step_now = next_start_pt;
@@ -3227,6 +3315,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 	}
 
 	// Write failure events to file
+	/*
 	std::string filename = "C:/Users/jmartine/Desktop/cycle_ssc_results/failure_events.txt";
 	std::ofstream ofs;
 	ofs.open(filename, std::ofstream::out);
@@ -3234,6 +3323,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 	ofs << "Time, Name, Component, Duration\n";
 	for (size_t i = 0; i<failure_label.size(); i++)
 		ofs << failure_time[i] << ", " << failure_label[i] << ", " << failure_component[i] << ", " << failure_duration[i] << "\n";
+	*/
 
 
 
@@ -3253,89 +3343,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 }
 
-
-bool Project::integrate_cycle_and_clusters(const std::unordered_map<std::string, std::vector<double>> &cluster_soln,
-										  std::unordered_map<std::string, std::vector<double>> &modified_soln, 
-										  std::vector<double> &capacity, std::vector<double> &efficiency, int &n_failures, double &labor_cost)
-{
-
-	// Run cycle availability model and re-dispatch based on cluster exemplar solutions
-	// Re-run availability model(and ssc if failures occur) starting from "cluster_soln" for all groups within each cluster,
-	// Fill in exemplar time blocks in "soln" with average of all cycle/ssc model realizations
-
-
-	plant_state final_state;
-	int ng = (int)cluster_outputs.exemplars.size();
-	int nd = m_parameters.cluster_ndays.as_integer();
-
-	std::unordered_map < std::string, std::vector<double> >::const_iterator it = cluster_soln.begin();
-	int nrec = it->second.size();
-	int nperday = nrec / 365;
-
-	modified_soln.clear();
-	for (it = cluster_soln.begin(); it != cluster_soln.end(); it++)
-		modified_soln[it->first].assign(it->second.size(), 0.0);
-
-
-	//--- Initialize cycle availability model
-	PowerCycle pc;
-	WELLFiveTwelve gen(0);
-	pc.AssignGenerator(&gen);
-	initialize_cycle_model(pc);
-	capacity.assign(nrec, 0.0);
-	efficiency.assign(nrec, 0.0);
-	n_failures = 0.0;
-	labor_cost = 0.0;
-
-
-	//--- Loop over cluster exemplars
-	for (int g = 0; g < ng; g++)
-	{
-		int exemplar = cluster_outputs.exemplars.at(g);
-		int doy = exemplar * nd + 1;
-		cycle_ssc_integration_inputs inputs;
-		inputs.start_time = doy * 24.;
-		inputs.end_time = (doy + nd) * 24;
-		inputs.horizon = nd*24;
-		inputs.use_fixed_horizon = true;
-		inputs.use_existing_ssc_soln = true;
-		if (g > 0)
-			inputs.use_stored_state = true;
-
-		// extract portion of cluster_soln for this exemplar time block
-		for (it = cluster_soln.begin(); it != cluster_soln.end(); it++)
-		{
-			for (int h = 0; h < nperday*nd; h++)
-				inputs.initial_ssc_soln[it->first].push_back(it->second[doy*nperday + h]);
-		}
-
-		// run 'integrate_cycle_and_simulation' once for each time block belonging to this cluster
-		int npercluster = cluster_outputs.count[g];
-		std::unordered_map<std::string, std::vector<double>> integrated_soln;
-		std::vector<double> cap, eff;
-		for (int j = 0; j < npercluster; j++)
-		{
-			int nf;
-			double lc;
-			inputs.initial_state = final_state;
-			integrate_cycle_and_simulation(pc, inputs, final_state, integrated_soln, cap, eff, nf, lc);
-			inputs.use_stored_state = true;
-			n_failures += nf;
-			labor_cost += lc;
-			for (int h = 0; h < nperday*nd; h++)
-			{
-				capacity.at(doy*nperday + h) += cap.at(h) / (double)npercluster;;
-				efficiency.at(doy*nperday + h) += eff.at(h) / (double)npercluster;;
-
-				for (it = integrated_soln.begin(); it != integrated_soln.end(); it++)
-					modified_soln[it->first].at(doy*nperday + h) += it->second.at(h) / (double)npercluster;
-			}
-		}
-	}
-
-	return true;
-
-}
 
 void Project::save_cycle_outputs(std::vector<double> &capacity, std::vector<double> &efficiency, double n_failures, double labor_cost)
 {
