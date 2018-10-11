@@ -2343,12 +2343,38 @@ bool Project::simulate_clusters()
 
 	bool ok;
 
+
+	//-- Read in full-year dni for results (current values in "beam" and "pricing_mult" are values at the cluster exemplar)
+	std::vector<double> beam_full;
+	if (csim.inputs.is_run_continuous)  // Full-year arrays of weather/price already exist in ssc data
+		beam_full = collect_ssc_data["beam"];
+	else  // ssc data only contains weather/price at cluster exemplars
+	{
+		ssc_data_t ssc_data_wf = ssc_data_create();
+		ssc_module_t mod_wf = ssc_module_create("wfreader");
+		ssc_data_set_string(ssc_data_wf, "file_name", m_parameters.solar_resource_file.as_string().c_str());
+		ssc_module_exec(mod_wf, ssc_data_wf);
+		ssc_number_t *p_data = ssc_data_get_array(ssc_data_wf, "beam", &nr);
+		for (int r = 0; r < nr; r++)
+			beam_full.push_back(p_data[r]);
+		ssc_module_free(mod_wf);
+		ssc_data_free(ssc_data_wf);
+	}
+
 	//--- Compute full annual array from array containing simulated values at cluster-exemplar time blocks
 	std::unordered_map < std::string, std::vector<double> >::iterator it;
 	for (it = full_ssc_data.begin(); it != full_ssc_data.end(); it++)
 		csim.compute_annual_array_from_clusters(collect_ssc_data[it->first], it->second);
 
+	full_ssc_data["beam_clusters"] = full_ssc_data["beam"];
+	full_ssc_data["beam"] = beam_full;
+	full_ssc_data["pricing_mult_clusters"] = full_ssc_data["pricing_mult"];
+	full_ssc_data["pricing_mult"].clear();
+	for (size_t i = 0; i < m_parameters.dispatch_factors_ts.vec()->size(); i++)
+		full_ssc_data["pricing_mult"].push_back(m_parameters.dispatch_factors_ts.vec()->at(i).as_number());
 
+
+	//--- Save simulation outputs
 	if (!m_parameters.is_cycle_ssc_integration.as_boolean())
 		ok = save_simulation_outputs(full_ssc_data);
 
@@ -2356,12 +2382,7 @@ bool Project::simulate_clusters()
 	//--- Integrate ssc solution with cycle availability model?
 	if (m_parameters.is_cycle_ssc_integration.as_boolean())
 	{
-		//--- Revert to default inputs
-		ssc_number_t *p_vals = new ssc_number_t[365];
-		for (int i = 0; i < 365; i++)
-			p_vals[i] = 1;
-		ssc_data_set_array(m_ssc_data, "select_simulation_days", p_vals, 365);
-		delete[] p_vals;
+		ssc_data_unassign(m_ssc_data, "select_simulation_days");
 
 		//--- Initialize cycle availability model
 		PowerCycle pc;
@@ -2551,6 +2572,8 @@ bool Project::save_simulation_outputs(unordered_map < std::string, std::vector<d
 	m_simulation_outputs.tes_charge_state.assign_vector(ssc_data["e_ch_tes"]);
 	m_simulation_outputs.dni_arr.assign_vector(ssc_data["beam"]);
 	m_simulation_outputs.price_arr.assign_vector(ssc_data["pricing_mult"]);
+	m_simulation_outputs.dni_templates.assign_vector(ssc_data["beam_clusters"]);
+	m_simulation_outputs.price_templates.assign_vector(ssc_data["pricing_mult_clusters"]);
 
 	m_simulation_outputs.annual_generation.assign(annual_generation*1.e-6);
 	m_simulation_outputs.annual_revenue_units.assign(revenue_units*1.e-6);
