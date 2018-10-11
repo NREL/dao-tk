@@ -1036,3 +1036,12 @@ void _setup_clusters(lk::invoke_t &cxt)
 	P->setup_clusters();
 
 }
+
+void _simulate_cycle(lk::invoke_t &cxt)
+{
+	LK_DOC("simulate_cycle", "Simulates cycle availablity.", "([table:options]):table");
+	MainWindow &mw = MainWindow::Instance();
+	Project* P = mw.GetProject();
+	P->run_cycle_model();
+	mw.UpdateDataTable();
+}

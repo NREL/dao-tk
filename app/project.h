@@ -328,6 +328,7 @@ struct parameters : public lk::varhash_t
 	parameter n_clusters;
 	parameter cluster_ndays;
 	parameter cluster_nprev;
+	parameter cycle_nyears;
     //doubles
 	parameter rec_ref_cost;
 	parameter rec_ref_area;
@@ -483,13 +484,10 @@ struct cycle_outputs : public lk::varhash_t
 struct simulation_outputs : public lk::varhash_t
 {
 	parameter generation_arr;
-	parameter gross_generation_arr;
 	parameter solar_field_power_arr;
 	parameter tes_charge_state;
 	parameter dni_arr;
-	parameter ambient_temp_arr;
 	parameter price_arr;
-	parameter is_standby_arr;
 	parameter dni_templates;
 	parameter price_templates;
 	parameter annual_generation;
@@ -502,6 +500,11 @@ struct simulation_outputs : public lk::varhash_t
 	parameter annual_cycle_starts_disp;
 	parameter annual_cycle_ramp_disp;
 	parameter cycle_ramp_index_disp;
+
+	parameter gross_gen;
+	parameter q_pb;
+	parameter tamb;
+	parameter is_standby;
 
 	simulation_outputs();
 };
@@ -633,18 +636,24 @@ class Project
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
 	
 	
-	bool simulate_clusters();
-
-	bool save_simulation_outputs(unordered_map < std::string, std::vector<double>> &ssc_data);
+	bool simulate_clusters(std::unordered_map<std::string, std::vector<double>> &ssc_soln);
+	std::unordered_map<std::string, std::vector<double>> ssc_data_to_map(const ssc_data_t & ssc_data, std::vector<std::string> keys);
+	bool accumulate_annual_results(const std::vector<double> &soln, double &sum, double &summult_price, double &starts, double &ramp, double &ramp_index);
+	bool save_simulation_outputs(std::unordered_map < std::string, std::vector<double>> &ssc_soln);
 	void calc_avg_annual_schedule(double original_ts, double new_ts, const parameter &full_sch, std::vector<double> &output_sch);
 	
 	void initialize_cycle_model(PowerCycle &pc);
+	
+	void save_cycle_outputs(std::vector<double>&capacity, std::vector<double>&efficiency, double n_failures, double labor_cost);
+
 	bool integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_integration_inputs &inputs,
 										plant_state &final_state, std::unordered_map<std::string, std::vector<double>> &soln,
 										std::vector<double> &capacity, std::vector<double> &efficiency, int &n_failures, double &labor_cost);
 
-	void save_cycle_outputs(std::vector<double>&capacity, std::vector<double>&efficiency, double n_failures, double labor_cost);
+	bool integrate_cycle_and_clusters(const std::unordered_map<std::string, std::vector<double>> &initial_soln, int first_index, int last_index, std::unordered_map<std::string, std::vector<double>> &final_soln);
 	double estimate_capacity_factor(double sm, double tes);
+	
+	
 	
 
 
@@ -682,7 +691,7 @@ public:
 	bool Z();
 
 	bool setup_clusters();
-
+	bool run_cycle_model();
 
 	data_base *GetVarPtr(const char *name);
 	lk::varhash_t *GetMergedData();

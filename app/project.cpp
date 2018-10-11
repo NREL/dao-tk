@@ -2,9 +2,9 @@
 #include <wx/wx.h>
 #include <limits>
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
+//#include <iostream>
+//#include <fstream>
+//#include <sstream>
 
  int double_scale(double val, int *scale)
  {
@@ -215,6 +215,8 @@ parameters::parameters()
 	is_reoptimize_at_repairs.set(true, "is_reoptimize_at_repairs", false, "Re-optimize at cycle repairs?", "-", "Settings");
 	is_reoptimize_at_failures.set(false, "is_reoptimize_at_failures", false, "Re-optimize at cycle failures?", "-", "Settings");
 	is_use_target_heuristic.set(false, "is_use_target_heuristic", false, "Use heuristic to adjust dispatch targets due to cycle failures?", "-", "Settings");
+	cycle_nyears.set(1, "cycle_nyears", false, "Cycle availability number of years simulated", "-", "Settings");
+
 
 
     (*this)["print_messages"] = &print_messages;
@@ -319,6 +321,7 @@ parameters::parameters()
 	(*this)["is_reoptimize_at_repairs"] = &is_reoptimize_at_repairs;
 	(*this)["is_reoptimize_at_failures"] = &is_reoptimize_at_failures;
 	(*this)["is_use_target_heuristic"] = &is_use_target_heuristic;
+	(*this)["cycle_nyears"] = &cycle_nyears;
 
 }
 
@@ -481,11 +484,12 @@ simulation_outputs::simulation_outputs()
     annual_cycle_ramp_disp.set(            nan,       "annual_cycle_ramp_disp",       true,          "Annual cycle ramping from dispatch soln",      "GWe",                "Simulation|Outputs" );
     cycle_ramp_index_disp.set(             nan,        "cycle_ramp_index_disp",       true,              "Cycle ramp index from dispatch soln",        "%",                "Simulation|Outputs" );
 
-
-	// results needed for cycle availability model
-	gross_generation_arr.set(empty_vec, "gross_generation_arr", true);
-	ambient_temp_arr.set(empty_vec, "ambient_temp_arr", true);
-	is_standby_arr.set(empty_vec, "is_standby_arr", true);
+	
+	// outputs needs for cycle availability model
+	gross_gen.set(empty_vec, "gross_gen", true);
+	q_pb.set(empty_vec, "q_pb", true);
+	tamb.set(empty_vec, "tamb", true);
+	is_standby.set(empty_vec, "is_standby", true);
 
 
 	(*this)["generation_arr"] = &generation_arr;
@@ -505,9 +509,12 @@ simulation_outputs::simulation_outputs()
 	(*this)["annual_cycle_starts_disp"] = &annual_cycle_starts_disp;
 	(*this)["annual_cycle_ramp_disp"] = &annual_cycle_ramp_disp;
 	(*this)["cycle_ramp_index_disp"] = &cycle_ramp_index_disp;
-	(*this)["gross_generation_arr"] = &gross_generation_arr;
-	(*this)["ambient_temp_arr"] = &ambient_temp_arr;
-	(*this)["is_standby_arr"] = &is_standby_arr;
+
+	(*this)["gross_gen"] = &gross_gen;
+	(*this)["q_pb"] = &q_pb;
+	(*this)["tamb"] = &tamb;
+	(*this)["is_standby"] = &is_standby;
+
 }
 
 explicit_outputs::explicit_outputs()
@@ -1670,16 +1677,14 @@ bool Project::S()
 	ssc_data_set_number(m_ssc_data, "allow_controller_exceptions", 0);
 
 
-	PowerCycle pc;
-	WELLFiveTwelve gen(0);
-	pc.AssignGenerator(&gen);
 
-	//--- Run ssc simulation without accounting for cycle downtime -> note C() will be called in Z() using the simulation results
+
+	//--- Run ssc simulation.  Cycle availability model will be run separately 
+	unordered_map < std::string, std::vector<double>> ssc_soln;
 	if (!m_parameters.is_cycle_ssc_integration.as_boolean())
 	{
-		
 		if (m_parameters.is_use_clusters.as_boolean())
-			is_simulation_valid = simulate_clusters();
+			is_simulation_valid = simulate_clusters(ssc_soln);
 		else  
 		{
 			ssc_module_exec_set_print(m_parameters.print_messages.as_boolean());
@@ -1692,60 +1697,51 @@ bool Project::S()
 				is_simulation_valid = false;
 				return false;
 			}
-
-			std::vector<std::string> ssc_keys = { "gen", "P_cycle", "q_pb", "q_dot_pc_startup", "Q_thermal", "e_ch_tes", "beam", "tdry", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected" };
-			unordered_map < std::string, std::vector<double>> ssc_data;
-			for (size_t i = 0; i < ssc_keys.size(); i++)
-			{
-				std::string key = ssc_keys[i];
-				ssc_number_t *p_data = ssc_data_get_array(m_ssc_data, key.c_str(), &nr);
-				for (int r = 0; r < nr; r++)
-					ssc_data[key].push_back(p_data[r]);
-			}
 			ssc_module_free(mod_mspt);
-			is_simulation_valid = save_simulation_outputs(ssc_data);
+			std::vector<std::string> ssc_keys = { "gen", "P_cycle", "q_pb", "q_dot_pc_startup", "Q_thermal", "e_ch_tes", "beam", "tdry", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected"};
+			ssc_soln = ssc_data_to_map(m_ssc_data, ssc_keys);
+			is_simulation_valid = true;
 		}
+		is_simulation_valid = save_simulation_outputs(ssc_soln);
 	}
 
 
 
-	//--- Run ssc simulation including re-evaluation or re-dispatch at points of cycle failure/repair -> Note cycle availability is computed here so C() will not be called within Z()
+	//--- Run ssc simulation including re-evaluation or re-dispatch at points of cycle failure/repair. Note cy
+	PowerCycle pc;
+	WELLFiveTwelve gen(0);
+	pc.AssignGenerator(&gen);
 	if (m_parameters.is_cycle_ssc_integration.as_boolean())
 	{
 
-		//--- Check for incompatible model settings
 		if (!m_parameters.is_dispatch.as_boolean())
 		{
 			message_handler("Integration of cycle availability and plant simulation models is only available when dispatch optimization is enabled.");
 			return false;
 		}
 
-		if (m_parameters.num_scenarios.as_integer() > 1)
+		if (m_parameters.num_scenarios.as_integer() > 1 || m_parameters.cycle_nyears.as_integer() > 1)
 		{
-			message_handler(wxString::Format("Integration of cycle availability and plant simulation models is only available for a single scenario. Parameter 'num_scenarios' is currently %d. \n", m_parameters.num_scenarios.as_integer()));
+			message_handler(wxString::Format("Integration of cycle availability and plant simulation models is only available for a single scenario and single year. Parameter 'num_scenarios' and 'cycle_nyears' are currently %d and %d, respectively. \n", m_parameters.num_scenarios.as_integer(), m_parameters.cycle_nyears.as_integer()));
 			return false;
 		}
 
 
-		//--- Run simulations
 		if (m_parameters.is_use_clusters.as_boolean()) 
-			is_simulation_valid = simulate_clusters();
+			is_simulation_valid = simulate_clusters(ssc_soln);
 		else 
 		{
 			cycle_ssc_integration_inputs inputs;
 			plant_state final_state;
-			unordered_map < std::string, std::vector<double>> ssc_data;
 			std::vector<double> cycle_capacity, cycle_efficiency;
 			int n_failures;
 			double labor_cost;
-
 			initialize_cycle_model(pc);
-			is_simulation_valid = integrate_cycle_and_simulation(pc, inputs, final_state, ssc_data, cycle_capacity, cycle_efficiency, n_failures, labor_cost);
+			is_simulation_valid = integrate_cycle_and_simulation(pc, inputs, final_state, ssc_soln, cycle_capacity, cycle_efficiency, n_failures, labor_cost);
 			save_cycle_outputs(cycle_capacity, cycle_efficiency, n_failures, labor_cost);
-			is_simulation_valid = save_simulation_outputs(ssc_data);
 			
 		}
-
+		is_simulation_valid = save_simulation_outputs(ssc_soln);
 		is_cycle_avail_valid = is_simulation_valid;	
 	}
 
@@ -1920,7 +1916,7 @@ bool Project::Z()
 	else
 		message_handler("Using existing heliostat field soiling/degradation results in objective function");
 
-	// Simulation
+	// Simulation and cycle availability
 	if (!is_simulation_valid)
 	{
 		is_cycle_avail_valid = false;
@@ -1928,16 +1924,18 @@ bool Project::Z()
 		S();
 	}
 	else
-		message_handler("Using existing annual performance results in objective function");
+		message_handler("Using existing annual performance and cycle availability results in objective function");
 
 	// Cycle efficiency/capacity
 	if (!is_cycle_avail_valid)
 	{
 		is_financial_valid = false;
-		C();
+		run_cycle_model();  // simulates cycle availabiltiy and de-rates generation/revenue based on availability (averaged over scenarios and simulated years)
+		//C();
 	}
 	else
 		message_handler("Using existing cycle availability results in objective function");
+	
 
 	// Explicit cost terms
 	if (!is_explicit_valid)
@@ -2105,11 +2103,14 @@ bool Project::setup_clusters()
 }
 
 
-bool Project::simulate_clusters()
+bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<double>> &ssc_soln)
 {
+	// Run simulation of cluster exemplars and aggregate into full-year output arrays
+
+
 	int nr;
 	double nan = std::numeric_limits<double>::quiet_NaN();
-
+	ssc_soln.clear();
 
 	//--- Set cluster simulation parameters
 	cluster_sim csim;
@@ -2130,22 +2131,15 @@ bool Project::simulate_clusters()
 	int nperday = (int)wf_steps_per_hour * 24;
 	int nrec = (int)wf_steps_per_hour * 8760;
 
-	std::vector<std::string> ssc_keys_short = { "gen", "P_cycle", "q_pb", "q_dot_pc_startup", "Q_thermal", "e_ch_tes", "beam", "tdry", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected" };
-	
-	std::vector<std::string> ssc_keys = { "gen", "P_cycle", "q_pb", "q_dot_pc_startup", "Q_thermal", "e_ch_tes", "beam", "tdry", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected",
-										 "P_out_net", "T_tes_hot", "T_tes_cold", "q_dot_pc_target", "q_dot_pc_max", "is_rec_su_allowed" , "is_pc_su_allowed", "is_pc_sb_allowed" };
-
-	if (!m_parameters.is_cycle_ssc_integration.as_boolean())
-		ssc_keys = ssc_keys_short;
-
-	unordered_map < std::string, std::vector<double>> collect_ssc_data, full_ssc_data;
-	for (size_t i = 0; i < ssc_keys.size(); i++)
+	unordered_map < std::string, std::vector<double>> collect_ssc_data;
+	std::vector<std::string> ssc_keys = { "gen", "P_cycle", "q_pb", "q_dot_pc_startup", "Q_thermal", "e_ch_tes", "beam", "tdry", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected" };
+	if (m_parameters.is_cycle_ssc_integration.as_boolean())
 	{
-		collect_ssc_data[ssc_keys[i]].assign(nrec, nan);
-		full_ssc_data[ssc_keys[i]].assign(nrec, nan);
+		std::vector<std::string> more_keys = { "P_out_net", "T_tes_hot","T_tes_cold","q_dot_pc_target","q_dot_pc_max","is_rec_su_allowed","is_pc_su_allowed","is_pc_sb_allowed" };
+		ssc_keys.insert(ssc_keys.end(), more_keys.begin(), more_keys.end());
 	}
 
-
+	
 	//--- Set up clusters unless already defined
 	if (abs(m_parameters.n_clusters.as_integer() - (int)cluster_outputs.exemplars.size()) > 1 )
 	{
@@ -2246,13 +2240,9 @@ bool Project::simulate_clusters()
 			return false;
 		}
 
-		for (size_t i = 0; i < ssc_keys.size(); i++)
-		{
-			std::string key = ssc_keys[i];
-			ssc_number_t *p_data = ssc_data_get_array(m_ssc_data, key.c_str(), &nr);
-			for (int r = 0; r < nr; r++)
-				collect_ssc_data[key].at(r) = p_data[r];
-		}
+		collect_ssc_data = ssc_data_to_map(m_ssc_data, ssc_keys);
+
+		ssc_data_unassign(m_ssc_data, "select_simulation_days");
 	}
 
 
@@ -2262,6 +2252,9 @@ bool Project::simulate_clusters()
 	//--- Option 2: Run simulation of each cluster exemplar independently in discrete limited time-duration simulations
 	if (!csim.inputs.is_run_continuous)
 	{
+		for (size_t i = 0; i < ssc_keys.size(); i++)
+			collect_ssc_data[ssc_keys[i]].assign(nrec, nan);
+
 		for (int g = 0; g < ng; g++)
 		{
 			int ncount = csim.inputs.combined.n.at(g) * csim.inputs.days.ncount;	  // Number of days counting toward results in this group
@@ -2340,262 +2333,212 @@ bool Project::simulate_clusters()
 	}
 
 	ssc_module_free(mod_mspt);
+	
+	
 
-	bool ok;
+	//--- Compute full annual array from array containing simulated values at cluster-exemplar time blocks
+	std::unordered_map < std::string, std::vector<double> >::iterator it;
+	for (it = collect_ssc_data.begin(); it != collect_ssc_data.end(); it++)
+		csim.compute_annual_array_from_clusters(it->second, ssc_soln[it->first]);
+
+	ssc_soln["beam_clusters"] = ssc_soln["beam"];
+	ssc_soln["pricing_mult_clusters"] = ssc_soln["pricing_mult"];
 
 
-	//-- Read in full-year dni for results (current values in "beam" and "pricing_mult" are values at the cluster exemplar)
-	std::vector<double> beam_full;
-	if (csim.inputs.is_run_continuous)  // Full-year arrays of weather/price already exist in ssc data
-		beam_full = collect_ssc_data["beam"];
-	else  // ssc data only contains weather/price at cluster exemplars
+	//-- Read in full-year weather/price for results if necessary (if running discrete increments "beam", "tdry", and "pricing_mult" contain only values at the cluster exemplars)
+	ssc_soln["beam"] = collect_ssc_data["beam"];
+	ssc_soln["tdry"] = collect_ssc_data["tdry"];
+	ssc_soln["pricing_mult"] = collect_ssc_data["pricing_mult"];
+	if (!csim.inputs.is_run_continuous) 
 	{
 		ssc_data_t ssc_data_wf = ssc_data_create();
 		ssc_module_t mod_wf = ssc_module_create("wfreader");
 		ssc_data_set_string(ssc_data_wf, "file_name", m_parameters.solar_resource_file.as_string().c_str());
 		ssc_module_exec(mod_wf, ssc_data_wf);
-		ssc_number_t *p_data = ssc_data_get_array(ssc_data_wf, "beam", &nr);
-		for (int r = 0; r < nr; r++)
-			beam_full.push_back(p_data[r]);
+		std::vector<std::string> wfkeys = { "beam", "tdry" };
+		std::unordered_map<std::string, std::vector<double>> wf = ssc_data_to_map(ssc_data_wf, wfkeys);
+		ssc_soln["beam"] = wf["beam"];
+		ssc_soln["tdry"] = wf["tdry"];
+
 		ssc_module_free(mod_wf);
 		ssc_data_free(ssc_data_wf);
+
+		ssc_soln["pricing_mult"].clear();
+		for (size_t i = 0; i < m_parameters.dispatch_factors_ts.vec()->size(); i++)
+			ssc_soln["pricing_mult"].push_back(m_parameters.dispatch_factors_ts.vec()->at(i).as_number());
 	}
 
-	//--- Compute full annual array from array containing simulated values at cluster-exemplar time blocks
-	std::unordered_map < std::string, std::vector<double> >::iterator it;
-	for (it = full_ssc_data.begin(); it != full_ssc_data.end(); it++)
-		csim.compute_annual_array_from_clusters(collect_ssc_data[it->first], it->second);
 
-	full_ssc_data["beam_clusters"] = full_ssc_data["beam"];
-	full_ssc_data["beam"] = beam_full;
-	full_ssc_data["pricing_mult_clusters"] = full_ssc_data["pricing_mult"];
-	full_ssc_data["pricing_mult"].clear();
-	for (size_t i = 0; i < m_parameters.dispatch_factors_ts.vec()->size(); i++)
-		full_ssc_data["pricing_mult"].push_back(m_parameters.dispatch_factors_ts.vec()->at(i).as_number());
-
-
-	//--- Save simulation outputs
-	if (!m_parameters.is_cycle_ssc_integration.as_boolean())
-		ok = save_simulation_outputs(full_ssc_data);
-
-	//=================================================================================
 	//--- Integrate ssc solution with cycle availability model?
 	if (m_parameters.is_cycle_ssc_integration.as_boolean())
 	{
-		ssc_data_unassign(m_ssc_data, "select_simulation_days");
-
-		//--- Initialize cycle availability model
-		PowerCycle pc;
-		WELLFiveTwelve gen(0);
-		pc.AssignGenerator(&gen);
-		initialize_cycle_model(pc);
-		std::vector<double> capacity(nrec, 1.0);
-		std::vector<double> efficiency(nrec, 1.0);
-		int n_failures, nf;
-		double labor_cost, lc;
-		n_failures = 0;
-		labor_cost = 0.0;
-
-		//--- Initialize modified solution
-		std::vector<double> local_cap, local_eff;
-		std::unordered_map<std::string, std::vector<double>> modified_soln, local_soln;
-		for (it = full_ssc_data.begin(); it != full_ssc_data.end(); it++)
-			modified_soln[it->first].assign(it->second.size(), 0.0);
-
-		plant_state final_state;
-		cycle_ssc_integration_inputs inputs;
-		inputs.use_fixed_horizon = true;
-		inputs.use_existing_ssc_soln = true;
-		inputs.use_stored_state = false;
-
-		//--- Loop over days of year
-		ng = (int)cluster_outputs.partition_matrix.nrows;
-		int nd = m_parameters.cluster_ndays.as_integer();
-		for (int g = 0; g < ng + 2; g++)
-		{
-			int doy, index;
-			double horizon;
-
-			if (g > 0 && g < ng + 1)
-			{
-				doy = (g - 1)*nd + 1;
-				index = cluster_outputs.index.at(g-1);
-				horizon = nd * 24;
-			}
-			else if (g == 0)
-			{
-				doy = 0;
-				index = csim.inputs.skip_first.index[0];
-				horizon = 24;
-			}
-			else
-			{
-				doy = ng*nd +1;
-				index = csim.inputs.skip_last.index[0];
-				horizon = (365-doy) * 24;
-			}
-
-			int exemplar = cluster_outputs.exemplars[index];
-			int doy_exemplar = exemplar * nd + 1;  
-			inputs.start_time = doy_exemplar * 24.;
-			inputs.end_time = inputs.start_time + horizon;
-			inputs.horizon = horizon;
-
-			
-			// extract initial solution
-			int j = doy * nperday;
-			int npts = (horizon / 24) * nperday;
-			inputs.initial_ssc_soln.clear();
-			for (it = full_ssc_data.begin(); it != full_ssc_data.end(); it++)
-				inputs.initial_ssc_soln[it->first].assign(it->second.begin() + j, it->second.begin() + j + npts);
-
-			// run 'integrate_cycle_and_simulation' for this time block starting from the existing solution (will not re-run ssc unless failures/repairs occur)
-			inputs.initial_state = final_state;
-			if (!integrate_cycle_and_simulation(pc, inputs, final_state, local_soln, local_cap, local_eff, nf, lc))
-				return false;
-
-			n_failures += nf;
-			labor_cost += lc;
-
-			for (int h = 0; h < npts; h++)
-			{
-				capacity.at(doy*nperday + h) = local_cap.at(h);
-				efficiency.at(doy*nperday + h) = local_eff.at(h);
-				for (it = local_soln.begin(); it != local_soln.end(); it++)
-					modified_soln[it->first].at(doy*nperday + h) += it->second.at(h);
-			}
-
-			inputs.use_stored_state = true;  // use stored state after g = 0
-		}
-
-		ok = save_simulation_outputs(modified_soln);
-		save_cycle_outputs(capacity, efficiency, n_failures, labor_cost);
-	}
-
-	
-	return ok;
-}
-
-
-bool Project::save_simulation_outputs(unordered_map < std::string, std::vector<double>> &ssc_data)
-{
-	// Save results from ssc simulation in simulation_outputs
-	
-	ssc_number_t wf_steps_per_hour;
-	ssc_data_get_number(m_ssc_data, "time_steps_per_hour", &wf_steps_per_hour);
-	int nsteps = (int)wf_steps_per_hour * 8760;
-
-	//--- Check that ssc results contain all required data
-	std::vector<std::string> keys = { "gen", "P_cycle", "q_pb", "q_dot_pc_startup", "Q_thermal", "e_ch_tes", "beam", "tdry", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected" };
-	std::unordered_map < std::string, std::vector<double> >::iterator it;
-	for (size_t k = 0; k < keys.size(); k++)
-	{
-		it = ssc_data.find(keys[k]);
-
-		if (it == ssc_data.end())
-		{
-			message_handler(wxString::Format("ssc variable %s not found. Simulation results will not be saved.\n", keys[k]));
+		std::unordered_map<std::string, std::vector<double>> modified_soln;
+		if (!integrate_cycle_and_clusters(ssc_soln, csim.inputs.skip_first.index[0], csim.inputs.skip_last.index[0], modified_soln))
 			return false;
-		}
-		else if (it->second.size() != nsteps)
+
+		for (it = modified_soln.begin(); it != modified_soln.end(); it++)
 		{
-			message_handler(wxString::Format("Array for ssc output %s is does not have the correct length. Simulation results will not be saved.\n", keys[k]));
-			return false;
+			std::string key = it->first;
+			if (key != "beam" && key != "tdry" && key != "pricing_mult" && key != "beam_clusters" && key != "pricing_mult_clusters")
+				ssc_soln[it->first] = it->second;
 		}
 
+		modified_soln.clear();
 	}
-
-	//--- Sum annual generation and revenue
-	double annual_generation = 0.0;
-	double revenue_units = 0.0;
-	double max_generation = 0.0;
-	for (int i = 0; i < (int)ssc_data["gen"].size(); i++)
-	{
-		annual_generation += ssc_data["gen"].at(i) / (double)wf_steps_per_hour;
-		revenue_units += ssc_data["gen"].at(i) * m_parameters.dispatch_factors_ts.vec()->at(i).as_number() / (double)wf_steps_per_hour;
-		max_generation = fmax(max_generation, ssc_data["gen"].at(i));
-	}
-
-
-	//--- Calculate annual receiver starts, cycle starts, and cycle ramping
-	double rec_starts = 0.0;
-	double cycle_starts = 0.0;
-	double cycle_ramp = 0.0;
-
-	double disp_rec_starts = 0.0;
-	double disp_cycle_starts = 0.0;
-	double disp_cycle_ramp = 0.0;
-
-	for (int i = 1; i < (int)ssc_data["gen"].size(); i++)
-	{
-		if (ssc_data["Q_thermal"][i] > 0.0 && ssc_data["Q_thermal"][i - 1] <= 0.0)
-			rec_starts += 1;
-
-		if (ssc_data["gen"][i] > 0.0 && ssc_data["gen"][i - 1] <= 0.0)
-			cycle_starts += 1;
-
-		if (ssc_data["gen"][i] > 0.0 && ssc_data["gen"][i] > ssc_data["gen"][i - 1])
-			cycle_ramp += ssc_data["gen"][i] - ssc_data["gen"][i - 1]; //kWe
-
-																		 // Dispatched results for comparison
-		if (m_parameters.is_dispatch.as_boolean())
-		{
-			if (ssc_data["disp_qsfprod_expected"][i] > 0.0 && ssc_data["disp_qsfprod_expected"][i - 1] <= 0.0)
-				disp_rec_starts += 1;
-
-			if (ssc_data["disp_wpb_expected"][i] > 0.0 && ssc_data["disp_wpb_expected"][i - 1] <= 0.0)
-				disp_cycle_starts += 1;
-
-			if (ssc_data["disp_wpb_expected"][i] > 0.0 && ssc_data["disp_wpb_expected"][i] > ssc_data["disp_wpb_expected"][i - 1])
-				disp_cycle_ramp += (ssc_data["disp_wpb_expected"][i] - ssc_data["disp_wpb_expected"][i - 1])*1000.;   //"disp_wpb_expected" in MWe
-		}
-	}
-	double cycle_ramp_index = cycle_ramp / max_generation / 365.;
-	double disp_cycle_ramp_index = 0.0;
-	if (m_parameters.is_dispatch.as_boolean())
-		disp_cycle_ramp_index = disp_cycle_ramp / max_generation / 365.;
-
-
-
-	//--- Check if cycle is in standby
-	std::vector<double> is_standby(nsteps, 0);
-	for (int i = 0; i < nsteps; i++)
-	{
-		if (ssc_data["P_cycle"][i] < 1.e-6 && ssc_data["q_pb"][i] > 0.0 && ssc_data["q_dot_pc_startup"][i] < ssc_data["q_pb"][i])  // Thermal energy going to power block, but no electrical output
-			is_standby[i] = 1.0;
-	}
-
-
-	//--- Set simulation outputs
-	m_simulation_outputs.generation_arr.assign_vector(ssc_data["gen"]);
-	m_simulation_outputs.solar_field_power_arr.assign_vector(ssc_data["Q_thermal"]);
-	m_simulation_outputs.tes_charge_state.assign_vector(ssc_data["e_ch_tes"]);
-	m_simulation_outputs.dni_arr.assign_vector(ssc_data["beam"]);
-	m_simulation_outputs.price_arr.assign_vector(ssc_data["pricing_mult"]);
-	m_simulation_outputs.dni_templates.assign_vector(ssc_data["beam_clusters"]);
-	m_simulation_outputs.price_templates.assign_vector(ssc_data["pricing_mult_clusters"]);
-
-	m_simulation_outputs.annual_generation.assign(annual_generation*1.e-6);
-	m_simulation_outputs.annual_revenue_units.assign(revenue_units*1.e-6);
-	m_simulation_outputs.annual_rec_starts.assign(rec_starts);
-	m_simulation_outputs.annual_cycle_starts.assign(cycle_starts);
-	m_simulation_outputs.annual_cycle_ramp.assign(cycle_ramp*1.e-6);
-	m_simulation_outputs.cycle_ramp_index.assign(cycle_ramp_index*100.);
-
-	m_simulation_outputs.annual_rec_starts_disp.assign(disp_rec_starts);
-	m_simulation_outputs.annual_cycle_starts_disp.assign(disp_cycle_starts);
-	m_simulation_outputs.annual_cycle_ramp_disp.assign(disp_cycle_ramp*1.e-6);
-	m_simulation_outputs.cycle_ramp_index_disp.assign(disp_cycle_ramp_index*100.);
-
-	m_simulation_outputs.gross_generation_arr.assign_vector(ssc_data["P_cycle"]);
-	m_simulation_outputs.ambient_temp_arr.assign_vector(ssc_data["tdry"]);
-	m_simulation_outputs.is_standby_arr.assign_vector(is_standby);
-
 
 	return true;
 }
 
+std::unordered_map<std::string, std::vector<double>> Project::ssc_data_to_map(const ssc_data_t & ssc_data, std::vector<std::string> keys)
+{
+	int nr;
+	unordered_map < std::string, std::vector<double>> ssc_data_map;
+	for (size_t i = 0; i < keys.size(); i++)
+	{
+		std::string key = keys[i];
+		ssc_number_t *p_data = ssc_data_get_array(ssc_data, key.c_str(), &nr);
+		for (int r = 0; r < nr; r++)
+			ssc_data_map[key].push_back(p_data[r]);
+	}
+	return ssc_data_map;
+}
 
+bool Project::accumulate_annual_results(const std::vector<double> &soln, double &sum, double &summult_price, double &starts, double &ramp, double &ramp_index)
+{
+	// Calculate annual total, annual total of value*price, # starts, total ramping, and ramping index from annual solution array
+	sum = 0.0;
+	summult_price = 0.0;
+	starts = 0.0;
+	ramp = 0.0;
+	double maxval = 0.0;
+
+	int nrec = (int)soln.size();
+	double steps_per_hour = nrec / 8760.;
+	int nrec_price = (int)m_parameters.dispatch_factors_ts.vec()->size();
+	if (nrec == 0 || nrec != nrec_price)
+		return false;
+
+	for (int i = 0; i < nrec; i++)
+	{
+		sum += soln[i] / steps_per_hour;
+		summult_price += soln[i] * m_parameters.dispatch_factors_ts.vec()->at(i).as_number() / steps_per_hour;
+		maxval = fmax(maxval, soln[i]);
+
+		if (i > 0 && soln[i] > 0.0)
+		{
+			if (soln[i - 1] <= 0.0)
+				starts += 1;
+
+			if (soln[i] > soln[i - 1])
+				ramp += soln[i] - soln[i - 1]; //kWe
+		}
+	}
+
+	ramp_index = ramp / maxval / 365.;
+
+	return true;
+}
+
+bool Project::save_simulation_outputs(std::unordered_map < std::string, std::vector<double>> &ssc_soln)
+{
+	// Save results from ssc simulation in simulation_outputs
+
+	double annual_generation, revenue_units, cycle_starts, cycle_ramp, cycle_ramp_index, rec_starts;
+	double disp_cycle_starts, disp_cycle_ramp, disp_cycle_ramp_index, disp_rec_starts;
+
+	annual_generation = revenue_units = cycle_starts = cycle_ramp = cycle_ramp_index = rec_starts = std::numeric_limits<double>::quiet_NaN();
+	disp_cycle_starts = disp_cycle_ramp = disp_cycle_ramp_index = disp_rec_starts = std::numeric_limits<double>::quiet_NaN();
+
+
+	//--- Check for completeness of data in ssc_soln
+	std::vector<std::string> keys = { "gen", "P_cycle", "Q_thermal", "e_ch_tes", "q_pb", "q_dot_pc_startup", "beam", "tdry", "pricing_mult" };
+	if (m_parameters.is_dispatch.as_boolean())
+	{
+		keys.push_back("disp_wpb_expected");
+		keys.push_back("disp_qsfprod_expected");
+	}
+	if (m_parameters.is_use_clusters.as_boolean())
+	{
+		keys.push_back("beam_clusters");
+		keys.push_back("pricing_mult_clusters");
+	}
+	
+	unordered_map < std::string, std::vector<double>>::iterator it = ssc_soln.find("gen");
+	int nrec = (int)it->second.size();
+	for (size_t k = 0; k < keys.size(); k++)
+	{
+		it = ssc_soln.find(keys[k]);
+		if (it == ssc_soln.end() || it->second.size() != nrec)
+		{
+			message_handler("Incomplete set of data in ssc solution. Simulation results will not be saved.\n");
+			return false;
+		}
+	}
+
+
+
+	//--- Annual results
+	double sum, sum_price, starts, ramp, ramp_index;
+
+	accumulate_annual_results(ssc_soln["gen"], sum, sum_price, starts, ramp, ramp_index);
+	annual_generation = sum * 1.e-6;
+	revenue_units = sum_price * 1.e-6;
+	cycle_starts = starts;
+	cycle_ramp = ramp * 1.e-6;
+	cycle_ramp_index = ramp_index * 100;
+	
+	accumulate_annual_results(ssc_soln["Q_thermal"], sum, sum_price, starts, ramp, ramp_index);
+	rec_starts = starts;
+
+	accumulate_annual_results(ssc_soln["disp_wpb_expected"], sum, sum_price, starts, ramp, ramp_index);
+	disp_cycle_starts = starts;
+	disp_cycle_ramp = ramp*1.e-3;  //GW
+	disp_cycle_ramp_index = ramp_index*100;
+
+	accumulate_annual_results(ssc_soln["disp_qsfprod_expected"], sum, sum_price, starts, ramp, ramp_index);
+	disp_rec_starts = starts;
+
+	// Check if cycle is in standby
+	std::vector<double> standby(nrec, 0);
+	for (int i = 0; i > nrec; i++)
+	{
+		if (ssc_soln["P_cycle"][i] < 1.e-6 && ssc_soln["q_pb"][i] > 0.0 && ssc_soln["q_dot_pc_startup"][i] < ssc_soln["q_pb"][i])  // Thermal energy going to power block, but no electrical output
+			standby[i] = 1.0;
+	}
+
+
+	//--- Set simulation outputs
+	m_simulation_outputs.generation_arr.assign_vector(ssc_soln["gen"]);
+	m_simulation_outputs.solar_field_power_arr.assign_vector(ssc_soln["Q_thermal"]);
+	m_simulation_outputs.tes_charge_state.assign_vector(ssc_soln["e_ch_tes"]);
+	m_simulation_outputs.dni_arr.assign_vector(ssc_soln["beam"]);
+	m_simulation_outputs.price_arr.assign_vector(ssc_soln["pricing_mult"]);
+
+	m_simulation_outputs.gross_gen.assign_vector(ssc_soln["P_cycle"]);
+	m_simulation_outputs.q_pb.assign_vector(ssc_soln["q_pb"]);
+	m_simulation_outputs.tamb.assign_vector(ssc_soln["tamb"]);
+	m_simulation_outputs.is_standby.assign_vector(standby);
+	if (m_parameters.is_use_clusters.as_boolean())
+	{
+		m_simulation_outputs.dni_templates.assign_vector(ssc_soln["beam_clusters"]);
+		m_simulation_outputs.price_templates.assign_vector(ssc_soln["pricing_mult_clusters"]);
+	}
+
+	m_simulation_outputs.annual_generation.assign(annual_generation);
+	m_simulation_outputs.annual_revenue_units.assign(revenue_units);
+	m_simulation_outputs.annual_rec_starts.assign(rec_starts);
+	m_simulation_outputs.annual_cycle_starts.assign(cycle_starts);
+	m_simulation_outputs.annual_cycle_ramp.assign(cycle_ramp);
+	m_simulation_outputs.cycle_ramp_index.assign(cycle_ramp_index);
+
+	m_simulation_outputs.annual_rec_starts_disp.assign(disp_rec_starts);
+	m_simulation_outputs.annual_cycle_starts_disp.assign(disp_cycle_starts);
+	m_simulation_outputs.annual_cycle_ramp_disp.assign(disp_cycle_ramp);
+	m_simulation_outputs.cycle_ramp_index_disp.assign(disp_cycle_ramp_index);
+
+
+	return true;
+}
 
 void Project::calc_avg_annual_schedule(double original_ts, double new_ts, const parameter &full_sch, std::vector<double> &output_sch)
 {
@@ -2641,8 +2584,6 @@ void Project::calc_avg_annual_schedule(double original_ts, double new_ts, const 
 	return;
 }
 
-
-
 void Project::initialize_cycle_model(PowerCycle &pc)
 {
 
@@ -2659,8 +2600,7 @@ void Project::initialize_cycle_model(PowerCycle &pc)
 		m_parameters.num_salt_pumps_required.as_integer(), m_parameters.num_water_pumps.as_integer(), m_parameters.num_turbines.as_integer(),
 		c_eff_cold, c_eff_hot);
 
-	
-	pc.SetSimulationParameters(0, 48, 1, 1.e-8, false, m_parameters.num_scenarios.as_integer(), m_parameters.cycle_hourly_labor_cost.as_number(), true);  // called here only to set number of scenarios, duration/step length will be overwritten later
+	pc.m_sim_params.num_scenarios = m_parameters.num_scenarios.as_integer();
 	
 	pc.Initialize(0.0);
 	
@@ -2687,6 +2627,126 @@ void Project::initialize_cycle_model(PowerCycle &pc)
 
 
 	pc.StoreCycleState();
+
+	return;
+}
+
+bool Project::run_cycle_model()
+{
+	// Run cycle availability model based on dispatch profile in simulation outputs
+
+
+
+	int ny = m_parameters.cycle_nyears.as_integer();
+	int ns = m_parameters.num_scenarios.as_integer();
+
+
+	int nrec = (int) m_simulation_outputs.gross_gen.vec()->size();
+	if (nrec == 0 || m_simulation_outputs.q_pb.vec()->size() != nrec || m_simulation_outputs.tamb.vec()->size() != nrec || m_simulation_outputs.is_standby.vec()->size() != nrec)
+	{
+		message_handler("Incomplete set of simulation data. Cycle availability will not be simulated.\n");
+		return false;
+	}
+
+
+
+	//--- Initialize cycle model
+	PowerCycle pc;
+	WELLFiveTwelve gen(0);
+	pc.AssignGenerator(&gen);
+	initialize_cycle_model(pc);
+
+	double steplength = 8760. / (double) nrec;
+	pc.SetSimulationParameters(0, nrec*ny, steplength, 1.e-8, false, ns,
+		m_parameters.cycle_hourly_labor_cost.as_number(),
+		m_parameters.stop_cycle_at_first_failure.as_boolean(),
+		m_parameters.stop_cycle_at_first_repair.as_boolean());
+
+
+
+	//--- Assign dispatch (assume same dispatch profile for all years) and simulate cycle availability
+	std::unordered_map < std::string, std::vector < double > > dispatch;
+	dispatch["cycle_power"].assign(nrec*ny, 0);
+	dispatch["thermal_power"].assign(nrec*ny, 0);
+	dispatch["ambient_temperature"].assign(nrec*ny, 0);
+	dispatch["standby"].assign(nrec*ny, 0);
+	for (int i = 0; i < nrec; i++)
+	{
+		double gross_gen = m_simulation_outputs.gross_gen.vec()->at(i).as_number() * 1.e6; // [W]
+		double q_pb = m_simulation_outputs.q_pb.vec()->at(i).as_number() * 1.e6; // [W]
+		double tamb = m_simulation_outputs.tamb.vec()->at(i).as_number();  // [C]
+		double standby = m_simulation_outputs.is_standby.vec()->at(i).as_number();
+
+		for (int y = 0; y < ny; y++)
+		{
+			dispatch["cycle_power"].at(y*nrec + i) = gross_gen;
+			dispatch["thermal_power"].at(y*nrec + i) = q_pb;
+			dispatch["ambient_temperature"].at(y*nrec + i) = tamb;
+			dispatch["standby"].at(y*nrec + i) = standby;
+		}
+	}
+
+
+	pc.SetDispatch(dispatch);
+	pc.Simulate(false, false, false);
+	pc.GetSummaryResults();
+
+	//--- Average number of failure events over all scenarios
+	std::unordered_map < int, std::vector < std::string > > failure_event_labels;
+	double nf = 0.0;
+	for (int s = 0; s < ns; s++)
+		nf += pc.m_results.failure_event_labels[s].size() / (double)ns;
+
+
+	//--- Calculate yearly-average hourly cycle capacity/efficiency (averaged over all scenarios)
+	std::vector<double> avg_cycle_capacity(nrec, 0.0);
+	std::vector<double> avg_cycle_efficiency(nrec, 0.0);
+	for (int i = 0; i < nrec; i++)
+	{
+		for (int y = 0; y < ny; y++)
+		{
+			avg_cycle_capacity.at(i) += pc.m_results.avg_cycle_capacity.at(y*nrec + i) / (double)ny;
+			avg_cycle_efficiency.at(i) += pc.m_results.avg_cycle_efficiency.at(y*nrec + i) / (double)ny;
+		}
+	}
+
+
+	double nfailures_per_year = nf / (double)ny;
+	double avg_labor_cost_per_year = pc.m_results.avg_labor_cost / (double)ny;
+
+	save_cycle_outputs(avg_cycle_capacity, avg_cycle_efficiency, nfailures_per_year, avg_labor_cost_per_year);
+
+	is_cycle_avail_valid = true;
+
+
+	//--- De-rate generation/revenue in simulation outputs based on average cycle availability and efficiency
+	std::vector<double> gen_mod(nrec, 0.0);
+	for (int i = 0; i < nrec; i++)
+		gen_mod[i] = m_simulation_outputs.generation_arr.vec()->at(i).as_number() * avg_cycle_capacity[i] * avg_cycle_efficiency[i];
+
+	double annual_gen, annual_rev, cycle_starts, cycle_ramp, cycle_ramp_index;
+	accumulate_annual_results(gen_mod, annual_gen, annual_rev, cycle_starts, cycle_ramp, cycle_ramp_index);
+
+	m_simulation_outputs.generation_arr.assign_vector(gen_mod);
+	m_simulation_outputs.annual_generation.assign(annual_gen*1.e-6);
+	m_simulation_outputs.annual_revenue_units.assign(annual_rev*1.e-6);
+	m_simulation_outputs.annual_cycle_starts.assign(cycle_starts);
+	m_simulation_outputs.annual_cycle_ramp.assign(cycle_ramp*1.e-6);
+	m_simulation_outputs.cycle_ramp_index.assign(cycle_ramp_index * 100);
+
+
+	return is_cycle_avail_valid;
+}
+
+void Project::save_cycle_outputs(std::vector<double> &capacity, std::vector<double> &efficiency, double n_failures, double yearly_labor_cost)
+{
+
+	m_cycle_outputs.cycle_capacity.assign_vector(capacity);
+	m_cycle_outputs.cycle_efficiency.assign_vector(efficiency);
+	m_cycle_outputs.num_failures.assign(n_failures);
+
+	double labor_cost = calc_real_dollars(yearly_labor_cost);
+	m_cycle_outputs.cycle_labor_cost.assign(labor_cost);
 
 	return;
 }
@@ -2839,12 +2899,13 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 		if (!inputs.use_fixed_horizon)
 		{
 			double fop = estimate_capacity_factor(m_variables.solarm.as_number(), m_variables.tshours.as_number());  // rough estimate of annual capacity factor based on configuration
-			current_horizon = pc.GetEstimatedMinimumLifetime(fop);
+			current_horizon = ceil(pc.GetEstimatedMinimumLifetime(fop));
 		}
 
 		double hour_end = fmin(end_time, time_completed + current_horizon);
 		current_horizon = hour_end - time_completed;
 		int nsteps = (int)ceil(current_horizon / steplength);
+		
 		
 		pc.SetSimulationParameters(0, nsteps, steplength, 1.e-8, false, m_parameters.num_scenarios.as_integer(), m_parameters.cycle_hourly_labor_cost.as_number(), true, true);
 
@@ -3367,13 +3428,104 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 }
 
 
-void Project::save_cycle_outputs(std::vector<double> &capacity, std::vector<double> &efficiency, double n_failures, double labor_cost)
+bool Project::integrate_cycle_and_clusters(const std::unordered_map<std::string, std::vector<double>> &initial_soln, int first_index, int last_index, std::unordered_map<std::string, std::vector<double>> &final_soln)
 {
-	m_cycle_outputs.cycle_labor_cost.assign(labor_cost);
-	m_cycle_outputs.cycle_capacity.assign_vector(capacity);
-	m_cycle_outputs.cycle_efficiency.assign_vector(efficiency);
-	m_cycle_outputs.num_failures.assign(n_failures);
-	return;
+	// Production/dispatch optimization simulation integrated with cycle availability model when using clustering
+	// Simulation run for each group starting from the initial ssc solution previously computed -> ssc is only re-run when failures/repairs occur
+
+
+	std::unordered_map<std::string, std::vector<double>>::const_iterator it = initial_soln.find("gen");
+	int nrec = (int)it->second.size();
+	int nperday = nrec / 365;
+
+
+	//--- Initialize cycle availability model
+	PowerCycle pc;
+	WELLFiveTwelve gen(0);
+	pc.AssignGenerator(&gen);
+	initialize_cycle_model(pc);
+	std::vector<double> capacity(nrec, 1.0);
+	std::vector<double> efficiency(nrec, 1.0);
+	int n_failures, nf;
+	double labor_cost, lc;
+	n_failures = 0;
+	labor_cost = 0.0;
+
+	//--- Initialize modified solution
+	final_soln.clear();
+	std::vector<double> local_cap, local_eff;
+	std::unordered_map<std::string, std::vector<double>> local_soln;
+	for (it = initial_soln.begin(); it != initial_soln.end(); it++)
+		final_soln[it->first].assign(it->second.size(), 0.0);
+
+	plant_state final_state;
+	cycle_ssc_integration_inputs inputs;
+	inputs.use_fixed_horizon = true;
+	inputs.use_existing_ssc_soln = true;
+	inputs.use_stored_state = false;
+
+	//--- Loop over days of year
+	int ng = (int)cluster_outputs.partition_matrix.nrows;
+	int nd = m_parameters.cluster_ndays.as_integer();
+	for (int g = 0; g < ng + 2; g++)
+	{
+		int doy, index;
+		double horizon;
+
+		if (g > 0 && g < ng + 1)
+		{
+			doy = (g - 1)*nd + 1;
+			index = cluster_outputs.index.at(g - 1);
+			horizon = nd * 24;
+		}
+		else if (g == 0)
+		{
+			doy = 0;
+			index = first_index;
+			horizon = 24;
+		}
+		else
+		{
+			doy = ng * nd + 1;
+			index = last_index;
+			horizon = (365 - doy) * 24;
+		}
+
+		int exemplar = cluster_outputs.exemplars[index];
+		int doy_exemplar = exemplar * nd + 1;
+		inputs.start_time = doy_exemplar * 24.;
+		inputs.end_time = inputs.start_time + horizon;
+		inputs.horizon = horizon;
+
+		// extract initial solution
+		int j = doy * nperday;
+		int npts = (horizon / 24) * nperday;
+		inputs.initial_ssc_soln.clear();
+		for (it = initial_soln.begin(); it != initial_soln.end(); it++)
+			inputs.initial_ssc_soln[it->first].assign(it->second.begin() + j, it->second.begin() + j + npts);
+
+		// run 'integrate_cycle_and_simulation' for this time block starting from the existing solution (will not re-run ssc unless failures/repairs occur)
+		inputs.initial_state = final_state;
+		if (!integrate_cycle_and_simulation(pc, inputs, final_state, local_soln, local_cap, local_eff, nf, lc))
+			return false;
+
+		n_failures += nf;
+		labor_cost += lc;
+
+		for (int h = 0; h < npts; h++)
+		{
+			capacity.at(doy*nperday + h) = local_cap.at(h);
+			efficiency.at(doy*nperday + h) = local_eff.at(h);
+			for (it = local_soln.begin(); it != local_soln.end(); it++)
+				final_soln[it->first].at(doy*nperday + h) = it->second.at(h);
+		}
+
+		inputs.use_stored_state = true;  // use stored state after g = 0
+	}
+
+	save_cycle_outputs(capacity, efficiency, n_failures, labor_cost);
+
+	return true;
 }
 
 double Project::estimate_capacity_factor(double sm, double tes)
@@ -3391,3 +3543,5 @@ double Project::estimate_capacity_factor(double sm, double tes)
 	return cf / 100.;
 
 }
+
+

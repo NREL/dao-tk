@@ -60,6 +60,7 @@ static lk::fcall_t *daotk_functions()
 		_simulate_financial,
 		_simulate_objective,
 		_setup_clusters,
+		_simulate_cycle,
 		_var,
 		0 };
 
