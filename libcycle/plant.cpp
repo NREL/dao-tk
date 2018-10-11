@@ -663,10 +663,10 @@ void PowerCycle::ReadPlantLayoutFile()
 	std::string token;
 	std::vector<std::string> split_line = {};
 	getline(pfile, pline);
-	std::cerr << pline << "\n";
+	//std::cerr << pline << "\n";
 	cindex++;
 	getline(pfile, pline);
-	std::cerr << pline << "\n";
+	//std::cerr << pline << "\n";
 	cindex++;
 	while (pos != std::string::npos)
 	{
@@ -687,7 +687,7 @@ void PowerCycle::ReadPlantLayoutFile()
 	split_line.clear();
 	//condener efficiencies cold
 	getline(pfile, pline);
-	std::cerr << pline << "\n";
+	//std::cerr << pline << "\n";
 	pos = pline.find(delimiter);
 	while (pos != std::string::npos)
 	{
@@ -704,7 +704,7 @@ void PowerCycle::ReadPlantLayoutFile()
 	//condener efficiencies hot
 	split_line.clear();
 	getline(pfile, pline);
-	std::cerr << pline << "\n";
+	//std::cerr << pline << "\n";
 	pos = pline.find(delimiter);
 	while (pos != std::string::npos)
 	{

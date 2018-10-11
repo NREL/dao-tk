@@ -1,7 +1,6 @@
 #include "well512.h"
 #include <random>
 #include <string>
-#include <strstream>
 #include <fstream>
 
 /* 
