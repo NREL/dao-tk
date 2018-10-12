@@ -293,8 +293,8 @@ struct parameters : public lk::varhash_t
 	parameter is_ampl_engine;
 	parameter is_stochastic_disp;
 	parameter current_standby;
-	parameter stop_cycle_at_first_failure;
-	parameter stop_cycle_at_first_repair;
+	//parameter stop_cycle_at_first_failure;
+	//parameter stop_cycle_at_first_repair;
 	parameter is_use_clusters;
 	parameter is_run_continuous;
 	parameter is_cycle_ssc_integration;
@@ -322,8 +322,8 @@ struct parameters : public lk::varhash_t
 	parameter num_salt_pumps_required;
 	parameter num_water_pumps;
 	parameter num_turbines;
-	parameter read_periods;
-	parameter sim_length;
+	//parameter read_periods;
+	//parameter sim_length;
 	parameter num_scenarios;
 	parameter n_clusters;
 	parameter cluster_ndays;
@@ -367,16 +367,16 @@ struct parameters : public lk::varhash_t
 	parameter maintenance_interval;
 	parameter maintenance_duration;
 	parameter downtime_threshold;
-	parameter steplength;
+	//parameter steplength;
 	parameter hours_to_maintenance;
-	parameter power_output;
-	parameter thermal_output;
-	parameter capacity;
-	parameter thermal_capacity;
+	//parameter power_output;
+	//parameter thermal_output;
+	//parameter capacity;
+	//parameter thermal_capacity;
 	parameter temp_threshold;
-	parameter time_online;
-	parameter time_in_standby;
-	parameter downtime;
+	//parameter time_online;
+	//parameter time_in_standby;
+	//parameter downtime;
 	parameter shutdown_capacity;
 	parameter no_restart_capacity;
 	parameter shutdown_efficiency;
@@ -389,10 +389,10 @@ struct parameters : public lk::varhash_t
 	parameter user_sf_avail;
 	parameter condenser_eff_cold;
 	parameter condenser_eff_hot;
-	parameter cycle_power;
-	parameter thermal_power;
-	parameter ambient_temperature;
-	parameter standby;
+	//parameter cycle_power;
+	//parameter thermal_power;
+	//parameter ambient_temperature;
+	//parameter standby;
 
 	parameter helio_comp_weibull_shape;
 	parameter helio_comp_weibull_scale;
@@ -471,11 +471,11 @@ struct cycle_outputs : public lk::varhash_t
 	parameter cycle_efficiency;
 	parameter cycle_capacity;
 	parameter cycle_labor_cost;
-	parameter turbine_efficiency;
-	parameter turbine_capacity;
-	parameter expected_time_to_next_cycle_failure;
-	parameter expected_starts_to_next_cycle_failure;
-	parameter period_of_last_failure;
+	//parameter turbine_efficiency;
+	//parameter turbine_capacity;
+	//parameter expected_time_to_next_cycle_failure;
+	//parameter expected_starts_to_next_cycle_failure;
+	//parameter period_of_last_failure;
 	parameter num_failures;
 
 	cycle_outputs();

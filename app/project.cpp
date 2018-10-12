@@ -2,9 +2,9 @@
 #include <wx/wx.h>
 #include <limits>
 
-//#include <iostream>
-//#include <fstream>
-//#include <sstream>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
  int double_scale(double val, int *scale)
  {
@@ -92,8 +92,8 @@ parameters::parameters()
     is_ampl_engine.set(                  false,               "is_ampl_engine",      false,                               "Use AMPL optimizer",        "-",                          "Settings" );
     is_stochastic_disp.set(              false,           "is_stochastic_disp",      false,                          "Run stochastic dispatch",        "-",                          "Settings" );
     current_standby.set(                 false,              "current_standby",      false,                     "Start power cycle in standby",        "-",                  "Cycle|Parameters" );
-	stop_cycle_at_first_failure.set(     false,  "stop_cycle_at_first_failure",      false,   "Stop cycle model after first new failure event",        "-",                  "Cycle|Parameters" );
-	stop_cycle_at_first_repair.set(      false,   "stop_cycle_at_first_repair",      false,    "Stop cycle model after first new repair event",        "-",                  "Cycle|Parameters" );
+	//stop_cycle_at_first_failure.set(     false,  "stop_cycle_at_first_failure",      false,   "Stop cycle model after first new failure event",        "-",                  "Cycle|Parameters" );
+	//stop_cycle_at_first_repair.set(      false,   "stop_cycle_at_first_repair",      false,    "Stop cycle model after first new repair event",        "-",                  "Cycle|Parameters" );
 
 	std::string empty_string = "";
     ampl_data_dir.set(                      "",                "ampl_data_dir",      false,                                 "AMPL data folder",        "-",                          "Settings" );
@@ -113,8 +113,8 @@ parameters::parameters()
 	num_salt_pumps_required.set(             3,      "num_salt_pumps_required",      false,  "Number of hot salt pumps to operate at capacity",        "-",                  "Cycle|Parameters" );
 	num_water_pumps.set(                     2,              "num_water_pumps",      false,                 "Number of boiler and water pumps",        "-",                  "Cycle|Parameters" );
     num_turbines.set(                        1,                 "num_turbines",      false,               "Number of turbine-generator shafts",        "-",                  "Cycle|Parameters" );
-    read_periods.set(                        0,                 "read_periods",      false,                      "Number of read-only periods",        "-",                  "Cycle|Parameters" );
-    sim_length.set(                         48,                   "sim_length",      false,            "Number of periods in cycle simulation",        "-",                  "Cycle|Parameters" );
+    //read_periods.set(                        0,                 "read_periods",      false,                      "Number of read-only periods",        "-",                  "Cycle|Parameters" );
+    //sim_length.set(                         48,                   "sim_length",      false,            "Number of periods in cycle simulation",        "-",                  "Cycle|Parameters" );
     num_scenarios.set(                       1,                "num_scenarios",      false,                              "Number of scenarios",        "-",                  "Cycle|Parameters" );
 
     rec_ref_cost.set(                1.03e+008,                 "rec_ref_cost",      false,                          "Receiver reference cost",        "$",              "Financial|Parameters" );
@@ -152,16 +152,16 @@ parameters::parameters()
     maintenance_interval.set(             1.e6,         "maintenance_interval",      false,      "Runtime duration between maintenance events",        "h",                  "Cycle|Parameters" );
     maintenance_duration.set(             168.,         "maintenance_duration",      false,                   "Duration of maintenance events",        "h",                  "Cycle|Parameters" );
     downtime_threshold.set(                 24,           "downtime_threshold",      false,                "Downtime threshold for warm start",        "h",                  "Cycle|Parameters" );
-    steplength.set(                         1.,                   "steplength",      false,                    "Simulation time period length",        "h",                  "Cycle|Parameters" );
+    //steplength.set(                         1.,                   "steplength",      false,                    "Simulation time period length",        "h",                  "Cycle|Parameters" );
     hours_to_maintenance.set(             1.e6,         "hours_to_maintenance",      false,   "Runtime duration before next maintenance event",        "h",                  "Cycle|Parameters" );
-    power_output.set(                       0.,                 "power_output",      false,                       "Initial power cycle output",        "W",                  "Cycle|Parameters" );
-	thermal_output.set(                     0.,               "thermal_output",      false,             "Initial thermal output sent to cycle",        "W",                  "Cycle|Parameters" );
-	capacity.set(                      500000.,                     "capacity",      false,                             "Power cycle capacity",        "W",                  "Cycle|Parameters" );
-	thermal_capacity.set(             1500000.,             "thermal_capacity",      false,               "Power cycle thermal input capacity",        "W",                  "Cycle|Parameters" );
+    //power_output.set(                       0.,                 "power_output",      false,                       "Initial power cycle output",        "W",                  "Cycle|Parameters" );
+	//thermal_output.set(                     0.,               "thermal_output",      false,             "Initial thermal output sent to cycle",        "W",                  "Cycle|Parameters" );
+	//capacity.set(                      500000.,                     "capacity",      false,                             "Power cycle capacity",        "W",                  "Cycle|Parameters" );
+	//thermal_capacity.set(             1500000.,             "thermal_capacity",      false,               "Power cycle thermal input capacity",        "W",                  "Cycle|Parameters" );
 	temp_threshold.set(                    20.,               "temp_threshold",      false,     "Ambient temperature threshold for condensers",  "Celsius",                  "Cycle|Parameters" );
-    time_online.set(                        0.,                  "time_online",      false,              "Initial power cycle output duration",        "h",                  "Cycle|Parameters" );
-    time_in_standby.set(                    0.,              "time_in_standby",      false,              "Initial power cycle time in standby",        "h",                  "Cycle|Parameters" );
-    downtime.set(                           0.,                     "downtime",      false,                     "Initial power cycle downtime",        "h",                  "Cycle|Parameters" );
+    //time_online.set(                        0.,                  "time_online",      false,              "Initial power cycle output duration",        "h",                  "Cycle|Parameters" );
+    //time_in_standby.set(                    0.,              "time_in_standby",      false,              "Initial power cycle time in standby",        "h",                  "Cycle|Parameters" );
+    //downtime.set(                           0.,                     "downtime",      false,                     "Initial power cycle downtime",        "h",                  "Cycle|Parameters" );
     shutdown_capacity.set(                 0.3,            "shutdown_capacity",      false,            "Threshold capacity to shut plant down",        "-",                  "Cycle|Parameters" );
     no_restart_capacity.set(               0.8,          "no_restart_capacity",      false,   "Threshold capacity for maintenance on shutdown",        "-",                  "Cycle|Parameters" );
 	shutdown_efficiency.set(               0.7,          "shutdown_efficiency",      false,          "Threshold efficiency to shut plant down",        "-",                  "Cycle|Parameters" );
@@ -226,8 +226,8 @@ parameters::parameters()
     (*this)["is_ampl_engine"] = &is_ampl_engine;
     (*this)["is_stochastic_disp"] = &is_stochastic_disp;
 	(*this)["current_standby"] = &current_standby;
-	(*this)["stop_cycle_at_first_failure"] = &stop_cycle_at_first_failure;
-	(*this)["stop_cycle_at_first_repair"] = &stop_cycle_at_first_repair;
+	//(*this)["stop_cycle_at_first_failure"] = &stop_cycle_at_first_failure;
+	//(*this)["stop_cycle_at_first_repair"] = &stop_cycle_at_first_repair;
     (*this)["ampl_data_dir"] = &ampl_data_dir;
     (*this)["solar_resource_file"] = &solar_resource_file;
     (*this)["disp_steps_per_hour"] = &disp_steps_per_hour;
@@ -243,8 +243,8 @@ parameters::parameters()
 	(*this)["num_salt_pumps"] = &num_salt_pumps;
 	(*this)["num_water_pumps"] = &num_water_pumps;
 	(*this)["num_turbines"] = &num_turbines;
-	(*this)["read_periods"] = &read_periods;
-	(*this)["sim_length"] = &sim_length;
+	//(*this)["read_periods"] = &read_periods;
+	//(*this)["sim_length"] = &sim_length;
 	(*this)["num_scenarios"] = &num_scenarios;
     (*this)["rec_ref_cost"] = &rec_ref_cost;
     (*this)["rec_ref_area"] = &rec_ref_area;
@@ -282,22 +282,22 @@ parameters::parameters()
 	(*this)["maintenance_interval"] = &maintenance_interval;
 	(*this)["maintenance_duration"] = &maintenance_duration;
 	(*this)["downtime_threshold"] = &downtime_threshold;
-	(*this)["steplength"] = &steplength;
+	//(*this)["steplength"] = &steplength;
 	(*this)["hours_to_maintenance"] = &hours_to_maintenance;
-	(*this)["power_output"] = &power_output;
-	(*this)["thermal_output"] = &thermal_output;
-	(*this)["capacity"] = &capacity;
-	(*this)["thermal_capacity"] = &thermal_capacity;
+	//(*this)["power_output"] = &power_output;
+	//(*this)["thermal_output"] = &thermal_output;
+	//(*this)["capacity"] = &capacity;
+	//(*this)["thermal_capacity"] = &thermal_capacity;
 	(*this)["temp_threshold"] = &temp_threshold;
-	(*this)["time_online"] = &time_online;
-	(*this)["time_in_standby"] = &time_in_standby;
-	(*this)["downtime"] = &downtime;
+	//(*this)["time_online"] = &time_online;
+	//(*this)["time_in_standby"] = &time_in_standby;
+	//(*this)["downtime"] = &downtime;
 	(*this)["shutdown_capacity"] = &shutdown_capacity;
 	(*this)["no_restart_capacity"] = &no_restart_capacity;
+	(*this)["no_restart_efficiency"] = &no_restart_efficiency;
 	(*this)["cycle_hourly_labor_cost"] = &cycle_hourly_labor_cost;
     (*this)["c_ces"] = &c_ces;
     (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
-	(*this)["user_sf_avail"] = &user_sf_avail;
 	(*this)["condenser_eff_cold"] = &condenser_eff_cold;
 	(*this)["condenser_eff_hot"] = &condenser_eff_hot;
 
@@ -442,18 +442,20 @@ cycle_outputs::cycle_outputs()
     cycle_efficiency.set(    empty_vec,                       "cycle_efficiency",  true,                             "Cycle efficiency time series",  "-",  "Cycle|Outputs" );
     cycle_capacity.set(      empty_vec,                         "cycle_capacity",  true,                               "Cycle capacity time series",  "-",  "Cycle|Outputs" );
 	cycle_labor_cost.set(          nan,                       "cycle_labor_cost",  true,              "Expected labor costs for power cycle repair",  "$",  "Cycle|Outputs" );
-	turbine_efficiency.set(        nan,                     "turbine_efficiency",  true,                               "Current turbine efficiency",  "-",  "Cycle|Outputs" );
-	turbine_capacity.set(          nan,                       "turbine_capacity",  true,                                 "Current turbine capacity",  "-",  "Cycle|Outputs" );
-	expected_time_to_next_cycle_failure.set(          nan,    "expected_time_to_next_cycle_failure",  true,   "Expected operating hours before next component failure",  "h",  "Cycle|Outputs" );
-	expected_starts_to_next_cycle_failure.set(          nan,  "expected_starts_to_next_cycle_failure",  true,  "Expected number of starts before next component failure",  "-",  "Cycle|Outputs" );
+	//turbine_efficiency.set(        nan,                     "turbine_efficiency",  true,                               "Current turbine efficiency",  "-",  "Cycle|Outputs" );
+	//turbine_capacity.set(          nan,                       "turbine_capacity",  true,                                 "Current turbine capacity",  "-",  "Cycle|Outputs" );
+	//expected_time_to_next_cycle_failure.set(          nan,    "expected_time_to_next_cycle_failure",  true,   "Expected operating hours before next component failure",  "h",  "Cycle|Outputs" );
+	//expected_starts_to_next_cycle_failure.set(          nan,  "expected_starts_to_next_cycle_failure",  true,  "Expected number of starts before next component failure",  "-",  "Cycle|Outputs" );
+	num_failures.set(		nan,								"num_failures",		true,					"Average number of annual cycle failures", "",	 "Cycle|Outputs");
 
 	(*this)["cycle_efficiency"] = &cycle_efficiency;
 	(*this)["cycle_capacity"] = &cycle_capacity;
 	(*this)["cycle_labor_cost"] = &cycle_labor_cost;
-	(*this)["turbine_efficiency"] = &turbine_efficiency;
-	(*this)["turbine_capacity"] = &turbine_capacity;
-	(*this)["expected_time_to_next_cycle_failure"] = &expected_time_to_next_cycle_failure;
-	(*this)["expected_starts_to_next_cycle_failure"] = &expected_starts_to_next_cycle_failure;
+	//(*this)["turbine_efficiency"] = &turbine_efficiency;
+	//(*this)["turbine_capacity"] = &turbine_capacity;
+	//(*this)["expected_time_to_next_cycle_failure"] = &expected_time_to_next_cycle_failure;
+	//(*this)["expected_starts_to_next_cycle_failure"] = &expected_starts_to_next_cycle_failure;
+	(*this)["num_failures"] = &num_failures;
 }
 
 simulation_outputs::simulation_outputs()
@@ -677,10 +679,11 @@ bool Project::Validate(Project::CALLING_SIM::E sim_type, std::string *error_msg)
 				(*error_msg).append("Error: Attempting to run cycle availability without a valid solar field design.\n");
 				return false;
 			}
-			else
+
+			if (!is_simulation_valid)
 			{
-				if (!is_cycle_avail_valid)
-					(*error_msg).append("Notice: Simulating performance without valid cycle availability model output.\n");
+				(*error_msg).append("Error: Attempting to simulated cycle availability without a time-series performance simulation.\n");
+				return false;
 			}
 			break;
 		case CALLING_SIM::SIMULATION:
@@ -738,6 +741,7 @@ void Project::Initialize()
 	is_simulation_valid = false;
 	is_explicit_valid = false;
 	is_financial_valid = false;
+	is_cycle_avail_valid = false;
 
 	initialize_ssc_project();
 
@@ -1425,17 +1429,46 @@ bool Project::C()
 	
 	// error if invalid design
 	std::string error_msg;
-	if (!Validate(Project::CALLING_SIM::CYCLE_AVAIL, &error_msg))
+	bool ok = Validate(Project::CALLING_SIM::CYCLE_AVAIL, &error_msg);
+	message_handler(error_msg.c_str());
+	if (!ok)
+		return false;
+
+	if (is_cycle_avail_valid) // cycle availability results already exist
 	{
-		message_handler(error_msg.c_str());
+		if (m_parameters.is_cycle_ssc_integration.as_boolean())
+		{
+			message_handler("Notice: Cycle availability was already simulated during performance simulation and will not be repeated.\n");
+			return true;
+		}
+		else
+			message_handler("Notice: Cycle availability was already simulated. Previous results will be discarded.\n");
+	}
+
+
+
+	int ny = m_parameters.cycle_nyears.as_integer();  // number of years to simulated cycle failures (same dispatch profiles will be used in all years)
+	int ns = m_parameters.num_scenarios.as_integer(); // number of scenarios. Final capacity/efficiency arrays will be averaged over scenarios
+
+	//--- Check that simulation outputs are complete
+	int nrec = (int)m_simulation_outputs.gross_gen.vec()->size();  
+	if (nrec == 0 || m_simulation_outputs.q_pb.vec()->size() != nrec || m_simulation_outputs.tamb.vec()->size() != nrec || m_simulation_outputs.is_standby.vec()->size() != nrec)
+	{
+		message_handler("Incomplete set of simulation data. Cycle availability will not be simulated.\n");
+		is_cycle_avail_valid = false;
 		return false;
 	}
-	
 
+	//--- Initialize cycle model
 	PowerCycle pc = PowerCycle();
 	WELLFiveTwelve gen(0);
 	pc.AssignGenerator(&gen);
+	initialize_cycle_model(pc);
 
+	double steplength = 8760. / (double)nrec;
+	pc.SetSimulationParameters(0, nrec*ny, steplength, 1.e-8, false, ns, m_parameters.cycle_hourly_labor_cost.as_number(), false, false);
+
+	/*
 	//Simulation parameters
 	pc.SetSimulationParameters(
 		m_parameters.read_periods.as_integer(),
@@ -1494,43 +1527,78 @@ bool Project::C()
 	);
 
 	pc.Initialize();
-
+	*/
 	//Assign Dispatch  
-	//ajz: needs to be updated to pull these params from SSC after S() is called
 	std::unordered_map < std::string, std::vector < double > > dispatch;
-	dispatch["standby"] = {};
-	dispatch["cycle_power"] = {};
-	dispatch["ambient_temperature"] = {};
-	dispatch["thermal_power"] = {};
-
-	for (int i = 0; i < m_parameters.sim_length.as_integer(); i++)
+	dispatch["cycle_power"].assign(nrec*ny, 0);
+	dispatch["thermal_power"].assign(nrec*ny, 0);
+	dispatch["ambient_temperature"].assign(nrec*ny, 0);
+	dispatch["standby"].assign(nrec*ny, 0);
+	for (int i = 0; i < nrec; i++)
 	{
-		dispatch["cycle_power"].push_back(m_parameters.cycle_power.vec()->at(i).as_number());
-		dispatch["standby"].push_back(m_parameters.standby.vec()->at(i).as_number());
-		dispatch["ambient_temperature"].push_back(m_parameters.ambient_temperature.vec()->at(i).as_number());
-		dispatch["thermal_power"].push_back(m_parameters.thermal_power.vec()->at(i).as_number());
+		double gross_gen = m_simulation_outputs.gross_gen.vec()->at(i).as_number() * 1.e6; // [W]
+		double q_pb = m_simulation_outputs.q_pb.vec()->at(i).as_number() * 1.e6; // [W]
+		double tamb = m_simulation_outputs.tamb.vec()->at(i).as_number();  // [C]
+		double standby = m_simulation_outputs.is_standby.vec()->at(i).as_number();
+
+		for (int y = 0; y < ny; y++)
+		{
+			dispatch["cycle_power"].at(y*nrec + i) = gross_gen;
+			dispatch["thermal_power"].at(y*nrec + i) = q_pb;
+			dispatch["ambient_temperature"].at(y*nrec + i) = tamb;
+			dispatch["standby"].at(y*nrec + i) = standby;
+		}
 	}
+
 	
 	pc.SetDispatch(dispatch);
 
 	pc.Simulate(false,false,false);
 
-	//Annualize repair cost
-	//double ann_fact = 8760. / (double)(pc.GetSteplength() * pc.GetWriteInterval());
-
-	//pc.m_results.avg_labor_cost = calc_real_dollars(pc.m_results.avg_labor_cost) * ann_fact;
-
-	//Assign results to structure
 	pc.GetSummaryResults();
-	m_cycle_outputs.cycle_capacity.empty_vector();
-	m_cycle_outputs.cycle_efficiency.empty_vector();
 
-	m_cycle_outputs.cycle_labor_cost.assign(pc.m_results.avg_labor_cost);
-	m_cycle_outputs.cycle_capacity.assign_vector( pc.m_results.cycle_capacity[0] );
-	m_cycle_outputs.cycle_efficiency.assign_vector( pc.m_results.cycle_efficiency[0] );
-	m_cycle_outputs.expected_starts_to_next_cycle_failure.assign(pc.m_results.expected_starts_to_failure);
-	m_cycle_outputs.expected_time_to_next_cycle_failure.assign(pc.m_results.expected_time_to_failure);
-	m_cycle_outputs.num_failures.assign(pc.m_results.failure_event_labels.size());
+
+	//--- Average number of failure events over all scenarios
+	std::unordered_map < int, std::vector < std::string > > failure_event_labels;
+	double nf = 0.0;
+	for (int s = 0; s < ns; s++)
+		nf += pc.m_results.failure_event_labels[s].size() / (double)ns;
+
+
+	//--- Calculate yearly-average hourly cycle capacity/efficiency (averaged over all scenarios)
+	std::vector<double> avg_cycle_capacity(nrec, 0.0);
+	std::vector<double> avg_cycle_efficiency(nrec, 0.0);
+	for (int i = 0; i < nrec; i++)
+	{
+		for (int y = 0; y < ny; y++)
+		{
+			avg_cycle_capacity.at(i) += pc.m_results.avg_cycle_capacity.at(y*nrec + i) / (double)ny;
+			avg_cycle_efficiency.at(i) += pc.m_results.avg_cycle_efficiency.at(y*nrec + i) / (double)ny;
+		}
+	}
+
+	double nfailures_per_year = nf / (double)ny;
+	double avg_labor_cost_per_year = pc.m_results.avg_labor_cost / (double)ny;
+
+	//--- Assign results to structure
+	save_cycle_outputs(avg_cycle_capacity, avg_cycle_efficiency, nfailures_per_year, avg_labor_cost_per_year);
+
+
+	//--- De-rate generation/revenue in simulation outputs based on average cycle availability and efficiency
+	std::vector<double> gen_mod(nrec, 0.0);
+	for (int i = 0; i < nrec; i++)
+		gen_mod[i] = m_simulation_outputs.generation_arr.vec()->at(i).as_number() * avg_cycle_capacity[i] * avg_cycle_efficiency[i];
+
+	double annual_gen, annual_rev, cycle_starts, cycle_ramp, cycle_ramp_index;
+	accumulate_annual_results(gen_mod, annual_gen, annual_rev, cycle_starts, cycle_ramp, cycle_ramp_index);
+
+	m_simulation_outputs.generation_arr.assign_vector(gen_mod);
+	m_simulation_outputs.annual_generation.assign(annual_gen*1.e-6);
+	m_simulation_outputs.annual_revenue_units.assign(annual_rev*1.e-6);
+	m_simulation_outputs.annual_cycle_starts.assign(cycle_starts);
+	m_simulation_outputs.annual_cycle_ramp.assign(cycle_ramp*1.e-6);
+	m_simulation_outputs.cycle_ramp_index.assign(cycle_ramp_index * 100);
+
 
 	is_cycle_avail_valid = true;
 
@@ -1930,8 +1998,7 @@ bool Project::Z()
 	if (!is_cycle_avail_valid)
 	{
 		is_financial_valid = false;
-		run_cycle_model();  // simulates cycle availabiltiy and de-rates generation/revenue based on availability (averaged over scenarios and simulated years)
-		//C();
+		C();		// simulates cycle availabiltiy and de-rates generation/revenue based on availability (averaged over scenarios and simulated years)
 	}
 	else
 		message_handler("Using existing cycle availability results in objective function");
@@ -2516,7 +2583,7 @@ bool Project::save_simulation_outputs(std::unordered_map < std::string, std::vec
 
 	m_simulation_outputs.gross_gen.assign_vector(ssc_soln["P_cycle"]);
 	m_simulation_outputs.q_pb.assign_vector(ssc_soln["q_pb"]);
-	m_simulation_outputs.tamb.assign_vector(ssc_soln["tamb"]);
+	m_simulation_outputs.tamb.assign_vector(ssc_soln["tdry"]);
 	m_simulation_outputs.is_standby.assign_vector(standby);
 	if (m_parameters.is_use_clusters.as_boolean())
 	{
@@ -2629,113 +2696,6 @@ void Project::initialize_cycle_model(PowerCycle &pc)
 	pc.StoreCycleState();
 
 	return;
-}
-
-bool Project::run_cycle_model()
-{
-	// Run cycle availability model based on dispatch profile in simulation outputs
-
-
-
-	int ny = m_parameters.cycle_nyears.as_integer();
-	int ns = m_parameters.num_scenarios.as_integer();
-
-
-	int nrec = (int) m_simulation_outputs.gross_gen.vec()->size();
-	if (nrec == 0 || m_simulation_outputs.q_pb.vec()->size() != nrec || m_simulation_outputs.tamb.vec()->size() != nrec || m_simulation_outputs.is_standby.vec()->size() != nrec)
-	{
-		message_handler("Incomplete set of simulation data. Cycle availability will not be simulated.\n");
-		return false;
-	}
-
-
-
-	//--- Initialize cycle model
-	PowerCycle pc;
-	WELLFiveTwelve gen(0);
-	pc.AssignGenerator(&gen);
-	initialize_cycle_model(pc);
-
-	double steplength = 8760. / (double) nrec;
-	pc.SetSimulationParameters(0, nrec*ny, steplength, 1.e-8, false, ns,
-		m_parameters.cycle_hourly_labor_cost.as_number(),
-		m_parameters.stop_cycle_at_first_failure.as_boolean(),
-		m_parameters.stop_cycle_at_first_repair.as_boolean());
-
-
-
-	//--- Assign dispatch (assume same dispatch profile for all years) and simulate cycle availability
-	std::unordered_map < std::string, std::vector < double > > dispatch;
-	dispatch["cycle_power"].assign(nrec*ny, 0);
-	dispatch["thermal_power"].assign(nrec*ny, 0);
-	dispatch["ambient_temperature"].assign(nrec*ny, 0);
-	dispatch["standby"].assign(nrec*ny, 0);
-	for (int i = 0; i < nrec; i++)
-	{
-		double gross_gen = m_simulation_outputs.gross_gen.vec()->at(i).as_number() * 1.e6; // [W]
-		double q_pb = m_simulation_outputs.q_pb.vec()->at(i).as_number() * 1.e6; // [W]
-		double tamb = m_simulation_outputs.tamb.vec()->at(i).as_number();  // [C]
-		double standby = m_simulation_outputs.is_standby.vec()->at(i).as_number();
-
-		for (int y = 0; y < ny; y++)
-		{
-			dispatch["cycle_power"].at(y*nrec + i) = gross_gen;
-			dispatch["thermal_power"].at(y*nrec + i) = q_pb;
-			dispatch["ambient_temperature"].at(y*nrec + i) = tamb;
-			dispatch["standby"].at(y*nrec + i) = standby;
-		}
-	}
-
-
-	pc.SetDispatch(dispatch);
-	pc.Simulate(false, false, false);
-	pc.GetSummaryResults();
-
-	//--- Average number of failure events over all scenarios
-	std::unordered_map < int, std::vector < std::string > > failure_event_labels;
-	double nf = 0.0;
-	for (int s = 0; s < ns; s++)
-		nf += pc.m_results.failure_event_labels[s].size() / (double)ns;
-
-
-	//--- Calculate yearly-average hourly cycle capacity/efficiency (averaged over all scenarios)
-	std::vector<double> avg_cycle_capacity(nrec, 0.0);
-	std::vector<double> avg_cycle_efficiency(nrec, 0.0);
-	for (int i = 0; i < nrec; i++)
-	{
-		for (int y = 0; y < ny; y++)
-		{
-			avg_cycle_capacity.at(i) += pc.m_results.avg_cycle_capacity.at(y*nrec + i) / (double)ny;
-			avg_cycle_efficiency.at(i) += pc.m_results.avg_cycle_efficiency.at(y*nrec + i) / (double)ny;
-		}
-	}
-
-
-	double nfailures_per_year = nf / (double)ny;
-	double avg_labor_cost_per_year = pc.m_results.avg_labor_cost / (double)ny;
-
-	save_cycle_outputs(avg_cycle_capacity, avg_cycle_efficiency, nfailures_per_year, avg_labor_cost_per_year);
-
-	is_cycle_avail_valid = true;
-
-
-	//--- De-rate generation/revenue in simulation outputs based on average cycle availability and efficiency
-	std::vector<double> gen_mod(nrec, 0.0);
-	for (int i = 0; i < nrec; i++)
-		gen_mod[i] = m_simulation_outputs.generation_arr.vec()->at(i).as_number() * avg_cycle_capacity[i] * avg_cycle_efficiency[i];
-
-	double annual_gen, annual_rev, cycle_starts, cycle_ramp, cycle_ramp_index;
-	accumulate_annual_results(gen_mod, annual_gen, annual_rev, cycle_starts, cycle_ramp, cycle_ramp_index);
-
-	m_simulation_outputs.generation_arr.assign_vector(gen_mod);
-	m_simulation_outputs.annual_generation.assign(annual_gen*1.e-6);
-	m_simulation_outputs.annual_revenue_units.assign(annual_rev*1.e-6);
-	m_simulation_outputs.annual_cycle_starts.assign(cycle_starts);
-	m_simulation_outputs.annual_cycle_ramp.assign(cycle_ramp*1.e-6);
-	m_simulation_outputs.cycle_ramp_index.assign(cycle_ramp_index * 100);
-
-
-	return is_cycle_avail_valid;
 }
 
 void Project::save_cycle_outputs(std::vector<double> &capacity, std::vector<double> &efficiency, double n_failures, double yearly_labor_cost)
@@ -3226,7 +3186,10 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 			}
 			ofs.close();
 			*/
+
 			
+
+
 
 
 			//--- Accept current solution for all points prior to "next_start_pt"
@@ -3399,7 +3362,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 	}
 
 	// Write failure events to file
-	/*
 	std::string filename = "C:/Users/jmartine/Desktop/cycle_ssc_results/failure_events.txt";
 	std::ofstream ofs;
 	ofs.open(filename, std::ofstream::out);
@@ -3407,7 +3369,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 	ofs << "Time, Name, Component, Duration\n";
 	for (size_t i = 0; i<failure_label.size(); i++)
 		ofs << failure_time[i] << ", " << failure_label[i] << ", " << failure_component[i] << ", " << failure_duration[i] << "\n";
-	*/
 
 
 

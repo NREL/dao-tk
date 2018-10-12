@@ -263,6 +263,7 @@ void _test(lk::invoke_t &cxt)
 	//P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
 	P->m_parameters.solar_resource_file.assign( "C:/Users/AZOLAN/Documents/GitHub/daotk_dev/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
 
+	/*
 	P->m_parameters.sim_length.assign( 720 );
 	P->m_parameters.cycle_power.empty_vector();
 	P->m_parameters.thermal_power.empty_vector();
@@ -292,6 +293,7 @@ void _test(lk::invoke_t &cxt)
 			P->m_parameters.ambient_temperature.vec_append(15);
 		}
 	}
+	*/
 	P->D();
 	P->M();
 	P->O();
@@ -1042,6 +1044,6 @@ void _simulate_cycle(lk::invoke_t &cxt)
 	LK_DOC("simulate_cycle", "Simulates cycle availablity.", "([table:options]):table");
 	MainWindow &mw = MainWindow::Instance();
 	Project* P = mw.GetProject();
-	P->run_cycle_model();
+	P->C();
 	mw.UpdateDataTable();
 }
