@@ -2,9 +2,7 @@
 #include <wx/wx.h>
 #include <limits>
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
+
 
  int double_scale(double val, int *scale)
  {
@@ -92,8 +90,6 @@ parameters::parameters()
     is_ampl_engine.set(                  false,               "is_ampl_engine",      false,                               "Use AMPL optimizer",        "-",                          "Settings" );
     is_stochastic_disp.set(              false,           "is_stochastic_disp",      false,                          "Run stochastic dispatch",        "-",                          "Settings" );
     current_standby.set(                 false,              "current_standby",      false,                     "Start power cycle in standby",        "-",                  "Cycle|Parameters" );
-	//stop_cycle_at_first_failure.set(     false,  "stop_cycle_at_first_failure",      false,   "Stop cycle model after first new failure event",        "-",                  "Cycle|Parameters" );
-	//stop_cycle_at_first_repair.set(      false,   "stop_cycle_at_first_repair",      false,    "Stop cycle model after first new repair event",        "-",                  "Cycle|Parameters" );
 
 	std::string empty_string = "";
     ampl_data_dir.set(                      "",                "ampl_data_dir",      false,                                 "AMPL data folder",        "-",                          "Settings" );
@@ -113,8 +109,6 @@ parameters::parameters()
 	num_salt_pumps_required.set(             3,      "num_salt_pumps_required",      false,  "Number of hot salt pumps to operate at capacity",        "-",                  "Cycle|Parameters" );
 	num_water_pumps.set(                     2,              "num_water_pumps",      false,                 "Number of boiler and water pumps",        "-",                  "Cycle|Parameters" );
     num_turbines.set(                        1,                 "num_turbines",      false,               "Number of turbine-generator shafts",        "-",                  "Cycle|Parameters" );
-    //read_periods.set(                        0,                 "read_periods",      false,                      "Number of read-only periods",        "-",                  "Cycle|Parameters" );
-    //sim_length.set(                         48,                   "sim_length",      false,            "Number of periods in cycle simulation",        "-",                  "Cycle|Parameters" );
     num_scenarios.set(                       1,                "num_scenarios",      false,                              "Number of scenarios",        "-",                  "Cycle|Parameters" );
 
     rec_ref_cost.set(                1.03e+008,                 "rec_ref_cost",      false,                          "Receiver reference cost",        "$",              "Financial|Parameters" );
@@ -152,16 +146,8 @@ parameters::parameters()
     maintenance_interval.set(             1.e6,         "maintenance_interval",      false,      "Runtime duration between maintenance events",        "h",                  "Cycle|Parameters" );
     maintenance_duration.set(             168.,         "maintenance_duration",      false,                   "Duration of maintenance events",        "h",                  "Cycle|Parameters" );
     downtime_threshold.set(                 24,           "downtime_threshold",      false,                "Downtime threshold for warm start",        "h",                  "Cycle|Parameters" );
-    //steplength.set(                         1.,                   "steplength",      false,                    "Simulation time period length",        "h",                  "Cycle|Parameters" );
     hours_to_maintenance.set(             1.e6,         "hours_to_maintenance",      false,   "Runtime duration before next maintenance event",        "h",                  "Cycle|Parameters" );
-    //power_output.set(                       0.,                 "power_output",      false,                       "Initial power cycle output",        "W",                  "Cycle|Parameters" );
-	//thermal_output.set(                     0.,               "thermal_output",      false,             "Initial thermal output sent to cycle",        "W",                  "Cycle|Parameters" );
-	//capacity.set(                      500000.,                     "capacity",      false,                             "Power cycle capacity",        "W",                  "Cycle|Parameters" );
-	//thermal_capacity.set(             1500000.,             "thermal_capacity",      false,               "Power cycle thermal input capacity",        "W",                  "Cycle|Parameters" );
-	temp_threshold.set(                    20.,               "temp_threshold",      false,     "Ambient temperature threshold for condensers",  "Celsius",                  "Cycle|Parameters" );
-    //time_online.set(                        0.,                  "time_online",      false,              "Initial power cycle output duration",        "h",                  "Cycle|Parameters" );
-    //time_in_standby.set(                    0.,              "time_in_standby",      false,              "Initial power cycle time in standby",        "h",                  "Cycle|Parameters" );
-    //downtime.set(                           0.,                     "downtime",      false,                     "Initial power cycle downtime",        "h",                  "Cycle|Parameters" );
+    temp_threshold.set(                    20.,               "temp_threshold",      false,     "Ambient temperature threshold for condensers",  "Celsius",                  "Cycle|Parameters" );
     shutdown_capacity.set(                 0.3,            "shutdown_capacity",      false,            "Threshold capacity to shut plant down",        "-",                  "Cycle|Parameters" );
     no_restart_capacity.set(               0.8,          "no_restart_capacity",      false,   "Threshold capacity for maintenance on shutdown",        "-",                  "Cycle|Parameters" );
 	shutdown_efficiency.set(               0.7,          "shutdown_efficiency",      false,          "Threshold efficiency to shut plant down",        "-",                  "Cycle|Parameters" );
@@ -226,9 +212,7 @@ parameters::parameters()
     (*this)["is_ampl_engine"] = &is_ampl_engine;
     (*this)["is_stochastic_disp"] = &is_stochastic_disp;
 	(*this)["current_standby"] = &current_standby;
-	//(*this)["stop_cycle_at_first_failure"] = &stop_cycle_at_first_failure;
-	//(*this)["stop_cycle_at_first_repair"] = &stop_cycle_at_first_repair;
-    (*this)["ampl_data_dir"] = &ampl_data_dir;
+	(*this)["ampl_data_dir"] = &ampl_data_dir;
     (*this)["solar_resource_file"] = &solar_resource_file;
     (*this)["disp_steps_per_hour"] = &disp_steps_per_hour;
     (*this)["avail_seed"] = &avail_seed;
@@ -243,8 +227,6 @@ parameters::parameters()
 	(*this)["num_salt_pumps"] = &num_salt_pumps;
 	(*this)["num_water_pumps"] = &num_water_pumps;
 	(*this)["num_turbines"] = &num_turbines;
-	//(*this)["read_periods"] = &read_periods;
-	//(*this)["sim_length"] = &sim_length;
 	(*this)["num_scenarios"] = &num_scenarios;
     (*this)["rec_ref_cost"] = &rec_ref_cost;
     (*this)["rec_ref_area"] = &rec_ref_area;
@@ -282,16 +264,8 @@ parameters::parameters()
 	(*this)["maintenance_interval"] = &maintenance_interval;
 	(*this)["maintenance_duration"] = &maintenance_duration;
 	(*this)["downtime_threshold"] = &downtime_threshold;
-	//(*this)["steplength"] = &steplength;
 	(*this)["hours_to_maintenance"] = &hours_to_maintenance;
-	//(*this)["power_output"] = &power_output;
-	//(*this)["thermal_output"] = &thermal_output;
-	//(*this)["capacity"] = &capacity;
-	//(*this)["thermal_capacity"] = &thermal_capacity;
 	(*this)["temp_threshold"] = &temp_threshold;
-	//(*this)["time_online"] = &time_online;
-	//(*this)["time_in_standby"] = &time_in_standby;
-	//(*this)["downtime"] = &downtime;
 	(*this)["shutdown_capacity"] = &shutdown_capacity;
 	(*this)["no_restart_capacity"] = &no_restart_capacity;
 	(*this)["no_restart_efficiency"] = &no_restart_efficiency;
@@ -442,19 +416,11 @@ cycle_outputs::cycle_outputs()
     cycle_efficiency.set(    empty_vec,                       "cycle_efficiency",  true,                             "Cycle efficiency time series",  "-",  "Cycle|Outputs" );
     cycle_capacity.set(      empty_vec,                         "cycle_capacity",  true,                               "Cycle capacity time series",  "-",  "Cycle|Outputs" );
 	cycle_labor_cost.set(          nan,                       "cycle_labor_cost",  true,              "Expected labor costs for power cycle repair",  "$",  "Cycle|Outputs" );
-	//turbine_efficiency.set(        nan,                     "turbine_efficiency",  true,                               "Current turbine efficiency",  "-",  "Cycle|Outputs" );
-	//turbine_capacity.set(          nan,                       "turbine_capacity",  true,                                 "Current turbine capacity",  "-",  "Cycle|Outputs" );
-	//expected_time_to_next_cycle_failure.set(          nan,    "expected_time_to_next_cycle_failure",  true,   "Expected operating hours before next component failure",  "h",  "Cycle|Outputs" );
-	//expected_starts_to_next_cycle_failure.set(          nan,  "expected_starts_to_next_cycle_failure",  true,  "Expected number of starts before next component failure",  "-",  "Cycle|Outputs" );
 	num_failures.set(		nan,								"num_failures",		true,					"Average number of annual cycle failures", "",	 "Cycle|Outputs");
 
 	(*this)["cycle_efficiency"] = &cycle_efficiency;
 	(*this)["cycle_capacity"] = &cycle_capacity;
 	(*this)["cycle_labor_cost"] = &cycle_labor_cost;
-	//(*this)["turbine_efficiency"] = &turbine_efficiency;
-	//(*this)["turbine_capacity"] = &turbine_capacity;
-	//(*this)["expected_time_to_next_cycle_failure"] = &expected_time_to_next_cycle_failure;
-	//(*this)["expected_starts_to_next_cycle_failure"] = &expected_starts_to_next_cycle_failure;
 	(*this)["num_failures"] = &num_failures;
 }
 
@@ -1468,66 +1434,6 @@ bool Project::C()
 	double steplength = 8760. / (double)nrec;
 	pc.SetSimulationParameters(0, nrec*ny, steplength, 1.e-8, false, ns, m_parameters.cycle_hourly_labor_cost.as_number(), false, false);
 
-	/*
-	//Simulation parameters
-	pc.SetSimulationParameters(
-		m_parameters.read_periods.as_integer(),
-		m_parameters.sim_length.as_integer(),
-		m_parameters.steplength.as_integer(),
-		1.e-8,
-		false,
-		m_parameters.num_scenarios.as_integer(),
-		m_parameters.cycle_hourly_labor_cost.as_number(),
-		m_parameters.stop_cycle_at_first_failure.as_boolean(),
-		m_parameters.stop_cycle_at_first_repair.as_boolean()
-	);
-	
-	//Plant Components
-	std::vector < double > c_eff_cold;
-	std::vector < double > c_eff_hot;
-	for (int i = 0; i < m_parameters.num_condenser_trains.as_integer()+1; i++)
-	{
-		c_eff_cold.push_back( m_parameters.condenser_eff_cold.vec()->at(i).as_number() );
-		c_eff_hot.push_back( m_parameters.condenser_eff_hot.vec()->at(i).as_number() );
-	}
-	
-	pc.GeneratePlantComponents(
-		m_parameters.num_condenser_trains.as_integer(),
-		m_parameters.fans_per_train.as_integer(),
-		m_parameters.radiators_per_train.as_integer(),
-		m_parameters.num_salt_steam_trains.as_integer(),
-		m_parameters.num_fwh.as_integer(),
-		m_parameters.num_salt_pumps.as_integer(),
-		m_parameters.num_salt_pumps_required.as_integer(),
-		m_parameters.num_water_pumps.as_integer(),
-		m_parameters.num_turbines.as_integer(),
-		c_eff_cold,
-		c_eff_hot
-	);
-
-	//Plant Parameters
-	pc.SetPlantAttributes(
-		m_parameters.maintenance_interval.as_number(),
-		m_parameters.maintenance_duration.as_number(),
-		m_parameters.downtime_threshold.as_number(),
-		m_parameters.hours_to_maintenance.as_number(),
-		m_parameters.power_output.as_number(),
-		m_parameters.thermal_output.as_number(),
-		m_parameters.current_standby.as_boolean(),
-		m_parameters.capacity.as_number(),
-		m_parameters.thermal_capacity.as_number(),
-		m_parameters.temp_threshold.as_number(),
-		m_parameters.time_online.as_number(),
-		m_parameters.time_in_standby.as_number(),
-		m_parameters.downtime.as_number(),
-		m_parameters.shutdown_capacity.as_number(),
-		m_parameters.no_restart_capacity.as_number(),
-		m_parameters.shutdown_efficiency.as_number(),
-		m_parameters.no_restart_efficiency.as_number()
-	);
-
-	pc.Initialize();
-	*/
 	//Assign Dispatch  
 	std::unordered_map < std::string, std::vector < double > > dispatch;
 	dispatch["cycle_power"].assign(nrec*ny, 0);
@@ -1554,8 +1460,6 @@ bool Project::C()
 	pc.SetDispatch(dispatch);
 
 	pc.Simulate(false,false,false);
-
-	pc.GetSummaryResults();
 
 
 	//--- Average number of failure events over all scenarios
@@ -2856,12 +2760,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 		//-- Set amount of time to run ssc solution and cycle availability model
 		double current_horizon = horizon;
-		if (!inputs.use_fixed_horizon)
-		{
-			double fop = estimate_capacity_factor(m_variables.solarm.as_number(), m_variables.tshours.as_number());  // rough estimate of annual capacity factor based on configuration
-			current_horizon = ceil(pc.GetEstimatedMinimumLifetime(fop));
-		}
-
 		double hour_end = fmin(end_time, time_completed + current_horizon);
 		current_horizon = hour_end - time_completed;
 		int nsteps = (int)ceil(current_horizon / steplength);
@@ -2875,11 +2773,13 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 		is_reoptimize = true;
 		double capacity_init = 1.0;
 		double efficiency_init = 1.0;
-		if (is_reoptimize_at_repairs && capacity_last > 0.0 && !use_existing_ssc_soln)
+		/*
+		if (is_reoptimize_at_repairs && capacity_last > 0.0 && !use_existing_ssc_soln)  //removing this for now-> dispatch optimization with lpsolve needs more work on constraints
 		{
 			capacity_init = capacity_last;
 			efficiency_init = efficiency_last;
 		}
+		*/
 		std::vector<double> cycle_capacity(nsteps, capacity_init);
 		std::vector<double> cycle_efficiency(nsteps, efficiency_init);
 
@@ -3070,40 +2970,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 				int next_repair = pc.m_results.period_of_last_repair[sc];
 				
 
-				//===============================================================
-				/*
-				std::ofstream ofs;
-				std::string filename =  "C:/Users/jmartine/Desktop/cycle_ssc_results/debug/time" + std::to_string(time_completed) + "_step" + std::to_string(step_now) + "_call" + std::to_string(pc_call) + ".txt";
-				ofs.open(filename, std::ofstream::out);
-				ofs.clear();
-				ofs << "Previous repair, Next failure, Next repair\n";
-				ofs << prev_repair << ", " << next_failure << ", " << next_repair << "\n" << "\n";
-				ofs << "Failure events\n";
-				std::unordered_map< std::string, failure_event > current_failures = pc.GetFailureEvents();
-				for (auto it2 = current_failures.begin(); it2 != current_failures.end(); it2++)
-				{
-					ofs << "Name: " << it2->first << "\n";
-					ofs << "Time: " << it2->second.time << "\n";
-					ofs << "Component: " << it2->second.component << "\n";
-					ofs << "Duration: " << it2->second.duration << "\n";
-					ofs << "\n";
-				}
-				ofs << "Capacity used in dispatch, Efficiency used in dispatch, Cycle power, T, standby, Capacity, Efficiency\n";
-				for (int i = 0; i < nsteps; i++)
-				{
-					ofs << cycle_capacity_in[i] << ", "
-						<< cycle_efficiency_in[i] << ", "
-						<< pc_dispatch["cycle_power"][i] << ", "
-						<< pc_dispatch["ambient_temperature"][i] << ", "
-						<< pc_dispatch["standby"][i] << ", "
-						<< cycle_capacity[i] << ", "
-						<< cycle_efficiency[i] << "\n";
-				}
-				ofs.close();
-				*/
-				//===============================================================
-				
-
 				pc_call += 1;
 
 				if (next_failure <= prev_failure) // No new failures
@@ -3137,22 +3003,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 					efficiency_last = 1.0;
 				}
 
-				// Save failure events
-				if (next_start_pt < nsteps)
-				{ 
-					std::unordered_map< std::string, failure_event > failures = pc.GetFailureEvents();
-					std::unordered_map< std::string, failure_event >::iterator itf;
-					for (itf = failures.begin(); itf != failures.end(); itf++)
-					{
-						if (itf->second.time > step_now && itf->second.time <= next_start_pt)
-						{
-							failure_label.push_back(itf->first);
-							failure_component.push_back(itf->second.component);
-							failure_duration.push_back(itf->second.duration);
-							failure_time.push_back(itf->second.time + time_completed);
-						}
-					}
-				}
 
 			}
 
@@ -3164,30 +3014,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 				std::fill(cycle_capacity.begin() + next_start_pt, cycle_capacity.end(), cycle_capacity[next_start_pt]);
 				std::fill(cycle_efficiency.begin() + next_start_pt, cycle_efficiency.end(), cycle_efficiency[next_start_pt]);
 			}
-
-
-			
-			//--- Write current solution to file
-			/*
-			std::ofstream ofs;
-			std::string filename = "C:/Users/jmartine/Desktop/cycle_ssc_results/weekly_data/time" + std::to_string(time_completed) + "_step" + std::to_string(step_now) + ".txt";
-			ofs.open(filename, std::ofstream::out);
-			ofs.clear();
-			ofs << "PC target (MWt), PC energy (MWt), TES (MWht), Receiver (MWt), Cycle gross output (MWe), Capacity, Efficiency\n";
-			for (int i = 0; i < nsteps; i++)
-			{
-				ofs << current_targets["q_dot_pc_target"][i] << ", "
-					<< current_soln["q_pb"][i] << ", "
-					<< current_soln["e_ch_tes"][i] << ", "
-					<< current_soln["Q_thermal"][i] << ", "
-					<< (current_soln["P_cycle"][i] * cycle_efficiency_in[i]) << ", "
-					<< cycle_capacity[i] << ", "
-					<< cycle_efficiency[i] <<"\n";
-			}
-			ofs.close();
-			*/
-
-			
 
 
 
@@ -3361,18 +3187,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 		time_completed += current_horizon;
 	}
 
-	// Write failure events to file
-	std::string filename = "C:/Users/jmartine/Desktop/cycle_ssc_results/failure_events.txt";
-	std::ofstream ofs;
-	ofs.open(filename, std::ofstream::out);
-	ofs.clear();
-	ofs << "Time, Name, Component, Duration\n";
-	for (size_t i = 0; i<failure_label.size(); i++)
-		ofs << failure_time[i] << ", " << failure_label[i] << ", " << failure_component[i] << ", " << failure_duration[i] << "\n";
-
-
-
-
 	ssc_module_free(mod_mspt);
 
 	final_state.tes_charge = tes_charge;
@@ -3488,21 +3302,4 @@ bool Project::integrate_cycle_and_clusters(const std::unordered_map<std::string,
 
 	return true;
 }
-
-double Project::estimate_capacity_factor(double sm, double tes)
-{
-	// rough correlation between annual capacity factor and solar multiple, tes size
-	sm = fmax(0.6, fmin(sm, 3.0));
-	tes = fmax(2.0, fmin(tes, 16.0));
-
-	double cf;
-	if (sm <= 1.5)
-		cf = -2.3 + 29.3*sm - 0.3*tes + 0.05*sm*tes;
-	else
-		cf = 7.4 + 28.0*sm - 0.86*tes + 2.1*sm*tes - 6.6*sm*sm - 0.137*tes*tes;
-
-	return cf / 100.;
-
-}
-
 
