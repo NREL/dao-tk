@@ -198,9 +198,9 @@ parameters::parameters()
 
 	// Cycle availability and simulation integration
 	is_cycle_ssc_integration.set(false, "is_cycle_ssc_integration", false, "Integrate cycle failure and dispatch optimization models?", "-", "Settings");
-	is_reoptimize_at_repairs.set(true, "is_reoptimize_at_repairs", false, "Re-optimize at cycle repairs?", "-", "Settings");
+	is_reoptimize_at_repairs.set(false, "is_reoptimize_at_repairs", false, "Re-optimize at cycle repairs?", "-", "Settings");
 	is_reoptimize_at_failures.set(false, "is_reoptimize_at_failures", false, "Re-optimize at cycle failures?", "-", "Settings");
-	is_use_target_heuristic.set(false, "is_use_target_heuristic", false, "Use heuristic to adjust dispatch targets due to cycle failures?", "-", "Settings");
+	is_use_target_heuristic.set(true, "is_use_target_heuristic", false, "Use heuristic to adjust dispatch targets during cycle failures?", "-", "Settings");
 	cycle_nyears.set(1, "cycle_nyears", false, "Cycle availability number of years simulated", "-", "Settings");
 
 
@@ -1463,10 +1463,26 @@ bool Project::C()
 
 
 	//--- Average number of failure events over all scenarios
-	std::unordered_map < int, std::vector < std::string > > failure_event_labels;
 	double nf = 0.0;
+	/*
+	std::unordered_map < int, std::vector < std::string > > failure_event_labels;
 	for (int s = 0; s < ns; s++)
 		nf += pc.m_results.failure_event_labels[s].size() / (double)ns;
+	*/
+
+	// for now count failures from capacity/efficiency results
+	for (int s = 0; s < ns; s++)
+	{
+		for (int i = 1; i < nrec*ny; i++)
+		{
+			if (pc.m_results.cycle_capacity[s][i] < pc.m_results.cycle_capacity[s][i - 1] || pc.m_results.cycle_efficiency[s][i] < pc.m_results.cycle_efficiency[s][i - 1])
+				nf += 1;
+		}
+	}
+	nf /= (double)ns;
+
+	
+
 
 
 	//--- Calculate yearly-average hourly cycle capacity/efficiency (averaged over all scenarios)
@@ -1708,6 +1724,7 @@ bool Project::S()
 			std::vector<double> cycle_capacity, cycle_efficiency;
 			int n_failures;
 			double labor_cost;
+			inputs.horizon = 168.;
 			initialize_cycle_model(pc);
 			is_simulation_valid = integrate_cycle_and_simulation(pc, inputs, final_state, ssc_soln, cycle_capacity, cycle_efficiency, n_failures, labor_cost);
 			save_cycle_outputs(cycle_capacity, cycle_efficiency, n_failures, labor_cost);
