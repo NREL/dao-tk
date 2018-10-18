@@ -18,7 +18,9 @@ void PowerCycle::Initialize(double age, int scen_idx)
 	Initializes the plant by generating random lifetimes/probabilities for all 
 	components and failure modes, and ages the plant for a single scenario.
 	*/
-	m_gen->assignStates(scen_idx);
+	m_life_gen->assignStates(3*scen_idx);
+	m_repair_gen->assignStates(3*scen_idx+1);
+	m_binary_gen->assignStates(3*scen_idx+2);
 	InitializeCyclingDists();
 	GeneratePlantCyclingPenalties();
 	ResetPlant();
@@ -45,14 +47,20 @@ void PowerCycle::InitializeCyclingDists()
 	m_cs_dist = BoundedJohnsonDist(0.469391, 0.581813, 3.691E-5, 2.369E-4, "BoundedJohnson");
 }
 
-void PowerCycle::AssignGenerator( WELLFiveTwelve *gen )
+void PowerCycle::AssignGenerators( 
+	WELLFiveTwelve *gen1,
+	WELLFiveTwelve *gen2, 
+	WELLFiveTwelve *gen3
+)
 {
 	/*
 	Assigns an RNG object to the plant, which is used to generate component
-	lifetimes, failure probabilities, tests fo binary failures, and repair times.
+	lifetimes, failure probabilities, tests for binary failures, and repair times.
 	Here, we use the WELL512 implementation by Panneton et al. (2006).
 	*/
-    m_gen = gen;
+    m_life_gen = gen1;
+	m_repair_gen = gen2;
+	m_binary_gen = gen3;
 }
 
 void PowerCycle::GeneratePlantCyclingPenalties()
@@ -64,7 +72,7 @@ void PowerCycle::GeneratePlantCyclingPenalties()
 	simulation model from penalizing hot starts more than
 	cold starts.
 	*/
-	double unif = m_gen->getVariate();
+	double unif = m_life_gen->getVariate();
 	SetHotStartPenalty(m_hs_dist.GetInverseCDF(unif));
 	SetWarmStartPenalty(m_ws_dist.GetInverseCDF(unif));
 	SetColdStartPenalty(m_cs_dist.GetInverseCDF(unif));
@@ -223,7 +231,11 @@ void PowerCycle::ReadCycleStateFromResults(int scen_idx)
 	m_begin_cycle_state = m_results.plant_status[m_current_scenario];
 	m_start_component_status = m_results.component_status[m_current_scenario];
 	SetStartComponentStatus();
-	m_gen->assignStates(scen_idx);
+
+	m_life_gen->assignStates(3 * m_current_scenario);
+	m_repair_gen->assignStates(3 * m_current_scenario + 1);
+	m_binary_gen->assignStates(3 * m_current_scenario + 2);
+
 	m_failure_events = m_results.failure_events[m_current_scenario];
 	m_failure_event_labels = m_results.failure_event_labels[m_current_scenario];
 }
@@ -298,7 +310,10 @@ void PowerCycle::StoreCycleState()
 	/* stores a copy of component, plant and RNG engine status. */
 	StoreComponentState();
 	StorePlantParamsState();
-	m_gen->saveStates(m_current_scenario);
+
+	m_life_gen->saveStates(3 * m_current_scenario);
+	m_repair_gen->saveStates(3 * m_current_scenario + 1);
+	m_binary_gen->saveStates(3 * m_current_scenario + 2);
 }
 
 
@@ -311,7 +326,10 @@ void PowerCycle::RecordFinalState()
 	*/
 	m_results.plant_status[m_current_scenario] = m_current_cycle_state;
 	m_results.component_status[m_current_scenario] = GetComponentStates();
-	m_gen->saveStates(m_current_scenario);
+
+	m_life_gen->saveStates(3 * m_current_scenario);
+	m_repair_gen->saveStates(3 * m_current_scenario + 1);
+	m_binary_gen->saveStates(3 * m_current_scenario + 2);
 }
 
 void PowerCycle::RevertToStartState(bool reset_rng)
@@ -340,7 +358,12 @@ void PowerCycle::RevertToStartState(bool reset_rng)
 
 	SetStartComponentStatus();
 	if (reset_rng)
-		m_gen->assignStates(m_current_scenario);
+	{
+		m_life_gen->assignStates(3 * m_current_scenario);
+		m_repair_gen->assignStates(3 * m_current_scenario + 1);
+		m_binary_gen->assignStates(3 * m_current_scenario + 2);
+	}
+		
 }
 
 void PowerCycle::WriteStateToFiles(int extra_periods)
@@ -352,12 +375,24 @@ void PowerCycle::WriteStateToFiles(int extra_periods)
 	WriteComponentFile();
 	WritePlantStateFile();
 	WriteSimParamsFile();
-	m_gen->WriteRNGStateFile(
+	m_life_gen->WriteRNGStateFile(
 		m_file_settings.rng_state_filename
 		//+std::to_string(m_current_scenario)
-		+".csv",
-		m_current_scenario
+		+"l.csv",
+		3 * m_current_scenario
 		);
+	m_repair_gen->WriteRNGStateFile(
+		m_file_settings.rng_state_filename
+		//+std::to_string(m_current_scenario)
+		+ "r.csv",
+		3 * m_current_scenario + 1
+	);
+	m_binary_gen->WriteRNGStateFile(
+		m_file_settings.rng_state_filename
+		//+std::to_string(m_current_scenario)
+		+ "b.csv",
+		3 * m_current_scenario + 2
+	);
 	WriteFailuresFile();
 	WriteCapEffFile();
 }
@@ -655,6 +690,24 @@ void PowerCycle::ReadStateFromFiles(bool init)
 	ReadPlantFile();
 	ReadFailuresFromFile();
 	ReadCapEffFile();
+	m_life_gen->ReadRNGStateFile(
+		m_file_settings.rng_state_filename
+		//+std::to_string(m_current_scenario)
+		+ "l.csv",
+		3 * m_current_scenario
+	);
+	m_repair_gen->ReadRNGStateFile(
+		m_file_settings.rng_state_filename
+		//+std::to_string(m_current_scenario)
+		+ "r.csv",
+		3 * m_current_scenario + 1
+	);
+	m_binary_gen->ReadRNGStateFile(
+		m_file_settings.rng_state_filename
+		//+std::to_string(m_current_scenario)
+		+ "b.csv",
+		3 * m_current_scenario + 2
+	);
 }
 
 void PowerCycle::ReadPlantLayoutFile()
@@ -1391,7 +1444,10 @@ void PowerCycle::SetNoRestartEfficiency(double efficiency)
 void PowerCycle::SetScenarioIndex(int idx)
 {
 	m_current_scenario = idx;
-	m_gen->assignStates(idx);
+
+	m_life_gen->assignStates(3 * idx);
+	m_repair_gen->assignStates(3 * idx + 1);
+	m_binary_gen->assignStates(3 * idx + 2);
 }
 
 
@@ -2006,7 +2062,8 @@ void PowerCycle::TestForComponentFailures(double ramp_mult, int t, std::string s
 		hazard_increase = m_current_cycle_state.cold_start_penalty;
 	for (size_t i = 0; i < m_components.size(); i++)
 		m_components.at(i).TestForFailure(
-			m_sim_params.steplength, ramp_mult, *m_gen, t, 
+			m_sim_params.steplength, ramp_mult, *m_life_gen, 
+			*m_repair_gen, *m_binary_gen, t, 
 			hazard_increase, mode, m_current_scenario
 		);
 }
@@ -2722,7 +2779,7 @@ void PowerCycle::ResetPlant()
 	m_current_cycle_state.hours_to_maintenance = m_current_cycle_state.maintenance_interval;
 	for (size_t c = 0; c < GetComponents().size(); c++)
 	{
-		GetComponents().at(c).Reset(*m_gen);
+		GetComponents().at(c).Reset(*m_life_gen);
 	}
 }
 

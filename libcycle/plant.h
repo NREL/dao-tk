@@ -15,7 +15,9 @@
 class PowerCycle
 {
 	//RNG Engine
-	WELLFiveTwelve *m_gen;
+	WELLFiveTwelve *m_life_gen;
+	WELLFiveTwelve *m_repair_gen;
+	WELLFiveTwelve *m_binary_gen;
 
 	//Components
 	std::vector< Component > m_components;
@@ -84,7 +86,11 @@ public:
 	simulation_params m_sim_params;
 	std::vector< std::string > output_log;
 	void InitializeCyclingDists();
-	void AssignGenerator(WELLFiveTwelve *gen);
+	void AssignGenerators(
+		WELLFiveTwelve *gen1,
+		WELLFiveTwelve *gen2,
+		WELLFiveTwelve *gen3
+	);
 	void GeneratePlantCyclingPenalties();
 	void SetHotStartPenalty(double pen);
 	void SetWarmStartPenalty(double pen);

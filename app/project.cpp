@@ -1407,8 +1407,10 @@ bool Project::C()
 	
 
 	PowerCycle pc = PowerCycle();
-	WELLFiveTwelve gen(0);
-	pc.AssignGenerator(&gen);
+	WELLFiveTwelve gen1(0);
+	WELLFiveTwelve gen2(0);
+	WELLFiveTwelve gen3(0);
+	pc.AssignGenerators(&gen1, &gen2, &gen3);
 
 	//Simulation parameters
 	pc.SetSimulationParameters(

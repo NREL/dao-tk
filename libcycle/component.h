@@ -141,11 +141,26 @@ public:
         
     double HoursToFailure(double ramp_mult, std::string mode);
 
-	void TestForBinaryFailure(std::string mode, int t, WELLFiveTwelve &gen,
-		int scen_index);
+	void TestForBinaryFailure(
+		std::string mode, 
+		int t,
+		WELLFiveTwelve &life_gen,
+		WELLFiveTwelve &repair_gen,
+		WELLFiveTwelve &binary_gen,
+		int scen_index
+	);
 	
-	void TestForFailure(double time, double ramp_mult, WELLFiveTwelve &gen, 
-		int t, double hazard_increase, std::string mode, int scen_index);
+	void TestForFailure(
+		double time,
+		double ramp_mult,
+		WELLFiveTwelve &life_gen,
+		WELLFiveTwelve &repair_gen,
+		WELLFiveTwelve &binary_gen,
+		int t,
+		double hazard_increase,
+		std::string mode,
+		int scen_index
+	);
          
     void Operate(
 		double time, 
@@ -158,7 +173,13 @@ public:
     void ReadFailure(double downtime, double life_remaining,
 		int fail_idx, bool reset_hazard);
                 
-    void GenerateFailure(WELLFiveTwelve &gen, int t, int j, int scen_index); 
+    void GenerateFailure(
+		WELLFiveTwelve &life_gen,
+		WELLFiveTwelve &repair_gen,
+		int t, 
+		int j, 
+		int scen_index
+	); 
 
 	bool CanBeRepaired(std::string mode);
 
