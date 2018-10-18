@@ -359,7 +359,6 @@ void PowerCycle::WriteStateToFiles(int extra_periods)
 		m_current_scenario
 		);
 	WriteFailuresFile();
-	WriteAMPLParams(extra_periods);
 	WriteCapEffFile();
 }
 
@@ -412,12 +411,12 @@ void PowerCycle::WriteComponentFile()
 	else
 		component_status = m_start_component_status;
 	cfile.open(component_filename);
-	cfile << "hazard_rate,downtime_remaining,repair_event_time,lifesprobs\n";
+	cfile << "name,hazard_rate,downtime_remaining,repair_event_time,lifesprobs\n";
 	ComponentStatus status;
 	for (Component c : GetComponents())
 	{
 		status = component_status[c.GetName()];
-		cfile << status.hazard_rate << "," << status.downtime_remaining << "," << status.repair_event_time;
+		cfile << c.GetName() << "," << status.hazard_rate << "," << status.downtime_remaining << "," << status.repair_event_time;
 		for (double d : status.lifetimes)
 		{
 			cfile << "," << d;
@@ -519,16 +518,16 @@ void PowerCycle::WriteAMPLParams(int extra_periods)
 		//+ m_file_settings.day_idx 
 		//+ ".dat"
 		);
-	if (m_current_scenario > 0)
+/* 	if (m_current_scenario > 0)
 	{
 		filename += std::to_string(m_current_scenario);
 		filename += "_";
 	}
-	filename += std::to_string(m_file_settings.day_idx);
+	filename += std::to_string(m_file_settings.day_idx); */
 	filename += ".dat";
 	std::ofstream outfile;
 	outfile.open(filename);
-	int period = 0;
+	int period = -1;
 	if (m_sim_params.stop_at_first_failure &&
 		!m_sim_params.stop_at_first_repair && NewFailureOccurred())
 		period = m_results.period_of_last_failure[m_current_scenario] + 1;
@@ -542,7 +541,7 @@ void PowerCycle::WriteAMPLParams(int extra_periods)
 		)
 		period = std::max(m_results.period_of_last_repair[m_current_scenario], m_results.period_of_last_failure[m_current_scenario]) + 1;
 	else  // here, either no failures and no repairs occurred, or settings don't require stoppage at a failure or repair
-		period = std::max(m_results.period_of_last_repair[m_current_scenario], m_results.period_of_last_failure[m_current_scenario]);
+		period = std::max(m_results.period_of_last_repair[m_current_scenario], m_results.period_of_last_failure[m_current_scenario]) + 1;
 	outfile << "param last_fixed_period := " << period << ";\n\n";
 	outfile << "param Feff := \n";
 	for (int i = 0; i < m_sim_params.sim_length; i++)
@@ -555,7 +554,7 @@ void PowerCycle::WriteAMPLParams(int extra_periods)
 		i++
 		)
 	{
-		outfile << (i + 1) << "  " << "1.0" << "\n";
+		outfile << (i + 1) << "  " << m_results.cycle_efficiency[m_current_scenario].at(m_sim_params.sim_length-1) << "\n";
 	}
 	outfile << ";\n\n";
 	outfile << "param Fcap := \n";
@@ -569,10 +568,10 @@ void PowerCycle::WriteAMPLParams(int extra_periods)
 		i++
 		)
 	{
-		outfile << (i + 1) << "  " << "1.0" << "\n";
+		outfile << (i + 1) << "  " << m_results.cycle_capacity[m_current_scenario].at(m_sim_params.sim_length - 1) << "\n";
 	}
 	outfile << ";\n\n";
-	outfile << "param Wdot_fixed := \n";
+	outfile << "param x_fixed := \n";
 	double x;
 	for (int i = 0; i < m_sim_params.sim_length; i++)
 	{
@@ -593,6 +592,16 @@ void PowerCycle::WriteAMPLParams(int extra_periods)
 
 
 	outfile.close();
+}
+
+void PowerCycle::WriteAMPLParamsToDefault()
+{
+	//create empty MxSim.dat file so that dispatch defaults are use (i.e., param last_fixed_period := -1, Fcap = Feff = 1)
+		std::string filename = "MxSim.dat";
+		std::ofstream outfile;
+		outfile.open(filename);
+		outfile.close();
+	
 }
 
 void PowerCycle::WriteCapEffFile()
@@ -631,14 +640,15 @@ void PowerCycle::WriteCapEffFile()
 
 void PowerCycle::ReadStateFromFiles(bool init)
 {
+	ReadSimParamsFile();
 	ReadPolicyFile();
 	ReadDayIDXFile();
 	ReadPlantLayoutFile();
-	ReadSimParamsFile();
 	ReadDispatchFile();
 	if (init)
 	{
 		Initialize(0., m_current_scenario);
+		WriteAMPLParamsToDefault();
 		return;
 	}
 	ReadComponentFile();
@@ -764,12 +774,12 @@ void PowerCycle::ReadComponentFile()
 			split_line.push_back(token);
 			cline.erase(0, pos + delimiter.length());
 		}
-		if (split_line.size() > 3)
+		if (split_line.size() > 4)
 		{
-			status.hazard_rate = std::stod(split_line[0]);
-			status.downtime_remaining = std::stod(split_line[1]);
-			status.repair_event_time = std::stod(split_line[2]);
-			for (size_t i = 3; i < split_line.size(); i++)
+			status.hazard_rate = std::stod(split_line[1]);
+			status.downtime_remaining = std::stod(split_line[2]);
+			status.repair_event_time = std::stod(split_line[3]);
+			for (size_t i = 4; i < split_line.size(); i++)
 			{
 				status.lifetimes.push_back(std::stod(split_line[i]));
 			}
@@ -912,8 +922,15 @@ void PowerCycle::ReadPolicyFile()
 	m_no_restart_capacity = std::stod(split_line[1]);
 	m_shutdown_efficiency = std::stod(split_line[2]);
 	m_no_restart_efficiency = std::stod(split_line[3]);
-	m_current_scenario = std::stoi(split_line[4]);
+	SetScenarioIndex(std::stoi(split_line[4]));
 	
+	//now that the current scenario is established, initialize cycle
+	//capacity, efficiency, and periods of last failure/repair.
+	m_results.period_of_last_failure[m_current_scenario] = -1;
+	m_results.period_of_last_repair[m_current_scenario] = -1;
+	m_results.cycle_capacity[m_current_scenario] = std::vector<double>(m_sim_params.sim_length, 1.);
+	m_results.cycle_efficiency[m_current_scenario] = std::vector<double>(m_sim_params.sim_length, 1.);
+
 	pfile.close();
 
 }
@@ -1022,10 +1039,10 @@ void PowerCycle::ReadDispatchFile(int max_rows)
 		}
 		if (split_line.size() > 3)
 		{
-			data["thermal_power"].push_back(std::stod(split_line[0]));
+			data["cycle_power"].push_back(std::stod(split_line[0]));
 			data["standby"].push_back(std::stod(split_line[1]));
 			data["ambient_temperature"].push_back(std::stod(split_line[2]));
-			data["cycle_power"].push_back(std::stod(split_line[3]));
+			data["thermal_power"].push_back(std::stod(split_line[3]));
 		}
 		split_line.clear();
 	}
@@ -1374,6 +1391,7 @@ void PowerCycle::SetNoRestartEfficiency(double efficiency)
 void PowerCycle::SetScenarioIndex(int idx)
 {
 	m_current_scenario = idx;
+	m_gen->assignStates(idx);
 }
 
 
@@ -2285,6 +2303,23 @@ void PowerCycle::ReadInMaintenanceEvents(int t)
 	}
 }
 
+int PowerCycle::FirstPeriodOfDifference(
+	std::vector<double> cycle_efficiencies,
+	std::vector<double> cycle_capacities
+)
+{
+	for (int i = 0; i < m_sim_params.sim_length; i++)
+	{
+		if (
+			std::abs(cycle_efficiencies.at(i) - m_results.cycle_efficiency[m_current_scenario].at(i)) > m_sim_params.epsilon ||
+			std::abs(cycle_capacities.at(i) - m_results.cycle_capacity[m_current_scenario].at(i)) > m_sim_params.epsilon
+			)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
 
 void PowerCycle::RunDispatch()
 {
@@ -2382,7 +2417,10 @@ void PowerCycle::RunDispatch()
 				{
 					if (!m_components.at(i).IsOperational())
 					{
-						m_components.at(i).SetDowntimeRemaining(m_components.at(i).GetMeanRepairTime());
+						m_components.at(i).SetDowntimeRemaining(
+							m_components.at(i).GetMeanRepairTime() +
+							m_components.at(i).GetCooldownTime()
+						);
 					}
 				}
 				for (int tp = t + 1; tp < m_sim_params.sim_length; tp++)
@@ -2414,7 +2452,10 @@ void PowerCycle::RunDispatch()
 				{
 					if (!m_components.at(i).IsOperational())
 					{
-						m_components.at(i).SetDowntimeRemaining(m_components.at(i).GetMeanRepairTime());
+						m_components.at(i).SetDowntimeRemaining(
+							m_components.at(i).GetMeanRepairTime() + 
+							m_components.at(i).GetCooldownTime()
+						);
 					}
 				}
 				for (int tp = t+1; tp < m_sim_params.sim_length; tp++)
@@ -2443,13 +2484,15 @@ void PowerCycle::RunDispatch()
 		cycle_capacities[m_sim_params.sim_length - 1] != m_results.cycle_capacity[m_current_scenario].at(m_sim_params.sim_length - 1)
 		))
 	{
-		m_results.period_of_last_failure[m_current_scenario] = m_sim_params.sim_length;
-		m_results.period_of_last_repair[m_current_scenario] = m_sim_params.sim_length;
+		
+		int effp = FirstPeriodOfDifference(cycle_efficiencies,cycle_capacities);
+		m_results.period_of_last_failure[m_current_scenario] = effp;
+		m_results.period_of_last_repair[m_current_scenario] = effp;
+		m_new_repair_occurred = true;
+		m_new_failure_occurred = true;
 	}
 	StoreScenarioResults(cycle_efficiencies, cycle_capacities);
 }
-
-
 
 void PowerCycle::OperatePlant(double power_out, 
 	double thermal_out, int t, std::string start, std::string mode)

@@ -75,7 +75,7 @@ class PowerCycle
 	
 
 public:
-	PowerCycle::PowerCycle();
+	PowerCycle();
 	void Initialize(double age = 0., int scen_idx = 0);
 	cycle_state m_current_cycle_state;
 	cycle_state m_begin_cycle_state;
@@ -121,6 +121,7 @@ public:
 	void WriteSimParamsFile();
 	void WriteFailuresFile();
 	void WriteAMPLParams(int extra_periods = 0);
+	void WriteAMPLParamsToDefault();
 	void WriteCapEffFile();
 
 	void ReadStateFromFiles(bool init);
@@ -260,6 +261,10 @@ public:
 	std::string GetOperatingMode(int t);
 	void ReadInComponentFailures(int t);
 	void ReadInMaintenanceEvents(int t);
+	int FirstPeriodOfDifference(
+		std::vector<double> cycle_efficiencies,
+		std::vector<double> cycle_capacities
+	);
 	void RunDispatch();
 	void OperatePlant(double power_out, double thermal_out, int t, 
 		std::string start, std::string mode);
