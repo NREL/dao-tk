@@ -1427,7 +1427,6 @@ bool Project::C()
 
 	//--- Initialize cycle model
 	PowerCycle pc = PowerCycle();
-
 	WELLFiveTwelve gen1(0);
 	WELLFiveTwelve gen2(0);
 	WELLFiveTwelve gen3(0);
@@ -1699,10 +1698,13 @@ bool Project::S()
 
 
 
-	//--- Run ssc simulation including re-evaluation or re-dispatch at points of cycle failure/repair. Note cy
+	//--- Run ssc simulation including re-evaluation or re-dispatch at points of cycle failure/repair. 
 	PowerCycle pc;
-	WELLFiveTwelve gen(0);
-	pc.AssignGenerator(&gen);
+	WELLFiveTwelve gen1(0);
+	WELLFiveTwelve gen2(0);
+	WELLFiveTwelve gen3(0);
+	pc.AssignGenerators(&gen1, &gen2, &gen3);
+
 	if (m_parameters.is_cycle_ssc_integration.as_boolean())
 	{
 
@@ -3237,8 +3239,11 @@ bool Project::integrate_cycle_and_clusters(const std::unordered_map<std::string,
 
 	//--- Initialize cycle availability model
 	PowerCycle pc;
-	WELLFiveTwelve gen(0);
-	pc.AssignGenerator(&gen);
+	WELLFiveTwelve gen1(0);
+	WELLFiveTwelve gen2(0);
+	WELLFiveTwelve gen3(0);
+	pc.AssignGenerators(&gen1, &gen2, &gen3);
+
 	initialize_cycle_model(pc);
 	std::vector<double> capacity(nrec, 1.0);
 	std::vector<double> efficiency(nrec, 1.0);
