@@ -27,8 +27,12 @@ public:
 	wash_crew_opt_results m_results;
 	wash_crew_file_settings m_file_settings;
 
+	void SortMirrors();
+
 	void GroupMirrors(int scale);
 	
+	void CalculateRevenueAndCosts();
+
 	void AssignSoilingFunction(SoilingFunction *func);
 
 	double GetAverageEfficiencyLoss(int num_mirrors);
@@ -47,9 +51,11 @@ public:
 		int array_size
 	);
 
-	void RunDynamicProgram();
+	void RunDynamicProgram(bool output);
 
-	int* RetracePath(int *parents, int num_rows, int row_length);
+	std::vector<int> RetracePath(int *parents, int num_rows, int row_length);
+
+	void OptimizeWashCrews(bool output);
 
 	void Output2DArrayToFile(
 		std::string filename, 
@@ -63,6 +69,11 @@ public:
 		int* arr,
 		int num_rows,
 		int row_length
+	);
+
+	void OutputVectorToFile(
+		std::string filename,
+		std::vector<int> vec
 	);
 
 	void OutputWCAssignment();

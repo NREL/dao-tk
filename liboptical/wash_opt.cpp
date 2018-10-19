@@ -30,8 +30,17 @@ WashCrewOptimizer::WashCrewOptimizer(
 
 void WashCrewOptimizer::Initialize()
 {
-	m_solar_data.mirror_size = 1;
-	m_solar_data.annual_dni = 3000;
+	m_solar_data.mirror_size = 10;  //m^2 per mirror
+	m_solar_data.annual_dni = 3000;  //in kWh per m^2 per year
+	m_settings.capital_cost_per_crew = 100000;
+	m_settings.crew_hours_per_week = 40;
+	m_settings.discount_rate = 0.15;
+	m_settings.labor_cost_per_crew = 40;
+	m_settings.materials_cost_per_crew = 30;
+	m_settings.wash_time = 4. / 3;
+	m_settings.system_efficiency = 0.15;  // power to grid / DNI collected
+	m_settings.num_years = 25.;
+	m_settings.price_per_kwh = 0.15; //$/kWh
 }
 
 void WashCrewOptimizer::ReadFromFiles()
@@ -73,7 +82,7 @@ void WashCrewOptimizer::ReadFromFiles()
 			hel_id.push_back(std::stoi(split_line[0]));
 			x.push_back(std::stoi(split_line[1]));
 			y.push_back(std::stoi(split_line[2]));
-			eff.push_back(std::stoi(split_line[16]));
+			eff.push_back(std::stoi(split_line[9]));
 		}
 		split_line.clear();
 	}
@@ -97,6 +106,39 @@ void WashCrewOptimizer::ReadFromFiles()
 	m_solar_data.num_mirror_groups = hel_id.size();
 	
 }
+
+void WashCrewOptimizer::SortMirrors()
+{
+	double x;
+	double y;
+	double eff;
+	int name;
+	bool switch_occurred = true;
+	while (switch_occurred)
+	{
+		switch_occurred = false;
+		for (int i = 0; i < m_solar_data.num_mirror_groups - 1; i++)
+		{
+			if (m_solar_data.mirror_eff[i] < m_solar_data.mirror_eff[i + 1])
+			{
+				x = m_solar_data.x_pos[i] * 1.0;
+				y = m_solar_data.y_pos[i] * 1.0;
+				eff = m_solar_data.mirror_eff[i] * 1.0;
+				name = m_solar_data.names[i] * 1;
+				m_solar_data.x_pos[i] = m_solar_data.x_pos[i + 1] * 1.0;
+				m_solar_data.y_pos[i] = m_solar_data.y_pos[i + 1] * 1.0;
+				m_solar_data.mirror_eff[i] = m_solar_data.mirror_eff[i + 1] * 1.0;
+				m_solar_data.names[i] = m_solar_data.names[i+1]*1;
+				m_solar_data.x_pos[i + 1] = x;
+				m_solar_data.y_pos[i + 1] = y;
+				m_solar_data.mirror_eff[i + 1] = eff;
+				m_solar_data.names[i] = name;
+				switch_occurred = true;
+			}
+		}
+	}
+}
+
 
 void WashCrewOptimizer::GroupMirrors(int scale)
 {
@@ -138,14 +180,28 @@ void WashCrewOptimizer::GroupMirrors(int scale)
 	}
 }
 
+void WashCrewOptimizer::CalculateRevenueAndCosts()
+{
+	double ann_cost = m_settings.capital_cost_per_crew + (
+		(m_settings.labor_cost_per_crew + m_settings.materials_cost_per_crew)
+			* m_settings.crew_hours_per_week * 52
+		);
+	double multiplier = (
+		(1 - std::pow(1 / (1 + m_settings.discount_rate), m_settings.num_years))
+		/ (1 - (1 / (1 + m_settings.discount_rate)))
+		);
+	std::cerr << "multiplier: " << multiplier << "\n";
+	m_settings.total_cost_per_crew = ann_cost * multiplier;
+	double rev_loss = (
+		m_solar_data.mirror_size * m_solar_data.annual_dni
+		* m_settings.system_efficiency * m_settings.price_per_kwh
+		);
+	m_settings.revenue_per_mirror = rev_loss * multiplier;
+}
+
 void WashCrewOptimizer::AssignSoilingFunction(SoilingFunction *func)
 {
 	m_func = func;
-}
-
-double WashCrewOptimizer::GetAverageEfficiencyLoss(int num_mirrors)
-{
-	return 0.0;
 }
 
 double WashCrewOptimizer::GetNumberOfMirrors(int i, int j)
@@ -176,14 +232,14 @@ double WashCrewOptimizer::GetAssignmentCost(int i, int j)
 	{
 		total_eff += m_condensed_data.mirror_eff[k];
 	}
-	double time = GetNumberOfMirrors(i, j) * m_settings.wash_time;
+	double time = GetNumberOfMirrors(i, j) * m_settings.wash_time * (168. / m_settings.crew_hours_per_week);
 	/*
 	if (j > 860)
 	{
 		std::cerr << i << "," << j << "," << total_eff << "," << time << "," << m_func->Evaluate(time) << "\n";
 	}
 	*/
-	return total_eff * m_func->Evaluate(time);
+	return m_settings.revenue_per_mirror * total_eff * m_func->Evaluate(time) + m_settings.capital_cost_per_crew;
 }
 
 double WashCrewOptimizer::EvaluatePath(std::vector<int> path)
@@ -236,7 +292,7 @@ int WashCrewOptimizer::FindMinDistaceNode(
 	return best_node;
 }
 
-void WashCrewOptimizer::RunDynamicProgram()
+void WashCrewOptimizer::RunDynamicProgram(bool output)
 {
 	/*
 	Runs a dynamic program to obtain the optimal allocation of wash crews
@@ -323,18 +379,28 @@ void WashCrewOptimizer::RunDynamicProgram()
 	m_results.assignments = RetracePath(parents, num_rows, row_length);
 	m_results.objective_values = objs;
 	m_results.parents = parents;
+	if (output)
+	{
+		OutputResults();
+		OutputWCAssignment();
+	}
 }
 
-int * WashCrewOptimizer::RetracePath(int* parents, int num_rows, int row_length)
+std::vector<int> WashCrewOptimizer::RetracePath(int* parents, int num_rows, int row_length)
 {
-	int* path = new int[num_rows];
+	std::vector<int> path = {};
 	int parent = row_length-1; //row length - 1 = num_mirrors
 	for (int i = num_rows-1; i >= 0; i--)
 	{
-		path[i] = parent;
+		path.push_back(parent);
 		parent = parents[i*row_length + parent];
 	}
 	return path;
+}
+
+void WashCrewOptimizer::OptimizeWashCrews(bool output)
+{
+
 }
 
 void WashCrewOptimizer::Output2DArrayToFile(
@@ -377,6 +443,21 @@ void WashCrewOptimizer::Output2DIntArrayToFile(
 	ofile.close();
 }
 
+void WashCrewOptimizer::OutputVectorToFile(
+	std::string filename,
+	std::vector<int> arr
+)
+{
+	std::ofstream ofile;
+	ofile.open(filename);
+	for (size_t i = 0; i < arr.size(); i++)
+	{
+		ofile << arr.at(i) << ",";
+	}
+	ofile << "\n";
+	ofile.close();
+}
+
 void WashCrewOptimizer::OutputWCAssignment()
 {
 	std::ofstream ofile; 
@@ -413,11 +494,9 @@ void WashCrewOptimizer::OutputResults()
 		m_settings.max_num_crews + 1,
 		m_condensed_data.num_mirror_groups + 1
 	);
-	Output2DIntArrayToFile(
+	OutputVectorToFile(
 		m_file_settings.path_file,
-		m_results.assignments,
-		1,
-		m_settings.max_num_crews + 1
+		m_results.assignments
 	);
 	Output2DIntArrayToFile(
 		m_file_settings.parents_file,

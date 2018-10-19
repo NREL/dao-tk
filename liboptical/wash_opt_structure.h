@@ -52,13 +52,20 @@ struct wash_crew_settings
 {
 	
 	int max_num_crews;
-	double capital_cost_per_crew;
-	double labor_cost_per_crew;
-	double materials_cost_per_crew;
+	double capital_cost_per_crew; // fixed
+	double labor_cost_per_crew;  //per hour
+	double materials_cost_per_crew;  //per year?
 	double discount_rate;
 	double wash_time; //in minutes per mirror
+	double crew_hours_per_week;
+	double total_cost_per_crew;  //NPV
+	double system_efficiency;
+	double revenue_per_mirror;  //assuming 100% efficiency
+	double num_years;      //years of operation to calculate NPV of annual costs
+	double price_per_kwh;  //assumed average
 
 	wash_crew_settings();
+	void print();
 };
 
 struct solar_field_data
@@ -79,7 +86,7 @@ struct solar_field_data
 
 struct wash_crew_opt_results
 {
-	int *assignments;
+	std::vector<int> assignments;
 	double *objective_values;
 	int *parents;
 	double *distances;
