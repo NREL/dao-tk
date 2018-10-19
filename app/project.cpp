@@ -1427,8 +1427,12 @@ bool Project::C()
 
 	//--- Initialize cycle model
 	PowerCycle pc = PowerCycle();
-	WELLFiveTwelve gen(0);
-	pc.AssignGenerator(&gen);
+
+	WELLFiveTwelve gen1(0);
+	WELLFiveTwelve gen2(0);
+	WELLFiveTwelve gen3(0);
+	pc.AssignGenerators(&gen1, &gen2, &gen3);
+
 	initialize_cycle_model(pc);
 
 	double steplength = 8760. / (double)nrec;
