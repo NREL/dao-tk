@@ -30,21 +30,28 @@ WashCrewOptimizer::WashCrewOptimizer(
 
 void WashCrewOptimizer::Initialize()
 {
-	m_solar_data.mirror_size = 10;  //m^2 per mirror
-	m_solar_data.annual_dni = 3000;  //in kWh per m^2 per year
+	/*
+	Initializes settings and parameters to default values.
+	*/
+	m_solar_data.mirror_size = 115.7;  //m^2 per mirror
+	m_solar_data.annual_dni = 2685;  //in kWh per m^2 per year
 	m_settings.capital_cost_per_crew = 100000;
 	m_settings.crew_hours_per_week = 40;
-	m_settings.discount_rate = 0.15;
-	m_settings.labor_cost_per_crew = 40;
-	m_settings.materials_cost_per_crew = 30;
+	m_settings.discount_rate = 0.10;
+	m_settings.labor_cost_per_crew = 20;
+	m_settings.materials_cost_per_crew = 5;
 	m_settings.wash_time = 4. / 3;
-	m_settings.system_efficiency = 0.15;  // power to grid / DNI collected
+	m_settings.system_efficiency = 0.4;  // power to grid / DNI received
 	m_settings.num_years = 25.;
 	m_settings.price_per_kwh = 0.15; //$/kWh
 }
 
 void WashCrewOptimizer::ReadFromFiles()
 {
+	/*
+	Reads in probem data from file, and stores the results in the 
+	m_solar_data structure.
+	*/
 	//output variables
 	std::vector<double> x = {};
 	std::vector<double> y = {};
@@ -80,9 +87,9 @@ void WashCrewOptimizer::ReadFromFiles()
 		if (split_line.size() > 3)
 		{
 			hel_id.push_back(std::stoi(split_line[0]));
-			x.push_back(std::stoi(split_line[1]));
-			y.push_back(std::stoi(split_line[2]));
-			eff.push_back(std::stoi(split_line[9]));
+			x.push_back(std::stod(split_line[1]));
+			y.push_back(std::stod(split_line[2]));
+			eff.push_back(std::stod(split_line[9]));
 		}
 		split_line.clear();
 	}
@@ -109,6 +116,11 @@ void WashCrewOptimizer::ReadFromFiles()
 
 void WashCrewOptimizer::SortMirrors()
 {
+	/*
+	Sorts mirrors in m_solar_data by efficiency (mirror_eff), from most to 
+	least efficient, and reorders the data in x_pos, y_pos and names 
+	accordingly.
+	*/
 	double x;
 	double y;
 	double eff;
@@ -142,6 +154,12 @@ void WashCrewOptimizer::SortMirrors()
 
 void WashCrewOptimizer::GroupMirrors(int scale)
 {
+	/*
+	Arranges the heliostats into groups of uniform size, to reduce
+	the time required to solve the dynamic program.
+
+	scale -- number of mirrors per group
+	*/
 	if (scale == 1)
 	{
 		m_condensed_data = m_solar_data;
@@ -182,6 +200,13 @@ void WashCrewOptimizer::GroupMirrors(int scale)
 
 void WashCrewOptimizer::CalculateRevenueAndCosts()
 {
+	/*
+	Calculates the NPV of the revenue generated per heliostat, as well as the 
+	NPV of the cost per crew, according to the settings and solar data 
+	provided as input.  Revenue per mirror and cost per crew are stored in
+	m_settings.revenuw_per_mirror and m_settings.total_cost_per_crew,
+	respectively.
+	*/
 	double ann_cost = m_settings.capital_cost_per_crew + (
 		(m_settings.labor_cost_per_crew + m_settings.materials_cost_per_crew)
 			* m_settings.crew_hours_per_week * 52
@@ -201,11 +226,23 @@ void WashCrewOptimizer::CalculateRevenueAndCosts()
 
 void WashCrewOptimizer::AssignSoilingFunction(SoilingFunction *func)
 {
+	/* 
+	assigns the soiing function that determines the losses due to 
+	soiling for any mirror as a function of the cleaning period.
+
+	func -- soiling function object
+	*/
 	m_func = func;
 }
 
 double WashCrewOptimizer::GetNumberOfMirrors(int i, int j)
 {
+	/*
+		obtains the number of mirrors starting at group i and ending at group
+		j; allows for a non-uniform number of mirrors.
+
+		i, j -- start and end indices of mirror groups
+	*/
 	int num_mirrors = 0;
 	for (int k = i; k < j; k++)
 	{
@@ -223,6 +260,13 @@ double WashCrewOptimizer::GetNumberOfMirrors(int i, int j)
 
 double WashCrewOptimizer::GetAssignmentCost(int i, int j)
 {
+	/*
+		obtains the cost due to revenues lost, plus capital costs of an 
+		additional crew, for any mirror starting in group i and ending 
+		just before the start of group j.
+
+		i, j -- start and end indices of mirror groups
+	*/
 	if (j == i)
 	{
 		return 0.;
@@ -244,6 +288,12 @@ double WashCrewOptimizer::GetAssignmentCost(int i, int j)
 
 double WashCrewOptimizer::EvaluatePath(std::vector<int> path)
 {
+	/*
+	Evaluates the total cost of a heliostat assignment.
+	path -- vector of ints defining the assignment of heliostat groups
+
+	retval -- assignment cost (including hiring/labor costs and lost revenue)
+	*/
 	double sum = 0;
 	for (unsigned int i = 0; i < path.size() - 1; i++)
 	{
@@ -279,6 +329,17 @@ int WashCrewOptimizer::FindMinDistaceNode(
 	int array_size
 )
 {
+	/*
+	A subroutine in the dynamic program, this retrieves the lowest-cost node
+	that has not yet been fathomed.  Here, a 'node' represents an assignment
+	of heliostats to some subset of the available wash crews that may not be 
+	complete.
+
+	distances -- array of doubles indicating the total cost of each assignment
+	available -- array of bools indicating the paths that have not been 
+	   determined to be of minimal cost yet
+	array_size -- length of 'distances' and 'available' arrays
+	*/
 	int best_node = -1;
 	double min_distance = INFINITY;
 	for (int i = 0; i < array_size; i++)
@@ -386,8 +447,21 @@ void WashCrewOptimizer::RunDynamicProgram(bool output)
 	}
 }
 
-std::vector<int> WashCrewOptimizer::RetracePath(int* parents, int num_rows, int row_length)
+std::vector<int> WashCrewOptimizer::RetracePath(
+	int* parents, 
+	int num_rows, 
+	int row_length
+)
 {
+	/*
+	For an already-solved dynamic program, uses the parent of each node to 
+	retrace the path that defines the optimal allocation of a given number 
+	of wash crews to heliostats in the field.
+
+	parents -- solution to Dynamic Program
+	num_rows -- this is equal to one plus the number of wash crews.
+	row_length -- equal to one plus the number of mirror groups.
+	*/
 	std::vector<int> path = {};
 	int parent = row_length-1; //row length - 1 = num_mirrors
 	for (int i = num_rows-1; i >= 0; i--)
@@ -398,9 +472,61 @@ std::vector<int> WashCrewOptimizer::RetracePath(int* parents, int num_rows, int 
 	return path;
 }
 
-void WashCrewOptimizer::OptimizeWashCrews(bool output)
+void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 {
+	/* 
+	This method serves as a catch-all for processing inputs, optimizing, 
+	and reporting outputs. When set to defaults, scale is set so that at most
+	1,000 mirror groups are created, and output to disk is set to false.
 
+	scale -- size of typical mirror group
+	output -- true if writing output to disk, false o.w.
+	*/
+
+	//sort mirrors by efficiency
+	SortMirrors();
+
+	//redefine scale, if needed
+	if (scale == -1)
+	{
+		scale = 1 + (m_solar_data.num_mirror_groups / 1000);
+	}
+	
+	//place mirrors into groups according to scale
+	GroupMirrors(scale);
+
+	//solve dyamic program
+	RunDynamicProgram(output);
+
+	//determine the lowest-cost path from the possible number of crews.
+	std::vector<int> path;
+	std::vector<int> best_path;
+	double cost;
+	double min_cost = INFINITY;
+	for (int i = 1; i <= m_settings.max_num_crews; i++)
+	{
+		path = RetracePath(
+			m_results.parents, i + 1, m_condensed_data.num_mirror_groups
+		);
+		
+		cost = EvaluatePath(path);
+		
+		std::cerr << "Cost for " << i << "wash crews: " << cost
+			<< "\nAssignment: ";
+		for (int j = 0; j < path.size(); j++)
+		{
+			std::cerr << path.at(j) << ",";
+		}
+		std::cerr << "\n";
+
+		if (cost < min_cost)
+		{
+			best_path = path;
+			min_cost = cost * 1.0;
+		}
+	}
+	std::cerr << "optimal cost: " << min_cost;
+	m_results.assignments = best_path;
 }
 
 void WashCrewOptimizer::Output2DArrayToFile(

@@ -55,7 +55,7 @@ public:
 
 	std::vector<int> RetracePath(int *parents, int num_rows, int row_length);
 
-	void OptimizeWashCrews(bool output);
+	void OptimizeWashCrews(int scale=-1, bool output=false);
 
 	void Output2DArrayToFile(
 		std::string filename, 
