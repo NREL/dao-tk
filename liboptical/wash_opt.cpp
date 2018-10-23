@@ -16,6 +16,7 @@ WashCrewOptimizer::WashCrewOptimizer(
 	double *y_pos,
 	double *mirror_eff,
 	int max_wash_crews,
+	int num_mirrors,
 	int scale
 )
 {
@@ -23,8 +24,8 @@ WashCrewOptimizer::WashCrewOptimizer(
 	m_solar_data.x_pos = x_pos;
 	m_solar_data.y_pos = y_pos;
 	m_solar_data.mirror_eff = mirror_eff;
-	m_solar_data.num_mirror_groups = sizeof(mirror_eff)/sizeof(double);
 	m_settings.max_num_crews = max_wash_crews;
+	m_solar_data.num_mirror_groups = num_mirrors;
 	GroupMirrors(scale);
 }
 
@@ -38,12 +39,14 @@ void WashCrewOptimizer::Initialize()
 	m_settings.capital_cost_per_crew = 100000;
 	m_settings.crew_hours_per_week = 40;
 	m_settings.discount_rate = 0.10;
-	m_settings.labor_cost_per_crew = 20;
-	m_settings.materials_cost_per_crew = 5;
+	m_settings.labor_cost_per_crew = 100;
+	m_settings.materials_cost_per_crew = 10;
 	m_settings.wash_time = 4. / 3;
 	m_settings.system_efficiency = 0.4;  // power to grid / DNI received
-	m_settings.num_years = 25.;
+	m_settings.num_years = 15.;
 	m_settings.price_per_kwh = 0.15; //$/kWh
+	m_settings.operating_margin = 0.1;  //% of revenue going to profit
+	m_settings.max_num_crews = 40;
 }
 
 void WashCrewOptimizer::ReadFromFiles()
@@ -221,7 +224,9 @@ void WashCrewOptimizer::CalculateRevenueAndCosts()
 		m_solar_data.mirror_size * m_solar_data.annual_dni
 		* m_settings.system_efficiency * m_settings.price_per_kwh
 		);
-	m_settings.revenue_per_mirror = rev_loss * multiplier;
+	m_settings.revenue_per_mirror = (
+		rev_loss * m_settings.operating_margin * multiplier
+		);
 }
 
 void WashCrewOptimizer::AssignSoilingFunction(SoilingFunction *func)
@@ -267,7 +272,7 @@ double WashCrewOptimizer::GetAssignmentCost(int i, int j)
 
 		i, j -- start and end indices of mirror groups
 	*/
-	if (j == i)
+	if (j <= i)
 	{
 		return 0.;
 	}
@@ -278,7 +283,7 @@ double WashCrewOptimizer::GetAssignmentCost(int i, int j)
 	}
 	double time = GetNumberOfMirrors(i, j) * m_settings.wash_time * (168. / m_settings.crew_hours_per_week);
 	/*
-	if (j > 860)
+	if (j > 960)
 	{
 		std::cerr << i << "," << j << "," << total_eff << "," << time << "," << m_func->Evaluate(time) << "\n";
 	}
@@ -302,6 +307,32 @@ double WashCrewOptimizer::EvaluatePath(std::vector<int> path)
 	return sum;
 }
 
+double WashCrewOptimizer::EvaluateFieldEfficiency(std::vector<int> path)
+{
+	int start_idx;
+	int end_idx;
+	double time;
+	double group_eff;
+	double sum_clean_eff = 0.;
+	double sum_soiling_eff = 0.;
+	for (size_t i = 0; i < path.size()-1; i++)
+	{
+		group_eff = 0;
+		start_idx = path.at(i);
+		end_idx = path.at(i+1);
+		//get sum efficiency of entire group.
+		for (int k = start_idx; k < end_idx; k++)
+		{
+			group_eff += m_condensed_data.mirror_eff[k];
+		}
+		//get the time elapsed and average efficiency hit.
+		time = GetNumberOfMirrors(start_idx, end_idx) * m_settings.wash_time * (168. / m_settings.crew_hours_per_week);
+		sum_soiling_eff += group_eff * m_func->Evaluate(time);
+		sum_clean_eff += group_eff;
+	}
+	return 1 - (sum_soiling_eff / sum_clean_eff);
+}
+
 double* WashCrewOptimizer::ObtainOBJs()
 {
 	/* Obtain the objective values that comes from allocating a collection of
@@ -313,7 +344,7 @@ double* WashCrewOptimizer::ObtainOBJs()
 	{
 		for (int j = 0; j < i; j++)
 		{
-			objs[i* (m_condensed_data.num_mirror_groups + 1) + j] = 0.;
+			objs[i* (m_condensed_data.num_mirror_groups + 1) + j] = INFINITY;
 		}
 		for (int j = i; j < m_condensed_data.num_mirror_groups + 1; j++)
 		{
@@ -353,7 +384,7 @@ int WashCrewOptimizer::FindMinDistaceNode(
 	return best_node;
 }
 
-void WashCrewOptimizer::RunDynamicProgram(bool output)
+void WashCrewOptimizer::RunDynamicProgram()
 {
 	/*
 	Runs a dynamic program to obtain the optimal allocation of wash crews
@@ -382,12 +413,19 @@ void WashCrewOptimizer::RunDynamicProgram(bool output)
 		available[i] = true;
 		parents[i] = -1;
 	}
-	for (int i = 2; i < m_condensed_data.num_mirror_groups + 1; i++)
+	for (int i = 1; i < row_length; i++)
 	{
 		available[i] = false;
 		available[
-			(m_settings.max_num_crews + 1)*(m_condensed_data.num_mirror_groups + 1) - i
+			num_nodes - i - 1
 			] = false;
+	}
+	for (int i = 1; i < m_settings.max_num_crews + 1; i++)
+	{
+		for (int j = 0; j < i; j++)
+		{
+			available[i*(row_length) + j] = false;
+		}
 	}
 
 	//initialize the current node.
@@ -404,13 +442,13 @@ void WashCrewOptimizer::RunDynamicProgram(bool output)
 		//remove current node from those available, i.e., those that
 		//have not been fully optimized.
 		available[current_node] = false;
-		crew_idx = current_node / (m_condensed_data.num_mirror_groups + 1);
-		mirror_idx = current_node % (m_condensed_data.num_mirror_groups + 1);
+		crew_idx = current_node / row_length;
+		mirror_idx = current_node % row_length;
 		//update min distance and best path to all destination nodes,
 		//via the local arrays 'distances' and 'parents'.
 		if (crew_idx < m_settings.max_num_crews)
 		{
-			for (int i = mirror_idx; i <= m_condensed_data.num_mirror_groups; i++)
+			for (int i = mirror_idx+1; i < row_length; i++)
 			{
 				if (
 					available[(crew_idx + 1)*(row_length) + i] &&
@@ -440,11 +478,6 @@ void WashCrewOptimizer::RunDynamicProgram(bool output)
 	m_results.assignments = RetracePath(parents, num_rows, row_length);
 	m_results.objective_values = objs;
 	m_results.parents = parents;
-	if (output)
-	{
-		OutputResults();
-		OutputWCAssignment();
-	}
 }
 
 std::vector<int> WashCrewOptimizer::RetracePath(
@@ -463,13 +496,18 @@ std::vector<int> WashCrewOptimizer::RetracePath(
 	row_length -- equal to one plus the number of mirror groups.
 	*/
 	std::vector<int> path = {};
+	std::vector<int> rev_path = {};
 	int parent = row_length-1; //row length - 1 = num_mirrors
 	for (int i = num_rows-1; i >= 0; i--)
 	{
 		path.push_back(parent);
 		parent = parents[i*row_length + parent];
 	}
-	return path;
+	for (int i = path.size()-1; i >= 0; i--)
+	{
+		rev_path.push_back(path.at(i));
+	}
+	return rev_path;
 }
 
 void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
@@ -495,29 +533,35 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 	//place mirrors into groups according to scale
 	GroupMirrors(scale);
 
+	//calculate revenue losses/costs
+	CalculateRevenueAndCosts();
+
 	//solve dyamic program
-	RunDynamicProgram(output);
+	RunDynamicProgram();
 
 	//determine the lowest-cost path from the possible number of crews.
 	std::vector<int> path;
 	std::vector<int> best_path;
 	double cost;
+	double field_eff;
 	double min_cost = INFINITY;
 	for (int i = 1; i <= m_settings.max_num_crews; i++)
 	{
 		path = RetracePath(
-			m_results.parents, i + 1, m_condensed_data.num_mirror_groups
+			m_results.parents, i + 1, m_condensed_data.num_mirror_groups+1
 		);
 		
 		cost = EvaluatePath(path);
 		
-		std::cerr << "Cost for " << i << "wash crews: " << cost
+		field_eff = EvaluateFieldEfficiency(path);
+
+		std::cerr << "Cost for " << i << " wash crews: " << cost
 			<< "\nAssignment: ";
 		for (int j = 0; j < path.size(); j++)
 		{
 			std::cerr << path.at(j) << ",";
 		}
-		std::cerr << "\n";
+		std::cerr << "\nAverage field efficiency: " << field_eff << "\n";
 
 		if (cost < min_cost)
 		{
@@ -525,8 +569,14 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 			min_cost = cost * 1.0;
 		}
 	}
-	std::cerr << "optimal cost: " << min_cost;
+	std::cerr << "optimal cost: " << min_cost << "\nNumber of wash crews: "
+		<< best_path.size()-1 << "\n";
 	m_results.assignments = best_path;
+	if (output)
+	{
+		OutputResults();
+	}
+
 }
 
 void WashCrewOptimizer::Output2DArrayToFile(

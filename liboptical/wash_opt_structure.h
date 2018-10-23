@@ -61,6 +61,7 @@ struct wash_crew_settings
 	double total_cost_per_crew;  //NPV
 	double system_efficiency;
 	double revenue_per_mirror;  //assuming 100% efficiency
+	double operating_margin;
 	double num_years;      //years of operation to calculate NPV of annual costs
 	double price_per_kwh;  //assumed average
 

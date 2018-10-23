@@ -16,6 +16,7 @@ public:
 		double *y_pos,
 		double *mirror_eff,
 		int max_wash_crews,
+		int num_mirrors,
 		int scale
 	);
 	void Initialize();
@@ -43,6 +44,8 @@ public:
 
 	double EvaluatePath(std::vector<int> path);
 
+	double EvaluateFieldEfficiency(std::vector<int> path);
+
 	double* ObtainOBJs();
 
 	int FindMinDistaceNode(
@@ -51,7 +54,7 @@ public:
 		int array_size
 	);
 
-	void RunDynamicProgram(bool output);
+	void RunDynamicProgram();
 
 	std::vector<int> RetracePath(int *parents, int num_rows, int row_length);
 

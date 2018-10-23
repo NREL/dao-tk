@@ -65,6 +65,7 @@ void wash_crew_settings::print()
 		<< "total_cost_per_crew" << ": " << total_cost_per_crew << "\n"
 		<< "system_efficiency" << ": " << system_efficiency << "\n"
 		<< "revenue_per_mirror" << ": " << revenue_per_mirror << "\n"
+		<< "operating_margin" << ": " << operating_margin << "\n"
 		<< "num_years" << ": " << num_years << "\n"
 		<< "price_per_kwh" << ": " << price_per_kwh << "\n";
 }
