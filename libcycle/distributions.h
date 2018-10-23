@@ -91,4 +91,21 @@ public:
 	//using Distribution::GetType;
 };
 
+
+class GammaProcessDist
+{
+	double m_b;
+	double m_c;
+	double m_beta;
+	std::string m_type;
+public:
+	GammaProcessDist();
+	GammaProcessDist(double b, double c, double beta, std::string type);
+	bool IsBinary();
+	double GetVariate(double t, WELLFiveTwelve &gen);
+	std::string GetType();
+	double GetBeta();
+};
+
 #endif
+
