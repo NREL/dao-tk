@@ -15,7 +15,9 @@
 class PowerCycle
 {
 	//RNG Engine
-	WELLFiveTwelve *m_gen;
+	WELLFiveTwelve *m_life_gen;
+	WELLFiveTwelve *m_repair_gen;
+	WELLFiveTwelve *m_binary_gen;
 
 	//Components
 	std::vector< Component > m_components;
@@ -75,7 +77,7 @@ class PowerCycle
 	
 
 public:
-	PowerCycle::PowerCycle();
+	PowerCycle();
 	void Initialize(double age = 0., int scen_idx = 0);
 	cycle_state m_current_cycle_state;
 	cycle_state m_begin_cycle_state;
@@ -84,7 +86,11 @@ public:
 	simulation_params m_sim_params;
 	std::vector< std::string > output_log;
 	void InitializeCyclingDists();
-	void AssignGenerator(WELLFiveTwelve *gen);
+	void AssignGenerators(
+		WELLFiveTwelve *gen1,
+		WELLFiveTwelve *gen2,
+		WELLFiveTwelve *gen3
+	);
 	void GeneratePlantCyclingPenalties();
 	void SetHotStartPenalty(double pen);
 	void SetWarmStartPenalty(double pen);
@@ -121,6 +127,7 @@ public:
 	void WriteSimParamsFile();
 	void WriteFailuresFile();
 	void WriteAMPLParams(int extra_periods = 0);
+	void WriteAMPLParamsToDefault();
 	void WriteCapEffFile();
 
 	void ReadStateFromFiles(bool init);
@@ -260,6 +267,10 @@ public:
 	std::string GetOperatingMode(int t);
 	void ReadInComponentFailures(int t);
 	void ReadInMaintenanceEvents(int t);
+	int FirstPeriodOfDifference(
+		std::vector<double> cycle_efficiencies,
+		std::vector<double> cycle_capacities
+	);
 	void RunDispatch();
 	void OperatePlant(double power_out, double thermal_out, int t, 
 		std::string start, std::string mode);

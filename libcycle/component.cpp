@@ -332,8 +332,14 @@ double Component::HoursToFailure(double ramp_mult, std::string mode)
 }
 
 
-void Component::TestForBinaryFailure(std::string mode, int t, 
-	WELLFiveTwelve &gen, int scen_index)
+void Component::TestForBinaryFailure(
+	std::string mode, 
+	int t,
+	WELLFiveTwelve &life_gen,
+	WELLFiveTwelve &repair_gen,
+	WELLFiveTwelve &binary_gen,
+	int scen_index
+)
 {
 	/*
 	Tests for failures of components for the start of online mode
@@ -353,23 +359,32 @@ void Component::TestForBinaryFailure(std::string mode, int t,
 	{
 		if (m_failure_types.at(j).GetFailureMode() == mode)
 		{
-			var = gen.getVariate();
+			var = binary_gen.getVariate();
 			if (var <= m_status.lifetimes.at(j)
 				* m_status.hazard_rate)
 			{
-				GenerateFailure(gen, t, j, scen_index);
+				GenerateFailure(life_gen, repair_gen, t, j, scen_index);
 			}
 		}
 	}
 }
 
-void Component::TestForFailure(double time, double ramp_mult,
-	WELLFiveTwelve &gen, int t, double hazard_increase, std::string mode, 
-	int scen_index)
+void Component::TestForFailure(
+	double time, 
+	double ramp_mult,
+	WELLFiveTwelve &life_gen,
+	WELLFiveTwelve &repair_gen,
+	WELLFiveTwelve &binary_gen,
+	int t, 
+	double hazard_increase, 
+	std::string mode, 
+	int scen_index
+)
 {
 	/*
-	Generates failure events under the provided dispatch, if there is not sufficient life
-	remaining in the component, or the RNG generates a failure on start.
+	Generates failure events under the provided dispatch, if there is not  
+	sufficient life remaining in the component, or the RNG generates a 
+	failure on start.
 	*/
 	if (mode == "OFF")
 		return;
@@ -379,12 +394,12 @@ void Component::TestForFailure(double time, double ramp_mult,
 	// then operate as if in the first hour of that mode to test
 	// for failures during the time period.
 	{
-		TestForBinaryFailure(mode, t, gen, scen_index);
+		TestForBinaryFailure(mode, t, life_gen, repair_gen, binary_gen, scen_index);
 		opmode = "OF";
 	}
 	else if (mode == "SS")
 	{
-		TestForBinaryFailure(mode, t, gen, scen_index);
+		TestForBinaryFailure(mode, t, life_gen, repair_gen, binary_gen, scen_index);
 		opmode = "SF";
 	}
 	else
@@ -394,12 +409,12 @@ void Component::TestForFailure(double time, double ramp_mult,
 		if (m_failure_types.at(j).GetFailureMode() == opmode || m_failure_types.at(j).GetFailureMode() == "ALL")
 		{
 			if (time * (m_status.hazard_rate + hazard_increase) * ramp_mult > m_status.lifetimes.at(j))
-				GenerateFailure(gen, t, j, scen_index);
+				GenerateFailure(life_gen, repair_gen, t, j, scen_index);
 		}
 		if (m_failure_types.at(j).GetFailureMode() == "O" && (opmode == "OO" || opmode == "OF" ) )
 		{
 			if (time * (m_status.hazard_rate + hazard_increase) * ramp_mult > m_status.lifetimes.at(j))
-				GenerateFailure(gen, t, j, scen_index);
+				GenerateFailure(life_gen, repair_gen, t, j, scen_index);
 		}
 	}
 	
@@ -486,7 +501,13 @@ void Component::ReadFailure(double downtime, double life_remaining,
 }
 
                 
-void Component::GenerateFailure(WELLFiveTwelve &gen, int t, int fail_idx, int scen_index)
+void Component::GenerateFailure(
+	WELLFiveTwelve &life_gen, 
+	WELLFiveTwelve &repair_gen,
+	int t, 
+	int fail_idx, 
+	int scen_index
+)
 {
     /*
     creates a failure event, shutting down the plant for a period of time.
@@ -498,9 +519,9 @@ void Component::GenerateFailure(WELLFiveTwelve &gen, int t, int fail_idx, int sc
     */
     m_status.operational = false;
 	m_new_failure = true;
-    GenerateTimeToRepair(gen);
+    GenerateTimeToRepair(repair_gen);
 	double labor = m_status.downtime_remaining - GetCooldownTime();
-	m_status.lifetimes.at(fail_idx) = m_failure_types.at(fail_idx).GenerateFailureVariate(gen);
+	m_status.lifetimes.at(fail_idx) = m_failure_types.at(fail_idx).GenerateFailureVariate(life_gen);
     ResetHazardRate();
     //add a new failure to the parent (CSPPlant) failure queue
 	std::string label = "S"+std::to_string(scen_index)+"T"+std::to_string(t)+GetName()+"F"+std::to_string(fail_idx);
@@ -515,9 +536,13 @@ void Component::GenerateFailure(WELLFiveTwelve &gen, int t, int fail_idx, int sc
 
 bool Component::CanBeRepaired(std::string mode)
 {
-	//determines whether or not the component can be repaired.
-	//if the plant is off, or the component can be repaired for any mode,
-	//then return true.
+	/*
+	determines whether or not the component can be repaired.
+	if the plant is off, or the component can be repaired for any mode,
+	then return true.
+
+	mode -- operating mode indicator
+	*/
 	if (mode == "OFF" || m_repair_mode == "A")
 	{
 		return true;

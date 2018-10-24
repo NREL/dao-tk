@@ -22,6 +22,7 @@ cycle_file_settings::cycle_file_settings()
 	cap_eff_filename = "./capeff";
 	output_ampl_file = false;
 	day_idx = 0;
+	additional_periods = 0;
 }
 
 cycle_state::cycle_state()
@@ -105,6 +106,7 @@ cycle_results::cycle_results()
 	failure_event_labels = {};
 	failure_events = {};
 	period_of_last_failure = {};
+	period_of_last_repair = {};
 	turbine_efficiency = {};
 	turbine_capacity = {};
 	avg_turbine_efficiency = 1.;

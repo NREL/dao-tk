@@ -24,6 +24,7 @@ struct cycle_file_settings
 	std::string cap_eff_filename;
 	bool output_ampl_file;
 	int day_idx;
+	int additional_periods;
 	cycle_file_settings();
 };
 
