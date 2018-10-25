@@ -117,6 +117,34 @@ void WashCrewOptimizer::ReadFromFiles()
 	
 }
 
+double WashCrewOptimizer::GetFunctionDailyLoss()
+{
+	return m_func->day_degradation;
+}
+
+double WashCrewOptimizer::GetSoilingAccumulation(double accumulation)
+{
+	/*
+	Returns fraction of soiling accumulation that is applied to the 
+	heliostat.
+	*/
+	if (m_func->GetType() == "linear")
+		return 1.0;
+	if (m_func->GetType() == "PWL")
+	{
+		if (accumulation <= m_func->day_degradation)
+			return 1.0;
+		if (accumulation <= m_func->week_degradation)
+			return (m_func->week_degradation - m_func->day_degradation) / 6.0;
+		if (accumulation <= m_func->month_degradation)
+			return (m_func->month_degradation - m_func->week_degradation) / 23.0;
+		if (accumulation <= m_func->sixmo_degradation)
+			return (m_func->sixmo_degradation - m_func->month_degradation) / 150.0;
+		return 0.0;
+	}
+		
+}
+
 void WashCrewOptimizer::SortMirrors()
 {
 	/*
@@ -687,3 +715,4 @@ void WashCrewOptimizer::OutputResults()
 		m_condensed_data.num_mirror_groups + 1
 	);
 }
+

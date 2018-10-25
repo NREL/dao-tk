@@ -21,6 +21,8 @@ public:
 	);
 	void Initialize();
 	void ReadFromFiles();
+	double GetFunctionDailyLoss();
+	double GetSoilingAccumulation(double accumulation);
 
 	wash_crew_settings m_settings;
 	solar_field_data m_solar_data;

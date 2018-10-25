@@ -23,6 +23,11 @@ double SoilingFunction::Evaluate(double t)
 	return -1.0;
 }
 
+std::string SoilingFunction::GetType()
+{
+	return "NA";
+}
+
 double LinearSoilingFunc::Evaluate(double t)
 {
 	/*
@@ -34,6 +39,11 @@ double LinearSoilingFunc::Evaluate(double t)
 	*/
 
 return t * day_degradation / 2880;
+}
+
+std::string LinearSoilingFunc::GetType()
+{
+	return "linear";
 }
 
 wash_crew_settings::wash_crew_settings()
@@ -67,7 +77,7 @@ void wash_crew_settings::print()
 		<< "revenue_per_mirror" << ": " << revenue_per_mirror << "\n"
 		<< "operating_margin" << ": " << operating_margin << "\n"
 		<< "num_years" << ": " << num_years << "\n"
-		<< "price_per_kwh" << ": " << price_per_kwh << "\n";
+		<< "price_per_kwh" << ": " << price_per_kwh << "\n"; 
 }
 
 /*
@@ -141,3 +151,4 @@ wash_crew_file_settings::wash_crew_file_settings()
 	path_file = "wc_path.csv";
 	parents_file = "wc_parents.csv";
 }
+

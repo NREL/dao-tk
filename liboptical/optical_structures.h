@@ -6,7 +6,7 @@
 
 struct opt_settings
 {
-    int n_helio;
+    int n_helio; 
 
     int n_wash_crews;
 
@@ -41,6 +41,8 @@ struct opt_heliostat
 
 struct opt_crew
 {
+	int start_heliostat;
+	int end_heliostat;
 
     int current_heliostat;
     double carryover_wash_time;

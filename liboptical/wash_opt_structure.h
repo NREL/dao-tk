@@ -20,6 +20,7 @@ public:
 		double six_month=0.
 	);
 	virtual double Evaluate(double t);
+	virtual std::string GetType();
 };
 
 class LinearSoilingFunc : public SoilingFunction
@@ -33,6 +34,7 @@ public:
 		double six_month = 0.
 	) : SoilingFunction::SoilingFunction(day, week, month, six_month) {}
 	double Evaluate(double t) override;
+	std::string GetType() override;
 };
 
 class ExponentialSoilingFunc : public SoilingFunction
@@ -106,3 +108,4 @@ struct wash_crew_file_settings
 
 
 #endif
+

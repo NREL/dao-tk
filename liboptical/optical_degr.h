@@ -1,15 +1,18 @@
 #include "optical_structures.h"
+#include "wash_opt_structure.h"
 
 #ifndef _OPTICAL_DEGR
 #define _OPTICAL_DEGR
 
 class optical_degradation
 {
-	bool m_sim_available;
+	bool m_sim_available; 
 
 public:
 	optical_degradation();
 
+	solar_field_data m_solar_data;
+	wash_crew_opt_results m_wc_results;
 	opt_settings m_settings;
 	opt_results m_results;
 

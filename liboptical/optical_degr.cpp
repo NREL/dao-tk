@@ -1,5 +1,6 @@
 #include "optical_structures.h"
 #include "optical_degr.h"
+#include "wash_opt_structure.h"
 
 #include <random>
 #include <vector>
@@ -46,6 +47,11 @@ float* optical_degradation::get_replacement_totals(int *length)
 
 //------------------------------------------
 
+
+//------------------------------------------
+
+
+
 void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), std::string *results_file_name, std::string *trace_file_name)
 {
 	//validation
@@ -58,14 +64,14 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	//scale the problem
 	int n_helio_s;
 	double wash_units_per_hour_s;
-	double problem_scale = 1.;
-	double hscale = 250.;
+	//double problem_scale = 1.;
+	//double hscale = 250.;
 	bool do_trace = trace_file_name != 0;
 	//always scale the problem, ensures sampling repeatability
-	problem_scale = (float)m_settings.n_helio / hscale;
+	//problem_scale = (float)m_settings.n_helio / hscale;
 
-	n_helio_s = (int)hscale;
-	wash_units_per_hour_s = m_settings.wash_units_per_hour / problem_scale;
+	n_helio_s = (int)m_solar_data.num_mirror_groups;
+	wash_units_per_hour_s = m_settings.wash_units_per_hour;
 	//-------------------
 
 	std::vector< opt_heliostat > helios(n_helio_s, opt_heliostat());
@@ -80,8 +86,16 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	}
 
 	std::vector< opt_crew > crews;
-	for (int i = 0; i<m_settings.n_wash_crews; i++)
-		crews.push_back(opt_crew());
+	opt_crew crew;
+	for (int i = 0; i < m_settings.n_wash_crews; i++)
+	{
+		crew = opt_crew();
+		crew.start_heliostat = m_wc_results.assignments.at(i);
+		crew.end_heliostat = m_wc_results.assignments.at(i+1);
+		crew.current_heliostat = crew.start_heliostat * 1;
+		crews.push_back(crew);
+	}
+		
 
 
 	std::vector< double > soil(m_settings.n_hr_sim);
@@ -94,7 +108,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	double degr_scalar = 1000.;
 	unsigned seed1 = m_settings.seed; 
 	std::default_random_engine rand(seed1);
-	std::chi_squared_distribution<double> chi2_soil(m_settings.soil_loss_per_hr*soil_scalar);
+	std::gamma_distribution<double> chi2_soil(m_settings.soil_loss_per_hr*soil_scalar);
 	std::chi_squared_distribution<double> chi2_degr(m_settings.degr_loss_per_hr*degr_scalar);
 	unsigned seed2 = m_settings.seed + 12354; 
 	std::default_random_engine rand2(seed2);
@@ -166,9 +180,11 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 			double units_washed_remain = wash_units_per_hour_s;
 			for (;;)
 			{
-				//if the current heliostat is out of range, reset to 0
-				if (crew->current_heliostat > n_helio_s - 1)
-					crew->current_heliostat = 0;
+				//if the current heliostat is out of range, reset to starting heliostat
+				if (crew->current_heliostat >= crew->end_heliostat)
+				{
+					crew->current_heliostat = crew->start_heliostat;
+				}
 
 				int this_heliostat = crew->current_heliostat;
 
@@ -189,9 +205,13 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 						crew->carryover_wash_time = 0.;
 						helios.at(crew->current_heliostat).soil_loss = 1.;  //reset
 						crew->current_heliostat++;
+						if (crew->current_heliostat >= crew->end_heliostat)
+						{
+							crew->current_heliostat = crew->start_heliostat;
+						}
 					}
 				}
-				else
+				else 
 				{
 					units_washed_remain += -1.;
 
@@ -205,6 +225,10 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 						crew->carryover_wash_time = 0.;
 						helios.at(crew->current_heliostat).soil_loss = 1.;  //reset
 						crew->current_heliostat++;
+						if (crew->current_heliostat >= crew->end_heliostat)
+						{
+							crew->current_heliostat = crew->start_heliostat;
+						}
 					}
 				}
 
@@ -212,8 +236,8 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 				if (helios.at(this_heliostat).refl_base < m_settings.replacement_threshold)
 				{
 					crew->replacements_made++;
-					n_replacements_t++;
-					n_replacements_cumu++;
+					n_replacements_t += m_solar_data.num_mirrors_by_group[this_heliostat];
+					n_replacements_cumu += m_solar_data.num_mirrors_by_group[this_heliostat];
 					helios.at(this_heliostat).age_hours = 0;
 					helios.at(this_heliostat).refl_base = 1.;
 				}
@@ -238,8 +262,8 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 
 		soil.at(t) = soil_ave / (float)helios.size();
 		degr.at(t) = refl_ave / (float)helios.size();
-		repr.at(t) = n_replacements_t * problem_scale;
-		repr_cum.at(t) = n_replacements_cumu * problem_scale;
+		repr.at(t) = n_replacements_t;
+		repr_cum.at(t) = n_replacements_cumu;
 	}
 
 
@@ -251,7 +275,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		replacements_made += crews.at(s).replacements_made;
 	}
 
-	m_results.n_replacements = replacements_made * problem_scale;
+	m_results.n_replacements = replacements_made;
 
 	m_results.soil_schedule = new float[m_settings.n_hr_sim];
 	m_results.degr_schedule = new float[m_settings.n_hr_sim];
@@ -292,7 +316,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		//summary
 		ofs << "\nrepairs by crew,";
 		for (size_t s = 0; s<crews.size(); s++)
-			ofs << "," << crews.at(s).replacements_made*problem_scale;
+			ofs << "," << crews.at(s).replacements_made;
 		ofs << "\n";
 
 
