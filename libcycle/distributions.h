@@ -64,7 +64,9 @@ class BoundedJohnsonDist  : public Distribution
 	double m_lambda;
 public:
 	BoundedJohnsonDist ();
-	BoundedJohnsonDist (double gamma, double delta, double xi, double lambda, std::string type);
+	BoundedJohnsonDist (
+		double gamma, double delta, double xi, double lambda, std::string type
+	);
 	bool IsBinary() override;
 	double RationalApproximation(double u);
 	double NormalCDFInverse(double p);
@@ -102,7 +104,7 @@ public:
 	GammaProcessDist();
 	GammaProcessDist(double b, double c, double beta, std::string type);
 	bool IsBinary();
-	double GetVariate(double t, WELLFiveTwelve &gen);
+	double GetVariate(double t, double delta_t, WELLFiveTwelve &gen);
 	std::string GetType();
 	double GetBeta();
 };

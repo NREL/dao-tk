@@ -317,7 +317,7 @@ double GammaProcessDist::GetBeta()
 }
 
 
-double GammaProcessDist::GetVariate(double t, WELLFiveTwelve &gen)
+double GammaProcessDist::GetVariate(double t, double delta_t, WELLFiveTwelve &gen)
 {
 	/*
 	generates a gamma distributed random variable for alpha < 1 and
@@ -328,7 +328,9 @@ double GammaProcessDist::GetVariate(double t, WELLFiveTwelve &gen)
 	(here, alpha denotes the shape parameter and
 	beta denotes the scale.)
 	*/
-	double alpha = m_c * std::pow(m_b, t);
+	double alpha_1 = m_c * std::pow(m_b, t);
+	double alpha_2 = m_c * std::pow(m_b, t + delta_t);
+	double alpha = alpha_2 - alpha_1;
 	double W, X, Y, Z;
 	double random1;
 	double random2;
