@@ -1,6 +1,8 @@
 #include "optical_structures.h"
 #include "optical_degr.h"
 #include "wash_opt_structure.h"
+#include "distributions.h"
+#include "well512.h"
 
 #include <random>
 #include <vector>
@@ -107,11 +109,14 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	double soil_scalar = 100.;
 	double degr_scalar = 1000.;
 	unsigned seed1 = m_settings.seed; 
-	std::default_random_engine rand(seed1);
-	std::gamma_distribution<double> chi2_soil(m_settings.soil_loss_per_hr*soil_scalar);
-	std::chi_squared_distribution<double> chi2_degr(m_settings.degr_loss_per_hr*degr_scalar);
-	unsigned seed2 = m_settings.seed + 12354; 
-	std::default_random_engine rand2(seed2);
+	WELLFiveTwelve soil_gen(seed1 % 100);
+	WELLFiveTwelve degr_gen((seed1+50) % 100);
+	GammaProcessDist soiling_dist;
+	soiling_dist = GammaProcessDist(1, 1./24, 0.4, "GammaProcess");
+	GammaProcessDist degr_dist;
+	degr_dist = GammaProcessDist(1, 1./24, 0.4, "GammaProcess");
+	m_settings.refl_sim_interval = 168;
+	m_settings.soil_sim_interval = 24;
 	//---------
 
 	//initialize where each crew starts in the field
@@ -127,6 +132,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	for (int t = 1; t<m_settings.n_hr_sim; t++)
 		degr_mult_by_age[t] = degr_mult_by_age[t - 1] * degr_accel;
 
+	double *current_var;
 	for (int t = 0; t<m_settings.n_hr_sim; t++)
 	{
 
@@ -136,18 +142,44 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 				return;
 		}
 
+		//at each day, update crew hours worked today
+		if (t % 24 == 0)
+		{
+			for (std::vector<opt_crew>::iterator crew = crews.begin(); crew != crews.end(); crew++)
+				crew->hours_today = 0.;
+		}
+
+		//at each week, update crew hours worked this week
+		if (t % (24 * 7) == 0)
+			for (std::vector<opt_crew>::iterator crew = crews.begin(); crew != crews.end(); crew++)
+				crew->hours_this_week = 0.;
+
+		//at each soiling interval, refresh hourly soiling rates
+		if (t % m_settings.soil_sim_interval == 0)
+		{
+			for (std::vector<opt_heliostat>::iterator h = helios.begin(); h != helios.end(); h++)
+			{
+				//soil each heliostat
+				double ss = soiling_dist.GetVariate(h->age_hours, 1, soil_gen) / soil_scalar;
+				ss = ss > 0. ? ss : 0.;
+				h->soil_loss_rate = ss;
+			}
+		}
+		
+		if (t % m_settings.refl_sim_interval == 0)
+		{
+			for (std::vector<opt_heliostat>::iterator h = helios.begin(); h != helios.end(); h++)
+			{
+
+				//degrade each heliostat
+				double dd = 1. - degr_dist.GetVariate(h->age_hours, 1, degr_gen) / degr_scalar * degr_mult_by_age[h->age_hours];
+				dd = dd > 0. ? dd : 0.;
+				h->refl_loss_rate = dd;
+			}
+		}
+
 		for (std::vector<opt_heliostat>::iterator h = helios.begin(); h != helios.end(); h++)
 		{
-			//soil each heliostat
-			double ss = 1. - chi2_soil(rand) / soil_scalar;
-			ss = ss > 0. ? ss : 0.;
-
-			//degrade each heliostat
-			double dd = 1. - chi2_degr(rand2) / degr_scalar * degr_mult_by_age[h->age_hours];
-			dd = dd > 0. ? dd : 0.;
-
-			h->refl_base *= dd;
-			h->soil_loss *= ss;
 			h->age_hours++;
 
 			if (do_trace)
@@ -157,14 +189,8 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 			}
 		}
 
-		//reset time limits if needed
-		if (t % 24 == 0)
-			for (std::vector<opt_crew>::iterator crew = crews.begin(); crew != crews.end(); crew++)
-				crew->hours_today = 0.;
+		//at each degradation interval, refresh hourly degradation rates
 
-		if (t % (24 * 7) == 0)
-			for (std::vector<opt_crew>::iterator crew = crews.begin(); crew != crews.end(); crew++)
-				crew->hours_this_week = 0.;
 
 		int n_replacements_t = 0;
 		//each crew attends to X number of heliostats

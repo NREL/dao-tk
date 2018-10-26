@@ -21,6 +21,8 @@ struct opt_settings
     double degr_accel_per_year;
 
     int n_hr_sim;
+	int soil_sim_interval;
+	int refl_sim_interval;
 
 	int seed;
 }; 
@@ -29,6 +31,8 @@ struct opt_heliostat
 {
     double refl_base;
     double soil_loss;
+	double refl_loss_rate;
+	double soil_loss_rate;
 
     int age_hours;
 
