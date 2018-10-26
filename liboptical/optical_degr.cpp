@@ -110,11 +110,10 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	WELLFiveTwelve soil_gen(seed1 % 100);
 	WELLFiveTwelve degr_gen((seed1+50) % 100);
 	GammaProcessDist soiling_dist;
-	soiling_dist = GammaProcessDist(0, .25, 4 * m_settings.soil_loss_per_hr * 24, "linear");
+	soiling_dist = GammaProcessDist(0, .25, 4 * m_settings.soil_loss_per_hr * m_settings.soil_sim_interval, "linear");
 	GammaProcessDist degr_dist;
-	degr_dist = GammaProcessDist(0, .05, 20. * m_settings.degr_loss_per_hr * (8760 / 52), "linear");
-	m_settings.refl_sim_interval = 168;
-	m_settings.soil_sim_interval = 24;
+	degr_dist = GammaProcessDist(log(.05), m_settings.degr_accel_per_year / 8760., 20. * m_settings.degr_loss_per_hr * m_settings.refl_sim_interval, "exponential");
+	
 	//---------
 
 	int this_heliostat; //current heliostat index
