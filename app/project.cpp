@@ -2427,7 +2427,7 @@ bool Project::accumulate_annual_results(const std::vector<double> &soln, double 
 			int p = d * 24 * steps_per_hour + i;
 
 			sum += soln[p] / steps_per_hour;
-			summult_price += soln[p] * m_parameters.dispatch_factors_ts.vec()->at(i).as_number() / steps_per_hour;
+			summult_price += soln[p] * m_parameters.dispatch_factors_ts.vec()->at(p).as_number() / steps_per_hour;
 			maxval = fmax(maxval, soln[p]);
 
 			if (i>=i0 && soln[p] > 0.0)
