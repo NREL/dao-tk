@@ -1720,6 +1720,9 @@ bool Project::S()
 			return false;
 		}
 
+		if (m_parameters.is_reoptimize_at_failures.as_boolean() && !m_parameters.is_reoptimize_at_failures.as_boolean())
+			message_handler(wxString::Format("'is_reoptimize_at_failures was set to true.  'is_reoptimize_at_repairs' will be reset to true"));
+
 
 		if (m_parameters.is_use_clusters.as_boolean()) 
 			is_simulation_valid = simulate_clusters(ssc_soln);
@@ -2412,19 +2415,30 @@ bool Project::accumulate_annual_results(const std::vector<double> &soln, double 
 	if (nrec == 0 || nrec != nrec_price)
 		return false;
 
-	for (int i = 0; i < nrec; i++)
+
+	for (int d = 0; d < 365; d++)
 	{
-		sum += soln[i] / steps_per_hour;
-		summult_price += soln[i] * m_parameters.dispatch_factors_ts.vec()->at(i).as_number() / steps_per_hour;
-		maxval = fmax(maxval, soln[i]);
+		int i0 = 0;
+		if (d == 0 || (m_parameters.is_use_clusters.as_boolean() && (d - 1) % m_parameters.cluster_ndays.as_integer()))  // skip first point of some days when using clustering because of discontinuities with previous exemplar
+			i0 = 1;
 
-		if (i > 0 && soln[i] > 0.0)
+		for (int i = 0; i < 24 * steps_per_hour; i++)
 		{
-			if (soln[i - 1] <= 0.0)
-				starts += 1;
+			int p = d * 24 * steps_per_hour + i;
 
-			if (soln[i] > soln[i - 1])
-				ramp += soln[i] - soln[i - 1]; //kWe
+			sum += soln[p] / steps_per_hour;
+			summult_price += soln[p] * m_parameters.dispatch_factors_ts.vec()->at(i).as_number() / steps_per_hour;
+			maxval = fmax(maxval, soln[p]);
+
+			if (i>=i0 && soln[p] > 0.0)
+			{
+				if (soln[p - 1] <= 0.0)
+					starts += 1;
+
+				if (soln[p] > soln[p - 1])
+					ramp += soln[p] - soln[p - 1]; //kWe
+			}
+
 		}
 	}
 
@@ -2796,13 +2810,12 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 		is_reoptimize = true;
 		double capacity_init = 1.0;
 		double efficiency_init = 1.0;
-		/*
-		if (is_reoptimize_at_repairs && capacity_last > 0.0 && !use_existing_ssc_soln)  //removing this for now-> dispatch optimization with lpsolve needs more work on constraints
+		if (is_reoptimize_at_failures && capacity_last > 0.0 && !use_existing_ssc_soln)  
 		{
 			capacity_init = capacity_last;
 			efficiency_init = efficiency_last;
 		}
-		*/
+		
 		std::vector<double> cycle_capacity(nsteps, capacity_init);
 		std::vector<double> cycle_efficiency(nsteps, efficiency_init);
 
