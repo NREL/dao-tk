@@ -77,6 +77,7 @@ struct solar_field_data
 	double *x_pos;
 	double *y_pos;
 	double *mirror_eff;
+	double total_mirror_eff;
 	int *num_mirrors_by_group;
 	int num_mirror_groups;
 	int scale;

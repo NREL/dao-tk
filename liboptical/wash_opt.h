@@ -38,7 +38,7 @@ public:
 
 	void AssignSoilingFunction(SoilingFunction *func);
 
-	double GetAverageEfficiencyLoss(int num_mirrors);
+	void GetTotalFieldOutput();
 
 	double GetNumberOfMirrors(int i, int j);
 

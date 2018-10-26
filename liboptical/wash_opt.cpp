@@ -129,7 +129,10 @@ double WashCrewOptimizer::GetSoilingAccumulation(double accumulation)
 	heliostat.
 	*/
 	if (m_func->GetType() == "linear")
+	{
 		return 1.0;
+	}
+		
 	if (m_func->GetType() == "PWL")
 	{
 		if (accumulation <= m_func->day_degradation)
@@ -143,6 +146,7 @@ double WashCrewOptimizer::GetSoilingAccumulation(double accumulation)
 		return 0.0;
 	}
 		
+	return 0.0;
 }
 
 void WashCrewOptimizer::SortMirrors()
@@ -194,6 +198,7 @@ void WashCrewOptimizer::GroupMirrors(int scale)
 	if (scale == 1)
 	{
 		m_condensed_data = m_solar_data;
+		GetTotalFieldOutput();
 		return;
 	}
 	solar_field_data new_data;
@@ -227,6 +232,7 @@ void WashCrewOptimizer::GroupMirrors(int scale)
 		m_condensed_data.num_mirrors_by_group[i / scale] += m_solar_data.num_mirrors_by_group[i];
 		//std::cerr << i << "," << (i / scale) << "," << m_solar_data.names[i] << "," << m_solar_data.mirror_eff[i] << "," << m_condensed_data.mirror_eff[i / scale] << "\n";
 	}
+	GetTotalFieldOutput();
 }
 
 void WashCrewOptimizer::CalculateRevenueAndCosts()
@@ -266,6 +272,21 @@ void WashCrewOptimizer::AssignSoilingFunction(SoilingFunction *func)
 	func -- soiling function object
 	*/
 	m_func = func;
+}
+
+void WashCrewOptimizer::GetTotalFieldOutput()
+{
+	/*
+	Returns the sum output of the entire solar field.
+	(sums the mirror_eff of each group of mirrors.
+	*/
+	double sum_clean_eff = 0.;
+	for (size_t i = 0; i < m_solar_data.num_mirror_groups; i++)
+	{
+		sum_clean_eff += m_solar_data.mirror_eff[i];
+	}
+	m_solar_data.total_mirror_eff = sum_clean_eff;
+	m_condensed_data.total_mirror_eff = sum_clean_eff;
 }
 
 double WashCrewOptimizer::GetNumberOfMirrors(int i, int j)
@@ -341,7 +362,6 @@ double WashCrewOptimizer::EvaluateFieldEfficiency(std::vector<int> path)
 	int end_idx;
 	double time;
 	double group_eff;
-	double sum_clean_eff = 0.;
 	double sum_soiling_eff = 0.;
 	for (size_t i = 0; i < path.size()-1; i++)
 	{
@@ -356,9 +376,8 @@ double WashCrewOptimizer::EvaluateFieldEfficiency(std::vector<int> path)
 		//get the time elapsed and average efficiency hit.
 		time = GetNumberOfMirrors(start_idx, end_idx) * m_settings.wash_time * (168. / m_settings.crew_hours_per_week);
 		sum_soiling_eff += group_eff * m_func->Evaluate(time);
-		sum_clean_eff += group_eff;
 	}
-	return 1 - (sum_soiling_eff / sum_clean_eff);
+	return 1 - (sum_soiling_eff / m_solar_data.total_mirror_eff);
 }
 
 double* WashCrewOptimizer::ObtainOBJs()
