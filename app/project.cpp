@@ -2,8 +2,6 @@
 #include <wx/wx.h>
 #include <limits>
 
-
-
  int double_scale(double val, int *scale)
  {
 	 if( val == 0. )
@@ -1508,9 +1506,18 @@ bool Project::C()
 
 
 	//--- De-rate generation/revenue in simulation outputs based on average cycle availability and efficiency
+	double qdes = m_variables.P_ref.as_number() / m_variables.design_eff.as_number();
 	std::vector<double> gen_mod(nrec, 0.0);
 	for (int i = 0; i < nrec; i++)
-		gen_mod[i] = m_simulation_outputs.generation_arr.vec()->at(i).as_number() * avg_cycle_capacity[i] * avg_cycle_efficiency[i];
+	{
+		gen_mod[i] = m_simulation_outputs.generation_arr.vec()->at(i).as_number() * avg_cycle_efficiency[i];  //lost efficiency
+
+		// de-rate by lost capacity if operating below currently available level
+		double f = m_simulation_outputs.q_pb.vec()->at(i).as_number() / qdes;
+		if (avg_cycle_capacity[i] < 0.999 && f>avg_cycle_capacity[i])
+			gen_mod[i] *= (avg_cycle_capacity[i]/f);
+	}
+		
 
 	double annual_gen, annual_rev, cycle_starts, cycle_ramp, cycle_ramp_index;
 	accumulate_annual_results(gen_mod, annual_gen, annual_rev, cycle_starts, cycle_ramp, cycle_ramp_index);
@@ -3129,6 +3136,11 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 			{
 
 				int n = nsteps - next_start_pt;
+
+				double q_pc_target_0 = nan;
+				if (q_pc_target.size() > next_start_pt)
+					q_pc_target_0 = q_pc_target[next_start_pt];
+
 				q_pc_target.assign(n, 0);
 				q_pc_max.assign(n, 0);
 				is_rec_su_allowed.assign(n, 0);
@@ -3167,7 +3179,12 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 					if (is_use_target_heuristic)  
 					{
 						if (i == 0)
+						{
 							e_ch_tes_adj = current_soln["e_ch_tes"][p];
+							if (q_pc_target_0 == q_pc_target_0)
+								e_ch_tes_adj += (q_pc_target_0 - q_pc_target[i])*steplength;
+
+						}
 						else
 						{
 							double e_ch_tes_prev = current_targets["e_ch_tes"][p - 1];
@@ -3184,11 +3201,11 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 								// power block was already planned to run during this timestep but was supposed to ramp down 
 								if (is_pc_su_allowed[i] == 1 && q_pc_target[i - 1] - q_pc_target[i] > 0)
-									q_pb_added = fmin(0.98*tes_extra / steplength, new_target - q_pc_target[i]);
+									q_pb_added = fmin(0.95*tes_extra / steplength, new_target - q_pc_target[i]);
 
 								// power block was not planned to run during this timestep but was running during previous timestep and extra TES is sufficient for at least minimum operation
 								else if ((is_pc_su_allowed[i] + is_pc_sb_allowed[i] == 0) && (is_pc_su_allowed[i - 1] == 1) && (0.98*tes_extra / steplength > q_pc_des*cycle_cutoff_frac))
-									q_pb_added = fmin(0.98*tes_extra / steplength, new_target);
+									q_pb_added = fmin(0.95*tes_extra / steplength, new_target);
 
 								q_pc_target[i] += q_pb_added;
 
@@ -3212,6 +3229,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 							}
 						}
 					}
+
 				}
 
 			}
