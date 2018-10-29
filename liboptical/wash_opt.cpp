@@ -34,13 +34,13 @@ void WashCrewOptimizer::Initialize()
 	/*
 	Initializes settings and parameters to default values.
 	*/
-	m_solar_data.mirror_size = 115.7;  //m^2 per mirror
+	m_solar_data.mirror_size = 115.7;  //m^2 per mirror 
 	m_solar_data.annual_dni = 2685;  //in kWh per m^2 per year
-	m_settings.capital_cost_per_crew = 100000;
-	m_settings.crew_hours_per_week = 40;
-	m_settings.discount_rate = 0.10;
-	m_settings.labor_cost_per_crew = 100;
-	m_settings.materials_cost_per_crew = 10;
+	m_settings.capital_cost_per_crew = 100000; //no source
+	m_settings.crew_hours_per_week = 40;  //no source
+	m_settings.discount_rate = 0.10; //no source
+	m_settings.labor_cost_per_crew = 100;  //no source
+	m_settings.materials_cost_per_crew = 10;  
 	m_settings.wash_time = 4. / 3;
 	m_settings.system_efficiency = 0.4;  // power to grid / DNI received
 	m_settings.num_years = 15.;

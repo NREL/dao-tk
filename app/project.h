@@ -7,6 +7,7 @@
 #include <lk/env.h>
 #include <ssc/sscapi.h>
 #include "../liboptical/optical_degr.h"
+#include "../liboptical/wash_opt.h"
 #include "../libsolar/solarfield_avail.h"
 #include "../libcycle/plant.h"
 #include "../libcycle/well512.h"

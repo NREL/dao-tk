@@ -1518,15 +1518,26 @@ bool Project::O()
 	/*
 	The heliostat field soiling and degradation problem
 
+	update 10/26: now runs optimization model to calculate optimal number and
+	allocation of wash crews to heliostat groups
+
 	Returns a dict with keys :
 	soil_steady             Steady - state availability
 	n_repairs               Total number of repairs made
 	heliostat_refurbish_cost  Cost to refurbish heliostats($ lifetime)
 	heliostat_refurbish_cost_y1  Cost "" in year 1 ($ / year)
 	*/
+
+	WashCrewOptimizer wc;
+	wc = WashCrewOptimizer();
+	LinearSoilingFunc f(m_parameters.soil_per_hour.as_number() * 24);
+	wc.AssignSoilingFunction(&f);
+	wc.Initialize();
+	wc.OptimizeWashCrews();
+
 	optical_degradation od;
 
-	od.m_settings.n_hr_sim = 25 * 8760;
+	od.m_settings.n_hr_sim = m_parameters.finance_period.as_integer() * 8760;
 	od.m_settings.n_wash_crews = m_variables.n_wash_crews.as_integer();
 	od.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
 	od.m_settings.degr_loss_per_hr = m_parameters.degr_per_hour.as_number();
