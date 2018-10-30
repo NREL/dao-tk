@@ -2713,7 +2713,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 	ssc_number_t tes_charge, tes_thot, tes_thot_des, tes_tcold, tes_tcold_des, is_dispatch;
 	bool is_rec_on, is_pc_on, is_pc_standby, is_reoptimize, use_stored_state, use_existing_ssc_soln;
 	double capacity_last, efficiency_last;
-	std::vector<double> q_pc_target, q_pc_max, is_rec_su_allowed, is_pc_su_allowed, is_pc_sb_allowed;
 
 	is_reoptimize = true;
 	is_dispatch = m_parameters.is_dispatch.as_number();
@@ -2754,7 +2753,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 
 	//--- Initialize results
-	unordered_map < std::string, std::vector<double>> current_soln, pc_dispatch, current_targets;
+	unordered_map < std::string, std::vector<double>> current_soln, pc_dispatch, optimized_targets, adjusted_targets;
 	std::vector<std::string> pc_keys = { "cycle_power", "thermal_power", "ambient_temperature", "standby" };
 	std::vector<std::string> ssc_keys = { "gen", "P_cycle", "P_out_net", "e_ch_tes", "T_tes_hot", "T_tes_cold", "Q_thermal", "q_pb", "q_dot_pc_startup", "beam", "tdry", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected"};
 	std::vector<std::string> disp_target_keys = {"Q_thermal", "e_ch_tes", "q_dot_pc_target", "q_dot_pc_max", "is_rec_su_allowed", "is_pc_su_allowed", "is_pc_sb_allowed" };
@@ -2842,11 +2841,13 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 		for (int k = 0; k < (int)disp_target_keys.size(); k++)
 		{
-			current_targets[disp_target_keys[k]].assign(nsteps, nan);
+			optimized_targets[disp_target_keys[k]].assign(nsteps, nan);
+			adjusted_targets[disp_target_keys[k]].assign(nsteps, nan);
 			if (use_existing_ssc_soln)
 			{
 				it = inputs.initial_ssc_soln.find(disp_target_keys[k]);
-				current_targets[disp_target_keys[k]] = it->second;
+				optimized_targets[disp_target_keys[k]] = it->second;
+				adjusted_targets[disp_target_keys[k]] = it->second;
 			}
 		}
 
@@ -2855,6 +2856,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 		//-- Alternate between ssc and cycle availability solutions
 		int step_now = 0;
 		int pc_call = 0;
+
 		while (step_now < nsteps)
 		{
 			double hour_now = time_completed + step_now * steplength;
@@ -2872,14 +2874,14 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 				ssc_data_set_number(m_ssc_data, "is_pc_on_initial", is_pc_on);
 				ssc_data_set_number(m_ssc_data, "is_pc_standby_initial", is_pc_standby);
 
+				int n = nsteps - step_now;
+				ssc_number_t *p_data = new ssc_number_t[n];
+
 				if (is_reoptimize)  // Optimize dispatch 
 				{
 					ssc_data_set_number(m_ssc_data, "is_dispatch", is_dispatch);
 					ssc_data_set_number(m_ssc_data, "is_dispatch_targets", false);
 					ssc_data_set_number(m_ssc_data, "is_dispatch_constr", true);
-
-					int n = nsteps - step_now;
-					ssc_number_t *p_data = new ssc_number_t[n];
 
 					for (int i = 0; i < n; i++)
 						p_data[i] = cycle_capacity[step_now + i];
@@ -2888,9 +2890,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 					for (int i = 0; i < n; i++)
 						p_data[i] = cycle_efficiency[step_now + i];
 					ssc_data_set_array(m_ssc_data, "disp_eff_constr", p_data, n);
-
-					delete[] p_data;
-
 				}
 
 				else   // Set targets for cycle operation from previous optimization
@@ -2899,34 +2898,27 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 					ssc_data_set_number(m_ssc_data, "is_dispatch_targets", true);
 					ssc_data_set_number(m_ssc_data, "is_dispatch_constr", false);
 
-					
-					int n = (int)q_pc_target.size();
-					ssc_number_t *p_data = new ssc_number_t[n];
-
 					for (int i = 0; i < n; i++)
-						p_data[i] = q_pc_target[i];
+						p_data[i] = adjusted_targets["q_dot_pc_target"][step_now + i];
 					ssc_data_set_array(m_ssc_data, "q_pc_target_in", p_data, n);
 
 					for (int i = 0; i < n; i++)
-						p_data[i] = q_pc_max[i];
+						p_data[i] = adjusted_targets["q_dot_pc_max"][step_now + i];
 					ssc_data_set_array(m_ssc_data, "q_pc_max_in", p_data, n);
 
 					for (int i = 0; i < n; i++)
-						p_data[i] = is_rec_su_allowed[i];
+						p_data[i] = adjusted_targets["is_rec_su_allowed"][step_now + i];
 					ssc_data_set_array(m_ssc_data, "is_rec_su_allowed_in", p_data, n);
 
 					for (int i = 0; i < n; i++)
-						p_data[i] = is_pc_su_allowed[i];
+						p_data[i] = adjusted_targets["is_pc_su_allowed"][step_now + i];
 					ssc_data_set_array(m_ssc_data, "is_pc_su_allowed_in", p_data, n);
 
 					for (int i = 0; i < n; i++)
-						p_data[i] = is_pc_sb_allowed[i];
+						p_data[i] = adjusted_targets["is_pc_sb_allowed"][step_now + i];
 					ssc_data_set_array(m_ssc_data, "is_pc_sb_allowed_in", p_data, n);
-
-					delete[] p_data;
-					
 				}
-
+				delete[] p_data;
 
 				// Run ssc
 				if (!ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0))
@@ -2954,7 +2946,10 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 						std::string key = disp_target_keys[k];
 						ssc_number_t *p_data = ssc_data_get_array(m_ssc_data, key.c_str(), &nr);
 						for (int r = 0; r < nr; r++)
-							current_targets[key][step_now + r] = p_data[r];
+						{
+							optimized_targets[key][step_now + r] = p_data[r];
+							adjusted_targets[key][step_now + r] = p_data[r];
+						}
 					}
 				}
 
@@ -3131,101 +3126,93 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 
 			//--- Set dispatch targets if next ssc call will not involve re-optimization
+
 			double e_ch_tes_adj = nan;
 			if (!is_reoptimize && !use_existing_ssc_soln && next_start_pt < nsteps)
 			{
 
-				int n = nsteps - next_start_pt;
-
-				double q_pc_target_0 = nan;
-				if (q_pc_target.size() > next_start_pt)
-					q_pc_target_0 = q_pc_target[next_start_pt];
-
-				q_pc_target.assign(n, 0);
-				q_pc_max.assign(n, 0);
-				is_rec_su_allowed.assign(n, 0);
-				is_pc_su_allowed.assign(n, 0);
-				is_pc_sb_allowed.assign(n, 0);
+				double q_pc_target_0 = adjusted_targets["q_dot_pc_target"][next_start_pt];
 
 				double op_cutoff = 0.999*(q_pc_des * cycle_cutoff_frac);
 				double stby_cutoff = 0.999*(q_pc_des * q_sby_frac);
 
-				for (int i = 0; i < n; i++)
+				double cap_max = 0.0;
+				for (int p = next_start_pt; p < nsteps; p++)
+					cap_max = fmax(cap_max, cycle_capacity[p]);
+
+				for (int p = next_start_pt; p < nsteps; p++)
 				{
-					int p = next_start_pt + i; 
-
-					q_pc_target[i] = current_targets["q_dot_pc_target"][p];
-					q_pc_max[i] = current_targets["q_dot_pc_max"][p];
-					is_rec_su_allowed[i] = current_targets["is_rec_su_allowed"][p];
-					is_pc_su_allowed[i] = current_targets["is_pc_su_allowed"][p];
-					is_pc_sb_allowed[i] = current_targets["is_pc_sb_allowed"][p];
-
-					if (cycle_capacity[p] < 0.999)  // Modify targets based on reduced cycle capacity
+					// Initialize to targets from optimized solution
+					for (int k = 0; k < (int)disp_target_keys.size(); k++)
 					{
-						q_pc_target[i] = fmin(q_pc_target[i], q_pc_des * cycle_capacity[p]);  
-						q_pc_max[i] = q_pc_des * cycle_capacity[p];
-
-						if (q_pc_target[i] < op_cutoff)
-							is_pc_su_allowed[i] = 0;
-
-						if (q_pc_target[i] < stby_cutoff)
-							is_pc_sb_allowed[i] = 0;
-
-						if (is_pc_su_allowed[i] == 0 && is_pc_sb_allowed[i] == 0)
-							q_pc_target[i] = 0.0;
+						std::string key = disp_target_keys[k];
+						adjusted_targets[key][p] = optimized_targets[key][p];
 					}
 
-					// Adjust q_pb_target and is_pc_su_allowed in cases where additional TES is present due to outages
-					if (is_use_target_heuristic)  
+					// Modify targets based on reduced cycle capacity
+					if (cycle_capacity[p] < 0.999)  
 					{
-						if (i == 0)
-						{
-							e_ch_tes_adj = current_soln["e_ch_tes"][p];
-							if (q_pc_target_0 == q_pc_target_0)
-								e_ch_tes_adj += (q_pc_target_0 - q_pc_target[i])*steplength;
+						adjusted_targets["q_dot_pc_target"][p] = fmin(adjusted_targets["q_dot_pc_target"][p], q_pc_des * cycle_capacity[p]);
+						adjusted_targets["q_dot_pc_max"][p] = q_pc_des * cycle_capacity[p];
 
-						}
+						if (adjusted_targets["q_dot_pc_target"][p] < op_cutoff)
+							adjusted_targets["is_pc_su_allowed"][p] = 0;
+
+						if (adjusted_targets["q_dot_pc_target"][p] < stby_cutoff)
+							adjusted_targets["is_pc_sb_allowed"][p] = 0;
+
+						if (adjusted_targets["is_pc_su_allowed"][p] == 0 && adjusted_targets["is_pc_sb_allowed"][p] == 0)
+							adjusted_targets["q_dot_pc_target"][p] = 0.0;
+					}
+
+
+
+					// Use heuristic to adjust q_pb_target and is_pc_su_allowed in cases where additional TES is present due to outages
+					if (is_use_target_heuristic && cap_max > 0.01)  
+					{
+						if (p == next_start_pt)  
+							adjusted_targets["e_ch_tes"][p] = current_soln["e_ch_tes"][p] + (q_pc_target_0 - adjusted_targets["q_dot_pc_target"][p])*steplength;
 						else
 						{
-							double e_ch_tes_prev = current_targets["e_ch_tes"][p - 1];
-							double tes_extra = fmax(0.0, e_ch_tes_adj - e_ch_tes_prev);  // extra TES relative to original dispatch solution without cycle failrues
-
+							double tes_extra = fmax(0.0, adjusted_targets["e_ch_tes"][p - 1] - optimized_targets["e_ch_tes"][p - 1]);  // extra TES relative to last optimized solution
+							
 							if (tes_extra > 0.0)
 							{
 								double q_pb_added = 0.0;
 
 								// new target -> keep running as close as possible to previous target, or at maximum if constrained capacity changes
-								double new_target = q_pc_target[i - 1];
+								double new_target = adjusted_targets["q_dot_pc_target"][p - 1];
 								if (abs(cycle_capacity[p] - cycle_capacity[p - 1]) > 0.01)
-									new_target = q_pc_max[i];
+									new_target = adjusted_targets["q_dot_pc_tmax"][p];
 
 								// power block was already planned to run during this timestep but was supposed to ramp down 
-								if (is_pc_su_allowed[i] == 1 && q_pc_target[i - 1] - q_pc_target[i] > 0)
-									q_pb_added = fmin(0.95*tes_extra / steplength, new_target - q_pc_target[i]);
+								if (adjusted_targets["is_pc_su_allowed"][p] == 1 && adjusted_targets["q_dot_pc_target"][p - 1] - adjusted_targets["q_dot_pc_target"][p] > 0)
+									q_pb_added = fmin(0.95*tes_extra / steplength, new_target - adjusted_targets["q_dot_pc_target"][p]);
 
 								// power block was not planned to run during this timestep but was running during previous timestep and extra TES is sufficient for at least minimum operation
-								else if ((is_pc_su_allowed[i] + is_pc_sb_allowed[i] == 0) && (is_pc_su_allowed[i - 1] == 1) && (0.98*tes_extra / steplength > q_pc_des*cycle_cutoff_frac))
+								else if ((adjusted_targets["is_pc_su_allowed"][p] + adjusted_targets["is_pc_sb_allowed"][p] == 0) && (adjusted_targets["is_pc_su_allowed"][p-1] == 1) && (0.98*tes_extra / steplength > q_pc_des*cycle_cutoff_frac))
 									q_pb_added = fmin(0.95*tes_extra / steplength, new_target);
 
-								q_pc_target[i] += q_pb_added;
+								adjusted_targets["q_dot_pc_target"][p] += q_pb_added;
 
-								if (q_pc_target[i] > 0.0 && is_pc_sb_allowed[i] == 0)
-									is_pc_su_allowed[i] = 1;
+								if (adjusted_targets["q_dot_pc_target"][p] > 0.0 && adjusted_targets["is_pc_sb_allowed"][p] == 0)
+									adjusted_targets["is_pc_su_allowed"][p] = 1;
 							}
 
 
 							// calculate approximate expected TES charge state at end of this step
-							double expected_tes_change = current_targets["e_ch_tes"][p] - current_targets["e_ch_tes"][p - 1];
-							e_ch_tes_adj = e_ch_tes_adj + expected_tes_change + steplength * (current_targets["q_dot_pc_target"][p] - q_pc_target[i]);  // Approximate TES charge state using new targets
+							double expected_tes_change = optimized_targets["e_ch_tes"][p] - optimized_targets["e_ch_tes"][p - 1];
+							adjusted_targets["e_ch_tes"][p] = adjusted_targets["e_ch_tes"][p-1] + expected_tes_change + steplength * (optimized_targets["q_dot_pc_target"][p] - adjusted_targets["q_dot_pc_target"][p]);  // Approximate TES charge state using new targets
 
-							if (e_ch_tes_adj > tes_capacity)
+							if (adjusted_targets["e_ch_tes"][p]> tes_capacity)
 							{
-								double q_thermal = current_targets["Q_thermal"][p];  // expected receiver output
-								double q_decrease = (e_ch_tes_adj - tes_capacity)/steplength;	// Decrease in receiver output required to keep TES within limits
-								if (q_thermal > 0.0 && current_targets["Q_thermal"][p - 1] > 0.0 && (q_thermal - q_decrease) < q_rec_des*f_rec_min)  // Does receiver need to be shut off? (only for steps without receiver startup)
+								double q_thermal = optimized_targets["Q_thermal"][p];  // expected receiver output
+								double q_decrease = (adjusted_targets["e_ch_tes"][p] - tes_capacity)/steplength;	// Decrease in receiver output required to keep TES within limits
+								if (q_thermal > 0.0 && optimized_targets["Q_thermal"][p - 1] > 0.0 && (q_thermal - q_decrease) < q_rec_des*f_rec_min)  // Does receiver need to be shut off? (only for steps without receiver startup)
 									q_decrease = q_thermal;
-
-								e_ch_tes_adj -= q_decrease * steplength; 
+								
+								adjusted_targets["Q_thermal"][p] = q_thermal - q_decrease;
+								adjusted_targets["e_ch_tes"][p] -= q_decrease * steplength;
 							}
 						}
 					}
