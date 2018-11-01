@@ -586,7 +586,6 @@ class Project
 		double start_time;  //[hr]
 		double end_time;    //[hr]
 		double horizon;		//[hr]
-		bool use_fixed_horizon;
 		bool use_stored_state;  
 		bool use_existing_ssc_soln;
 		unordered_map < std::string, std::vector<double>> initial_ssc_soln;
@@ -598,7 +597,6 @@ class Project
 			end_time = 8760.;
 			horizon = 168.;
 			use_stored_state = use_existing_ssc_soln = false;
-			use_fixed_horizon = true;
 		}
 	};
 

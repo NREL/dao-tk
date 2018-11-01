@@ -2678,13 +2678,13 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 	Input parameters (inputs):
 		- start_time, end_time: start and end times for the simulation in hours
-		- horizon: time horizon for model integration [hr].  Will be fixed to this value if 'use_fixed_horizon' = true, if not the horizon will be set based on expected time to next failure.
+		- horizon: time horizon for model integration [hr].  
 		- initial_state: state of plant at start of simulation
-		- use_fixed_horizon: use fixed time horizon for model interaction
 		- use_stored_state: start from stored pc initial state?
 		- use_existing_ssc_soln: use provided ssc solution?  If false, the initial call to ssc will be performed here
 
 	Outputs:
+		- final_state = final cycle state at the end of the horizon
 		- soln = final ssc solution after integration with the cycle availability model 
 		- capacity = final time-series for cycle available capacity
 		- efficiency = final time-series for cycle available efficiency
@@ -2812,11 +2812,10 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 
 		//-- Initialize solutions for this model horizon 
-		//-- Start from "full" cycle capacity/efficiency to set dispatch targets unless reoptimizing at repairs (in which case targets will be re-computed at any increase in availability, so no reason not to use current capacity/efficiency in first call)
 		is_reoptimize = true;
 		double capacity_init = 1.0;
 		double efficiency_init = 1.0;
-		if (is_reoptimize_at_failures && capacity_last > 0.0 && !use_existing_ssc_soln)  
+		if (is_reoptimize_at_failures && is_reoptimize_at_repairs && capacity_last > 0.0 && !use_existing_ssc_soln)  
 		{
 			capacity_init = capacity_last;
 			efficiency_init = efficiency_last;
@@ -3044,17 +3043,12 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 			}
 
-
-
 			//--- Fill in arrays of cycle capacity/efficiency with value at next start point -> next call to ssc will not know when another failure/repair will happen
 			if (next_start_pt < nsteps)
 			{
 				std::fill(cycle_capacity.begin() + next_start_pt, cycle_capacity.end(), cycle_capacity[next_start_pt]);
 				std::fill(cycle_efficiency.begin() + next_start_pt, cycle_efficiency.end(), cycle_efficiency[next_start_pt]);
 			}
-
-
-
 
 			//--- Accept current solution for all points prior to "next_start_pt"
 			for (int k = 0; k < (int)ssc_keys.size(); k++)
@@ -3083,9 +3077,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 				capacity.push_back(cycle_capacity[i]);
 				efficiency.push_back(cycle_efficiency[i]);
 			}
-
-
-
 
 
 			//--- What to do in next call to ssc?
@@ -3126,7 +3117,6 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 
 			//--- Set dispatch targets if next ssc call will not involve re-optimization
-
 			double e_ch_tes_adj = nan;
 			if (!is_reoptimize && !use_existing_ssc_soln && next_start_pt < nsteps)
 			{
@@ -3279,7 +3269,6 @@ bool Project::integrate_cycle_and_clusters(const std::unordered_map<std::string,
 
 	plant_state final_state;
 	cycle_ssc_integration_inputs inputs;
-	inputs.use_fixed_horizon = true;
 	inputs.use_existing_ssc_soln = true;
 	inputs.use_stored_state = false;
 
