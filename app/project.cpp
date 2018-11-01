@@ -1549,13 +1549,15 @@ bool Project::O()
 	wc.Initialize();
 	//obtain heliostat information from SSC
 	int nr, nc;
-	ssc_number_t num_heliostats, h_width, h_height, h_test, nh;
+	ssc_number_t num_heliostats, h_width, h_height;
 	ssc_data_get_number(m_ssc_data, "number_heliostats", &num_heliostats);
-	nr = num_heliostats * 1;
 	ssc_data_get_number(m_ssc_data, "helio_width", &h_width);
 	ssc_data_get_number(m_ssc_data, "helio_height", &h_height);
 	ssc_number_t *helio_positions = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
+	ssc_number_t *helio_ids = ssc_data_get_array(m_ssc_data, "helio_ids", &nr);
 	//ssc_number_t *ann_e = ssc_data_get_array(m_ssc_data, "annual_helio_energy", &nr);
+
+	wc.m_solar_data.num_mirror_groups = num_heliostats;
 	wc.m_solar_data.x_pos = new double[num_heliostats];
 	wc.m_solar_data.y_pos = new double[num_heliostats];
 	wc.m_solar_data.mirror_eff = new double[num_heliostats];
@@ -1565,7 +1567,7 @@ bool Project::O()
 		wc.m_solar_data.x_pos[i] = helio_positions[2*i];
 		wc.m_solar_data.y_pos[i] = helio_positions[2*i+1];
 		wc.m_solar_data.mirror_eff[i] = m_design_outputs.annual_helio_energy.vec()->at(i).as_number();
-		wc.m_solar_data.names[i] = i;
+		wc.m_solar_data.names[i] = helio_ids[i];
 	}
 	wc.OptimizeWashCrews();
 
