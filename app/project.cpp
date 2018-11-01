@@ -340,6 +340,9 @@ design_outputs::design_outputs()
     flux_table.set(                  empty_mat,                   "flux_table",       true );
     heliostat_positions.set(         empty_mat,          "heliostat_positions",       true );
 
+	std::vector< std::vector< double > > empty_vec;
+	annual_helio_energy.set(         empty_vec,          "annual_helio_energy",       true );
+
     (*this)["number_heliostats"] = &number_heliostats;
     (*this)["area_sf"] = &area_sf;
     (*this)["base_land_area"] = &base_land_area;
@@ -358,6 +361,7 @@ design_outputs::design_outputs()
     (*this)["opteff_table"] = &opteff_table;
     (*this)["flux_table"] = &flux_table;
     (*this)["heliostat_positions"] = &heliostat_positions;
+	(*this)["annual_helio_energy"] = &annual_helio_energy;
 
 }
 
@@ -1229,11 +1233,10 @@ bool Project::D()
 	ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 0.);
 	
 	//update values
-	{
-		int nr, nc;
-		ssc_number_t *p_hel = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
-		ssc_data_set_matrix(m_ssc_data, "helio_positions", p_hel, nr, nc);
-	}
+	int nr, nc;
+	ssc_number_t *p_hel = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
+	ssc_data_set_matrix(m_ssc_data, "helio_positions", p_hel, nr, nc);
+
 	ssc_number_t val;
 	ssc_data_get_number(m_ssc_data, "area_sf", &val);
 	ssc_data_set_number(m_ssc_data, "A_sf", val);
@@ -1248,6 +1251,14 @@ bool Project::D()
 	update_calculated_values_post_layout();
 	// use this layout
 	ssc_data_set_number(m_ssc_data, "field_model_type", 2.);
+
+	// obtain annual energy by heliostat
+	std::vector< double > ann_e = {};
+	ssc_number_t *ann = ssc_data_get_array(m_ssc_data, "annual_helio_energy", &nr);
+	for (int i = 0; i < nr; i++)
+	{
+		ann_e.push_back((double)ann[i]);
+	}
 	
 	ssc_module_free(mod_solarpilot);
 
@@ -1257,6 +1268,9 @@ bool Project::D()
 	m_design_outputs.cost_land_real.assign( calc_real_dollars( m_parameters.land_spec_cost.as_number() * m_design_outputs.land_area.as_number() ) ); 
 	//solar field cost
 	m_design_outputs.cost_sf_real.assign( calc_real_dollars( (m_parameters.heliostat_spec_cost.as_number() + m_parameters.site_spec_cost.as_number())*m_design_outputs.area_sf.as_number() ) );
+	//Annual output by heliostat
+	m_design_outputs.annual_helio_energy.empty_vector();
+	m_design_outputs.annual_helio_energy.assign_vector(ann_e);
 
 	is_design_valid = true;
 	return true;
@@ -1533,6 +1547,26 @@ bool Project::O()
 	LinearSoilingFunc f(m_parameters.soil_per_hour.as_number() * 24);
 	wc.AssignSoilingFunction(&f);
 	wc.Initialize();
+	//obtain heliostat information from SSC
+	int nr, nc;
+	ssc_number_t num_heliostats, h_width, h_height, h_test, nh;
+	ssc_data_get_number(m_ssc_data, "number_heliostats", &num_heliostats);
+	nr = num_heliostats * 1;
+	ssc_data_get_number(m_ssc_data, "helio_width", &h_width);
+	ssc_data_get_number(m_ssc_data, "helio_height", &h_height);
+	ssc_number_t *helio_positions = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
+	//ssc_number_t *ann_e = ssc_data_get_array(m_ssc_data, "annual_helio_energy", &nr);
+	wc.m_solar_data.x_pos = new double[num_heliostats];
+	wc.m_solar_data.y_pos = new double[num_heliostats];
+	wc.m_solar_data.mirror_eff = new double[num_heliostats];
+	wc.m_solar_data.names = new int[num_heliostats];
+	for (int i = 0; i < num_heliostats; i++)
+	{
+		wc.m_solar_data.x_pos[i] = helio_positions[2*i];
+		wc.m_solar_data.y_pos[i] = helio_positions[2*i+1];
+		wc.m_solar_data.mirror_eff[i] = m_design_outputs.annual_helio_energy.vec()->at(i).as_number();
+		wc.m_solar_data.names[i] = i;
+	}
 	wc.OptimizeWashCrews();
 
 	optical_degradation od;

@@ -293,9 +293,9 @@ void _test(lk::invoke_t &cxt)
 		}
 	}
 	P->D();
-	P->M();
 	P->O();
-	P->C();
+	//P->M();
+	//P->C();
 	
 	mw.Log(wxString::Format("Total field area: %.2f", P->m_design_outputs.area_sf.as_number()));
 	mw.Log(wxString::Format("Number of repairs: %d", (int)P->m_solarfield_outputs.n_repairs.as_integer()));

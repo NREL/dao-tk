@@ -424,6 +424,7 @@ struct design_outputs : public lk::varhash_t
 	parameter opteff_table;
 	parameter flux_table;
 	parameter heliostat_positions;
+	parameter annual_helio_energy;
 	//-----------------------------------------------------------------------
 
 	design_outputs();
