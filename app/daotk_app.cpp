@@ -250,7 +250,7 @@ MainWindow::MainWindow()
 	m_DataViewForm->SetDataObject( m_project.GetMergedData() );
 	m_notebook->AddPage(m_DataViewForm, "Data");
 
-    m_ScriptViewForm->GetEditor()->AddText("O();");
+    //m_ScriptViewForm->GetEditor()->AddText("O();");
 
 	UpdateFrameTitle();
 }
