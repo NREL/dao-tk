@@ -29,12 +29,7 @@ struct optimization_results
 {
     std::vector< std::vector< double > > eta_i;
     std::vector<double> obj_ub_i, secants_i, feas_secants_i, eval_order, wall_time_i;
-    double x_best;
-
-    optimization_results()
-    {
-        x_best = std::numeric_limits<double>::infinity();
-    };
+    std::vector<double> x_star;     //optimal solution location
 };
 
 class optimization

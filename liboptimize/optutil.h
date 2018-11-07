@@ -148,7 +148,7 @@ public:
         return *this;
     };
 
-    Vector<T>& operator+(Vector<T> &rhs)
+    Vector<T>& operator+=(Vector<T> &rhs)
     {
         if( this->size() != rhs.size() )
             std::runtime_error("Vector addition size mismatch");
@@ -157,7 +157,7 @@ public:
         return *this;
     };
 
-    Vector<T>& operator-(Vector<T> &rhs)
+    Vector<T>& operator-=(Vector<T> &rhs)
     {
         if( this->size() != rhs.size() )
             std::runtime_error("Vector subtraction size mismatch");
@@ -165,6 +165,26 @@ public:
             this->operator()(i) -= rhs(i);
         return *this;
     };
+
+    Vector<T> operator+(Vector<T> &rhs)
+    {
+        if (this->size() != rhs.size())
+            std::runtime_error("Vector addition size mismatch");
+        Vector<T> res;
+        for (int i = 0; i < rhs.size(); i++)
+            res.push_back(this->operator()(i) + rhs(i));
+        return res;
+    }
+
+    Vector<T> operator-(Vector<T> &rhs)
+    {
+        if (this->size() != rhs.size())
+            std::runtime_error("Vector subtraction size mismatch");
+        Vector<T> res;
+        for (int i = 0; i < rhs.size(); i++)
+            res.push_back(this->operator()(i) - rhs(i));
+        return res;
+    }
 
     void clear()
     {
@@ -419,6 +439,9 @@ public:
     template <typename U>
     Vector<T> dot( Vector<U> rhs )
     {
+        if (this->rows() == 0)
+            return Vector<T>();
+
         //dot product
         int n = rhs.size();
         

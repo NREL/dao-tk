@@ -23,8 +23,6 @@ static inline bool filter_where_lt(T c, T d)
 //------------------------------------------
 
 
-//std::unordered_map<std::string, std::vector<double> > Optimize::main(double (*func)(std::vector<int>&), std::vector<int> _LB, std::vector<int> _UB,
-//                std::vector< std::vector< int > > _X, bool data_out, bool m_settings.trust, bool m_settings.convex_flag, int max_delta )
 bool optimization::run_integer_optimization()
 {
     /*
@@ -167,14 +165,11 @@ bool optimization::run_integer_optimization()
     assign_where(eta, F, &assign_filter_nan);
 
     // To store the set of n+1 points that generate the value eta at each grid point.. The evaluated points are their own generators
-    //Eigen::MatrixXi eta_gen(F.size(), not_nans.size() );
-    Matrix<int> eta_gen(F.size(), not_nans);
-    //for(int i=0; i<F.size(); i++)
-        //for(int j=0; j<not_nans.size(); j++)
-            //eta_gen(i,j) = not_nans(j);
+    Matrix<int> eta_gen(F.size(), n+1);
+    for(int i=0; i<not_nans.size(); i++)
+        for(int j=0; j<n+1; j++)
+            eta_gen( not_nans.at(i), j) = not_nans.at(i);
     
-    eta_gen.transposeInPlace();
-
     // Mark if we can exclude a point from future combinations
     double optimality_gap = 1e-8;
 
@@ -316,22 +311,17 @@ bool optimization::run_integer_optimization()
                 Vector<double> hyperplane;
                 hyperplane.Set( grid_comb.AsEigenMatrixType().householderQr().solve(F_comb.AsEigenVectorType()) );
                 Vector<double> vals = grid.Subset(points_to_possibly_update).dot(hyperplane);
-            //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
                 // Update lower bound eta at these points 
-                // flag = eta[points_to_possibly_update] < vals
-                // std::vector<bool> points_to_update;
                 for(int i=0; i<(int)vals.size(); i++)
                 {
                     int point_to_update = points_to_possibly_update(i);
                         
                     if(eta(point_to_update) < vals(i))
                     {
-                        // eta([points_to_possibly_update[flag]]) = vals[flag]
                         eta(point_to_update) = vals(i);
 
                         // Update the set generating this lower bound
-                        // eta_gen[points_to_possibly_update[flag]] = comb
                         for(int j=0; j<(int)comb.size(); j++)
                             eta_gen(point_to_update,j) = comb(j);
                     }
@@ -349,8 +339,6 @@ bool optimization::run_integer_optimization()
             {
                 points_within_delta_of_xstar.clear();
 
-                // convex: points_within_delta_of_xstar = where(np.logical_and(eta < obj_ub, sp.spatial.distance.cdist([x_star], grid[:,1:], lambda u, v: np.linalg.norm(u-v,np.inf))[0]<=delta))[0]
-                // else: points_within_delta_of_xstar = where(np.logical_and(np.isnan(F), sp.spatial.distance.cdist([x_star], grid[:,1:], lambda u, v: np.linalg.norm(u-v,np.inf))[0]<=delta))[0]
                 bool any_nan_F=false;   //keep track of whether there are any NAN's in F
 
                 for(int i=0; i<grid.rows(); i++)
@@ -362,7 +350,7 @@ bool optimization::run_integer_optimization()
                         for(int j=0; j<n; j++)
                             x(j) = grid(i,j+1);
                         double xd_norm = (x_star - x).AsEigenVectorType().lpNorm<Eigen::Infinity>();
-                        if( xd_norm < delta )
+                        if( xd_norm <= delta )
                             points_within_delta_of_xstar.push_back( i );
 
                         any_nan_F = any_nan_F || F(i)!=F(i);
@@ -371,7 +359,6 @@ bool optimization::run_integer_optimization()
 
                 if( !points_within_delta_of_xstar.empty() )
                 {
-                    // new_ind = points_within_delta_of_xstar[np.argmin(eta[points_within_delta_of_xstar])]
                     double eta_min_iter = 9.e36;
                     for(int i=0; i<(int)points_within_delta_of_xstar.size(); i++)
                     {
@@ -405,13 +392,10 @@ bool optimization::run_integer_optimization()
                 else
                 {
 
-                    // if m_settings.convex_flag and np.logical_or(obj_ub - np.min(eta) <= optimality_gap, delta > max(UB-LB))
                     if( m_settings.convex_flag && ( obj_ub - eta.minCoeff() < optimality_gap || delta > (UB-LB).maxCoeff() ))
                         break;
-                    // if not m_settings.convex_flag and not any(np.isnan(F))
                     if( !m_settings.convex_flag && !any_nan_F )
                         break;
-                    // if not m_settings.convex_flag and delta >= max_delta
                     if( !m_settings.convex_flag && delta >= m_settings.max_delta )
                         break;
                     delta++;
@@ -433,23 +417,16 @@ bool optimization::run_integer_optimization()
         // Store information about the iteration (do not store if m_settings.trust and no evaluation)
         if ( ( m_settings.trust && eval_performed_flag ) || !m_settings.trust )
         {
-            // if( eta_i.empty() )
-            // if not len(eta_i):
-                // eta_i = eta.copy()
-            // else
-                // eta_i = np.vstack((eta_i,eta.copy()))
             m_results.eta_i.push_back( eta );
 
-            // obj_ub_i = np.hstack((obj_ub_i,obj_ub))
             m_results.obj_ub_i.push_back(obj_ub);
-            // wall_time_i = np.hstack((wall_time_i,time.time()))
+            
             m_results.wall_time_i.push_back( (double)( (std::chrono::system_clock::now() - startcputime).count() ) );
             
-            // secants_i = np.hstack((secants_i,count+1))
             m_results.secants_i.push_back(count+1);
-            // feas_secants_i = np.hstack((feas_secants_i, feas_secants))
+            
             m_results.feas_secants_i.push_back(feas_secants);
-            // eval_order = np.hstack((eval_order, new_ind))
+            
             m_results.eval_order.push_back(new_ind);
         }
 
@@ -463,14 +440,13 @@ bool optimization::run_integer_optimization()
             if(! std::isnan(F(i)) )
                 sum_F_defined++;
 
-        std::cout << obj_ub - eta.minCoeff() << "\t" 
-                  << count+1 << "\t"
-                  << sum_eta_lt_obj_ub << "\t"
-                  << sum_F_defined << "\t";
-        for(int i=0; i<n; i++)
-            std::cout << grid(new_ind,i+1) << ( i<n-1 ? ", " : "\n" );
+        //std::cout << obj_ub - eta.minCoeff() << "\t" 
+        //          << count+1 << "\t"
+        //          << sum_eta_lt_obj_ub << "\t"
+        //          << sum_F_defined << "\t";
+        //for(int i=0; i<n; i++)
+        //    std::cout << grid(new_ind,i+1) << ( i<n-1 ? ", " : "\n" );
 
-        // if (m_settings.convex_flag and obj_ub - np.min(eta) <= optimality_gap) or (not m_settings.convex_flag and not any(np.isnan(F))) or (not m_settings.convex_flag and not(any(points_within_delta_of_xstar)) and delta >= max_delta):
         if
         ( 
             ( m_settings.convex_flag && (obj_ub - eta.minCoeff() <= optimality_gap ) ) ||
@@ -478,27 +454,17 @@ bool optimization::run_integer_optimization()
             ( ( !m_settings.convex_flag && (int)points_within_delta_of_xstar.size() > 0 ) && ( delta >= m_settings.max_delta ) )
         )
         {
-            // F[new_ind] = Fnew
             F(new_ind) = Fnew;
             // print(grid[np.nanargmin(F),1:],sum(~np.isnan(F)),m_settings.trust,func)
             Vector<double> x_at_fmin = grid.at( argmin(F, true) );
-            std::vector<double> x_best;
-
-            for(int i=0; i<n; i++)
-            {
-                std::cout << x_at_fmin(i+1) << (i<n-1 ? ", " : "\t");
-                x_best.push_back((double)x_at_fmin(i+1));
-            }
-            std::cout << sum_F_defined << "\t" << m_settings.trust << "\t" << m_settings.f_objective << "\n";
-
-            std::unordered_map< std::string, std::vector<double> > retdict;
-            //if( data_out )
-                // return grid[np.nanargmin(F),1:], eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order
-            // return grid[np.nanargmin(F),1:]
+            
+            m_results.x_star.clear();
+            for (int i = 0; i < n; i++)
+                m_results.x_star.push_back((double)x_at_fmin(i + 1));
+            //std::cout << sum_F_defined << "\t" << m_settings.trust << "\t" << m_settings.f_objective << "\n";
 
             return true;
         }
         
     }
 }
-//endif 
