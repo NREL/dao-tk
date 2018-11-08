@@ -80,7 +80,7 @@ protected:
             fmt_units = "[" + this->doc.units + "]";
 
         sprintf(buf,
-            "<h3>%s <font color=\"#C0C0C0\">%s</font></h3>"
+            "<h3 name=\"doc_%s\">%s <font color=\"#C0C0C0\">%s</font></h3>"
             "<font color=\"#800000\">"
             "<table style=\"background-color:#DDD\">"
             "<tr><td>Handle</td><td><b>%s</b></td></tr>"
@@ -89,6 +89,7 @@ protected:
             "</table>"
             "</font>"
             "<p><font size=\"+1\">%s</font></p><br><a href=\"id?%s\">Add</a><hr>",
+            this->name.c_str(),
             this->nice_name.c_str(),
             fmt_units.c_str(),
             this->name.c_str(), 
@@ -216,9 +217,19 @@ protected:
     void _set_base(std::string vname, bool calculated, const char *_nice_name, const char *_units, const char *_group)
     {
         this->name = vname;
-		this->nice_name = _nice_name != '\0' ? _nice_name : "";
-		this->units = _units != '\0' ? _units : "";
-		this->group = _group != '\0' ? _group : "";
+		if(_nice_name)
+            this->nice_name = *_nice_name;
+        else
+            this->nice_name = "";
+		if(_units)
+            this->units = *_units;
+        else
+            this->units = "";
+		if(_group)
+            this->group = *_group;
+        else
+            this->group = "";
+        
 		this->is_shown_in_list = true;
         is_calculated = calculated;
 		this->m_is_invalid_allowed = is_calculated ? true : false;
@@ -557,6 +568,20 @@ struct objective_outputs : public lk::varhash_t
 	objective_outputs();
 };
 
+struct optimization_outputs : public lk::varhash_t
+{
+    parameter eta_i; //Matrix<double> 
+    //Vector<double> 
+    parameter obj_ub_i;
+    parameter secants_i;
+    parameter feas_secants_i;
+    parameter eval_order;
+    //Vector<long long> 
+    parameter wall_time_i;
+
+    optimization_outputs();
+};
+
 //main class
 class Project
 {
@@ -596,6 +621,7 @@ public:
 	explicit_outputs m_explicit_outputs;
 	financial_outputs m_financial_outputs;
 	objective_outputs m_objective_outputs;
+    optimization_outputs m_optimization_outputs;
 
 	s_metric_outputs metric_outputs;
 	s_cluster_outputs cluster_outputs;
@@ -606,6 +632,7 @@ public:
 	struct CALLING_SIM{ enum E {DESIGN=1, HELIO_AVAIL, HELIO_OPTIC, CYCLE_AVAIL, SIMULATION, EXPLICIT, FINANCE, OBJECTIVE, NULLSIM=0}; };
 	bool Validate(CALLING_SIM::E simtype=CALLING_SIM::E::NULLSIM, std::string *error_msg=0);
 	void Initialize();
+    void Optimize(lk::varhash_t* vars);
 
 	//objective function methods
 	bool D();

@@ -578,6 +578,27 @@ objective_outputs::objective_outputs()
 	
 
 }
+
+optimization_outputs::optimization_outputs()
+{
+	double nan = std::numeric_limits<double>::quiet_NaN();
+	std::vector< double > empty_vec_d;
+    std::vector< std::vector<double> > empty_mat;
+    	
+    eta_i.set(empty_mat, "obj_function_lower_b", true, "Lower bound on objective at evaluation points", "-", "Optimization|Outputs");
+    secants_i.set(empty_vec_d, "obj_function_secants", true, "Objective function secants", "-", "Optimization|Outputs");
+    feas_secants_i.set(empty_vec_d, "obj_function_secants_f", true, "Feasible objective function secants", "-", "Optimization|Outputs");
+    eval_order.set(empty_vec_d, "obj_eval_order", true, "Objective function evaluation order", "-", "Optimization|Outputs");
+    wall_time_i.set(empty_vec_d, "obj_wall_time", true, "Clock time for objective function evaluation", "Optimization|Outputs");
+
+    (*this)["obj_function_lower_b"] = &eta_i;
+    (*this)["obj_function_secants"] = &secants_i;
+    (*this)["obj_function_secants_f"] = &feas_secants_i;
+    (*this)["obj_eval_order"] = &eval_order;
+    (*this)["obj_wall_time"] = &wall_time_i;
+}
+
+
 /* 
 ---------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------
@@ -731,15 +752,13 @@ Project::Project()
 	m_ssc_data = 0;
 	Initialize();
 
-	//construct the merged data map
-	std::vector<lk::varhash_t*> struct_pointers = { &m_variables, &m_parameters, &m_design_outputs,
-		&m_solarfield_outputs, &m_optical_outputs, &m_cycle_outputs, &m_simulation_outputs, &m_objective_outputs };
+    std::vector< void* > struct_pointers = GetDataObjects();
 
 	_merged_data.clear();
 
 	for (size_t i = 0; i < struct_pointers.size(); i++)
 	{
-        lk::varhash_t *this_varhash = struct_pointers.at(i);
+        lk::varhash_t *this_varhash = static_cast<lk::varhash_t*>( struct_pointers.at(i) );
 
         for (lk::varhash_t::iterator it = this_varhash->begin(); it != this_varhash->end(); it++)
 		{
@@ -764,9 +783,17 @@ lk::varhash_t *Project::GetMergedData()
 std::vector< void* > Project::GetDataObjects()
 {
     std::vector< void* > rvec = {
-        (void*)&m_variables, (void*)&m_parameters, //(void*)&m_cluster_parameters,
-        (void*)&m_design_outputs, (void*)&m_optical_outputs, (void*)&m_solarfield_outputs,
-		(void*)&m_cycle_outputs, (void*)&m_simulation_outputs, (void*)&m_objective_outputs }; // 
+        (void*)&m_variables, 
+        (void*)&m_parameters, 
+        //(void*)&m_cluster_parameters,
+        (void*)&m_design_outputs, 
+        (void*)&m_optical_outputs, 
+        (void*)&m_solarfield_outputs,
+        (void*)&m_simulation_outputs, 
+        //(void*)&m_cycle_outputs,
+        (void*)&m_objective_outputs,
+        (void*)&m_optimization_outputs
+    }; 
 
     return rvec;
 }
@@ -2395,4 +2422,13 @@ void Project::calc_avg_annual_schedule(double original_ts, double new_ts, const 
 	}
 
 	return;
+}
+
+void Project::Optimize(lk::varhash_t* vars)
+{
+    /* 
+    
+    */
+
+
 }

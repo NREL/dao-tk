@@ -268,7 +268,7 @@ std::string util::get_cwd()
 #ifdef _WIN32
 	::GetCurrentDirectoryA( 2047, buf );
 #else
-	::getcwd(buf, 2047);
+	char* unused = ::getcwd(buf, 2047); (void*)unused;
 #endif
 	buf[2047] = 0;
 	return std::string(buf);
@@ -759,7 +759,7 @@ double util::percent_of_year(int month, int hours)
 	if (month>12) return 1.0;
 
 	int hours_from_months = 0;
-	for (unsigned int i=0; i<month-1; i++)
+	for (int i=0; i<month-1; i++)
 		hours_from_months += (nday[i] * 24);
 	return (hours_from_months + hours)/8760.0;
 }
@@ -1005,15 +1005,15 @@ double util::bilinear( double rowval, double colval, const matrix_t<double> &mat
 		return std::numeric_limits<double>::quiet_NaN();
 	
 	int ridx=2; // find row position
-	while( ridx < mat.nrows() && rowval > mat.at(ridx, 0) )
+	while( ridx < (int)mat.nrows() && rowval > mat.at(ridx, 0) )
 		ridx++;
 	
 	int cidx=2; // find col position
-	while( cidx < mat.ncols() && colval > mat.at(0, cidx) )
+	while( cidx < (int)mat.ncols() && colval > mat.at(0, cidx) )
 		cidx++;
 
-	if ( ridx == mat.nrows() ) ridx--;
-	if ( cidx == mat.ncols() ) cidx--;
+	if ( ridx == (int)mat.nrows() ) ridx--;
+	if ( cidx == (int)mat.ncols() ) cidx--;
 
 	double r1,c1,r2,c2;
 	

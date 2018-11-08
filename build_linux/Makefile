@@ -4,6 +4,7 @@ all:
 	make -f Makefile-liboptical -j4
 	make -f Makefile-libsolar -j4
 	make -f Makefile-libcluster -j4
+	make -f Makefile-liboptimize -j4
 	make -f Makefile-app -j4
 
 clean:
@@ -12,4 +13,5 @@ clean:
 	make -f Makefile-liboptical clean
 	make -f Makefile-libsolar clean
 	make -f Makefile-libcluster clean
+	make -f Makefile-liboptimize clean
 	make -f Makefile-app clean
