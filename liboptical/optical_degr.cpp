@@ -88,14 +88,14 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	}
 
 	std::vector< opt_crew > crews;
-	opt_crew crew;
+	opt_crew c;
 	for (int i = 0; i < m_settings.n_wash_crews; i++)
 	{
-		crew = opt_crew();
-		crew.start_heliostat = m_wc_results.assignments.at(i);
-		crew.end_heliostat = m_wc_results.assignments.at(i+1);
-		crew.current_heliostat = crew.start_heliostat * 1;
-		crews.push_back(crew);
+		c = opt_crew();
+		c.start_heliostat = m_wc_results.assignments.at(i);
+		c.end_heliostat = m_wc_results.assignments.at(i+1);
+		c.current_heliostat = c.start_heliostat * 1;
+		crews.push_back(c);
 	}
 		
 
@@ -112,7 +112,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	GammaProcessDist soiling_dist;
 	soiling_dist = GammaProcessDist(0, .25, 4 * m_settings.soil_loss_per_hr * m_settings.soil_sim_interval, "linear");
 	GammaProcessDist degr_dist;
-	degr_dist = GammaProcessDist(log(.05), m_settings.degr_accel_per_year / 8760., 20. * m_settings.degr_loss_per_hr * m_settings.refl_sim_interval, "exponential");
+	degr_dist = GammaProcessDist(exp(.05), 1+(m_settings.degr_accel_per_year / 8760.), 20. * m_settings.degr_loss_per_hr * m_settings.refl_sim_interval, "exponential");
 	
 	//---------
 
@@ -287,13 +287,13 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		
 		for (size_t i = 0; i<helios.size(); i++)
 		{
-			refl_ave += helios.at(i).refl_base * m_solar_data.mirror_eff[i];
-			soil_ave += helios.at(i).soil_loss * m_solar_data.mirror_eff[i];
+			refl_ave += helios.at(i).refl_base * m_solar_data.mirror_output[i];
+			soil_ave += helios.at(i).soil_loss * m_solar_data.mirror_output[i];
 
 		}
 
-		soil.at(t) = soil_ave / m_solar_data.total_mirror_eff;
-		degr.at(t) = refl_ave / m_solar_data.total_mirror_eff;
+		soil.at(t) = soil_ave / m_solar_data.total_mirror_output;
+		degr.at(t) = refl_ave / m_solar_data.total_mirror_output;
 		repr.at(t) = n_replacements_t;
 		repr_cum.at(t) = n_replacements_cumu;
 	}

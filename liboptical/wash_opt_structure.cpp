@@ -50,14 +50,13 @@ wash_crew_settings::wash_crew_settings()
 {
 	max_num_crews = 20;
 	capital_cost_per_crew = 0.;
-	labor_cost_per_crew = 0.;
-	materials_cost_per_crew = 0.;
+	hourly_cost_per_crew = 0.;
 	discount_rate = 0.;
 	wash_time = 1.5;
 	crew_hours_per_week = 0.;
 	total_cost_per_crew = 0.;  //NPV
 	system_efficiency = 0.;
-	revenue_per_mirror = 0.;  //assuming 100% efficiency
+	profit_per_kwh = 0.;  //assuming 100% efficiency
 	num_years = 0.;   //years of operation to calculate NPV of annual costs
 	price_per_kwh = 0.;  //assumed averag
 }
@@ -67,14 +66,13 @@ void wash_crew_settings::print()
 	std::cerr << "wash crew settings parameters: \n"
 		<< "max_num_crews" << ": " << max_num_crews << "\n"
 		<< "capital_cost_per_crew" << ": " << capital_cost_per_crew << "\n"
-		<< "labor_cost_per_crew" << ": " << labor_cost_per_crew << "\n"
-		<< "materials_cost_per_crew" << ": " << materials_cost_per_crew << "\n"
+		<< "hourly_cost_per_crew" << ": " << hourly_cost_per_crew << "\n"
 		<< "discount_rate" << ": " << discount_rate << "\n"
 		<< "wash_time" << ": " << wash_time << "\n"
 		<< "crew_hours_per_week" << ": " << crew_hours_per_week << "\n"
 		<< "total_cost_per_crew" << ": " << total_cost_per_crew << "\n"
 		<< "system_efficiency" << ": " << system_efficiency << "\n"
-		<< "revenue_per_mirror" << ": " << revenue_per_mirror << "\n"
+		<< "profit_per_kwh" << ": " << profit_per_kwh << "\n"
 		<< "operating_margin" << ": " << operating_margin << "\n"
 		<< "num_years" << ": " << num_years << "\n"
 		<< "price_per_kwh" << ": " << price_per_kwh << "\n"; 
@@ -83,14 +81,14 @@ void wash_crew_settings::print()
 /*
 int max_num_crews;
 	 capital_cost_per_crew; // fixed
-	 labor_cost_per_crew;  //per hour
+	 hourly_cost_per_crew;  //per hour
 	 materials_cost_per_crew;  //per year?
 	 discount_rate;
 	 wash_time; //in minutes per mirror
 	 crew_hours_per_week;
 	 total_cost_per_crew;  //NPV
 	 system_efficiency;
-	 revenue_per_mirror;  //assuming 100% efficiency
+	 profit_per_kwh;  //assuming 100% efficiency
 	 num_years;      //years of operation to calculate NPV of annual costs
 	 price_per_kwh;  //assumed average
 */
@@ -101,11 +99,9 @@ solar_field_data::solar_field_data()
 	names = 0;
 	x_pos = 0;
 	y_pos = 0;
-	mirror_eff = 0;
+	mirror_output = 0;
 	scale = 1;
 	
-	mirror_size = NULL;
-	annual_dni = NULL;
 	num_mirror_groups = NULL;
 	groupings = {};
 }
@@ -118,8 +114,8 @@ solar_field_data::~solar_field_data()
 		delete[] x_pos;
 	if (y_pos != 0)
 		delete[] y_pos;
-	if (mirror_eff != 0)
-		delete[] mirror_eff;
+	if (mirror_output != 0)
+		delete[] mirror_output;
 	mirror_size = NULL;
 	annual_dni = NULL;
 }

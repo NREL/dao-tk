@@ -131,7 +131,12 @@ parameters::parameters()
     n_heliostats_sim.set(                 1000,             "n_heliostats_sim",      false,                   "Number of simulated heliostats",        "-", "Heliostat availability|Parameters" );
     wash_units_per_hour.set(               45.,          "wash_units_per_hour",      false,                              "Heliostat wash rate","1/crew-hr",    "Optical degradation|Parameters" );
     wash_crew_max_hours_week.set(          70.,     "wash_crew_max_hours_week",      false,                     "Wash crew max hours per week",       "hr",    "Optical degradation|Parameters" );
-    degr_per_hour.set(                   1.e-7,                "degr_per_hour",      false,                    "Reflectivity degradation rate",     "1/hr",    "Optical degradation|Parameters" );
+	wash_crew_max_hours_day.set(           10.,      "wash_crew_max_hours_day",      false,                      "Wash crew max hours per day",       "hr",    "Optical degradation|Parameters");
+	wash_crew_capital_cost.set(        100000.,       "wash_crew_capital_cost",      false,                  "Capital cost per wash crew hire",        "$",    "Optical degradation|Parameters" );
+	price_per_kwh.set(                    0.15,                "price_per_kwh",      false,      "Estimated revenue per kWh delivered to grid",        "$",    "Optical degradation|Parameters" );
+	operating_margin.set(                  0.1,             "operating_margin",      false,                 "Estimated plant operating margin",        "-",    "Optical degradation|Parameters" );
+	TES_powercycle_eff.set(              0.376,           "TES_powercycle_eff",      false,      "Estimated efficiency of power block and TES",        "-",    "Optical degradation|Parameters" );
+	degr_per_hour.set(                   1.e-7,                "degr_per_hour",      false,                    "Reflectivity degradation rate",     "1/hr",    "Optical degradation|Parameters" );
     degr_accel_per_year.set(             0.125,          "degr_accel_per_year",      false,                   "Refl. degradation acceleration",     "1/yr",    "Optical degradation|Parameters" );
     degr_seed.set(                         123,                    "degr_seed",      false,                     "Random number generator seed",        "-",    "Optical degradation|Parameters" );
     soil_per_hour.set(                   6.e-4,                "soil_per_hour",      false,                                "Mean soiling rate",     "1/hr",    "Optical degradation|Parameters" );
@@ -256,6 +261,11 @@ parameters::parameters()
     (*this)["n_heliostats_sim"] = &n_heliostats_sim;
     (*this)["wash_units_per_hour"] = &wash_units_per_hour;
     (*this)["wash_crew_max_hours_week"] = &wash_crew_max_hours_week;
+	(*this)["wash_crew_max_hours_day"] = &wash_crew_max_hours_day;
+	(*this)["wash_crew_capital_cost"] = &wash_crew_capital_cost;
+	(*this)["price_per_kwh"] = &price_per_kwh;
+	(*this)["operating_margin"] = &operating_margin;
+	(*this)["TES_powercycle_eff"] = &TES_powercycle_eff;
     (*this)["degr_per_hour"] = &degr_per_hour;
     (*this)["degr_accel_per_year"] = &degr_accel_per_year;
     (*this)["degr_seed"] = &degr_seed;
@@ -1547,34 +1557,61 @@ bool Project::O()
 	LinearSoilingFunc f(m_parameters.soil_per_hour.as_number() * 24);
 	wc.AssignSoilingFunction(&f);
 	wc.Initialize();
+
 	//obtain heliostat information from SSC
 	int nr, nc;
-	ssc_number_t num_heliostats, h_width, h_height;
+	ssc_number_t num_heliostats, h_width, h_height, term_int_rate;
 	ssc_data_get_number(m_ssc_data, "number_heliostats", &num_heliostats);
-	ssc_data_get_number(m_ssc_data, "helio_width", &h_width);
-	ssc_data_get_number(m_ssc_data, "helio_height", &h_height);
+	ssc_data_get_number(m_ssc_data, "term_int_rate", &term_int_rate);
 	ssc_number_t *helio_positions = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
 	ssc_number_t *helio_ids = ssc_data_get_array(m_ssc_data, "helio_ids", &nr);
-	//ssc_number_t *ann_e = ssc_data_get_array(m_ssc_data, "annual_helio_energy", &nr);
 
+	//mirror size comes from heliostat width * height
+	//wc.m_solar_data.mirror_size = h_width * h_height;
+
+	//load ssc data into settings, solar field info	
 	wc.m_solar_data.num_mirror_groups = num_heliostats;
 	wc.m_solar_data.x_pos = new double[num_heliostats];
 	wc.m_solar_data.y_pos = new double[num_heliostats];
-	wc.m_solar_data.mirror_eff = new double[num_heliostats];
+	wc.m_solar_data.mirror_output = new double[num_heliostats];
 	wc.m_solar_data.names = new int[num_heliostats];
 	for (int i = 0; i < num_heliostats; i++)
 	{
 		wc.m_solar_data.x_pos[i] = helio_positions[2*i];
 		wc.m_solar_data.y_pos[i] = helio_positions[2*i+1];
-		wc.m_solar_data.mirror_eff[i] = m_design_outputs.annual_helio_energy.vec()->at(i).as_number();
+		wc.m_solar_data.mirror_output[i] = m_design_outputs.annual_helio_energy.vec()->at(i).as_number() / 1000;  //convert from Wh to kWh
 		wc.m_solar_data.names[i] = helio_ids[i];
 	}
+	//additional settings information from parameters
+	wc.m_settings.capital_cost_per_crew = m_parameters.wash_crew_capital_cost.as_number();
+	wc.m_settings.crew_hours_per_week = m_parameters.wash_crew_max_hours_week.as_number();
+	wc.m_settings.crew_hours_per_day = m_parameters.wash_crew_max_hours_day.as_number();
+	wc.m_settings.discount_rate = term_int_rate * 0.01;
+	wc.m_settings.hourly_cost_per_crew = m_parameters.wash_crew_cost.as_number();
+	wc.m_settings.num_years = m_parameters.finance_period.as_number();
+	wc.m_settings.operating_margin = m_parameters.operating_margin.as_number();
+	wc.m_settings.price_per_kwh = m_parameters.price_per_kwh.as_number();
+	wc.m_settings.system_efficiency = m_parameters.TES_powercycle_eff.as_number();
+	wc.m_settings.wash_time = 60. / m_parameters.wash_units_per_hour.as_number();
+	wc.m_settings.max_num_crews = (int)(
+		0.5 + num_heliostats * wc.m_settings.wash_time / 
+		(60. * wc.m_settings.crew_hours_per_day)
+		);
 	wc.OptimizeWashCrews();
+	while (wc.m_settings.max_num_crews == wc.m_results.num_wash_crews)
+	{
+		wc.m_settings.max_num_crews *= 2;
+		wc.OptimizeWashCrews();
+	}
 
 	optical_degradation od;
 
+	//transfer results and heliostat data from wash crew optimization model
+	od.m_wc_results = wc.m_results;
+	od.m_solar_data = wc.m_solution_data;
+
 	od.m_settings.n_hr_sim = m_parameters.finance_period.as_integer() * 8760;
-	od.m_settings.n_wash_crews = m_variables.n_wash_crews.as_integer();
+	od.m_settings.n_wash_crews = wc.m_results.num_wash_crews;
 	od.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
 	od.m_settings.degr_loss_per_hr = m_parameters.degr_per_hour.as_number();
 	od.m_settings.degr_accel_per_year = m_parameters.degr_accel_per_year.as_number();
@@ -1582,7 +1619,7 @@ bool Project::O()
 	od.m_settings.soil_loss_per_hr = m_parameters.soil_per_hour.as_number();
 	od.m_settings.wash_units_per_hour = m_parameters.wash_units_per_hour.as_number();
 	od.m_settings.hours_per_week = m_parameters.wash_crew_max_hours_week.as_number();
-	od.m_settings.hours_per_day = 10.;
+	od.m_settings.hours_per_day = m_parameters.wash_crew_max_hours_day.as_number();
 	od.m_settings.seed = m_parameters.degr_seed.as_integer();
 
 	od.simulate(sim_progress_handler);

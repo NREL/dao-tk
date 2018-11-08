@@ -55,17 +55,17 @@ struct wash_crew_settings
 	
 	int max_num_crews;
 	double capital_cost_per_crew; // fixed
-	double labor_cost_per_crew;  //per hour
-	double materials_cost_per_crew;  //per year?
+	double hourly_cost_per_crew;  //per hour
 	double discount_rate;
 	double wash_time; //in minutes per mirror
 	double crew_hours_per_week;
-	double total_cost_per_crew;  //NPV
-	double system_efficiency;
-	double revenue_per_mirror;  //assuming 100% efficiency
-	double operating_margin;
+	double crew_hours_per_day;
+	double total_cost_per_crew;  //NPV of labor and capital costs
+	double system_efficiency; //assumed efficiency including receiver, TES losses, power cycle
+	double profit_per_kwh;  //per kwh dni sent to receiver, assuming 100% mirror efficiency
+	double operating_margin; //used in calculating profit losses
 	double num_years;      //years of operation to calculate NPV of annual costs
-	double price_per_kwh;  //assumed average
+	double price_per_kwh;  //assumed average for grid output
 
 	wash_crew_settings();
 	void print();
@@ -76,13 +76,13 @@ struct solar_field_data
 	int *names;
 	double *x_pos;
 	double *y_pos;
-	double *mirror_eff;
-	double total_mirror_eff;
+	double *mirror_output;
+	double total_mirror_output;
 	int *num_mirrors_by_group;
 	int num_mirror_groups;
 	int scale;
-	double mirror_size;
-	double annual_dni;
+	//double mirror_size;
+	//double annual_dni;
 	std::unordered_map<int, std::vector<int>> groupings;
 	solar_field_data();
 	//~solar_field_data();
@@ -94,6 +94,8 @@ struct wash_crew_opt_results
 	double *objective_values;
 	int *parents;
 	double *distances;
+	int num_wash_crews;
+	solar_field_data solution_data;
 	wash_crew_opt_results();
 	//~wash_crew_opt_results();
 };

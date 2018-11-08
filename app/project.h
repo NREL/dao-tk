@@ -344,7 +344,12 @@ struct parameters : public lk::varhash_t
 	parameter om_staff_max_hours_week;
 	parameter n_heliostats_sim;
 	parameter wash_units_per_hour;
+	parameter wash_crew_max_hours_day;
 	parameter wash_crew_max_hours_week;
+	parameter wash_crew_capital_cost;
+	parameter price_per_kwh;
+	parameter operating_margin;
+	parameter TES_powercycle_eff;
 	parameter degr_per_hour;
 	parameter degr_accel_per_year;
 	parameter degr_seed;

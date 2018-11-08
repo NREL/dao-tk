@@ -65,6 +65,10 @@ void Project::add_documentation()
     m_parameters.n_heliostats_sim.doc.set("","");
     m_parameters.wash_units_per_hour.doc.set("","");
     m_parameters.wash_crew_max_hours_week.doc.set("","");
+	m_parameters.wash_crew_capital_cost.doc.set("","");
+	m_parameters.price_per_kwh.doc.set("","");
+	m_parameters.operating_margin.doc.set("","");
+	m_parameters.TES_powercycle_eff.doc.set("","");
     m_parameters.degr_per_hour.doc.set("","");
     m_parameters.degr_accel_per_year.doc.set("","");
     m_parameters.degr_seed.doc.set("","");

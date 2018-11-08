@@ -14,7 +14,7 @@ public:
 	WashCrewOptimizer(
 		double *x_pos,
 		double *y_pos,
-		double *mirror_eff,
+		double *mirror_output,
 		int max_wash_crews,
 		int num_mirrors,
 		int scale
@@ -27,13 +27,16 @@ public:
 	wash_crew_settings m_settings;
 	solar_field_data m_solar_data;
 	solar_field_data m_condensed_data;
+	solar_field_data m_solution_data;
 	wash_crew_opt_results m_results;
 	wash_crew_file_settings m_file_settings;
 
 	void SortMirrors();
 
 	void GroupMirrors(int scale);
-	
+
+	void GroupSolutionMirrors(int hours = 1);
+
 	void CalculateRevenueAndCosts();
 
 	void AssignSoilingFunction(SoilingFunction *func);
@@ -61,6 +64,7 @@ public:
 	std::vector<int> RetracePath(int *parents, int num_rows, int row_length);
 
 	void OptimizeWashCrews(int scale=-1, bool output=false);
+
 
 	void Output2DArrayToFile(
 		std::string filename, 
