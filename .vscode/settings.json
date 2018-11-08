@@ -65,6 +65,7 @@
         "*.cpng": "cpp",
         "bitset": "cpp",
         "codecvt": "cpp",
-        "*.xpm": "cpp"
+        "*.xpm": "cpp",
+        "core": "cpp"
     }
 }

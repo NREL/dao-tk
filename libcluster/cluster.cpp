@@ -77,7 +77,7 @@ std::vector<int> cluster_alg::find_points_in_cluster(const std::vector<int>&inde
 	Output: vector of all data points belong to cluster c
 	*/
 	std::vector<int> pts;
-	for (int i = 0; i < index.size(); i++)
+	for (int i = 0; i < (int)index.size(); i++)
 	{
 		if (index.at(i) == c)
 			pts.push_back(i);
@@ -146,7 +146,7 @@ std::vector<double> cluster_alg::calculate_weights(const matrix<double> &partiti
 
 	int nobs = int(partition_matrix.nrows);
 	std::vector<double> weights = partition_matrix.sum_rows();
-	for (int j = 0; j < weights.size(); j++)
+	for (int j = 0; j < (int)weights.size(); j++)
 		weights.at(j) /= (double)nobs;
 
 	return weights;

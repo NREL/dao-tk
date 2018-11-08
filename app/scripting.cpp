@@ -6,6 +6,8 @@
 #include "project.h"
 #include "daotk_app.h"
 
+#include "../liboptimize/optimize.h"
+
 #include "../liboptical/optical_degr.h"
 #include "../liboptical/optical_structures.h"
 #include "../libsolar/solarfield_avail.h"
@@ -1044,5 +1046,58 @@ void _setup_clusters(lk::invoke_t &cxt)
 	MainWindow &mw = MainWindow::Instance();
 	Project* P = mw.GetProject();
 	P->setup_clusters();
+
+}
+
+double f(std::vector<int> &x)
+{
+    int rval=0;
+    for(int i=0; i<x.size(); i++)
+        rval += (x.at(i))*(x.at(i));
+
+    return rval;
+}
+
+void _optimize(lk::invoke_t &cxt)
+{
+    LK_DOC("O", "Run outer-loop optimization.", "([table:options]):table");
+
+	MainWindow &mw = MainWindow::Instance();
+    optimization Opt;
+
+    Opt.m_settings.f_objective = f;
+    Opt.m_settings.convex_flag = false;
+    Opt.m_settings.max_delta = 1;
+    Opt.m_settings.trust = true;
+
+    //npanel, nom, nwash
+    Opt.m_settings.lower_bounds = std::vector<int>{ -6,-6 };
+    Opt.m_settings.upper_bounds = std::vector<int>{ 2, 2 };
+    Opt.m_settings.X = std::vector< std::vector<int> >
+    {
+        std::vector<int>{1,0},
+        std::vector<int>{0,1},
+        std::vector<int>{-1,0},
+        std::vector<int>{0,-1},
+        std::vector<int>{0,0}
+    };
+    
+    Opt.run_integer_optimization();
+
+    optimization_outputs* oo = &mw.GetProject()->m_optimization_outputs;
+
+    int n, m;
+
+    oo->eta_i.empty_vector();
+    n = (int)Opt.m_results.eta_i.size();
+    m = (int)Opt.m_results.eta_i.front().size();
+    for (int i = 0; i < n; i++)
+    {
+        lk::vardata_t row;
+        row.empty_vector();
+        for (int j = 0; j < m; j++)
+            row.vec_append(Opt.m_results.eta_i.at(i).at(j));
+        oo->eta_i.vec()->push_back(row);
+    }
 
 }
