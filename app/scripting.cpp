@@ -1060,15 +1060,26 @@ double f(std::vector<int> &x)
 
 void _optimize(lk::invoke_t &cxt)
 {
-    LK_DOC("O", "Run outer-loop optimization.", "([table:options]):table");
+    LK_DOC("optimize_system", 
+    "Run outer-loop optimization. Specify the variables to optimize in the options table, "
+    "optionally, along with upper bounds, lower bounds, and initial value(s) to sample. "
+    "Note that the sample values will be tested for each variable in the order that they are specified, "
+    "and the length of the sample list must be the same for all variables. "
+    "For example:\n\n"
+    "my_opt_vars = {\n\t \"{\"name\" = \"n_wash_crews\", \"upper_bound\" = 15, \"lower_bound\" = 1, \"guess\" = [5,10]},\n\t"
+    "{ \"name\" = \"h_tower\", \"upper_bound\" = 250, \"lower_bound\" = 50, \"guess\"=[175,155]}, \n\t...\t};\rresult = optimize_system(options=my_opt_vars);"
+    "([table:options]):table");
 
 	MainWindow &mw = MainWindow::Instance();
     optimization Opt;
 
     Opt.m_settings.f_objective = f;
-    Opt.m_settings.convex_flag = false;
-    Opt.m_settings.max_delta = 1;
-    Opt.m_settings.trust = true;
+    // Opt.m_settings.convex_flag = false;
+    Opt.m_settings.convex_flag = m_parameters.convex_flag.as_boolean();
+    // Opt.m_settings.max_delta = 1;
+    Opt.m_settings.max_delta = m_parameters.max_delta.as_integer();
+    // Opt.m_settings.trust = true;
+    Opt.m_settings.trust = m_parameters.trust.as_boolean();
 
     //npanel, nom, nwash
     Opt.m_settings.lower_bounds = std::vector<int>{ -6,-6 };

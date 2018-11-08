@@ -11,7 +11,7 @@ struct optimization_settings
     double (*f_objective)(std::vector<int>&);
     std::vector<int> lower_bounds;
     std::vector<int> upper_bounds;
-    std::vector< std::vector< int > > X;
+    std::vector< std::vector< int > > X_sample;
 
     bool trust;
     bool convex_flag;
@@ -38,7 +38,8 @@ public:
     optimization_settings m_settings;
     optimization_results m_results;
 
-    bool run_integer_optimization();
+    bool run_optimization();
+    bool run_continuous_optimization(std::vector<int> &x_int);
                 
 }; // optimize
 

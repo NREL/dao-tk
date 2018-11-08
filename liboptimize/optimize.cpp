@@ -1,6 +1,6 @@
 #include "optimize.h"
 #include "optutil.h"
-#include <nlopt/nlopt.h>
+#include <nlopt/nlopt.hpp>
 #include <eigen/Core>
 #include <eigen/Dense>
 #include <exception>
@@ -22,8 +22,25 @@ static inline bool filter_where_lt(T c, T d)
 };
 //------------------------------------------
 
+bool optimization::run_continuous_optimization(std::vector<int> &x_int)
+{
+    /* 
+    Optimize the continuous variable problem given the current fixed integer values
+    specified in 'x_int'.
 
-bool optimization::run_integer_optimization()
+
+    */
+
+    //set up the NLOpt optimization problem
+    nlopt::opt *opt_obj;
+    
+
+
+
+}
+
+
+bool optimization::run_optimization()
 {
     /*
     Performs in implementation of our cutting plane approach for mixed-integer
@@ -56,9 +73,9 @@ bool optimization::run_integer_optimization()
     //require dimensions of matrices to align
     int n, nx;
     n = (int)m_settings.lower_bounds.size();
-    if( m_settings.X.front().size() == 0 )
+    if( m_settings.X_sample.front().size() == 0 )
         std::runtime_error("Malformed data in optimization routine. Dimensionality of X is invalid.");
-    nx = (int)m_settings.X.size();
+    nx = (int)m_settings.X_sample.size();
     if( (int)m_settings.upper_bounds.size() != n || (int)m_settings.lower_bounds.size() != n )
         std::runtime_error("Dimensionality mismatch in optimization routine input data.");
 
@@ -72,7 +89,7 @@ bool optimization::run_integer_optimization()
         UB(i) = m_settings.upper_bounds.at(i);
     for(int i=0; i<nx; i++)
         for(int j=0; j<n; j++)
-            X(i,j) = m_settings.X.at(i).at(j);
+            X(i,j) = m_settings.X_sample.at(i).at(j);
 
     if ( m_settings.convex_flag && !m_settings.trust )
         std::runtime_error("Must have trust=True when convex_flag=True");
