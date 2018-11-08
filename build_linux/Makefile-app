@@ -1,6 +1,6 @@
-export PATH := $(HOME)/local/wx-3.1.0/bin/:$(PATH)
-
 HOME =..
+
+export PATH := $(HOME)/../wxWidgets-3.1.1/bin/:$(PATH)
 VPATH =$(HOME)/app
 
 WEXDIR=$(HOME)/../wex

@@ -217,9 +217,19 @@ protected:
     void _set_base(std::string vname, bool calculated, const char *_nice_name, const char *_units, const char *_group)
     {
         this->name = vname;
-		this->nice_name = _nice_name != '\0' ? _nice_name : "";
-		this->units = _units != '\0' ? _units : "";
-		this->group = _group != '\0' ? _group : "";
+		if(_nice_name)
+            this->nice_name = *_nice_name;
+        else
+            this->nice_name = "";
+		if(_units)
+            this->units = *_units;
+        else
+            this->units = "";
+		if(_group)
+            this->group = *_group;
+        else
+            this->group = "";
+        
 		this->is_shown_in_list = true;
         is_calculated = calculated;
 		this->m_is_invalid_allowed = is_calculated ? true : false;
