@@ -90,7 +90,7 @@ void WashCrewOptimizer::ReadFromFiles()
 			hel_id.push_back(std::stoi(split_line[0]));
 			x.push_back(std::stod(split_line[1]));
 			y.push_back(std::stod(split_line[2]));
-			output.push_back(std::stod(split_line[9]));
+			output.push_back(std::stod(split_line[16]) / 1000.);
 		}
 		split_line.clear();
 	}
@@ -292,8 +292,25 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 		}
 		new_assignments.push_back(group_idx);
 	}
-	m_solution_data.num_mirrors_by_group = &num_mirrors_by_group[0];
-	m_solution_data.mirror_output = &mirror_output[0];
+	std::cerr << "Path: ";
+	for (int j = 0; j < m_results.assignments.size(); j++)
+	{
+		std::cerr << m_results.assignments.at(j) << ",";
+	}
+	std::cerr << "\n";
+	for (int i = 0; i < group_idx; i++)
+	{
+		std::cerr << "Group " << i << " num mirrors: "
+			<< num_mirrors_by_group[i]
+			<< " power: " << mirror_output[i] << "\n";
+	}
+	m_solution_data.num_mirrors_by_group = new int[num_mirrors_by_group.size()]; &num_mirrors_by_group[0];
+	m_solution_data.mirror_output = new double[mirror_output.size()];
+	for (size_t i = 0; i < mirror_output.size(); i++)
+	{
+		m_solution_data.mirror_output[i] = mirror_output.at(i);
+		m_solution_data.num_mirrors_by_group[i] = num_mirrors_by_group.at(i);
+	}
 	m_solution_data.total_mirror_output = m_condensed_data.total_mirror_output*1.0;
 	m_solution_data.num_mirror_groups = group_idx;
 	m_results.assignments = new_assignments;
@@ -664,13 +681,13 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 		
 		field_eff = EvaluateFieldEfficiency(path);
 
-		//std::cerr << "Cost for " << i << " wash crews: " << cost
-		//	<< "\nAssignment: ";
+		std::cerr << "Cost for " << i << " wash crews: " << cost
+			<< "\nAssignment: ";
 		for (int j = 0; j < path.size(); j++)
 		{
 			std::cerr << path.at(j) << ",";
 		}
-		//std::cerr << "\nAverage field efficiency: " << field_eff << "\n";
+		std::cerr << "\nAverage field efficiency: " << field_eff << "\n";
 
 		if (cost < min_cost)
 		{
@@ -678,8 +695,8 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 			min_cost = cost * 1.0;
 		}
 	}
-	//std::cerr << "optimal cost: " << min_cost << "\nNumber of wash crews: "
-	//	<< best_path.size()-1 << "\n";
+	std::cerr << "optimal cost: " << min_cost << "\nNumber of wash crews: "
+		<< best_path.size()-1 << "\n";
 	m_results.assignments = best_path;
 	m_results.num_wash_crews = best_path.size() - 1;
 	if (output)
