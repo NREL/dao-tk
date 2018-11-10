@@ -312,7 +312,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 		m_solution_data.num_mirrors_by_group[i] = num_mirrors_by_group.at(i);
 	}
 	m_solution_data.total_mirror_output = m_condensed_data.total_mirror_output*1.0;
-	m_solution_data.num_mirror_groups = group_idx;
+	m_solution_data.num_mirror_groups = mirror_output.size();
 	m_results.assignments = new_assignments;
 }
 

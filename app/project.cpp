@@ -1560,7 +1560,7 @@ bool Project::O()
 
 	//obtain heliostat information from SSC
 	int nr, nc;
-	ssc_number_t num_heliostats, h_width, h_height, term_int_rate;
+	ssc_number_t num_heliostats, term_int_rate;
 	ssc_data_get_number(m_ssc_data, "number_heliostats", &num_heliostats);
 	ssc_data_get_number(m_ssc_data, "term_int_rate", &term_int_rate);
 	ssc_number_t *helio_positions = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
@@ -1594,9 +1594,9 @@ bool Project::O()
 	wc.m_settings.system_efficiency = m_parameters.TES_powercycle_eff.as_number();
 	wc.m_settings.wash_time = 60. / m_parameters.wash_units_per_hour.as_number();
 	wc.m_settings.max_num_crews = (int)(
-		0.5 + num_heliostats * wc.m_settings.wash_time / 
+		num_heliostats * wc.m_settings.wash_time / 
 		(60. * wc.m_settings.crew_hours_per_day)
-		);
+		) +	1;
 	wc.OptimizeWashCrews();
 	while (wc.m_settings.max_num_crews == wc.m_results.num_wash_crews)
 	{
@@ -1621,6 +1621,8 @@ bool Project::O()
 	od.m_settings.hours_per_week = m_parameters.wash_crew_max_hours_week.as_number();
 	od.m_settings.hours_per_day = m_parameters.wash_crew_max_hours_day.as_number();
 	od.m_settings.seed = m_parameters.degr_seed.as_integer();
+	od.m_settings.refl_sim_interval = 168;
+	od.m_settings.soil_sim_interval = 24;
 
 	od.simulate(sim_progress_handler);
 
