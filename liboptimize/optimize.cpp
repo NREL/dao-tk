@@ -101,7 +101,7 @@ bool optimization::run_optimization()
             std::runtime_error("Optimization input data outside of specified upper or lower bound range.");
 
     
-    Matrix<double> grid;
+    Matrix<int> grid;
     int m=1;
     for(int i=0; i<n; i++)
         m *= (UB(i)+1-LB(i));
@@ -182,7 +182,7 @@ bool optimization::run_optimization()
     assign_where(eta, F, &assign_filter_nan);
 
     // To store the set of n+1 points that generate the value eta at each grid point.. The evaluated points are their own generators
-    Matrix<int> eta_gen(F.size(), n+1);
+    Matrix<int> eta_gen((int)F.size(), n+1);
     for(int i=0; i<not_nans.size(); i++)
         for(int j=0; j<n+1; j++)
             eta_gen( not_nans.at(i), j) = not_nans.at(i);
@@ -327,7 +327,7 @@ bool optimization::run_optimization()
 
                 Vector<double> hyperplane;
                 hyperplane.Set( grid_comb.AsEigenMatrixType().householderQr().solve(F_comb.AsEigenVectorType()) );
-                Vector<double> vals = grid.Subset(points_to_possibly_update).dot(hyperplane);
+                Vector<int> vals = grid.Subset(points_to_possibly_update).dot(hyperplane);
 
                 // Update lower bound eta at these points 
                 for(int i=0; i<(int)vals.size(); i++)
@@ -473,11 +473,11 @@ bool optimization::run_optimization()
         {
             F(new_ind) = Fnew;
             // print(grid[np.nanargmin(F),1:],sum(~np.isnan(F)),m_settings.trust,func)
-            Vector<double> x_at_fmin = grid.at( argmin(F, true) );
+            Vector<int> x_at_fmin = grid.at( argmin(F, true) );
             
-            m_results.x_star.clear();
+            //m_results.x_star.clear();
             for (int i = 0; i < n; i++)
-                m_results.x_star.push_back((double)x_at_fmin(i + 1));
+                m_settings.variables_int_t.at(i).value = x_at_fmin(i + 1);
             //std::cout << sum_F_defined << "\t" << m_settings.trust << "\t" << m_settings.f_objective << "\n";
 
             return true;
