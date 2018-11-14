@@ -131,6 +131,77 @@ void _initialize(lk::invoke_t &cxt)
 	mw.UpdateDataTable();
 }
 
+void _varinfo(lk::invoke_t &cxt)
+{
+    LK_DOC2("varinfo", "Interact with variable properties.",
+        "Set variable properties. Keys include 'upper_bound', 'lower_bound', 'initializers,' 'is_integer,' and 'is_optimized'. Returns true when "
+        "variable with the specified name exists, false if variable does not exist.", "(table:values):boolean",
+        "Get table of properties currently assigned to a variable.", "(void):table"
+    );
+
+    MainWindow &mw = MainWindow::Instance();
+    Project *project = mw.GetProject();
+
+    //collect the item name
+    std::string namearg = cxt.arg(0).as_string();
+    data_base* dat = project->GetVarPtr(namearg.c_str());
+    if (!dat)
+    {
+        //variable not found
+        mw.Log(wxString::Format("The specified variable name (%s) is not "
+                                "included in the available variables.",
+                                namearg.c_str()
+                                )
+        );
+        cxt.result().assign(0.);
+        return;
+    }
+
+    if (cxt.arg_count() == 2)
+    {
+
+        lk::varhash_t *h = cxt.arg(1).hash();
+
+        variable* v = static_cast<variable*>(dat);
+        std::vector<double> inits;
+
+        if (h->find("upper_bound") != h->end())
+            v->maxval.assign( h->at("upper_bound")->as_number() );
+        if (h->find("lower_bound") != h->end())
+            v->minval.assign(h->at("lower_bound")->as_number());
+        if (h->find("is_optimized") != h->end())
+            v->is_optimized = h->at("is_optimized")->as_boolean();
+        if (h->find("is_integer") != h->end())
+            v->is_integer= h->at("is_integer")->as_boolean();
+        if (h->find("initializers") != h->end())
+        {
+            v->initializers.empty_vector();
+            int n = h->at("initializers")->vec()->size();
+            v->initializers.vec()->resize(n);
+            for (int i = 0; i < n; i++)
+                v->initializers.vec()->at(i).assign(h->at("initializers")->vec()->at(i).as_number());
+        }
+    }
+    else if( cxt.arg_count()==1)
+    {
+        variable* v = static_cast<variable*>(dat);
+        cxt.result().empty_hash();
+        cxt.result().hash_item("upper_bound", v->maxval.as_number());
+        cxt.result().hash_item("lower_bound", v->minval.as_number());
+        cxt.result().hash_item("is_optimized", v->is_optimized);
+        cxt.result().hash()->at("initializers")->empty_vector();
+        cxt.result().hash()->at("initializers")->vec()->resize(v->initializers.vec()->size());
+        for (int i = 0; i < v->initializers.vec()->size(); i++)
+            cxt.result().hash()->at("initializers")->vec()->at(i).assign( v->initializers.vec()->at(i).as_number());
+    }
+    else
+    {
+        cxt.result().assign(0.);
+        return;
+    }
+
+}
+
 void _var(lk::invoke_t &cxt)
 {
 	LK_DOC2("var", "Sets or gets a variable value.",
