@@ -20,6 +20,8 @@ A class containing the aspects of the current project
 
 #define SIGNIF_FIGURE 5 	//specify the significant digit requirement for data storage
 
+class Project;
+
 extern ssc_bool_t ssc_progress_handler(ssc_module_t, ssc_handler_t, int action, float f0, float f1, const char *s0, const char *, void *);
 extern bool sim_progress_handler(float progress, const char *msg);
 extern void message_handler(const char *msg);
@@ -144,6 +146,8 @@ public:
 class variable : public data_base
 {
 protected:
+    lk::vardata_t _prev_val;
+
     void _set_base(double vmin, double vmax, std::string vname, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
 		set_limits(vmin, vmax);
@@ -159,10 +163,19 @@ public:
     lk::vardata_t minval;
     lk::vardata_t maxval;
     lk::vardata_t defaultval;
+    lk::vardata_t initializers;
+    std::vector< bool (Project::*)() > triggers;
+    bool is_optimized;
+    bool is_integer;
+
+    bool value_changed()
+    {
+        return _prev_val.equals(*this);
+    };
 
 	bool set_limits(double vmin, double vmax)
 	{
-		if (vmin >= vmax)
+		if (vmin >= vmax) 
 			return false;
 
         minval.assign(vmin);
@@ -170,17 +183,19 @@ public:
 		return true;
 	};
 	
-	void set(double _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0)
+	void set(double _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0, bool _is_optimized = false)
 	{
         this->defaultval.assign(_defaultval); 
         this->assign(_defaultval);
+        this->is_optimized = _is_optimized;
         _set_base(_vmin, _vmax, _vname, _nice_name, _units, _group);
 	};
     
-    void set(int _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0)
+    void set(int _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0, bool _is_optimized = false)
     {
         this->defaultval.assign(_defaultval);
         this->assign(_defaultval);
+        this->is_optimized = _is_optimized;
         _set_base(_vmin, _vmax, _vname, _nice_name, _units, _group);
     };
 
@@ -635,14 +650,14 @@ public:
     void Optimize(lk::varhash_t* vars);
 
 	//objective function methods
-	bool D();
-	bool M();
-	bool C();
-	bool O();
-	bool S();
-	bool E();
-	bool F();
-	bool Z();
+	bool D();       //Solar field layout and design
+	bool M();       //Heliostat mechanical availability
+	bool C();       //Cycle availability 
+	bool O();       //Optical degradation and soiling
+	bool S();       //Production simulation
+	bool E();       //Explicit cost calculations
+	bool F();       //Financial model calculations
+	bool Z();       //Rolled-up objective function
 
 	bool setup_clusters();
 
@@ -650,15 +665,6 @@ public:
 	data_base *GetVarPtr(const char *name);
 	lk::varhash_t *GetMergedData();
     std::vector< void* > GetDataObjects();
-
-	// def setup_clusters(self, Nclusters, Ndays = 2, Nprev = 1, Nnext = 1, user_weights = None, user_divisions = None):
-	// def M(self, variables, design):
-	// def O(self, variables, design):
-	// def S(self, design, variables, sf_avail=None, sf_soil=None, sf_degr=None, sample_weeks=None, Nclusters = None, cluster_inputs = None, pv_production = None):
-	// def E(self, variables):
-	// def F(self, variables, S, om_cost): #total_installed_cost, generation, pricing_mult):
-	// def Z(self, variables, **kwargs):
-
 };
 
 

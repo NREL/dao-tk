@@ -766,6 +766,30 @@ Project::Project()
 		}
 	}
 
+    /*
+    Keep track of which methods need to be called when a specific variable value changes
+        D()  :  Solar field layout and design
+        M()  :  Heliostat mechanical availability
+        C()  :  Cycle availability 
+        O()  :  Optical degradation and soiling
+        S()  :  Production simulation
+        E()  :  Explicit cost calculations
+        F()  :  Financial model calculations
+        Z()  :  Rolled-up objective function
+    */
+    m_variables.h_tower.triggers = 
+    m_variables.rec_height.triggers = 
+    m_variables.D_rec.triggers = 
+    m_variables.design_eff.triggers = 
+    m_variables.dni_des.triggers = 
+    m_variables.solarm.triggers = { &Project::D, &Project::M, &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.P_ref.triggers = { &Project::D, &Project::M, &Project::C, &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.tshours.triggers = { &Project::S, &Project::E, &Project::F };
+    m_variables.degr_replace_limit.triggers = { &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.om_staff.triggers = { &Project::M, &Project::S, &Project::E, &Project::F };
+    m_variables.n_wash_crews.triggers = { &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.N_panels.triggers = {&Project::S, &Project::E, &Project::F };
+
     add_documentation();
 }
 

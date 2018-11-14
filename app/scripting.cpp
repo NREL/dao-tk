@@ -204,7 +204,7 @@ void _varinfo(lk::invoke_t &cxt)
 
 void _var(lk::invoke_t &cxt)
 {
-	LK_DOC2("var", "Sets or gets a variable value.",
+    LK_DOC2("var", "Interact with variables or parameters.",
 		"Set a variable value.", "(string:name, variant:value):none",
 		"Get a variable value", "(string:name):variant");
 
@@ -1120,7 +1120,7 @@ void _setup_clusters(lk::invoke_t &cxt)
 
 }
 
-double f(std::vector<int> &x)
+double _continuous_optimization_func(std::vector<int> &x)
 {
     int rval=0;
     for(int i=0; i<x.size(); i++)

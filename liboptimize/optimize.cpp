@@ -22,7 +22,7 @@ static inline bool filter_where_lt(T c, T d)
 };
 //------------------------------------------
 
-bool optimization::run_continuous_optimization(std::vector<int> &x_int)
+bool optimization::run_continuous_subproblem()
 {
     /* 
     Optimize the continuous variable problem given the current fixed integer values
@@ -35,6 +35,8 @@ bool optimization::run_continuous_optimization(std::vector<int> &x_int)
     nlopt::opt *opt_obj;
     
 
+
+    return true;
 
 
 }
@@ -71,25 +73,29 @@ bool optimization::run_optimization()
             std::runtime_error("Must have trust=True when convex_flag=True");
 
     //require dimensions of matrices to align
-    int n, nx;
-    n = (int)m_settings.lower_bounds.size();
-    if( m_settings.X_sample.front().size() == 0 )
-        std::runtime_error("Malformed data in optimization routine. Dimensionality of X is invalid.");
-    nx = (int)m_settings.X_sample.size();
-    if( (int)m_settings.upper_bounds.size() != n || (int)m_settings.lower_bounds.size() != n )
-        std::runtime_error("Dimensionality mismatch in optimization routine input data.");
+    int n = (int)m_settings.variables_int_t.size();
+    int nx = (int)m_settings.n_initials;
 
     //transfer input data into eigen containers
     Vector<int> LB(n), UB(n);
     Matrix<int> X( nx, n);
-    
-    for(int i=0; i<n; i++)
-        LB(i) = m_settings.lower_bounds.at(i);
-    for(int i=0; i<n; i++)
-        UB(i) = m_settings.upper_bounds.at(i);
-    for(int i=0; i<nx; i++)
-        for(int j=0; j<n; j++)
-            X(i,j) = m_settings.X_sample.at(i).at(j);
+    {
+        int i = 0;
+        for (std::vector<optimization_variable<int> >::iterator vi = m_settings.variables_int_t.begin(); vi != m_settings.variables_int_t.end(); vi++)
+        {
+            LB(i) = vi->lower_bound;
+            UB(i) = vi->upper_bound;
+            if (vi->initializers.size() != n)
+            {
+                std::runtime_error( (std::stringstream()
+                    << "Malformed data in optimization routine. Dimensionality of the initializer array for variable '" << vi->name << "' is incorrect. "
+                    << "Expecting " << n << " values but received " << vi->initializers.size() << " instead.").str()
+                );
+            }
+            for (int j = 0; j < vi->initializers.size(); j++)
+                X(j, i) = vi->initializers.at(j);
+        }
+    }
 
     if ( m_settings.convex_flag && !m_settings.trust )
         std::runtime_error("Must have trust=True when convex_flag=True");
@@ -423,8 +429,11 @@ bool optimization::run_optimization()
             new_ind = (int)( std::min_element(eta.begin(), eta.end()) - eta.begin() );
 
         Vector<int> x_eval;
-        for(int i=0; i<n; i++)
+        for (int i = 0; i < n; i++)
+        {
             x_eval.push_back(grid(new_ind,i+1));
+            m_settings.variables_int_t.at(i).iteration_history.push_back(x_eval.back());
+        }
 
         Fnew = m_settings.f_objective(x_eval);    // Include this value in F in the next iteration (after all combinations with new_ind are formed)
         obj_ub = Fnew < obj_ub ? Fnew : obj_ub;   // Update upper bound on the value of the global optimizer
@@ -434,7 +443,7 @@ bool optimization::run_optimization()
         // Store information about the iteration (do not store if m_settings.trust and no evaluation)
         if ( ( m_settings.trust && eval_performed_flag ) || !m_settings.trust )
         {
-            m_results.eta_i.push_back( eta );
+            //m_results.eta_i.push_back( eta );
 
             m_results.obj_ub_i.push_back(obj_ub);
             
