@@ -249,12 +249,13 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 	std::vector<int> num_mirrors_by_group = {};
 	std::vector<int> new_assignments = { 0 };
 	
+
 	//determine the number of mirror groups;
 	int mirror_idx = 0;
 	double output = 0;
 	int group_idx = 0;
 	m_solution_data.groupings[group_idx] = {};
-	int num_assigned_mirrors = 0;
+	int num_assigned_mirrors;
 	for (int i = 0; i < m_results.num_wash_crews; i++)
 	{   //i = wash crew index
 		num_assigned_mirrors = 0;
@@ -264,7 +265,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 			j++
 			)
 		{
-			for (int k = 0; k < m_condensed_data.num_mirrors_by_group[j]; j++)
+			for (int k = 0; k < m_condensed_data.num_mirrors_by_group[j]; k++)
 			{  //k = mirror index within condensed data
 				output += m_solar_data.mirror_output[mirror_idx];
 				m_solution_data.groupings[group_idx].push_back(m_solar_data.names[mirror_idx]);
@@ -292,6 +293,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 		}
 		new_assignments.push_back(group_idx);
 	}
+	/*
 	std::cerr << "Path: ";
 	for (int j = 0; j < m_results.assignments.size(); j++)
 	{
@@ -304,6 +306,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 			<< num_mirrors_by_group[i]
 			<< " power: " << mirror_output[i] << "\n";
 	}
+	*/
 	m_solution_data.num_mirrors_by_group = new int[num_mirrors_by_group.size()]; &num_mirrors_by_group[0];
 	m_solution_data.mirror_output = new double[mirror_output.size()];
 	for (size_t i = 0; i < mirror_output.size(); i++)
@@ -816,5 +819,22 @@ void WashCrewOptimizer::OutputResults()
 		m_condensed_data.num_mirror_groups + 1,
 		m_condensed_data.num_mirror_groups + 1
 	);
+}
+
+solar_field_data WashCrewOptimizer::GetSolutionData()
+{
+	solar_field_data d;
+
+	d.groupings = m_solution_data.groupings;
+	d.mirror_output = m_solution_data.mirror_output;
+	d.names = m_solution_data.names;
+	d.num_mirrors_by_group = m_solution_data.num_mirrors_by_group;
+	d.num_mirror_groups = m_solution_data.num_mirror_groups;
+	d.scale = m_solution_data.scale;
+	d.total_mirror_output = m_solution_data.total_mirror_output;
+	d.x_pos = m_solution_data.x_pos;
+	d.y_pos = m_solution_data.y_pos;
+
+	return d;
 }
 

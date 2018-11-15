@@ -72,7 +72,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	//always scale the problem, ensures sampling repeatability
 	//problem_scale = (float)m_settings.n_helio / hscale;
 
-	n_helio_s = (int)m_solar_data.num_mirror_groups;
+	n_helio_s = m_solar_data.num_mirror_groups;
 	wash_units_per_hour_s = m_settings.wash_units_per_hour;
 	//-------------------
 
@@ -111,7 +111,15 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	GammaProcessDist soiling_dist;
 	soiling_dist = GammaProcessDist(0, .25, 4 * m_settings.soil_loss_per_hr * m_settings.soil_sim_interval, "linear");
 	GammaProcessDist degr_dist;
-	degr_dist = GammaProcessDist(exp(.05), 1+(m_settings.degr_accel_per_year / 8760.), 20. * m_settings.degr_loss_per_hr * m_settings.refl_sim_interval, "exponential");
+	if (m_settings.degr_accel_per_year < DBL_EPSILON)
+	{
+		degr_dist = GammaProcessDist(0, .25, 4 * m_settings.degr_loss_per_hr * m_settings.soil_sim_interval, "linear");
+	}
+	else
+	{
+		degr_dist = GammaProcessDist(0.05, 1+(m_settings.degr_accel_per_year / 8760.), 20. * m_settings.degr_loss_per_hr * m_settings.refl_sim_interval, "exponential");
+	}
+	
 	
 	//---------
 
@@ -157,7 +165,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 			for (std::vector<opt_heliostat>::iterator h = helios.begin(); h != helios.end(); h++)
 			{
 				//soil each heliostat
-				double ss = soiling_dist.GetVariate(h->age_hours, 1, soil_gen) / m_settings.soil_sim_interval;
+				double ss = soiling_dist.GetVariate(h->age_hours, m_settings.soil_sim_interval, soil_gen) / m_settings.soil_sim_interval;
 				h->soil_loss_rate = ss;
 			}
 		}
@@ -169,7 +177,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 			{
 
 				//degrade each heliostat
-				double dd = degr_dist.GetVariate(h->age_hours, 1, degr_gen) / m_settings.refl_sim_interval * degr_mult_by_age[h->age_hours];
+				double dd = degr_dist.GetVariate(h->age_hours, m_settings.refl_sim_interval, degr_gen) / m_settings.refl_sim_interval;
 				h->refl_loss_rate = dd;
 			}
 		}
@@ -282,7 +290,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		//log averages
 		double refl_ave = 0.;
 		double soil_ave = 0.;
-		double mirror_energy = 0;
+		double mirror_energy = 0.;
 		for (size_t i = 0; i<helios.size(); i++)
 		{
 			mirror_energy = m_solar_data.mirror_output[i];

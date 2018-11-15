@@ -136,8 +136,8 @@ parameters::parameters()
 	price_per_kwh.set(                    0.15,                "price_per_kwh",      false,      "Estimated revenue per kWh delivered to grid",        "$",    "Optical degradation|Parameters" );
 	operating_margin.set(                  0.1,             "operating_margin",      false,                 "Estimated plant operating margin",        "-",    "Optical degradation|Parameters" );
 	TES_powercycle_eff.set(              0.376,           "TES_powercycle_eff",      false,      "Estimated efficiency of power block and TES",        "-",    "Optical degradation|Parameters" );
-	degr_per_hour.set(                   1.e-7,                "degr_per_hour",      false,                    "Reflectivity degradation rate",     "1/hr",    "Optical degradation|Parameters" );
-    degr_accel_per_year.set(             0.125,          "degr_accel_per_year",      false,                   "Refl. degradation acceleration",     "1/yr",    "Optical degradation|Parameters" );
+	degr_per_hour.set(                2.541e-7,                "degr_per_hour",      false,                    "Reflectivity degradation rate",     "1/hr",    "Optical degradation|Parameters" );
+    degr_accel_per_year.set(                0.,          "degr_accel_per_year",      false,                   "Refl. degradation acceleration",     "1/yr",    "Optical degradation|Parameters" );
     degr_seed.set(                         123,                    "degr_seed",      false,                     "Random number generator seed",        "-",    "Optical degradation|Parameters" );
     soil_per_hour.set(                   6.e-4,                "soil_per_hour",      false,                                "Mean soiling rate",     "1/hr",    "Optical degradation|Parameters" );
     adjust_constant.set(                     4,              "adjust:constant",      false,                            "Misc fixed power loss",        "%",              "Financial|Parameters" );

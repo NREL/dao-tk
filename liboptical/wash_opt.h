@@ -89,6 +89,8 @@ public:
 
 	void OutputResults();
 
+	solar_field_data GetSolutionData();
+
 };
 
 #endif

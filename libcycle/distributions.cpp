@@ -328,9 +328,17 @@ double GammaProcessDist::GetVariate(double t, double delta_t, WELLFiveTwelve &ge
 	(here, alpha denotes the shape parameter and
 	beta denotes the scale.)
 	*/
-	double alpha_1 = m_c * std::pow(m_b, t);
-	double alpha_2 = m_c * std::pow(m_b, t + delta_t);
-	double alpha = alpha_2 - alpha_1;
+	double alpha;
+	if (m_type == "linear")
+	{
+		alpha = m_c * delta_t;
+	}
+	else
+	{
+		double alpha_1 = m_c * std::pow(m_b, t);
+		double alpha_2 = m_c * std::pow(m_b, t + delta_t);
+		alpha = alpha_2 - alpha_1;
+	}
 	double W, X, Y, Z;
 	double random1;
 	double random2;
