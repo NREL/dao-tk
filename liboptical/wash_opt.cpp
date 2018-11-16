@@ -337,9 +337,11 @@ void WashCrewOptimizer::CalculateRevenueAndCosts()
 		/ (1 - (1 / (1 + m_settings.discount_rate)))
 		);
 	
+	m_settings.annual_multiplier = multiplier;
+
 	m_settings.total_cost_per_crew = ann_cost * multiplier;
 
-	m_settings.profit_per_kwh = (   //per kWh sent to receiver by heliostat
+	m_settings.profit_per_kwh = (   //NPV per kWh sent to receiver by heliostat
 		m_settings.price_per_kwh * m_settings.system_efficiency 
 		* m_settings.operating_margin * multiplier
 		);

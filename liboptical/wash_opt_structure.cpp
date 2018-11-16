@@ -58,7 +58,8 @@ wash_crew_settings::wash_crew_settings()
 	system_efficiency = 0.;
 	profit_per_kwh = 0.;  //assuming 100% efficiency
 	num_years = 0.;   //years of operation to calculate NPV of annual costs
-	price_per_kwh = 0.;  //assumed averag
+	price_per_kwh = 0.;  //assumed NPV (includes multiplier)
+	annual_multiplier = 0.;
 }
 
 void wash_crew_settings::print()
@@ -75,7 +76,8 @@ void wash_crew_settings::print()
 		<< "profit_per_kwh" << ": " << profit_per_kwh << "\n"
 		<< "operating_margin" << ": " << operating_margin << "\n"
 		<< "num_years" << ": " << num_years << "\n"
-		<< "price_per_kwh" << ": " << price_per_kwh << "\n"; 
+		<< "price_per_kwh" << ": " << price_per_kwh << "\n"
+		<< "annual_multiplier" << ": " << annual_multiplier << "\n";
 }
 
 /*

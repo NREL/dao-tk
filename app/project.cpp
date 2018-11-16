@@ -1609,6 +1609,9 @@ bool Project::O()
 	//transfer results and heliostat data from wash crew optimization model
 	od.m_wc_results = wc.m_results;
 	od.m_solar_data = wc.m_solution_data;
+	od.m_settings.annual_profit_per_kwh = (
+		wc.m_settings.profit_per_kwh / wc.m_settings.annual_multiplier
+		);
 
 	od.m_settings.n_hr_sim = m_parameters.finance_period.as_integer() * 8760;
 	od.m_settings.n_wash_crews = wc.m_results.num_wash_crews;

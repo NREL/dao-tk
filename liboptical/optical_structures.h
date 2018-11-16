@@ -20,6 +20,8 @@ struct opt_settings
     double degr_loss_per_hr;
     double degr_accel_per_year;
 
+	double annual_profit_per_kwh;
+
     int n_hr_sim;
 	int soil_sim_interval;
 	int refl_sim_interval;
@@ -33,6 +35,7 @@ struct opt_heliostat
     double soil_loss;
 	double refl_loss_rate;
 	double soil_loss_rate;
+	double replacement_threshold;
 
     int age_hours;
 

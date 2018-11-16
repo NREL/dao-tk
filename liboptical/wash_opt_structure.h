@@ -66,6 +66,7 @@ struct wash_crew_settings
 	double operating_margin; //used in calculating profit losses
 	double num_years;      //years of operation to calculate NPV of annual costs
 	double price_per_kwh;  //assumed average for grid output
+	double annual_multiplier;
 
 	wash_crew_settings();
 	void print();

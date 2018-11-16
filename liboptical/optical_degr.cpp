@@ -97,7 +97,15 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		crews.push_back(c);
 	}
 		
-
+	//determine replacement thresholds for heliostats.
+	double ann_profit;
+	for (int i = 0; i < n_helio_s; i++)
+	{
+		ann_profit = m_solar_data.mirror_output[i] * m_settings.annual_profit_per_kwh;
+		helios.at(i).replacement_threshold = (
+			0.99
+			);
+	}
 
 	std::vector< double > soil(m_settings.n_hr_sim);
 	std::vector< double > degr(m_settings.n_hr_sim);
