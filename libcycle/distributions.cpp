@@ -316,8 +316,34 @@ double GammaProcessDist::GetBeta()
 	return m_beta;
 }
 
+double GammaProcessDist::GetAlpha(double t, double delta_t)
+{
+	/* 
+	Calculates alpha according to the gamma process function 
+	A(t+delta_t) - A(t), 
+	which determines the shape parameter for a particular interval.
+	t -- elapsed time in the gamma process
+	delta_t -- interval length
+	*/
+	if (m_type == "linear")
+	{
+		return m_b + m_c * delta_t;
+	}
+	if (m_type == "exponential")
+	{
+		return (
+			std::exp(m_b + m_c * (t + delta_t)) - 
+				std::exp(m_b + m_c * (t))
+			);
+	}
+}
 
-double GammaProcessDist::GetVariate(double t, double delta_t, WELLFiveTwelve &gen)
+double GammaProcessDist::GetMean(double t, double delta_t)
+{
+	return GetAlpha(t, delta_t) * GetBeta();
+}
+
+double GammaProcessDist::GetVariate(double alpha, WELLFiveTwelve &gen)
 {
 	/*
 	generates a gamma distributed random variable for alpha < 1 and
@@ -327,18 +353,9 @@ double GammaProcessDist::GetVariate(double t, double delta_t, WELLFiveTwelve &ge
 
 	(here, alpha denotes the shape parameter and
 	beta denotes the scale.)
+
+	alpha -- shape parameter of the distribution. 
 	*/
-	double alpha;
-	if (m_type == "linear")
-	{
-		alpha = m_c * delta_t;
-	}
-	else
-	{
-		double alpha_1 = m_c * std::pow(m_b, t);
-		double alpha_2 = m_c * std::pow(m_b, t + delta_t);
-		alpha = alpha_2 - alpha_1;
-	}
 	double W, X, Y, Z;
 	double random1;
 	double random2;

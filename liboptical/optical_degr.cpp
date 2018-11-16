@@ -109,16 +109,12 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	WELLFiveTwelve soil_gen(seed1 % 100);
 	WELLFiveTwelve degr_gen((seed1+50) % 100);
 	GammaProcessDist soiling_dist;
-	soiling_dist = GammaProcessDist(0, .25, 4 * m_settings.soil_loss_per_hr * m_settings.soil_sim_interval, "linear");
+	double soil_c = .25 / m_settings.soil_sim_interval;
+	double refl_c = .25 / m_settings.refl_sim_interval;
+	soiling_dist = GammaProcessDist(0, soil_c, 4 * m_settings.soil_loss_per_hr, "linear");
 	GammaProcessDist degr_dist;
-	if (m_settings.degr_accel_per_year < DBL_EPSILON)
-	{
-		degr_dist = GammaProcessDist(0, .25, 4 * m_settings.degr_loss_per_hr * m_settings.soil_sim_interval, "linear");
-	}
-	else
-	{
-		degr_dist = GammaProcessDist(0.05, 1+(m_settings.degr_accel_per_year / 8760.), 20. * m_settings.degr_loss_per_hr * m_settings.refl_sim_interval, "exponential");
-	}
+	degr_dist = GammaProcessDist(0, refl_c, 4 * m_settings.degr_loss_per_hr, "linear");
+
 	
 	
 	//---------
@@ -126,16 +122,27 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	int this_heliostat; //current heliostat index
 
 	//initialize where each crew starts in the field
-	for (size_t c = 0; c<crews.size(); c++)
-		crews.at(c).current_heliostat = crews.at(c).start_heliostat;
+	for (size_t crew_idx = 0; crew_idx <crews.size(); crew_idx++)
+		crews.at(crew_idx).current_heliostat = crews.at(crew_idx).start_heliostat;
 	int n_replacements_cumu = 0;
 
 	//create the degradation rate by age
-	double degr_accel = (1. + m_settings.degr_accel_per_year / 8760.);
-	std::vector< float > degr_mult_by_age(m_settings.n_hr_sim);
-	degr_mult_by_age[0] = degr_accel;
-	for (int t = 1; t<m_settings.n_hr_sim; t++)
-		degr_mult_by_age[t] = degr_mult_by_age[t - 1] * degr_accel;
+	double degr_accel = std::pow((1. + m_settings.degr_accel_per_year), 1./8760);
+	int num_accel_entries = m_settings.n_hr_sim + std::max(m_settings.soil_sim_interval, m_settings.refl_sim_interval) + 1;
+	std::vector< double > alpha_t_by_age(num_accel_entries);
+	if (m_settings.degr_accel_per_year > DBL_EPSILON)
+	{
+		alpha_t_by_age[0] = degr_accel;
+		for (int t = 1; t < num_accel_entries; t++)
+			alpha_t_by_age[t] = alpha_t_by_age[t - 1] * degr_accel;
+		for (int t = 1; t < num_accel_entries; t++)
+			alpha_t_by_age[t] *= t * refl_c;
+	}
+	else
+	{
+		for (int t = 1; t < num_accel_entries; t++)
+			alpha_t_by_age[t] = t * refl_c;
+	}
 
 	double *current_var;
 	for (int t = 0; t<m_settings.n_hr_sim; t++)
@@ -165,7 +172,9 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 			for (std::vector<opt_heliostat>::iterator h = helios.begin(); h != helios.end(); h++)
 			{
 				//soil each heliostat
-				double ss = soiling_dist.GetVariate(h->age_hours, m_settings.soil_sim_interval, soil_gen) / m_settings.soil_sim_interval;
+				double ss = soiling_dist.GetVariate(
+					m_settings.soil_sim_interval*soil_c,soil_gen
+				);
 				h->soil_loss_rate = ss;
 			}
 		}
@@ -177,7 +186,10 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 			{
 
 				//degrade each heliostat
-				double dd = degr_dist.GetVariate(h->age_hours, m_settings.refl_sim_interval, degr_gen) / m_settings.refl_sim_interval;
+				double dd = degr_dist.GetVariate(
+					alpha_t_by_age[h->age_hours+m_settings.refl_sim_interval] 
+					- alpha_t_by_age[h->age_hours], degr_gen
+				);
 				h->refl_loss_rate = dd;
 			}
 		}
@@ -369,7 +381,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		ofs.close();
 	}
 
-	if (trace_file_name != 0)
+	if (do_trace)
 	{
 		//write the files
 		std::ofstream ofs;

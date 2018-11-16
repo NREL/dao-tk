@@ -104,9 +104,11 @@ public:
 	GammaProcessDist();
 	GammaProcessDist(double b, double c, double beta, std::string type);
 	bool IsBinary();
-	double GetVariate(double t, double delta_t, WELLFiveTwelve &gen);
+	double GetAlpha(double t, double delta_t);
+	double GetVariate(double alpha, WELLFiveTwelve &gen);
 	std::string GetType();
 	double GetBeta();
+	double GetMean(double t, double delta_t);
 };
 
 #endif
