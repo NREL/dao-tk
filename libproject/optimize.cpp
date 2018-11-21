@@ -7,6 +7,7 @@
 #include <set>
 #include <iostream>
 #include <stdio.h>
+#include <algorithm>
 
 //------------------------------------------
 template <typename T>
@@ -21,6 +22,7 @@ static inline bool filter_where_lt(T c, T d)
     return c < d;
 };
 //------------------------------------------
+
 
 bool optimization::run_continuous_subproblem()
 {
@@ -37,10 +39,7 @@ bool optimization::run_continuous_subproblem()
 
 
     return true;
-
-
 }
-
 
 bool optimization::run_optimization()
 {
@@ -73,18 +72,33 @@ bool optimization::run_optimization()
             std::runtime_error("Must have trust=True when convex_flag=True");
 
     //require dimensions of matrices to align
-    int n = (int)m_settings.variables_int_t.size();
+    int n = 0; 
     int nx = (int)m_settings.n_initials;
+
+    //sort the variables so all integer variables appear first in the list
+    std::sort(m_settings.variables.begin(), m_settings.variables.end(), 
+        [](const optimization_variable &a, const optimization_variable &b) -> bool 
+    { 
+        return (int)a.is_integer > (int)b.is_integer; 
+    });
 
     //transfer input data into eigen containers
     Vector<int> LB(n), UB(n);
     Matrix<int> X( nx, n);
     {
         int i = 0;
-        for (std::vector<optimization_variable<int> >::iterator vi = m_settings.variables_int_t.begin(); vi != m_settings.variables_int_t.end(); vi++)
+        for (std::vector<optimization_variable>::iterator vi = m_settings.variables.begin(); vi != m_settings.variables.end(); vi++)
         {
-            LB(i) = vi->lower_bound;
-            UB(i) = vi->upper_bound;
+               
+            if (!(*vi).is_integer)
+                break;
+            n++;  //count the number of integer variables
+            
+            optimization_variable &v = (*vi);
+            
+
+            LB(i) = v.minval.as_integer();
+            UB(i) = vi->maxval.as_integer();
             if (vi->initializers.size() != n)
             {
                 std::runtime_error( (std::stringstream()
@@ -93,7 +107,7 @@ bool optimization::run_optimization()
                 );
             }
             for (int j = 0; j < vi->initializers.size(); j++)
-                X(j, i) = vi->initializers.at(j);
+                X(j, i) = (int)vi->initializers.at(j);
         }
     }
 
@@ -153,21 +167,23 @@ bool optimization::run_optimization()
     for(int i=0; i<nx; i++)
     {
         std::stringstream xstr;
-        Vector< int > x;
+        //Vector< int > x;
         for(int j=0; j<n; j++)
         {
             xstr << X(i,j) << ",";
-            x.push_back( X(i,j) );
+            //x.push_back( X(i,j) );
+            m_settings.variables.at(j).assign( X(i, j) );
         }
 
         int row_in_grid = (int)( std::find(indices_lookup.begin(), indices_lookup.end(), xstr.str() ) - indices_lookup.begin() );
         if( row_in_grid > (int)indices_lookup.size() )
             std::runtime_error("One of the initial points was not in the grid.");
 
-        F(row_in_grid) = m_settings.f_objective(x);
+        F(row_in_grid) = m_settings.f_objective((void*)this);
     }
 
     Vector<int> x_star(n);
+
     double delta = std::numeric_limits<double>::quiet_NaN();
     if(m_settings.trust)
     {
@@ -396,10 +412,14 @@ bool optimization::run_optimization()
                     eval_performed_flag = true;
 
                     Vector<int> x_star_maybe;
-                    for(int i=0; i<n; i++)
-                        x_star_maybe.push_back(grid(new_ind,i+1));
+                    for (int i = 0; i < n; i++)
+                    {
+                        int vv = grid(new_ind, i + 1);
+                        m_settings.variables.at(i).assign( vv );
+                        x_star_maybe.push_back(vv);
+                    }
 
-                    Fnew = m_settings.f_objective(x_star_maybe);
+                    Fnew = m_settings.f_objective((void*)this);
 
                     // Update x_star
                     if (Fnew < obj_ub)
@@ -428,14 +448,10 @@ bool optimization::run_optimization()
         else
             new_ind = (int)( std::min_element(eta.begin(), eta.end()) - eta.begin() );
 
-        Vector<int> x_eval;
         for (int i = 0; i < n; i++)
-        {
-            x_eval.push_back(grid(new_ind,i+1));
-            m_settings.variables_int_t.at(i).iteration_history.push_back(x_eval.back());
-        }
+            m_settings.variables.at(i).assign( grid(new_ind, i + 1) );
 
-        Fnew = m_settings.f_objective(x_eval);    // Include this value in F in the next iteration (after all combinations with new_ind are formed)
+        Fnew = m_settings.f_objective((void*)this);    // Include this value in F in the next iteration (after all combinations with new_ind are formed)
         obj_ub = Fnew < obj_ub ? Fnew : obj_ub;   // Update upper bound on the value of the global optimizer
         eta(new_ind) = Fnew;
         eta_gen(new_ind) = new_ind;
@@ -486,7 +502,7 @@ bool optimization::run_optimization()
             
             //m_results.x_star.clear();
             for (int i = 0; i < n; i++)
-                m_settings.variables_int_t.at(i).value = x_at_fmin(i + 1);
+                m_settings.variables.at(i).assign( x_at_fmin(i + 1) );
             //std::cout << sum_F_defined << "\t" << m_settings.trust << "\t" << m_settings.f_objective << "\n";
 
             return true;

@@ -5,27 +5,31 @@
 #include <string>
 #include <limits>
 #include <unordered_map>
+#include "project.h"
 
-template <typename T> //can be one of {int, double}
-struct optimization_variable
+class optimization_variable : public variable
 {
+public:
+    std::vector< double > initializers;
+    std::vector< double > iteration_history;
+
     optimization_variable() {};
-    optimization_variable(std::string _name, T _lower, T _upper, std::vector<T> _inits, T _value = (T)0.)
-        : name(_name), lower_bound(_lower), upper_bound(_upper), initializers(_inits), value(_value) {};
-    std::string name;
-    T lower_bound;
-    T upper_bound;
-    std::vector< T > initializers;
-    std::vector< T > iteration_history;
-    T value;
+    optimization_variable(bool is_integer, std::string _name, double _lower, double _upper, std::vector<double> _inits, double _value = 0.)
+    {
+        this->is_integer = is_integer;
+        this->name = _name;
+        this->minval.assign(_lower);
+        this->maxval.assign(_upper);
+        initializers = _inits;
+        this->assign(_value);
+    };
 };
 
 struct optimization_settings
 {
-    double (*f_objective)(std::vector<int>&);
+    double (*f_objective)(void* data);
 
-    std::vector< optimization_variable<int> > variables_int_t;
-    std::vector< optimization_variable<double> > variables_dbl_t;
+    std::vector< optimization_variable > variables;
 
     bool trust;
     bool convex_flag;
@@ -38,6 +42,15 @@ struct optimization_settings
         trust = false;
         convex_flag = false;
         max_delta = std::numeric_limits<double>::infinity();
+    };
+
+    std::vector<std::string> get_all_variable_names()
+    {
+        std::vector< std::string > varnames;
+        for (size_t i = 0; i < variables.size(); i++)
+            varnames.push_back(variables.at(i).name);
+
+        return varnames;
     };
 };
 
