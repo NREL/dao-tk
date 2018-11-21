@@ -2276,17 +2276,19 @@ std::string PowerCycle::GetOperatingMode(int t)
 	double standby = m_dispatch.at("standby").at(t);
 	if (power_out > m_sim_params.epsilon)
 	{
-		if (IsOnline())
-			if (m_current_cycle_state.time_online <= 1.0 - m_sim_params.epsilon)
-				return "OF"; //in the first hour of power cycle operation
-			else
-				return "OO"; //ongoing (>1 hour) power cycle operation
-		return "OS";  //starting power cycle operation
+        if (IsOnline())
+        {
+            if (m_current_cycle_state.time_online <= 1.0 - m_sim_params.epsilon)
+                return "OF"; //in the first hour of power cycle operation
+            else
+                return "OO"; //ongoing (>1 hour) power cycle operation
         }
+		return "OS";  //starting power cycle operation
 	}
 	else if (standby >= 0.5)
 	{
 		if (IsOnStandby())
+        {
 			if (m_current_cycle_state.time_in_standby <= 1.0 - m_sim_params.epsilon)
 				return "SF"; //in first hour of standby
 			else

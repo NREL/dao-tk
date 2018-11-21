@@ -1,3 +1,4 @@
+#include <set>
 
 #include <lk/env.h>
 #include <ssc/sscapi.h>
@@ -6,7 +7,7 @@
 #include "project.h"
 #include "daotk_app.h"
 
-#include "../liboptimize/optimize.h"
+#include "../libproject/optimize.h"
 
 #include "../liboptical/optical_degr.h"
 #include "../liboptical/optical_structures.h"
@@ -1120,11 +1121,38 @@ void _setup_clusters(lk::invoke_t &cxt)
 
 }
 
-double _continuous_optimization_func(std::vector<int> &x)
+double _continuous_optimization_func(void* data)
 {
+    optimization* O = static_cast<optimization*>(data);
+    Project *P = MainWindow::Instance().GetProject();
+
+    //figure out which variables were changed and as a result, which components of the objective function need updating
+    std::vector< std::string > varnames = O->m_settings.get_all_variable_names();
+
+    for (size_t i = 0; i < varnames.size(); i++)
+    {
+        variable *v = static_cast<variable*>(P->m_variables.at(varnames.at(i)));
+        
+        if ( v->value_changed() )
+            varnames.push_back(O->m_settings.variables.at(i).name);
+    }
+
+
+    //std::set< ObjectiveMethod > triggered_methods;
+    ObjectiveMethodSet triggered_methods;
+    for (size_t i = 0; i < varnames.size(); i++)
+    {
+        std::vector< ObjectiveMethodPtr > *tr = &((variable*)P->m_variables.at(varnames.at(i)))->triggers;
+
+        for (size_t j = 0; j < tr->size(); j++)
+            triggered_methods.insert(tr->at(j));
+    }
+
     int rval=0;
-    for(int i=0; i<x.size(); i++)
-        rval += (x.at(i))*(x.at(i));
+    /*for(int i=0; i<O->m_settings.variables_int_t.size(); i++)
+        rval += (x.at(i))*(x.at(i));*/
+
+
 
     return rval;
 }
@@ -1137,40 +1165,73 @@ void _optimize(lk::invoke_t &cxt)
     "Note that the sample values will be tested for each variable in the order that they are specified, "
     "and the length of the sample list must be the same for all variables. "
     "For example:\n\n"
-    "my_opt_vars = {\n\t \"{\"name\" = \"n_wash_crews\", \"upper_bound\" = 15, \"lower_bound\" = 1, \"guess\" = [5,10]},\n\t"
-    "{ \"name\" = \"h_tower\", \"upper_bound\" = 250, \"lower_bound\" = 50, \"guess\"=[175,155]}, \n\t...\t};\rresult = optimize_system(options=my_opt_vars);"
-    "([table:options]):table");
+    "my_opt_vars = {\n\t \"n_wash_crews\" = {\"upper_bound\" = 15, \"lower_bound\" = 1, \"guess\" = [5,10]},\n\t"
+    "\"h_tower\" = { \"upper_bound\" = 250, \"lower_bound\" = 50, \"guess\"=[175,155]}, \n\t...\t};\rresult = optimize_system(options=my_opt_vars);\n\n"
+    "Several optimization settings may also be specified, including 'convex_flag,' 'max_delta,' and 'trust.' ",
+    "([table:options, table:settings]):table");
 
 	MainWindow &mw = MainWindow::Instance();
+    Project *P = mw.GetProject();
     optimization Opt;
 
-    Opt.m_settings.f_objective = f;
-    // Opt.m_settings.convex_flag = false;
-    Opt.m_settings.convex_flag = m_parameters.convex_flag.as_boolean();
-    // Opt.m_settings.max_delta = 1;
-    Opt.m_settings.max_delta = m_parameters.max_delta.as_integer();
-    // Opt.m_settings.trust = true;
-    Opt.m_settings.trust = m_parameters.trust.as_boolean();
+    lk::varhash_t *h = cxt.arg(0).hash();
 
-    //npanel, nom, nwash
-    Opt.m_settings.lower_bounds = std::vector<int>{ -6,-6 };
-    Opt.m_settings.upper_bounds = std::vector<int>{ 2, 2 };
-    Opt.m_settings.X = std::vector< std::vector<int> >
+    if (h->find("convex_flag") != h->end())
+        Opt.m_settings.convex_flag = h->at("convex_flag")->as_boolean();
+    else
+        Opt.m_settings.convex_flag = false;
+    if (h->find("max_delta") != h->end())
+        Opt.m_settings.max_delta = h->at("max_delta")->as_number();
+    else
+        Opt.m_settings.max_delta = 1;
+    if (h->find("trust") != h->end())
+        Opt.m_settings.trust = h->at("trust")->as_boolean();
+    else
+        Opt.m_settings.trust = false;
+
+    //assign the objective function
+    Opt.m_settings.f_objective = _continuous_optimization_func;
+
+    //collect all of the variables to be optimized
+    Opt.m_settings.variables.clear();
+
+    for (variables::iterator vh = P->m_variables.begin(); vh != P->m_variables.end(); vh++)
     {
-        std::vector<int>{1,0},
-        std::vector<int>{0,1},
-        std::vector<int>{-1,0},
-        std::vector<int>{0,-1},
-        std::vector<int>{0,0}
-    };
-    
-    Opt.run_integer_optimization();
+        variable *v = static_cast<variable*>(vh->second);
+
+        if (v->is_optimized)
+        {
+            std::vector<double> inits;
+            for (int i = 0; i < (int)v->initializers.vec()->size(); i++)
+                inits.push_back( v->initializers.vec()->at(i).as_number() );
+
+            Opt.m_settings.variables.push_back(
+                optimization_variable(v->is_integer, v->name, v->minval.as_number(), v->maxval.as_number(), inits, v->as_number() )
+            );
+        }
+
+    }
+
+
+    ////npanel, nom, nwash
+    //Opt.m_settings.lower_bounds = std::vector<int>{ -6,-6 };
+    //Opt.m_settings.upper_bounds = std::vector<int>{ 2, 2 };
+    //Opt.m_settings.X_sample = std::vector< std::vector<int> >
+    //{
+    //    std::vector<int>{1,0},
+    //    std::vector<int>{0,1},
+    //    std::vector<int>{-1,0},
+    //    std::vector<int>{0,-1},
+    //    std::vector<int>{0,0}
+    //};
+    //
+    Opt.run_optimization();
 
     optimization_outputs* oo = &mw.GetProject()->m_optimization_outputs;
 
     int n, m;
 
-    oo->eta_i.empty_vector();
+    /*oo->eta_i.empty_vector();
     n = (int)Opt.m_results.eta_i.size();
     m = (int)Opt.m_results.eta_i.front().size();
     for (int i = 0; i < n; i++)
@@ -1180,6 +1241,6 @@ void _optimize(lk::invoke_t &cxt)
         for (int j = 0; j < m; j++)
             row.vec_append(Opt.m_results.eta_i.at(i).at(j));
         oo->eta_i.vec()->push_back(row);
-    }
+    }*/
 
 }
