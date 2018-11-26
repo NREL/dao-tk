@@ -19,17 +19,17 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\libproject\optimize.cpp" />
+    <ClInclude Include="..\liboptimize\optimize.h" />
+    <ClInclude Include="..\liboptimize\optutil.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\libproject\optutil.h" />
-    <ClInclude Include="..\libproject\optimize.h" />
+    <ClCompile Include="..\liboptimize\optimize.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>libproject</RootNamespace>
-    <ProjectName>libproject</ProjectName>
+    <RootNamespace>liboptimize</RootNamespace>
+    <ProjectName>liboptimize</ProjectName>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -79,25 +79,25 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>target\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <TargetName>libproject32d</TargetName>
+    <TargetName>liboptimize32d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>target\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <TargetName>libproject32d</TargetName>
+    <TargetName>liboptimize32d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <TargetName>libproject32</TargetName>
+    <TargetName>liboptimize32</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <TargetName>libproject</TargetName>
+    <TargetName>liboptimize</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
@@ -112,10 +112,10 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <TargetName>libprojectd32</TargetName>
+    <TargetName>liboptimized32</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetName>libprojectd</TargetName>
+    <TargetName>liboptimized</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug32|Win32'">
     <OutDir>target\</OutDir>
@@ -124,7 +124,7 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug32|Win32'">
-    <TargetName>libproject32d</TargetName>
+    <TargetName>liboptimize32d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release32|Win32'">
     <OutDir>target\</OutDir>
@@ -133,7 +133,7 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release32|Win32'">
-    <TargetName>libproject32</TargetName>
+    <TargetName>liboptimize32</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release32|x64'">
     <OutDir>target\</OutDir>
@@ -142,7 +142,7 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release32|x64'">
-    <TargetName>libproject64</TargetName>
+    <TargetName>liboptimize64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug32|x64'">
     <OutDir>target\</OutDir>
@@ -151,7 +151,7 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug32|x64'">
-    <TargetName>libproject64d</TargetName>
+    <TargetName>liboptimize64d</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -189,7 +189,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>__DLL__;__32BIT__;__WINDOWS__;__VISUALC__;_CRT_SECURE_NO_WARNINGS; _CRT_SECURE_NO_WARNINGS; _CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>$(LKDIR)\include;$(SSCDIR);$(SolutionDir)\..\libproject;$(SolutionDir)\..\libproject\nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\app;$(LKDIR)\include;$(SSCDIR);$(SolutionDir)\..\liboptimize;$(SolutionDir)\..\liboptimize\nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -213,7 +213,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>__DLL__;__64BIT__;__WINDOWS__;__VISUALC__;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(LKDIR)\include;$(SSCDIR);$(SolutionDir)\..\libproject;$(SolutionDir)\..\libproject\nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\app;$(LKDIR)\include;$(SSCDIR);$(SolutionDir)\..\liboptimize;$(SolutionDir)\..\liboptimize\nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -233,7 +233,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>__DLL__;__32BIT__;__WINDOWS__;_DEBUG;__VISUALC__;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(LKDIR)\include;$(SSCDIR);$(SolutionDir)\..\libproject;$(SolutionDir)\..\libproject\nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\app;$(LKDIR)\include;$(SSCDIR);$(SolutionDir)\..\liboptimize;$(SolutionDir)\..\liboptimize\nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
@@ -248,7 +248,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>__DLL__;__64BIT__;__WINDOWS__;_DEBUG;__VISUALC__;_CRT_SECURE_NO_WARNINGS;</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(LKDIR)\include;$(SSCDIR);$(SolutionDir)\..\libproject;$(SolutionDir)\..\libproject\nlopt;$(SolutionDir)\..\libproject\nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\app;$(LKDIR)\include;$(SSCDIR);$(SolutionDir)\..\liboptimize;$(SolutionDir)\..\liboptimize\nlopt;$(SolutionDir)\..\liboptimize\nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -259,6 +259,10 @@
     </Link>
     <PostBuildEvent>
     </PostBuildEvent>
+    <Lib>
+      <AdditionalDependencies>wexx64d.lib;lkx64d.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(WEXDIR);$(LKDIR)</AdditionalLibraryDirectories>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug32|Win32'">
     <ClCompile>

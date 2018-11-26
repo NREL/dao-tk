@@ -7,7 +7,7 @@
 #include "project.h"
 #include "daotk_app.h"
 
-#include "../libproject/optimize.h"
+#include "../liboptimize/optimize.h"
 
 #include "../liboptical/optical_degr.h"
 #include "../liboptical/optical_structures.h"

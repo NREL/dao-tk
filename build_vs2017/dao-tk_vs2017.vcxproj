@@ -25,25 +25,26 @@
     <ClCompile Include="..\app\daotk_app.cpp" />
     <ClCompile Include="..\app\dataview.cpp" />
     <ClCompile Include="..\app\logview.cpp" />
+    <ClCompile Include="..\app\project.cpp" />
+    <ClCompile Include="..\app\project_init.cpp" />
     <ClCompile Include="..\app\scripting.cpp" />
     <ClCompile Include="..\app\scriptlist.cpp" />
     <ClCompile Include="..\app\scriptview.cpp" />
     <ClCompile Include="..\app\treeselect.cpp" />
     <ClCompile Include="..\app\vardialog.cpp" />
-    <ClCompile Include="..\libproject\project.cpp" />
-    <ClCompile Include="..\libproject\project_init.cpp" />
-    <ClCompile Include="..\libproject\vardocument.cpp" />
+    <ClCompile Include="..\app\vardocument.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\app\daotk_app.h" />
     <ClInclude Include="..\app\dataview.h" />
     <ClInclude Include="..\app\logview.h" />
+    <ClInclude Include="..\app\project.h" />
     <ClInclude Include="..\app\scripting.h" />
     <ClInclude Include="..\app\scriptlist.h" />
     <ClInclude Include="..\app\scriptview.h" />
     <ClInclude Include="..\app\treeselect.h" />
     <ClInclude Include="..\app\vardialog.h" />
-    <ClInclude Include="..\libproject\project.h" />
+    <ClInclude Include="..\liboptimize\project.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="libclearsky.vcxproj">
@@ -61,7 +62,7 @@
     <ProjectReference Include="libsolar.vcxproj">
       <Project>{3058c490-552e-4428-a409-f29eb2c50d3f}</Project>
     </ProjectReference>
-    <ProjectReference Include="libproject.vcxproj">
+    <ProjectReference Include="liboptimize.vcxproj">
       <Project>{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}</Project>
     </ProjectReference>
   </ItemGroup>
@@ -150,7 +151,7 @@
     <ClCompile>
       <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\libproject;..\app;$(SolutionDir)\..\libproject\eigen;$(SolutionDir)\..\libproject\nlopt;$(LKDIR)\include;$(SSCDIR);$(WXMSW3)\lib\vc_lib\mswud;$(WXMSW3)\include;$(WEXDIR)\include;..\rapidjson\include;%(AdditionalIncludeDirectories);..\eigen;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\liboptimize;..\app;$(SolutionDir)\..\liboptimize\eigen;$(SolutionDir)\..\liboptimize\nlopt;$(LKDIR)\include;$(SSCDIR);$(WXMSW3)\lib\vc_lib\mswud;$(WXMSW3)\include;$(WEXDIR)\include;..\rapidjson\include;%(AdditionalIncludeDirectories);..\eigen;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WEX_USE_LK;LK_USE_WXWIDGETS;WIN32;_DEBUG;_CRT_SECURE_NO_DEPRECATE=1;_CRT_NON_CONFORMING_SWPRINTFS=1;_SCL_SECURE_NO_WARNINGS=1;__WXMSW__;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -194,7 +195,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\libproject;..\app;$(SolutionDir)\..\libproject\eigen;$(SolutionDir)\..\libproject\nlopt;$(SolutionDir)\..\libproject\eigen;$(SolutionDir)\..\libproject\nlopt;$(LKDIR)\include;$(SSCDIR);$(WXMSW3)\lib\vc_x64_lib\mswud;$(WXMSW3)\include;$(WEXDIR)\include;..\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\liboptimize;$(SolutionDir)\..\app;$(SolutionDir)\..\liboptimize\eigen;$(SolutionDir)\..\liboptimize\nlopt;$(SolutionDir)\..\liboptimize\eigen;$(SolutionDir)\..\liboptimize\nlopt;$(LKDIR)\include;$(SSCDIR);$(WXMSW3)\lib\vc_x64_lib\mswud;$(WXMSW3)\include;$(WEXDIR)\include;..\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WEX_USE_LK;LK_USE_WXWIDGETS;WIN32;_DEBUG;_CRT_SECURE_NO_DEPRECATE=1;_CRT_NON_CONFORMING_SWPRINTFS=1;_SCL_SECURE_NO_WARNINGS=1;__WXMSW__;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -242,7 +243,7 @@
     <ClCompile>
       <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>..\libproject;..\app;$(SolutionDir)\..\libproject\eigen;$(SolutionDir)\..\libproject\nlopt;$(LKDIR)\include;$(SSCDIR);$(WXMSW3)\lib\vc_lib\mswu;$(WXMSW3)\include;$(WEXDIR)\include;%(AdditionalIncludeDirectories);..\eigen;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\liboptimize;$(SolutionDir)\..\app;$(SolutionDir)\..\liboptimize\eigen;$(SolutionDir)\..\liboptimize\nlopt;$(LKDIR)\include;$(SSCDIR);$(WXMSW3)\lib\vc_lib\mswu;$(WXMSW3)\include;$(WEXDIR)\include;%(AdditionalIncludeDirectories);..\eigen;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WEX_USE_LK;LK_USE_WXWIDGETS;WIN32;_CRT_SECURE_NO_DEPRECATE=1;_CRT_NON_CONFORMING_SWPRINTFS=1;_SCL_SECURE_NO_WARNINGS=1;__WXMSW__;NDEBUG;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -284,7 +285,7 @@
     <ClCompile>
       <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>..\libproject;..\app;$(SolutionDir)\..\libproject\eigen;$(SolutionDir)\..\libproject\nlopt;$(LKDIR)\include;$(SSCDIR);$(WXMSW3)\lib\vc_x64_lib\mswu;$(WXMSW3)\include;$(WEXDIR)\include;..\rapidjson\include;%(AdditionalIncludeDirectories);..\eigen;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\liboptimize;$(SolutionDir)\..\app;$(SolutionDir)\..\liboptimize\eigen;$(SolutionDir)\..\liboptimize\nlopt;$(LKDIR)\include;$(SSCDIR);$(WXMSW3)\lib\vc_x64_lib\mswu;$(WXMSW3)\include;$(WEXDIR)\include;..\rapidjson\include;%(AdditionalIncludeDirectories);..\eigen;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WEX_USE_LK;LK_USE_WXWIDGETS;WIN32;_CRT_SECURE_NO_DEPRECATE=1;_CRT_NON_CONFORMING_SWPRINTFS=1;_SCL_SECURE_NO_WARNINGS=1;__WXMSW__;NDEBUG;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
