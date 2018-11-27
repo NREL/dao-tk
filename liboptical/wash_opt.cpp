@@ -345,6 +345,7 @@ void WashCrewOptimizer::CalculateRevenueAndCosts()
 		m_settings.price_per_kwh * m_settings.system_efficiency 
 		* m_settings.operating_margin * multiplier
 		);
+
 }
 
 void WashCrewOptimizer::AssignSoilingFunction(SoilingFunction *func)

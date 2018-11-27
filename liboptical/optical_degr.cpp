@@ -50,6 +50,152 @@ float* optical_degradation::get_replacement_totals(int *length)
 //------------------------------------------
 
 
+double optical_degradation::get_replacement_threshold(
+	double mirror_output, 
+	int num_mirrors
+)
+{
+	double rev_loss_rate = (
+		mirror_output * m_settings.annual_profit_per_kwh / 8760
+		);
+	double refurb_cost = m_settings.heliostat_refurbish_cost * num_mirrors;
+	if (m_settings.degr_accel_per_year < DBL_EPSILON)
+	{
+		double time_threshold = sqrt(
+			2.0 * refurb_cost /
+			(rev_loss_rate * m_settings.degr_loss_per_hr)
+		);
+		std::cerr << "rev loss " << rev_loss_rate << " time " << time_threshold << " loss " << ((refurb_cost /time_threshold) + (rev_loss_rate * m_settings.degr_loss_per_hr * time_threshold/2.)) << "\n";
+		return 1.0 - time_threshold * m_settings.degr_loss_per_hr;
+	}
+	else
+	{
+	
+		//use bisection to obtain the optimal time interval.
+		double b, c, logc, r, z_lo, z_med, z_hi, lo, med, hi, interval, min_t, max_t;
+		
+		b = rev_loss_rate * m_settings.degr_loss_per_hr;
+		c = (1 + m_settings.degr_accel_per_year);
+		logc = log(c)/8760.;
+		interval = m_settings.n_hr_sim * 0.5 * 100;
+		lo = 1.;
+		min_t = lo * 1.0;
+		hi = m_settings.n_hr_sim*100;
+		max_t = hi * 1.0;
+		med = hi / 2.0;
+		z_lo = (
+			(b*std::pow(c, lo / 8760.) / logc)
+			- (b / (lo*logc*logc)) * (std::pow(c, lo / 8760.) - 1)
+			+ (refurb_cost / lo)
+			);
+		z_med = (
+			(b*std::pow(c, med / 8760.) / logc)
+			- (b / (med*logc*logc)) * (std::pow(c, med / 8760.) - 1)
+			+ (refurb_cost / med)
+			);
+		z_hi= (
+			(b*std::pow(c, hi / 8760.) / logc)
+			- (b / (hi*logc*logc)) * (std::pow(c, hi / 8760.) - 1)
+			+ (refurb_cost / hi)
+			);
+		while (interval > 24)
+		{
+			interval *= 0.5;
+			if (z_lo >= z_med && z_med >= z_hi)
+			{
+				if (hi + interval > max_t)
+				{
+					z_lo = z_med;
+					lo = med;
+					med = hi - interval;
+					z_med = (
+						(b*std::pow(c, med / 8760.) / logc)
+						- (b / (med*logc*logc)) * (std::pow(c, med / 8760.) - 1)
+						+ (refurb_cost / med)
+						);
+				}
+				else
+				{
+					z_med = z_hi;
+					med = hi;
+					hi = med + interval;
+					lo = med - interval;
+					z_lo = (
+						(b*std::pow(c, lo / 8760.) / logc)
+						- (b / (lo*logc*logc)) * (std::pow(c, lo / 8760.) - 1)
+						+ (refurb_cost / lo)
+						);
+					z_hi = (
+						(b*std::pow(c, hi / 8760.) / logc)
+						- (b / (hi*logc*logc)) * (std::pow(c, hi / 8760.) - 1)
+						+ (refurb_cost / hi)
+						);
+				}
+			}
+			else if (z_lo <= z_med && z_med <= z_hi)
+			{
+				if (lo - interval < min_t)
+				{
+					z_hi = z_med;
+					hi = med;
+					med = lo + interval;
+					z_med = (
+						(b*std::pow(c, med / 8760.) / logc)
+						- (b / (med*logc*logc)) * (std::pow(c, med / 8760.) - 1)
+						+ (refurb_cost / med)
+						);
+				}
+				else
+				{
+					z_med = z_lo;
+					med = lo;
+					lo = med - interval;
+					hi = med + interval;
+					z_lo = (
+						(b*std::pow(c, lo / 8760.) / logc)
+						- (b / (lo*logc*logc)) * (std::pow(c, lo / 8760.) - 1)
+						+ (refurb_cost / lo)
+						);
+					z_hi = (
+						(b*std::pow(c, hi / 8760.) / logc)
+						- (b / (hi*logc*logc)) * (std::pow(c, hi / 8760.) - 1)
+						+ (refurb_cost / hi)
+						);
+				}
+			}
+			else
+			{
+				lo = med - interval;
+				hi = med + interval;
+				z_lo = (
+					(b*std::pow(c, lo / 8760.) / logc)
+					- (b / (lo*logc*logc)) * (std::pow(c, lo / 8760.) - 1)
+					+ (refurb_cost / lo)
+					);
+				z_hi = (
+					(b*std::pow(c, hi / 8760.) / logc)
+					- (b / (hi*logc*logc)) * (std::pow(c, hi / 8760.) - 1)
+					+ (refurb_cost / hi)
+					);
+			}
+		}
+		//bisection gives the optimal time interval, evaluate loss function at this
+		//rate to obtain the optimal replacement threshold
+		if (z_lo <= z_med && z_lo <= z_hi)
+		{
+			return 1.0 - m_settings.degr_loss_per_hr * lo * std::pow(c, lo / 8760);
+		}
+		else if (z_hi <= z_med && z_hi <= z_lo)
+		{
+			return 1.0 - m_settings.degr_loss_per_hr * hi * std::pow(c, hi / 8760);
+		}
+		else
+		{
+			return 1.0 - m_settings.degr_loss_per_hr * med * std::pow(c, med / 8760);
+		}
+	}
+}
+
 //------------------------------------------
 
 
@@ -98,13 +244,13 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	}
 		
 	//determine replacement thresholds for heliostats.
-	double ann_profit;
 	for (int i = 0; i < n_helio_s; i++)
 	{
-		ann_profit = m_solar_data.mirror_output[i] * m_settings.annual_profit_per_kwh;
-		helios.at(i).replacement_threshold = (
-			0.99
+		helios.at(i).replacement_threshold = get_replacement_threshold(
+				m_solar_data.mirror_output[i],
+				m_solar_data.num_mirrors_by_group[i]
 			);
+		std::cerr << i << "  " << helios.at(i).replacement_threshold << "  " << m_solar_data.mirror_output[i] <<  "  "   << m_solar_data.num_mirrors_by_group[i] << "\n";
 	}
 
 	std::vector< double > soil(m_settings.n_hr_sim);
@@ -288,14 +434,17 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 				}
 
 				//make repairs as needed; assumes replacement time is about the same as wash time
-				if (helios.at(this_heliostat).refl_base < m_settings.replacement_threshold)
+				if (
+					helios.at(this_heliostat).refl_base < 
+					helios.at(this_heliostat).replacement_threshold
+					)
 				{
 					crew->replacements_made += m_solar_data.num_mirrors_by_group[this_heliostat];
 					n_replacements_t += m_solar_data.num_mirrors_by_group[this_heliostat];
 					n_replacements_cumu += m_solar_data.num_mirrors_by_group[this_heliostat];
 					helios.at(this_heliostat).age_hours = 0;
 					helios.at(this_heliostat).refl_base = 1.;
-					helios.at(this_heliostat).soil_loss = 1.; //even if washing doesn't finish, repair happens
+					helios.at(this_heliostat).soil_loss = 1.; // repair restores soiling losses
 				}
 
 				if (do_break)

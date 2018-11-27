@@ -21,6 +21,7 @@ struct opt_settings
     double degr_accel_per_year;
 
 	double annual_profit_per_kwh;
+	double heliostat_refurbish_cost;
 
     int n_hr_sim;
 	int soil_sim_interval;

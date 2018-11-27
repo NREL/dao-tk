@@ -126,7 +126,7 @@ parameters::parameters()
     c_cps1.set(                          1440.,                       "c_cps1",      false,                    "Power cycle cost coef - slope",        "-",              "Financial|Parameters" );
     om_staff_cost.set(                      75,                "om_staff_cost",      false,                              "O&M staff cost rate",     "$/hr",              "Financial|Parameters" );
     wash_crew_cost.set(                   100.,               "wash_crew_cost",      false,                              "Wash crew cost rate",     "$/hr",              "Financial|Parameters" );
-    heliostat_refurbish_cost.set(        3960.,     "heliostat_refurbish_cost",      false,                          "Mirror replacement cost",        "$",    "Optical degradation|Parameters" );
+    heliostat_refurbish_cost.set(         500.,     "heliostat_refurbish_cost",      false,                          "Mirror replacement cost",        "$",    "Optical degradation|Parameters" );
     om_staff_max_hours_week.set(            35,      "om_staff_max_hours_week",      false,                     "Max O&M staff hours per week",       "hr", "Heliostat availability|Parameters" );
     n_heliostats_sim.set(                 1000,             "n_heliostats_sim",      false,                   "Number of simulated heliostats",        "-", "Heliostat availability|Parameters" );
     wash_units_per_hour.set(               45.,          "wash_units_per_hour",      false,                              "Heliostat wash rate","1/crew-hr",    "Optical degradation|Parameters" );
@@ -1618,7 +1618,8 @@ bool Project::O()
 	od.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
 	od.m_settings.degr_loss_per_hr = m_parameters.degr_per_hour.as_number();
 	od.m_settings.degr_accel_per_year = m_parameters.degr_accel_per_year.as_number();
-	od.m_settings.replacement_threshold = m_variables.degr_replace_limit.as_number();
+	//od.m_settings.replacement_threshold = m_variables.degr_replace_limit.as_number();
+	od.m_settings.heliostat_refurbish_cost = m_parameters.heliostat_refurbish_cost.as_number();
 	od.m_settings.soil_loss_per_hr = m_parameters.soil_per_hour.as_number();
 	od.m_settings.wash_units_per_hour = m_parameters.wash_units_per_hour.as_number();
 	od.m_settings.hours_per_week = m_parameters.wash_crew_max_hours_week.as_number();
