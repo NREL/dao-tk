@@ -65,7 +65,7 @@ double optical_degradation::get_replacement_threshold(
 			2.0 * refurb_cost /
 			(rev_loss_rate * m_settings.degr_loss_per_hr)
 		);
-		std::cerr << "rev loss " << rev_loss_rate << " time " << time_threshold << " loss " << ((refurb_cost /time_threshold) + (rev_loss_rate * m_settings.degr_loss_per_hr * time_threshold/2.)) << "\n";
+		//std::cerr << "rev loss " << rev_loss_rate << " time " << time_threshold << " loss " << ((refurb_cost /time_threshold) + (rev_loss_rate * m_settings.degr_loss_per_hr * time_threshold/2.)) << "\n";
 		return 1.0 - time_threshold * m_settings.degr_loss_per_hr;
 	}
 	else
@@ -250,7 +250,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 				m_solar_data.mirror_output[i],
 				m_solar_data.num_mirrors_by_group[i]
 			);
-		std::cerr << i << "  " << helios.at(i).replacement_threshold << "  " << m_solar_data.mirror_output[i] <<  "  "   << m_solar_data.num_mirrors_by_group[i] << "\n";
+		//std::cerr << i << "  " << helios.at(i).replacement_threshold << "  " << m_solar_data.mirror_output[i] <<  "  "   << m_solar_data.num_mirrors_by_group[i] << "\n";
 	}
 
 	std::vector< double > soil(m_settings.n_hr_sim);

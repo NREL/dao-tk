@@ -687,13 +687,13 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 		
 		field_eff = EvaluateFieldEfficiency(path);
 
-		std::cerr << "Cost for " << i << " wash crews: " << cost
-			<< "\nAssignment: ";
+		//std::cerr << "Cost for " << i << " wash crews: " << cost
+		//	<< "\nAssignment: ";
 		for (int j = 0; j < path.size(); j++)
 		{
 			std::cerr << path.at(j) << ",";
 		}
-		std::cerr << "\nAverage field efficiency: " << field_eff << "\n";
+		//std::cerr << "\nAverage field efficiency: " << field_eff << "\n";
 
 		if (cost < min_cost)
 		{
@@ -701,8 +701,8 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 			min_cost = cost * 1.0;
 		}
 	}
-	std::cerr << "optimal cost: " << min_cost << "\nNumber of wash crews: "
-		<< best_path.size()-1 << "\n";
+	//std::cerr << "optimal cost: " << min_cost << "\nNumber of wash crews: "
+	//	<< best_path.size()-1 << "\n";
 	m_results.assignments = best_path;
 	m_results.num_wash_crews = (int)(best_path.size() - 1);
 	if (output)
