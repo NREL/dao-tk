@@ -72,7 +72,7 @@ double optical_degradation::get_replacement_threshold(
 	{
 	
 		//use bisection to obtain the optimal time interval.
-		double b, c, logc, r, z_lo, z_med, z_hi, lo, med, hi, interval, min_t, max_t;
+		double b, c, logc, z_lo, z_med, z_hi, lo, med, hi, interval, min_t, max_t;
 		
 		b = rev_loss_rate * m_settings.degr_loss_per_hr;
 		c = (1 + m_settings.degr_accel_per_year);
@@ -298,7 +298,6 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 			alpha_t_by_age[t] = t * refl_c;
 	}
 
-	double *current_var;
 	for (int t = 0; t<m_settings.n_hr_sim; t++)
 	{
 
