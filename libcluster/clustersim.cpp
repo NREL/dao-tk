@@ -135,7 +135,7 @@ std::vector<bool> cluster_sim::set_all_sim_days()
 	std::vector<int> exemplars = inputs.cluster_results.exemplars;
 	std::vector<bool> select_days(365, 0);
 
-	for (int g = 0; g < exemplars.size(); g++)
+	for (int g = 0; g < (int)exemplars.size(); g++)
 	{
 		int d1 = firstday(exemplars.at(g));
 		int d0 = d1 - inputs.days.nprev;

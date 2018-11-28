@@ -527,13 +527,13 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 
 		//--failures and repairs per component
 		ofs << " ";
-		for (size_t c = 0; c<n_components; c++)
+		for (size_t c = 0; c< (size_t)n_components; c++)
 			ofs << ",component_" << c;
 		ofs << "\nfailures";
-		for (size_t c = 0; c < n_components; c++)
+		for (size_t c = 0; c < (size_t)n_components; c++)
 			ofs << "," << m_results.n_failures_per_component[c];
 		ofs << "\nrepairs";
-		for (size_t c = 0; c < n_components; c++)
+		for (size_t c = 0; c < (size_t)n_components; c++)
 			ofs << "," << m_results.n_repairs_per_component[c];
 		ofs << "\n";
 		ofs << "\n";
@@ -543,9 +543,9 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 		ofs << "year,avg_avail";
 		if (m_settings.is_tracking)
 		{
-			for (size_t c = 0; c < n_components; c++)
+			for (size_t c = 0; c < (size_t)n_components; c++)
 				ofs << ",component_" << c << "_failures";
-			for (size_t c = 0; c < n_components; c++)
+			for (size_t c = 0; c < (size_t)n_components; c++)
 				ofs << ",component_" << c << "_repair_time";
 		}
 		ofs << "\n";
@@ -555,9 +555,9 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 			ofs << y << "," << m_results.yearly_avg_avail[y];
 			if (m_settings.is_tracking)
 			{
-				for (size_t c = 0; c < n_components; c++)
+				for (size_t c = 0; c < (size_t)n_components; c++)
 					ofs << "," << m_results.failures_per_year[c][y];
-				for (size_t c = 0; c < n_components; c++)
+				for (size_t c = 0; c < (size_t)n_components; c++)
 					ofs << "," << m_results.repair_time_per_year[c][y];
 			}
 			ofs << "\n";

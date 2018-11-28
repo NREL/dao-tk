@@ -150,18 +150,18 @@ bool clustering_metrics::read_weather(const std::string &weatherfile, double &la
 		int wcol = -1;
 		std::vector<std::string> tname = { "Temperature", "Tdry" };
 		std::vector<std::string> wname = { "Wind Speed", "Wspd" };
-		for (int i = 0; i < cols.size(); i++)
+		for (int i = 0; i < (int)cols.size(); i++)
 		{
 			if (cols[i] == "DNI")
 				dnicol = i;
 			else
 			{
-				for (int j = 0; j < tname.size(); j++)
+				for (int j = 0; j < (int)tname.size(); j++)
 				{
 					if (cols[i] == tname[j])
 						tcol = i;
 				}
-				for (int j = 0; j < wname.size(); j++)
+				for (int j = 0; j < (int)wname.size(); j++)
 				{
 					if (cols[i] == wname[j])
 						wcol = i;
@@ -199,7 +199,7 @@ bool clustering_metrics::read_weather(const std::string &weatherfile, double &la
 
 		is_tmy = false;
 		int m = 1;
-		while (m < years.size() && !is_tmy)
+		while (m < (int)years.size() && !is_tmy)
 		{
 			if (years.at(m) != years.at(m - 1))
 				is_tmy = true;
@@ -238,7 +238,7 @@ void clustering_metrics::calc_metrics()
 	unordered_map<std::string, specs> featuremap;
 
 	std::vector<std::string> group = { "dni", "price", "clearsky", "tdry", "wspd", "sfavail" };
-	for (int k = 0; k < group.size(); k++)
+	for (int k = 0; k < (int)group.size(); k++)
 	{
 		featuremap[group.at(k)].timeseries = group.at(k);
 		featuremap[group.at(k)].ndays = inputs.nsimdays;
@@ -247,14 +247,14 @@ void clustering_metrics::calc_metrics()
 	featuremap["clearsky"].timeseries = "cskydiff";
 
 	std::vector<std::string> group_prev = { "dni_prev", "price_prev" };
-	for (int k = 0; k < group_prev.size(); k++)
+	for (int k = 0; k < (int)group_prev.size(); k++)
 	{
 		featuremap[group_prev.at(k)].ndays = 1;
 		featuremap[group_prev.at(k)].offset = -1;
 	}
 
 	std::vector<std::string> group_next = { "dni_next", "price_next" };
-	for (int k = 0; k < group_next.size(); k++)
+	for (int k = 0; k < (int)group_next.size(); k++)
 	{
 		featuremap[group_next.at(k)].ndays = 1;
 		featuremap[group_next.at(k)].offset = inputs.nsimdays;
@@ -272,7 +272,7 @@ void clustering_metrics::calc_metrics()
 	int ngroup = int(363. / inputs.nsimdays);   // Number of possible simulation groups per year
 	results.nobs = ngroup * inputs.nyears;
 	results.nfeatures = 0;
-	for (int k = 0; k < order.size(); k++)
+	for (int k = 0; k < (int)order.size(); k++)
 	{
 		std::string key = order[k];
 		if (inputs.features[key].weight > 0.0)
@@ -335,7 +335,7 @@ void clustering_metrics::calc_metrics()
 
 		//--- Replace DNI and wind speed above stow limit
 		timeseries["cskydiff"] = clsky.m_csky;
-		for (int i = 0; i < timeseries["dni"].size(); i++)
+		for (int i = 0; i < (int)timeseries["dni"].size(); i++)
 		{
 			if (timeseries["wspd"][i] > inputs.stowlimit)
 			{
@@ -375,7 +375,7 @@ void clustering_metrics::calc_metrics()
 			double avgprice = 0.0;
 			double avgpricenew = 0.0;
 
-			for (int i = 0; i < timeseries["price"].size(); i++)
+			for (int i = 0; i < (int)timeseries["price"].size(); i++)
 			{
 				avgprice += timeseries["price"][i];    // Average price before scaling
 				if (timeseries["price"][i] > upper)
@@ -390,7 +390,7 @@ void clustering_metrics::calc_metrics()
 			// Renormalize price
 			if (avgprice > 0.98 && avgprice < 1.02)
 			{
-				for (int i = 0; i < timeseries["price"].size(); i++)
+				for (int i = 0; i < (int)timeseries["price"].size(); i++)
 					timeseries["price"][i] /= avgpricenew;
 			}
 		}
@@ -407,7 +407,7 @@ void clustering_metrics::calc_metrics()
 
 		//--- Calculate classification metrics
 		int feature = 0;
-		for (int k = 0; k < order.size(); k++)   // Loop over metrics
+		for (int k = 0; k < (int)order.size(); k++)   // Loop over metrics
 		{
 			std::string key = order[k];
 			if (inputs.features[key].weight > 0.0)   // Only use metrics with nonzero weighting factor
@@ -443,7 +443,7 @@ void clustering_metrics::calc_metrics()
 					// Daily values for each averaging period
 					for (int d = 0; d < 365; d++)  // Day of year
 					{
-						for (int p = 0; p < pts.size(); p++)  // Points included in average for this division
+						for (int p = 0; p < (int)pts.size(); p++)  // Points included in average for this division
 						{
 							if (pts[p] < nptsday)
 							{
@@ -475,7 +475,7 @@ void clustering_metrics::calc_metrics()
 					}
 
 					// Detemine maximum value visible within the optimization horizon for this group
-					for (int vd = 0; vd < visible_days.size(); vd++)
+					for (int vd = 0; vd < (int)visible_days.size(); vd++)
 					{
 						int doy = (g * inputs.nsimdays + 1) + visible_days[vd];
 						for (int i = 0; i < ndiv; i++)  // Divisions per day
@@ -506,7 +506,7 @@ void clustering_metrics::calc_metrics()
 					}
 
 					// Detemine maximum value visible within the optimization horizon for this group
-					for (int vd = 0; vd < visible_days.size(); vd++)
+					for (int vd = 0; vd < (int)visible_days.size(); vd++)
 					{
 						int doy = d0[p] + visible_days[vd];
 						if (doy >= 0 && doy < 365)
@@ -531,7 +531,7 @@ void clustering_metrics::calc_metrics()
 
 	//--- Apply normalization and scaling
 	int feature = 0;
-	for (int k = 0; k < order.size(); k++)   // Loop over metrics
+	for (int k = 0; k < (int)order.size(); k++)   // Loop over metrics
 	{
 		std::string key = order[k];
 		if (inputs.features[key].weight > 0.0)			 // Only use metrics with nonzero weighting factor

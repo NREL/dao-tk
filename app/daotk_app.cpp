@@ -250,6 +250,7 @@ MainWindow::MainWindow()
 	m_DataViewForm->SetDataObject( m_project.GetMergedData() );
 	m_notebook->AddPage(m_DataViewForm, "Data");
 
+    //m_ScriptViewForm->GetEditor()->AddText("O();");
 
 	UpdateFrameTitle();
 }
@@ -402,12 +403,12 @@ void MainWindow::Save()
 
 				bool invalid_data = false;
 
-				for( size_t i=0; i<nr; i++)
+				for( size_t i=0; i<(size_t)nr; i++)
 				{
 					if( nc > 0 )
 					{
 
-						for( size_t j=0; j < nc; j++)
+						for( size_t j=0; j < (size_t)nc; j++)
 						{
 							double dval = v->vec()->at(i).vec()->at(j).as_number();
 							if( dval != dval )
@@ -471,7 +472,7 @@ void MainWindow::Save()
 	}
 	//Add script list info
 	std::vector<ScriptListObject> *sl = m_ScriptList->GetList();
-	for(int i=0; i<sl->size(); i++)
+	for(int i=0; i<(int)sl->size(); i++)
 	{
 		rjs::Value jv(rjs::kObjectType);
 		jv.AddMember("sls", rjs::Value((int)sl->at(i).status), alloc);
@@ -508,7 +509,7 @@ void MainWindow::Save()
 
 
 	int initsize=2;
-	while(initsize < cest)
+	while(initsize < (int)cest)
 		initsize *= 2;
 
 	rjs::StringBuffer stringbuffer(0, initsize);
@@ -630,7 +631,7 @@ bool MainWindow::Load(const wxString &file)
 						ms[0] = jv["ms"].GetArray()[0].GetInt();
 						ms[1] = jv["ms"].GetArray()[1].GetInt();
 
-						if( jv["d"].GetArray().Size() != ms[0]*ms[1]*4)
+						if( (int)jv["d"].GetArray().Size() != ms[0]*ms[1]*4)
 						{
 							m_LogViewForm->Log( wxString::Format("NOTICE: Data array size error when loading \"%s\" from file.", v->nice_name.c_str()).c_str(), true );
 							continue;
