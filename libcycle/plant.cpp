@@ -222,7 +222,7 @@ void PowerCycle::ClearComponentStatus()
 	m_start_component_status.clear();
 }
 
-void PowerCycle::ReadCycleStateFromResults(int scen_idx)
+void PowerCycle::ReadCycleStateFromResults()
 {
 	/*
 	Reads cycle and component state from results stored in memory from previous run.
@@ -366,7 +366,7 @@ void PowerCycle::RevertToStartState(bool reset_rng)
 		
 }
 
-void PowerCycle::WriteStateToFiles(int extra_periods)
+void PowerCycle::WriteStateToFiles()
 {
 	/*
 	Writes the current state of the plant to output files, one for all components and one for the plant.
@@ -2277,16 +2277,18 @@ std::string PowerCycle::GetOperatingMode(int t)
 	if (power_out > m_sim_params.epsilon)
 	{
 		if (IsOnline())
+		{
 			if (m_current_cycle_state.time_online <= 1.0 - m_sim_params.epsilon)
 				return "OF"; //in the first hour of power cycle operation
 			else
 				return "OO"; //ongoing (>1 hour) power cycle operation
-		return "OS";  //starting power cycle operation
         }
+		return "OS";  //starting power cycle operation
 	}
 	else if (standby >= 0.5)
 	{
 		if (IsOnStandby())
+		{
 			if (m_current_cycle_state.time_in_standby <= 1.0 - m_sim_params.epsilon)
 				return "SF"; //in first hour of standby
 			else
@@ -2637,7 +2639,7 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory,
 	}
 	else if (read_from_memory)
 	{
-		ReadCycleStateFromResults(m_current_scenario);
+		ReadCycleStateFromResults();
 		ReadComponentStatus(m_results.component_status[m_current_scenario]);
 	}
 	m_start_component_status = GetComponentStates();
