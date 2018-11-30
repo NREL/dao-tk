@@ -2674,47 +2674,47 @@ bool Project::save_simulation_outputs(std::unordered_map < std::string, std::vec
 
 void Project::calc_avg_annual_schedule(double original_ts, double new_ts, const parameter &full_sch, std::vector<double> &output_sch)
 {
-	// Convert full multiple-year availability, soiling, or degradation schedule into avg annual schedule for simulation
-	// original_ts = timestep used in availability model
-	// new_ts = timestep needed for simulation
+    // Convert full multiple-year availability, soiling, or degradation schedule into avg annual schedule for simulation
+    // original_ts = timestep used in availability model
+    // new_ts = timestep needed for simulation
 
-	int nsteps = full_sch.vec()->size();
-	int ny = (int)floor(original_ts * nsteps / 8760);
-	double n = ceil(8760. / (double)original_ts);  // number points per year
-	int n_int = (int)floor(n);
+    int nsteps = full_sch.vec()->size();
+    int ny = (int)floor(original_ts * nsteps / 8760);
+    double n = ceil(8760. / (double)original_ts);  // number points per year
+    int n_int = (int)floor(n);
 
-	// Calculate annual availability schedule averaged over all simulated years
-	std::vector<double> avg_sched(n_int, 0.0);
-	for (int y = 0; y < ny; y++)
-	{
-		int p1 = (int)floor(y*n);
-		for (int p = 0; p < n_int; p++)
-		{
-			double avail_pt;
-			if (p1 + p <= nsteps - 1)
-				avail_pt = full_sch.vec()->at(p1 + p).as_number();
-			else
-				avail_pt = full_sch.vec()->at(nsteps - 1).as_number();
+    // Calculate annual availability schedule averaged over all simulated years
+    std::vector<double> avg_sched(n_int, 0.0);
+    for (int y = 0; y < ny; y++)
+    {
+        int p1 = (int)floor(y*n);
+        for (int p = 0; p < n_int; p++)
+        {
+            double avail_pt;
+            if (p1 + p <= nsteps - 1)
+                avail_pt = full_sch.vec()->at(p1 + p).as_number();
+            else
+                avail_pt = full_sch.vec()->at(nsteps - 1).as_number();
 
-			avg_sched[p] += avail_pt / (double)ny;
-		}
-	}
+            avg_sched[p] += avail_pt / (double)ny;
+        }
+    }
 
-	// Translate to new time step
-	output_sch.clear();
-	int nrec = (int)ceil(8760. / new_ts);
-	for (int i = 0; i < nrec; i++)
-	{
-		int j = floor(i*new_ts / original_ts);
+    // Translate to new time step
+    output_sch.clear();
+    int nrec = (int)ceil(8760. / new_ts);
+    for (int i = 0; i < nrec; i++)
+    {
+        int j = floor(i*new_ts / original_ts);
 
-		if (j <= avg_sched.size() - 1)
-			output_sch.push_back(avg_sched[j]);
-		else
-			output_sch.push_back(avg_sched.back());
-	}
+        if (j <= avg_sched.size() - 1)
+            output_sch.push_back(avg_sched[j]);
+        else
+            output_sch.push_back(avg_sched.back());
+    }
 
-	return;
-
+    return;
+}
 
 void Project::Optimize(lk::varhash_t* vars)
 {
