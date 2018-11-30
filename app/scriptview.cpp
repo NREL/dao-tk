@@ -61,6 +61,7 @@ static lk::fcall_t *daotk_functions()
 		_simulate_objective,
 		_setup_clusters,
 		_simulate_cycle,
+        _optimize,
 		_var,
 		0 };
 

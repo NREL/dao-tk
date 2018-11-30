@@ -6,7 +6,7 @@
 
 struct opt_settings
 {
-    int n_helio;
+    int n_helio; 
 
     int n_wash_crews;
 
@@ -20,7 +20,12 @@ struct opt_settings
     double degr_loss_per_hr;
     double degr_accel_per_year;
 
+	double annual_profit_per_kwh;
+	double heliostat_refurbish_cost;
+
     int n_hr_sim;
+	int soil_sim_interval;
+	int refl_sim_interval;
 
 	int seed;
 }; 
@@ -29,6 +34,9 @@ struct opt_heliostat
 {
     double refl_base;
     double soil_loss;
+	double refl_loss_rate;
+	double soil_loss_rate;
+	double replacement_threshold;
 
     int age_hours;
 
@@ -41,6 +49,8 @@ struct opt_heliostat
 
 struct opt_crew
 {
+	int start_heliostat;
+	int end_heliostat;
 
     int current_heliostat;
     double carryover_wash_time;
@@ -62,7 +72,7 @@ struct opt_results
 
     int n_schedule;
 
-    float n_replacements;
+    int n_replacements;
 
 	float heliostat_refurbish_cost;
 	float heliostat_refurbish_cost_y1;

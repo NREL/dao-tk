@@ -159,7 +159,7 @@ void PowerCycle::SetCondenserEfficienciesCold(std::vector<double> eff_cold)
 	{
 		throw std::runtime_error("condenser trains not created correctly");
 	}
-	if (eff_cold.size() != num_streams + 1)
+	if ((int)eff_cold.size() != num_streams + 1)
 		throw std::runtime_error("efficiencies must be equal to one plus number of streams"); 
 	m_condenser_efficiencies_cold = eff_cold;
 }
@@ -176,7 +176,7 @@ void PowerCycle::SetCondenserEfficienciesHot(std::vector<double> eff_hot)
 		if (m_components.at(i).GetType() == "Condenser train")
 			num_streams++;
 	}
-	if (eff_hot.size() != num_streams+1)
+	if ((int)eff_hot.size() != num_streams+1)
 		throw std::runtime_error("efficiencies must be equal to one plus number of streams");
 	m_condenser_efficiencies_hot = eff_hot;
 }
@@ -222,7 +222,7 @@ void PowerCycle::ClearComponentStatus()
 	m_start_component_status.clear();
 }
 
-void PowerCycle::ReadCycleStateFromResults(int scen_idx)
+void PowerCycle::ReadCycleStateFromResults()
 {
 	/*
 	Reads cycle and component state from results stored in memory from previous run.
@@ -366,7 +366,7 @@ void PowerCycle::RevertToStartState(bool reset_rng)
 		
 }
 
-void PowerCycle::WriteStateToFiles(int extra_periods)
+void PowerCycle::WriteStateToFiles()
 {
 	/*
 	Writes the current state of the plant to output files, one for all components and one for the plant.
@@ -1848,7 +1848,7 @@ double PowerCycle::GetCondenserEfficiency(double temp)
 		if (m_components.at(i).IsOperational())
 		{
 			num_streams++;
-			for (size_t j = 1; j <= m_fans_per_condenser_train; j++)
+			for (size_t j = 1; j <= (size_t)m_fans_per_condenser_train; j++)
 			{
 				if (!m_components.at(i + j).IsOperational())
 				{
@@ -2277,19 +2277,23 @@ std::string PowerCycle::GetOperatingMode(int t)
 	if (power_out > m_sim_params.epsilon)
 	{
 		if (IsOnline())
+		{
 			if (m_current_cycle_state.time_online <= 1.0 - m_sim_params.epsilon)
 				return "OF"; //in the first hour of power cycle operation
 			else
 				return "OO"; //ongoing (>1 hour) power cycle operation
+        }
 		return "OS";  //starting power cycle operation
 	}
 	else if (standby >= 0.5)
 	{
 		if (IsOnStandby())
+		{
 			if (m_current_cycle_state.time_in_standby <= 1.0 - m_sim_params.epsilon)
 				return "SF"; //in first hour of standby
 			else
 				return "SO"; // ongoing standby (>1 hour)
+        }
 		return "SS";  // if not currently on standby, then starting standby
 	}
 	return "OFF";
@@ -2635,7 +2639,7 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory,
 	}
 	else if (read_from_memory)
 	{
-		ReadCycleStateFromResults(m_current_scenario);
+		ReadCycleStateFromResults();
 		ReadComponentStatus(m_results.component_status[m_current_scenario]);
 	}
 	m_start_component_status = GetComponentStates();

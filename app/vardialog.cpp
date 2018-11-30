@@ -27,7 +27,6 @@ VariableDialog::VariableDialog(wxWindow *parent, std::vector< void* > vargroups,
         sca.push_back(searchchoices[i]);
 
     m_searchtext = new wxTextCtrl(main_panel, ID_SEARCHTEXT, wxEmptyString, wxDefaultPosition, wxSize(250,30) );
-    m_searchtext->SetForegroundColour( wxColour("#888") );
     m_searchselect = new wxComboBox(main_panel, ID_SEARCHSELECT, searchchoices[0],
                     wxDefaultPosition, wxDefaultSize, sca, wxCB_DROPDOWN | wxCB_READONLY);
     
@@ -161,10 +160,12 @@ void VariableDialog::UpdateHelp(const char* filter, const char* type)
                 grouplab.Replace("|","_");
 
                 group_formatted.append( wxString::Format(
-                        "<a name=\"%s\"></a><table style=\"width:100%;background-color:#444;fontsize:+3;\">"
+                        "<a name=\"%s\"></a><table style=\"width:100%%;background-color:#444;fontsize:+3;\">"
                         "<tr><td><font size=\"+4\" color=\"#fff\">%s</font></td></tr></table>",
                         grouplab.ToStdString().c_str(),
-                    groupfirst.c_str() ).ToStdString() );
+                        groupfirst.c_str() 
+                                    ).ToStdString() 
+                );
 
                 all_group_names.push_back( groupname + "#" + grouplab.ToStdString());
                 m_anchor_list.push_back( grouplab.ToStdString());

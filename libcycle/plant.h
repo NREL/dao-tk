@@ -112,7 +112,7 @@ public:
 	void ReadComponentStatus(
 		std::unordered_map< std::string, ComponentStatus > dstat);
 	void ClearComponentStatus();
-	void ReadCycleStateFromResults(int scen_idx);
+	void ReadCycleStateFromResults();
 	void SetStartComponentStatus();
 	void StoreComponentState();
 	void StorePlantParamsState();
@@ -120,7 +120,7 @@ public:
 	void RecordFinalState();
 	void RevertToStartState(bool reset_rng);
 
-	void WriteStateToFiles(int extra_periods = 24);
+	void WriteStateToFiles();
 	void WritePlantLayoutFile();
 	void WriteComponentFile();
 	void WritePlantStateFile();

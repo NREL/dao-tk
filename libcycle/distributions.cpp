@@ -82,9 +82,12 @@ double GammaDist::GetVariate(WELLFiveTwelve &gen)
 {
 	/*
 	generates a gamma distributed random variable for alpha < 1 and
-	aplha > 1.  Algorithm source:  George S. Fishman "Monte Carlo:  Concepts,
+	alpha > 1.  Algorithm source:  George S. Fishman "Monte Carlo:  Concepts,
 	Algorithms, and Applications" pgs 194, 197.
 	Note for alpha = 1, uses exponential distribution.
+
+	(here, alpha denotes the shape parameter and
+	beta denotes the scale.)
 	*/
 	double W, X, Y, Z;
 	double random1;
@@ -276,4 +279,185 @@ double BetaDist::GetVariate(WELLFiveTwelve &gen)
 	double x = m_alpha_dist.GetVariate(gen);
 	double y = m_beta_dist.GetVariate(gen);
 	return x / (x + y);
+}
+
+
+GammaProcessDist::GammaProcessDist()
+{
+}
+
+GammaProcessDist::GammaProcessDist(
+	double b, 
+	double c, 
+	double beta, 
+	std::string type
+)
+{
+	/*The Gamma Process assumes a fixed scale parameter, and 
+	a shape parameter that is a function of the length of time.*/
+	m_b = b;
+	m_c = c;
+	m_beta = beta;
+	m_type = type;
+}
+
+bool GammaProcessDist::IsBinary()
+{
+	return false;
+}
+
+std::string GammaProcessDist::GetType()
+{
+	return m_type;
+}
+
+double GammaProcessDist::GetBeta()
+{
+	return m_beta;
+}
+
+double GammaProcessDist::GetAlpha(double t, double delta_t)
+{
+	/* 
+	Calculates alpha according to the gamma process function 
+	A(t+delta_t) - A(t), 
+	which determines the shape parameter for a particular interval.
+	t -- elapsed time in the gamma process
+	delta_t -- interval length
+	*/
+	if (m_type == "linear")
+	{
+		return m_b + m_c * delta_t;
+	}
+	if (m_type == "exponential")
+	{
+		return (
+			std::exp(m_b + m_c * (t + delta_t)) - 
+				std::exp(m_b + m_c * (t))
+			);
+	}
+}
+
+double GammaProcessDist::GetMean(double t, double delta_t)
+{
+	return GetAlpha(t, delta_t) * GetBeta();
+}
+
+double GammaProcessDist::GetVariate(double alpha, WELLFiveTwelve &gen)
+{
+	/*
+	generates a gamma distributed random variable for alpha < 1 and
+	alpha > 1.  Algorithm source:  George S. Fishman "Monte Carlo:  Concepts,
+	Algorithms, and Applications" pgs 194, 197.
+	Note for alpha = 1, uses exponential distribution.
+
+	(here, alpha denotes the shape parameter and
+	beta denotes the scale.)
+
+	alpha -- shape parameter of the distribution. 
+	*/
+	double W, X, Y, Z;
+	double random1;
+	double random2;
+	bool success = false;
+
+	int iterations = 0;
+
+	// For alpha = 1, use exponential distrubution
+	if (alpha == 1)
+	{
+		random1 = gen.getVariate();
+		return GetBeta() * (-log(1 - random1));
+	}
+
+	// For alpha less than 1  //////////////////////
+	if (alpha < 1)
+	{
+		double b = (alpha + exp(1)) / exp(1);
+
+		while (!success)
+		{
+			iterations++;
+			random1 = gen.getVariate();
+			random2 = gen.getVariate();
+
+			Y = b * random1;
+			if (Y <= 1)
+			{
+				Z = pow(Y, (1 / alpha));
+				W = -log(1 - random2);
+				if (W >= Z)
+				{
+					return GetBeta()*Z;
+				}
+			}
+			else {
+				Z = -log((b - Y) / alpha);
+				W = pow(random2, 1 / (alpha - 1));
+				if (W <= Z)
+				{
+					return GetBeta()*Z;
+				}
+			}
+		}
+	}
+
+	// For alpha greater than 1 and less than 2.5 //////////////////////
+	else if (alpha > 1 && alpha < 2.5)
+	{
+		double a = alpha - 1;
+		double b = (alpha - 1 / (6 * alpha)) / a;
+		double m = 2 / a;
+		double d = m + 2;
+
+		while (!success)
+		{
+			iterations++;
+			X = gen.getVariate();
+			Y = gen.getVariate();
+			double V = b * Y / X;
+
+			if (m*X - d + V + pow(V, -1) <= 0)
+			{
+				return a * V*GetBeta();
+			}
+			if (m*log(X) - log(V) + V - 1 <= 0)
+			{
+				return a * V*GetBeta();
+			}
+		}
+	}
+
+	// For large alpha      //////////////////////
+	else if (alpha > 2.5)
+	{
+		double a = alpha - 1;
+		double b = (alpha - 1 / (6 * alpha)) / a;
+		double m = 2 / a;
+		double d = m + 2;
+		double f = sqrt(alpha);
+
+		while (!success) {
+			Z = -1;
+			Y = 0;
+			while (!(Z > 0 && Z < 1)) {
+				iterations++;
+				X = gen.getVariate();
+				Y = gen.getVariate();
+				Z = Y + (1 - 1.857764 * X) / f;
+			}
+			double V = b * Y / Z;
+
+			if (m*Z - d + V + pow(V, -1) <= 0)
+			{
+				return a * V*GetBeta();
+			}
+			if (m*log(Z) - log(V) + V - 1 <= 0)
+			{
+				return a * V*GetBeta();
+			}
+		}
+	}
+
+	return 0.0;
 }
