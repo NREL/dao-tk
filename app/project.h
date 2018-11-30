@@ -305,11 +305,13 @@ struct parameters : public lk::varhash_t
 	parameter is_ampl_engine;
 	parameter is_stochastic_disp;
 	parameter current_standby;
-	parameter stop_cycle_at_first_failure;
-	parameter stop_cycle_at_first_repair;
 	parameter is_use_clusters;
 	parameter is_run_continuous;
-	parameter is_hard_partitions;
+	parameter is_cycle_ssc_integration;
+	parameter is_reoptimize_at_repairs;
+	parameter is_reoptimize_at_failures;
+	parameter is_use_target_heuristic;
+
     //strings
 	parameter ampl_data_dir;
 	parameter solar_resource_file;
@@ -330,12 +332,11 @@ struct parameters : public lk::varhash_t
 	parameter num_salt_pumps_required;
 	parameter num_water_pumps;
 	parameter num_turbines;
-	parameter read_periods;
-	parameter sim_length;
 	parameter num_scenarios;
 	parameter n_clusters;
 	parameter cluster_ndays;
 	parameter cluster_nprev;
+	parameter cycle_nyears;
     //doubles
 	parameter rec_ref_cost;
 	parameter rec_ref_area;
@@ -379,16 +380,8 @@ struct parameters : public lk::varhash_t
 	parameter maintenance_interval;
 	parameter maintenance_duration;
 	parameter downtime_threshold;
-	parameter steplength;
 	parameter hours_to_maintenance;
-	parameter power_output;
-	parameter thermal_output;
-	parameter capacity;
-	parameter thermal_capacity;
 	parameter temp_threshold;
-	parameter time_online;
-	parameter time_in_standby;
-	parameter downtime;
 	parameter shutdown_capacity;
 	parameter no_restart_capacity;
 	parameter shutdown_efficiency;
@@ -401,11 +394,7 @@ struct parameters : public lk::varhash_t
 	parameter user_sf_avail;
 	parameter condenser_eff_cold;
 	parameter condenser_eff_hot;
-	parameter cycle_power;
-	parameter thermal_power;
-	parameter ambient_temperature;
-	parameter standby;
-
+	
 	parameter helio_comp_weibull_shape;
 	parameter helio_comp_weibull_scale;
 	parameter helio_comp_mtr;
@@ -484,11 +473,6 @@ struct cycle_outputs : public lk::varhash_t
 	parameter cycle_efficiency;
 	parameter cycle_capacity;
 	parameter cycle_labor_cost;
-	parameter turbine_efficiency;
-	parameter turbine_capacity;
-	parameter expected_time_to_next_cycle_failure;
-	parameter expected_starts_to_next_cycle_failure;
-	parameter period_of_last_failure;
 	parameter num_failures;
 
 	cycle_outputs();
@@ -513,6 +497,11 @@ struct simulation_outputs : public lk::varhash_t
 	parameter annual_cycle_starts_disp;
 	parameter annual_cycle_ramp_disp;
 	parameter cycle_ramp_index_disp;
+
+	parameter gross_gen;
+	parameter q_pb;
+	parameter tamb;
+	parameter is_standby;
 
 	simulation_outputs();
 };
@@ -604,6 +593,49 @@ class Project
 	
 	lk::varhash_t _merged_data;
 
+
+	struct plant_state
+	{
+		double tes_charge;
+		double tes_thot;
+		double tes_tcold;
+		double capacity_avail;
+		double efficiency_avail;
+		double is_rec_on;
+		double is_pc_on;
+		double is_pc_standby;
+
+		plant_state()
+		{
+			tes_charge = tes_thot = tes_tcold = std::numeric_limits<double>::quiet_NaN();
+			capacity_avail = efficiency_avail = 1.;
+			is_rec_on = is_pc_on = is_pc_standby = false;
+		}
+	};
+
+	struct cycle_ssc_integration_inputs
+	{
+		double start_time;  //[hr]
+		double end_time;    //[hr]
+		double horizon;		//[hr]
+		bool use_stored_state;  
+		bool use_existing_ssc_soln;
+		unordered_map < std::string, std::vector<double>> initial_ssc_soln;
+		plant_state initial_state;
+
+		cycle_ssc_integration_inputs()
+		{
+			start_time = 0.;
+			end_time = 8760.;
+			horizon = 168.;
+			use_stored_state = use_existing_ssc_soln = false;
+		}
+	};
+
+	
+
+
+
     void add_documentation();
 	void lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
     void ssc_to_lk_hash(ssc_data_t &cxt, lk::varhash_t &vars);
@@ -613,8 +645,26 @@ class Project
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
 	
 	
-	bool simulate_system();
+	bool simulate_clusters(std::unordered_map<std::string, std::vector<double>> &ssc_soln);
+	std::unordered_map<std::string, std::vector<double>> ssc_data_to_map(const ssc_data_t & ssc_data, std::vector<std::string> keys);
+	bool accumulate_annual_results(const std::vector<double> &soln, double &sum, double &summult_price, double &starts, double &ramp, double &ramp_index);
+	bool save_simulation_outputs(std::unordered_map < std::string, std::vector<double>> &ssc_soln);
 	void calc_avg_annual_schedule(double original_ts, double new_ts, const parameter &full_sch, std::vector<double> &output_sch);
+	
+	void initialize_cycle_model(PowerCycle &pc);
+	
+	void save_cycle_outputs(std::vector<double>&capacity, std::vector<double>&efficiency, double n_failures, double labor_cost);
+
+	bool integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_integration_inputs &inputs,
+										plant_state &final_state, std::unordered_map<std::string, std::vector<double>> &soln,
+										std::vector<double> &capacity, std::vector<double> &efficiency, int &n_failures, double &labor_cost);
+
+	bool integrate_cycle_and_clusters(const std::unordered_map<std::string, std::vector<double>> &initial_soln, int first_index, int last_index, std::unordered_map<std::string, std::vector<double>> &final_soln);
+
+	
+	
+	
+
 
 public:
 
@@ -652,7 +702,6 @@ public:
 	bool Z();
 
 	bool setup_clusters();
-
 
 	data_base *GetVarPtr(const char *name);
 	lk::varhash_t *GetMergedData();

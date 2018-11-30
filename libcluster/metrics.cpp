@@ -52,23 +52,23 @@ void clustering_metrics::set_default_weights()
 	inputs.features["dni"].weight = 1.0;
 	inputs.features["dni_prev"].weight = 0.5;
 	inputs.features["dni_next"].weight = 0.5;
-	inputs.features["clearsky"].weight = 0.0;
-	inputs.features["price"].weight = 1.0;
+	inputs.features["clearsky"].weight = 0.25;
+	inputs.features["price"].weight = 0.75;
 	inputs.features["price_prev"].weight = 0.5;
 	inputs.features["price_next"].weight = 0.5;
-	inputs.features["tdry"].weight = 0.25;
-	inputs.features["wspd"].weight = 0.25;
+	inputs.features["tdry"].weight = 0.5;
+	inputs.features["wspd"].weight = 0.0;
 	inputs.features["sfavail"].weight = 0.0;
 
 	inputs.features["dni"].divisions = 8;
 	inputs.features["dni_prev"].divisions = 4;
 	inputs.features["dni_next"].divisions = 4;
-	inputs.features["clearsky"].divisions = 1;
+	inputs.features["clearsky"].divisions = 4;
 	inputs.features["price"].divisions = 8;
 	inputs.features["price_prev"].divisions = 4;
 	inputs.features["price_next"].divisions = 4;
 	inputs.features["tdry"].divisions = 4;
-	inputs.features["wspd"].divisions = 4;
+	inputs.features["wspd"].divisions = 1;
 	inputs.features["sfavail"].divisions = 1;
 
 	return;

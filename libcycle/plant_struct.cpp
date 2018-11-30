@@ -43,7 +43,7 @@ cycle_state::cycle_state()
 	downtime = 0;
 	hot_start_penalty = 0;
 	warm_start_penalty = 0;
-	hot_start_penalty = 0;
+	cold_start_penalty = 0;
 }
 
 void cycle_state::print()
