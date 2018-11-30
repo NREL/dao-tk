@@ -21,10 +21,14 @@
   <ItemGroup>
     <ClCompile Include="..\liboptical\optical_degr.cpp" />
     <ClCompile Include="..\liboptical\optical_structures.cpp" />
+    <ClCompile Include="..\liboptical\wash_opt.cpp" />
+    <ClCompile Include="..\liboptical\wash_opt_structure.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\liboptical\optical_degr.h" />
     <ClInclude Include="..\liboptical\optical_structures.h" />
+    <ClInclude Include="..\liboptical\wash_opt.h" />
+    <ClInclude Include="..\liboptical\wash_opt_structure.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{C273DFFB-F8E1-4B59-885F-B1B4097FD8F6}</ProjectGuid>

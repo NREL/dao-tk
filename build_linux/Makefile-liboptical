@@ -7,7 +7,9 @@ CXXFLAGS= -std=c++0x $(CFLAGS)
 
 OBJECTS = \
 	optical_structures.o\
-	optical_degr.o
+	optical_degr.o\
+	wash_opt_structure.o\
+	wash_opt.o
 
 TARGET = liboptical.a
 

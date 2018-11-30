@@ -102,6 +102,10 @@ void Project::add_documentation()
     m_parameters.n_heliostats_sim.doc.set("","");
     m_parameters.wash_units_per_hour.doc.set("","");
     m_parameters.wash_crew_max_hours_week.doc.set("","");
+	m_parameters.wash_crew_capital_cost.doc.set("","");
+	m_parameters.price_per_kwh.doc.set("","");
+	m_parameters.operating_margin.doc.set("","");
+	m_parameters.TES_powercycle_eff.doc.set("","");
     m_parameters.degr_per_hour.doc.set("","");
     m_parameters.degr_accel_per_year.doc.set("","");
     m_parameters.degr_seed.doc.set("","");
@@ -139,6 +143,7 @@ void Project::add_documentation()
     m_design_outputs.opteff_table.doc.set("","");
     m_design_outputs.flux_table.doc.set("","");
     m_design_outputs.heliostat_positions.doc.set("","");
+	m_design_outputs.annual_helio_energy.doc.set("", "");
 
     m_solarfield_outputs.n_repairs.doc.set("","");
     m_solarfield_outputs.staff_utilization.doc.set("","");
@@ -156,6 +161,12 @@ void Project::add_documentation()
     m_optical_outputs.degr_schedule.doc.set("","");
     m_optical_outputs.repl_schedule.doc.set("","");
     m_optical_outputs.repl_total.doc.set("","");
+
+	m_cycle_outputs.cycle_capacity.doc.set("","");
+	m_cycle_outputs.cycle_efficiency.doc.set("","");
+	m_cycle_outputs.cycle_labor_cost.doc.set("","");
+	m_cycle_outputs.expected_starts_to_next_cycle_failure.doc.set("","");
+	m_cycle_outputs.expected_time_to_next_cycle_failure.doc.set("","");
 
     m_simulation_outputs.generation_arr.doc.set("","");
     m_simulation_outputs.solar_field_power_arr.doc.set("","");

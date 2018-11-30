@@ -7,6 +7,7 @@
 #include <lk/env.h>
 #include <ssc/sscapi.h>
 #include "../liboptical/optical_degr.h"
+#include "../liboptical/wash_opt.h"
 #include "../libsolar/solarfield_avail.h"
 #include "../libcycle/plant.h"
 #include "../libcycle/well512.h"
@@ -354,7 +355,12 @@ struct parameters : public lk::varhash_t
 	parameter om_staff_max_hours_week;
 	parameter n_heliostats_sim;
 	parameter wash_units_per_hour;
+	parameter wash_crew_max_hours_day;
 	parameter wash_crew_max_hours_week;
+	parameter wash_crew_capital_cost;
+	parameter price_per_kwh;
+	parameter operating_margin;
+	parameter TES_powercycle_eff;
 	parameter degr_per_hour;
 	parameter degr_accel_per_year;
 	parameter degr_seed;
@@ -434,6 +440,7 @@ struct design_outputs : public lk::varhash_t
 	parameter opteff_table;
 	parameter flux_table;
 	parameter heliostat_positions;
+	parameter annual_helio_energy;
 	//-----------------------------------------------------------------------
 
 	design_outputs();

@@ -295,8 +295,8 @@ void _test(lk::invoke_t &cxt)
 		}
 	}
 	P->D();
-	P->M();
 	P->O();
+	P->M();
 	P->C();
 	
 	mw.Log(wxString::Format("Total field area: %.2f", P->m_design_outputs.area_sf.as_number()));
