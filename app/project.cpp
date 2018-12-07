@@ -790,6 +790,8 @@ Project::Project()
     m_variables.n_wash_crews.triggers = { &Project::O, &Project::S, &Project::E, &Project::F };
     m_variables.N_panels.triggers = {&Project::S, &Project::E, &Project::F };
 
+    _all_method_pointers = { &Project::D, &Project::M, &Project::C, &Project::O, &Project::S, &Project::E, &Project::F };
+
     add_documentation();
 }
 
@@ -2445,6 +2447,11 @@ void Project::calc_avg_annual_schedule(double original_ts, double new_ts, const 
 	}
 
 	return;
+}
+
+std::vector<ObjectiveMethodPtr>* Project::GetAllMethodPointers()
+{
+    return &_all_method_pointers;
 }
 
 void Project::Optimize(lk::varhash_t* vars)

@@ -1138,7 +1138,6 @@ double _continuous_optimization_func(void* data)
     }
 
 
-    //std::set< ObjectiveMethod > triggered_methods;
     ObjectiveMethodSet triggered_methods;
     for (size_t i = 0; i < varnames.size(); i++)
     {
@@ -1148,10 +1147,14 @@ double _continuous_optimization_func(void* data)
             triggered_methods.insert(tr->at(j));
     }
 
-    int rval=0;
-    /*for(int i=0; i<O->m_settings.variables_int_t.size(); i++)
-        rval += (x.at(i))*(x.at(i));*/
-
+    for (std::vector<ObjectiveMethodPtr>::iterator m = P->GetAllMethodPointers()->begin(); m != P->GetAllMethodPointers()->end(); m++)
+    {
+        if (triggered_methods.find(*m) != triggered_methods.end())
+        {
+            bool (Project::*mm)();  //convert iterator back to function pointer
+            (*P.*mm)();     //call the method
+        }
+    }
 
 
     return rval;

@@ -23,6 +23,37 @@ static inline bool filter_where_lt(T c, T d)
 };
 //------------------------------------------
 
+double optimize_auto_eval(unsigned n, const double *x, double * /*grad*/, void *data)
+{
+    optimization *D = static_cast<optimization*>(data);
+
+    int i = 0;
+    for(int j=0; j<(int)D->m_settings.variables.size(); j++)
+    {
+        optimization_variable* v = &D->m_settings.variables.at(i);
+
+        if (v->is_integer)
+        {
+            v->iteration_history.push_back(v->iteration_history.back());
+            continue;
+        }
+        
+        double oldx = std::numeric_limits<double>::quiet_NaN();
+        if( v->iteration_history.size() > 0 )
+
+
+        double newx = x[i++];
+        v->iteration_history.push_back(newx);
+        v->assign(newx);
+        
+
+
+        i++;
+    }
+
+    return D->Simulate(x, n);
+};
+
 
 bool optimization::run_continuous_subproblem()
 {
@@ -33,9 +64,12 @@ bool optimization::run_continuous_subproblem()
 
     */
 
+
+
     //set up the NLOpt optimization problem
-    nlopt::opt *opt_obj;
+    nlopt::opt opt_obj(nlopt::algorithm::LN_BOBYQA, n);
     
+    opt_obj.set_min_objective()
 
 
     return true;

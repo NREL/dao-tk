@@ -672,6 +672,8 @@ class Project
 	
 	lk::varhash_t _merged_data;
 
+    std::vector<ObjectiveMethodPtr> _all_method_pointers;
+
     void add_documentation();
 	void lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
     void ssc_to_lk_hash(ssc_data_t &cxt, lk::varhash_t &vars);
@@ -725,6 +727,7 @@ public:
 	data_base *GetVarPtr(const char *name);
 	lk::varhash_t *GetMergedData();
     std::vector< void* > GetDataObjects();
+    std::vector<ObjectiveMethodPtr> *GetAllMethodPointers();
 };
 
 
