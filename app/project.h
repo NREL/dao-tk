@@ -287,15 +287,15 @@ protected:
     {
         this->name = vname;
 		if(_nice_name)
-            this->nice_name = *_nice_name;
+            this->nice_name = std::string(_nice_name);
         else
             this->nice_name = "";
 		if(_units)
-            this->units = *_units;
+            this->units = std::string(_units);
         else
             this->units = "";
 		if(_group)
-            this->group = *_group;
+            this->group = std::string(_group);
         else
             this->group = "";
         

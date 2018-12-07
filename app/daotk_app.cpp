@@ -356,6 +356,8 @@ void MainWindow::Save()
 
 	unsigned int cest=0;	//counter to estimate required file size
 
+    char charbuf[10000];
+
 	for( lk::varhash_t::iterator it = all_data->begin(); it != all_data->end(); it++ )
 	{
 		data_base *v = static_cast< data_base* >( it->second );
@@ -384,13 +386,17 @@ void MainWindow::Save()
 			case lk::vardata_t::STRING:
 			{
 				std::string strval = v->as_string();
-				char *buf = new char[strval.length()];
-				sprintf(buf, "%s", strval.c_str());
 
-				jdata.SetString(buf, strval.length(), alloc );
+                if (strval.length() > 0)
+                {
+				    //char *buf = new char[strval.length()];
+				    int len = sprintf(charbuf, "%s", strval.c_str());
 
-				delete buf;
-				cest += strval.length();
+				    jdata.SetString(charbuf, len, alloc );
+
+				    //delete buf;
+				    cest += len;
+                }
 			}
 			break;
 			case lk::vardata_t::VECTOR:

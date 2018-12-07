@@ -44,7 +44,6 @@
     <ClInclude Include="..\app\scriptview.h" />
     <ClInclude Include="..\app\treeselect.h" />
     <ClInclude Include="..\app\vardialog.h" />
-    <ClInclude Include="..\liboptimize\project.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="libclearsky.vcxproj">

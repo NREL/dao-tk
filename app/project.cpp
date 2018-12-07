@@ -588,7 +588,7 @@ optimization_outputs::optimization_outputs()
     secants_i.set(empty_vec_d, "obj_function_secants", true, "Objective function secants", "-", "Optimization|Outputs");
     feas_secants_i.set(empty_vec_d, "obj_function_secants_f", true, "Feasible objective function secants", "-", "Optimization|Outputs");
     eval_order.set(empty_vec_d, "obj_eval_order", true, "Objective function evaluation order", "-", "Optimization|Outputs");
-    wall_time_i.set(empty_vec_d, "obj_wall_time", true, "Clock time for objective function evaluation", "Optimization|Outputs");
+    wall_time_i.set(empty_vec_d, "obj_wall_time", true, "Clock time for objective function evaluation", "-", "Optimization|Outputs");
 
     (*this)["obj_function_lower_b"] = &eta_i;
     (*this)["obj_function_secants"] = &secants_i;
