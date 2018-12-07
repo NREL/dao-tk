@@ -1121,45 +1121,6 @@ void _setup_clusters(lk::invoke_t &cxt)
 
 }
 
-double _continuous_optimization_func(void* data)
-{
-    optimization* O = static_cast<optimization*>(data);
-    Project *P = MainWindow::Instance().GetProject();
-
-    //figure out which variables were changed and as a result, which components of the objective function need updating
-    std::vector< std::string > varnames = O->m_settings.get_all_variable_names();
-
-    for (size_t i = 0; i < varnames.size(); i++)
-    {
-        variable *v = static_cast<variable*>(P->m_variables.at(varnames.at(i)));
-        
-        if ( v->value_changed() )
-            varnames.push_back(O->m_settings.variables.at(i).name);
-    }
-
-
-    ObjectiveMethodSet triggered_methods;
-    for (size_t i = 0; i < varnames.size(); i++)
-    {
-        std::vector< ObjectiveMethodPtr > *tr = &((variable*)P->m_variables.at(varnames.at(i)))->triggers;
-
-        for (size_t j = 0; j < tr->size(); j++)
-            triggered_methods.insert(tr->at(j));
-    }
-
-    for (std::vector<ObjectiveMethodPtr>::iterator m = P->GetAllMethodPointers()->begin(); m != P->GetAllMethodPointers()->end(); m++)
-    {
-        if (triggered_methods.find(*m) != triggered_methods.end())
-        {
-            bool (Project::*mm)();  //convert iterator back to function pointer
-            (*P.*mm)();     //call the method
-        }
-    }
-
-
-    return rval;
-}
-
 void _optimize(lk::invoke_t &cxt)
 {
     LK_DOC("optimize_system", 
@@ -1191,9 +1152,6 @@ void _optimize(lk::invoke_t &cxt)
         Opt.m_settings.trust = h->at("trust")->as_boolean();
     else
         Opt.m_settings.trust = false;
-
-    //assign the objective function
-    Opt.m_settings.f_objective = _continuous_optimization_func;
 
     //collect all of the variables to be optimized
     Opt.m_settings.variables.clear();

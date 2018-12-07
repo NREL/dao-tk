@@ -23,39 +23,72 @@ static inline bool filter_where_lt(T c, T d)
 };
 //------------------------------------------
 
-double optimize_auto_eval(unsigned n, const double *x, double * /*grad*/, void *data)
+optimization::optimization() {};
+
+optimization::optimization(Project* P) { m_project_ptr = P; }
+
+void optimization::set_project(Project* P) { m_project_ptr = P; }
+
+Project* optimization::get_project() { return m_project_ptr; }
+
+
+double continuous_objective_eval(unsigned n, const double *x, double *, void *data)
 {
-    optimization *D = static_cast<optimization*>(data);
+    /* 
+    For a given vector of continuous variables 'x', check which have been modified and call
+    the necessary methods to update the objective function
+    */
 
-    int i = 0;
-    for(int j=0; j<(int)D->m_settings.variables.size(); j++)
+    optimization* O = static_cast<optimization*>(data);
+
+    //figure out which variables were changed and as a result, which components of the objective function need updating
+    ObjectiveMethodSet triggered_methods;
+    int i = 0; 
+    int ncheck = 0;
+    for (std::vector<optimization_variable>::iterator vit = O->m_settings.variables.begin(); vit != O->m_settings.variables.end(); vit++)
     {
-        optimization_variable* v = &D->m_settings.variables.at(i);
+        optimization_variable &v = *vit;
 
-        if (v->is_integer)
-        {
-            v->iteration_history.push_back(v->iteration_history.back());
+        if (!v.is_optimized)
             continue;
+
+        //collect all triggered objective methods
+        if (v.value_changed())
+            for (size_t j = 0; j < v.triggers.size(); j++)
+                triggered_methods.insert(v.triggers.at(j));
+        
+        //keep track of variable iteration history
+        if (v.is_integer)
+        {
+            v.iteration_history.push_back(v.iteration_history.back());
         }
-        
-        double oldx = std::numeric_limits<double>::quiet_NaN();
-        if( v->iteration_history.size() > 0 )
-
-
-        double newx = x[i++];
-        v->iteration_history.push_back(newx);
-        v->assign(newx);
-        
-
-
-        i++;
+        else
+        {
+            double newx = x[i++];
+            v.iteration_history.push_back(newx);
+            v.assign(newx);
+        }
+        ncheck++;
     }
 
-    return D->Simulate(x, n);
+    if (ncheck != n)
+        throw std::runtime_error("Error in continuous objective function evaluation. Variable count has changed. See user support for help.");
+
+    Project* P = O->get_project();
+
+    //run all of the methods in order
+    std::vector<ObjectiveMethodPtr> allmethods = P->GetObjectiveMethodPointers();
+    for (std::vector<ObjectiveMethodPtr>::iterator mit = allmethods.begin(); mit != allmethods.end(); mit++)
+    {
+        if (triggered_methods.find(*mit) != triggered_methods.end())
+            (*mit).Run(P);
+    }
+    
+    return P->m_financial_outputs.ppa.as_number();
 };
 
 
-bool optimization::run_continuous_subproblem()
+double optimization::run_continuous_subproblem()
 {
     /* 
     Optimize the continuous variable problem given the current fixed integer values
@@ -64,15 +97,53 @@ bool optimization::run_continuous_subproblem()
 
     */
 
+    int nvmax = (int)m_settings.variables.size();
+    int n = 0;
+    double* x = new double[nvmax];
+    double* ub = new double[nvmax];
+    double* lb = new double[nvmax];
 
+    //get initial state for all continuous variables x
+    for (std::vector<optimization_variable>::iterator vit = m_settings.variables.begin(); vit != m_settings.variables.end(); vit++)
+    {
+        if (vit->is_optimized && !vit->is_integer)
+        {
+            lb[n] = (*vit).minval.as_number();
+            ub[n] = (*vit).maxval.as_number();
+            x[n++] = (*vit).as_number();
+        }
+    }
+    
+    double minf = std::numeric_limits<double>::infinity(); //initialize minimum obj function return value
+    
+    if (n < 1)
+        goto CLEAN_AND_RETURN;
 
     //set up the NLOpt optimization problem
-    nlopt::opt opt_obj(nlopt::algorithm::LN_BOBYQA, n);
-    
-    opt_obj.set_min_objective()
+    nlopt_opt opt = nlopt_create(nlopt_algorithm::NLOPT_LN_BOBYQA, n);
+    nlopt_set_lower_bounds(opt, lb);
+    nlopt_set_upper_bounds(opt, ub);
+    nlopt_set_min_objective(opt, continuous_objective_eval, (void*)this);
 
+    nlopt_set_ftol_rel(opt, .01);
+    nlopt_set_xtol_rel(opt, .001);
 
-    return true;
+    if (nlopt_optimize(opt, x, &minf) < 0) 
+    {
+        goto CLEAN_AND_RETURN;
+    }
+    else 
+    {
+        int i = 0;
+        for (std::vector<optimization_variable>::iterator vit = m_settings.variables.begin(); vit != m_settings.variables.end(); vit++)
+            if (vit->is_optimized && !vit->is_integer)
+                vit->assign(x[i]);
+    }
+
+CLEAN_AND_RETURN:
+    delete[] x, lb, ub;
+
+    return minf;
 }
 
 bool optimization::run_optimization()
@@ -213,7 +284,7 @@ bool optimization::run_optimization()
         if( row_in_grid > (int)indices_lookup.size() )
             std::runtime_error("One of the initial points was not in the grid.");
 
-        F(row_in_grid) = m_settings.f_objective((void*)this);
+        F(row_in_grid) = run_continuous_subproblem();
     }
 
     Vector<int> x_star(n);
@@ -453,7 +524,7 @@ bool optimization::run_optimization()
                         x_star_maybe.push_back(vv);
                     }
 
-                    Fnew = m_settings.f_objective((void*)this);
+                    Fnew = run_continuous_subproblem();
 
                     // Update x_star
                     if (Fnew < obj_ub)
@@ -485,7 +556,7 @@ bool optimization::run_optimization()
         for (int i = 0; i < n; i++)
             m_settings.variables.at(i).assign( grid(new_ind, i + 1) );
 
-        Fnew = m_settings.f_objective((void*)this);    // Include this value in F in the next iteration (after all combinations with new_ind are formed)
+        Fnew = run_continuous_subproblem();    // Include this value in F in the next iteration (after all combinations with new_ind are formed)
         obj_ub = Fnew < obj_ub ? Fnew : obj_ub;   // Update upper bound on the value of the global optimizer
         eta(new_ind) = Fnew;
         eta_gen(new_ind) = new_ind;

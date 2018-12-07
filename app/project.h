@@ -206,7 +206,6 @@ struct ObjectiveMethodSet : std::set<ObjectiveMethodPtr>
 class variable : public data_base
 {
 protected:
-    lk::vardata_t _prev_val;
 
     void _set_base(double vmin, double vmax, std::string vname, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
@@ -227,11 +226,6 @@ public:
     std::vector< ObjectiveMethodPtr > triggers;
     bool is_optimized;
     bool is_integer;
-
-    bool value_changed()
-    {
-        return _prev_val.equals(*this);
-    };
 
 	bool set_limits(double vmin, double vmax)
 	{
@@ -709,7 +703,6 @@ public:
 	struct CALLING_SIM{ enum E {DESIGN=1, HELIO_AVAIL, HELIO_OPTIC, CYCLE_AVAIL, SIMULATION, EXPLICIT, FINANCE, OBJECTIVE, NULLSIM=0}; };
 	bool Validate(CALLING_SIM::E simtype=CALLING_SIM::E::NULLSIM, std::string *error_msg=0);
 	void Initialize();
-    void Optimize(lk::varhash_t* vars);
 
 	//objective function methods
 	bool D();       //Solar field layout and design
@@ -727,7 +720,7 @@ public:
 	data_base *GetVarPtr(const char *name);
 	lk::varhash_t *GetMergedData();
     std::vector< void* > GetDataObjects();
-    std::vector<ObjectiveMethodPtr> *GetAllMethodPointers();
+    std::vector< ObjectiveMethodPtr > GetObjectiveMethodPointers();
 };
 
 

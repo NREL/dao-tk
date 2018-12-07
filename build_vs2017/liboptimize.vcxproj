@@ -203,6 +203,10 @@
     </Link>
     <PostBuildEvent>
     </PostBuildEvent>
+    <Lib>
+      <AdditionalLibraryDirectories>$(WEXDIR);$(LKDIR);$(SSCDIR)\build_vs2017\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalDependencies>nlopt.lib;wex.lib;lk.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -228,6 +232,10 @@
     </Link>
     <PostBuildEvent>
     </PostBuildEvent>
+    <Lib>
+      <AdditionalLibraryDirectories>$(WEXDIR);$(LKDIR);$(SSCDIR)\build_vs2017\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalDependencies>nlopt.lib;wexx64.lib;lkx64.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -243,6 +251,10 @@
     </Link>
     <PostBuildEvent>
     </PostBuildEvent>
+    <Lib>
+      <AdditionalLibraryDirectories>$(WEXDIR);$(LKDIR);$(SSCDIR)\build_vs2017\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalDependencies>nlopt.lib;wexd.lib;lkd.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -260,8 +272,8 @@
     <PostBuildEvent>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>wexx64d.lib;lkx64d.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(WEXDIR);$(LKDIR)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>nlopt.lib;wexx64d.lib;lkx64d.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(WEXDIR);$(LKDIR);$(SSCDIR)\build_vs2017\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug32|Win32'">

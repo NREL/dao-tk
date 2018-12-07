@@ -824,6 +824,11 @@ std::vector< void* > Project::GetDataObjects()
     return rvec;
 }
 
+std::vector< ObjectiveMethodPtr > Project::GetObjectiveMethodPointers()
+{
+    return _all_method_pointers;
+}
+
 data_base *Project::GetVarPtr(const char *name)
 {
 
@@ -2449,16 +2454,3 @@ void Project::calc_avg_annual_schedule(double original_ts, double new_ts, const 
 	return;
 }
 
-std::vector<ObjectiveMethodPtr>* Project::GetAllMethodPointers()
-{
-    return &_all_method_pointers;
-}
-
-void Project::Optimize(lk::varhash_t* vars)
-{
-    /* 
-    
-    */
-
-
-}
