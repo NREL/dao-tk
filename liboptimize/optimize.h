@@ -9,25 +9,36 @@
 
 class optimization_variable : public variable
 {
+    lk::vardata_t* m_parent;
 public:
     std::vector< double > initializers;
     std::vector< double > iteration_history;
 
-    optimization_variable() {};
+    //optimization_variable() {};
 
     optimization_variable(variable &v)
     {
+        m_parent = &v;
         is_integer = v.is_integer;
         is_optimized = v.is_optimized;
         minval.assign(v.minval.as_number());
         maxval.assign(v.maxval.as_number());
         this->assign(v.as_number());
+        this->name = v.name;
+        this->nice_name = v.nice_name;
+        this->units = v.units;
         iteration_history.clear();
         iteration_history.push_back(as_number());
         triggers = v.triggers;
+        initializers.clear();
+        if (v.initializers.vec())
+        {
+            for (size_t i = 0; i < v.initializers.vec()->size(); i++)
+                initializers.push_back(v.initializers.vec()->at(i).as_number());
+        }
     };
 
-    optimization_variable(bool is_integer, std::string _name, double _lower, double _upper, std::vector<double> _inits, double _value = 0.)
+    /*optimization_variable(bool is_integer, std::string _name, double _lower, double _upper, std::vector<double> _inits, double _value = 0.)
     {
         this->is_integer = is_integer;
         this->name = _name;
@@ -38,7 +49,7 @@ public:
         
         iteration_history.clear();
         iteration_history.push_back(_value);
-    };
+    };*/
 
     bool value_changed(double testval = std::numeric_limits<double>::quiet_NaN() )
     {
@@ -50,6 +61,7 @@ public:
 
     void optimization_variable::assign(double d)
     {
+        m_parent->assign(d);
         lk::vardata_t::assign(d);
         iteration_history.push_back(d);
     };
@@ -84,12 +96,11 @@ struct optimization_settings
 
 struct optimization_results
 {
-    std::vector<double> 
-        obj_ub_i,   //optimization upper bound at iteration 'i'
-        secants_i,  //secant values at iteration 'i'
-        feas_secants_i,     //feasible secants at iteration 'i'
-        eval_order,         //evaluation order at iteration 'i'
-        wall_time_i;        //wall time elapsed at iteration 'i'
+    std::vector<double> obj_ub_i;   //optimization upper bound at iteration 'i'
+    std::vector<double> secants_i;  //secant values at iteration 'i'
+    std::vector<double> feas_secants_i;     //feasible secants at iteration 'i'
+    std::vector<double> eval_order;         //evaluation order at iteration 'i'
+    std::vector<double> wall_time_i;        //wall time elapsed at iteration 'i'
 };
 
 class optimization

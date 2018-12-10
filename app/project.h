@@ -186,22 +186,7 @@ public:
     };
 };
 
-//typedef std::set< ObjectiveMethodPtr > ObjectiveMethodSet;
-struct ObjectiveMethodSet : std::set<ObjectiveMethodPtr>
-{
-    ObjectiveMethodSet() {};
-    ObjectiveMethodSet(std::initializer_list<ObjectiveMethodPtr> list)
-    {
-        for (std::initializer_list<ObjectiveMethodPtr>::iterator it = list.begin(); it != list.end(); it++)
-            this->insert(*it);
-    };
-    ObjectiveMethodSet& operator = (std::initializer_list<ObjectiveMethodPtr> list)
-    {
-        for (std::initializer_list<ObjectiveMethodPtr>::iterator it = list.begin(); it != list.end(); it++)
-            this->insert(*it);
-        return *this;
-    };
-};
+typedef unordered_map<std::string, ObjectiveMethodPtr > ObjectiveMethodSet;
 
 class variable : public data_base
 {
@@ -223,7 +208,7 @@ public:
     lk::vardata_t maxval;
     lk::vardata_t defaultval;
     lk::vardata_t initializers;
-    std::vector< ObjectiveMethodPtr > triggers;
+    std::vector< std::string > triggers;
     bool is_optimized;
     bool is_integer;
 
@@ -670,7 +655,8 @@ class Project
 	
 	lk::varhash_t _merged_data;
 
-    std::vector<ObjectiveMethodPtr> _all_method_pointers;
+    ObjectiveMethodSet _all_method_pointers;
+    std::vector<std::string> _all_method_names;
 
     void add_documentation();
 	void lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
@@ -724,7 +710,8 @@ public:
 	data_base *GetVarPtr(const char *name);
 	lk::varhash_t *GetMergedData();
     std::vector< void* > GetDataObjects();
-    std::vector< ObjectiveMethodPtr > *GetObjectiveMethodPointers();
+    bool CallMethodByName(const std::string &method);
+    std::vector<std::string> GetAllMethodNames();
 };
 
 

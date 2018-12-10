@@ -787,20 +787,30 @@ Project::Project()
         pe = &Project::E,
         pf = &Project::F;
 
-    m_variables.h_tower.triggers =
+    m_variables.h_tower.triggers = 
         m_variables.rec_height.triggers =
         m_variables.D_rec.triggers =
         m_variables.design_eff.triggers =
         m_variables.dni_des.triggers =
-        m_variables.solarm.triggers = {pd, pm ,po, ps, pe, pf}; //{ &Project::D, &Project::M, &Project::O, &Project::S, &Project::E, &Project::F };
-    m_variables.P_ref.triggers = {pd, pm, pc, po, ps, pe, pf}; //{ &Project::D, &Project::M, &Project::C, &Project::O, &Project::S, &Project::E, &Project::F };
-    m_variables.tshours.triggers = { ps, pe, pf }; // { &Project::S, &Project::E, &Project::F };
-    m_variables.degr_replace_limit.triggers = { po, ps, pe, pf }; // { &Project::O, &Project::S, &Project::E, &Project::F };
-    m_variables.om_staff.triggers = { pm, ps, pe, pf }; // { &Project::M, &Project::S, &Project::E, &Project::F };
-    m_variables.n_wash_crews.triggers = { po, ps, pe, pf }; // { &Project::O, &Project::S, &Project::E, &Project::F };
-    m_variables.N_panels.triggers = { ps, pe, pf }; // {&Project::S, &Project::E, &Project::F };
+        m_variables.solarm.triggers = { "D", "M", "O", "S", "E", "F" }; //{ &Project::D, &Project::M, &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.P_ref.triggers = {"D", "M", "C", "O", "S", "E", "F"};  //{ &Project::D, &Project::M, &Project::C, &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.tshours.triggers = { "S", "E", "F"}; // { &Project::S, &Project::E, &Project::F };
+    m_variables.degr_replace_limit.triggers = { "O", "S", "E", "F"}; // { &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.om_staff.triggers = { "M", "S", "E", "F" }; // { &Project::M, &Project::S, &Project::E, &Project::F };
+    m_variables.n_wash_crews.triggers = { "O", "S", "E", "F" }; // { &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.N_panels.triggers = { "S", "E", "F" }; // {&Project::S, &Project::E, &Project::F };
 
-    _all_method_pointers = std::vector<ObjectiveMethodPtr>({pd, pm, pc, po, ps, pe, pf}); //({ &Project::D, &Project::M, &Project::C, &Project::O, &Project::S, &Project::E, &Project::F });
+    _all_method_pointers.clear();
+    _all_method_pointers["D"] = pd;
+    _all_method_pointers["M"] = pm;
+    _all_method_pointers["C"] = pc;
+    _all_method_pointers["O"] = po;
+    _all_method_pointers["S"] = ps;
+    _all_method_pointers["E"] = pe;
+    _all_method_pointers["F"] = pf;
+
+    _all_method_names.clear();
+    _all_method_names = { "D", "M", "C", "O", "S", "E", "F" };
 
     add_documentation();
 }
@@ -834,10 +844,16 @@ std::vector< void* > Project::GetDataObjects()
     return rvec;
 }
 
-std::vector< ObjectiveMethodPtr > *Project::GetObjectiveMethodPointers()
+bool Project::CallMethodByName(const std::string &method)
 {
-    return &_all_method_pointers;
+    return _all_method_pointers.at(method).Run(this);
 }
+
+std::vector<std::string> Project::GetAllMethodNames()
+{
+    return _all_method_names;
+}
+
 
 data_base *Project::GetVarPtr(const char *name)
 {

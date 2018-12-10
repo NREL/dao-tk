@@ -42,9 +42,11 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     optimization* O = static_cast<optimization* const>(data);
 
     //figure out which variables were changed and as a result, which components of the objective function need updating
-    ObjectiveMethodSet triggered_methods;
+    std::set<std::string> triggered_methods;
     int i = 0; 
     int ncheck = 0;
+    std::stringstream message; 
+    message << "Optimization evaluation point:\n";
     for (std::vector<optimization_variable>::iterator vit = O->m_settings.variables.begin(); vit != O->m_settings.variables.end(); vit++)
     {
         optimization_variable &v = *vit;
@@ -56,7 +58,10 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
         if (v.value_changed())
             for (size_t j = 0; j < v.triggers.size(); j++)
                 triggered_methods.insert(v.triggers.at(j));
+
+        message << v.nice_name << "[" << v.units << "]\t" << v.as_number() << "\n";
         
+
         //keep track of variable iteration history
         if (v.is_integer)
         {
@@ -77,14 +82,31 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     Project* P = O->get_project();
 
     //run all of the methods in order
-    std::vector<ObjectiveMethodPtr> *allmethods = P->GetObjectiveMethodPointers();
-    for (std::vector<ObjectiveMethodPtr>::iterator mit = allmethods->begin(); mit != allmethods->end(); mit++)
+    std::vector<std::string> allmethods = P->GetAllMethodNames();
+    for (std::vector<std::string>::iterator mit = allmethods.begin(); mit != allmethods.end(); mit++)
     {
         if (triggered_methods.find(*mit) != triggered_methods.end())
-            (*mit).Run(P);
+            P->CallMethodByName(*mit);
     }
+
+    double ppa = P->m_financial_outputs.ppa.as_number();
+
+    message << "Results\n-------------------------------------------------\n";
+    message << "Objective function value (PPA) [c/kWh]\t" << ppa << "\n";
+    message << "Solar field area [m2]\t" << P->m_design_outputs.area_sf.as_number() << "\n";
+    message << "Average soiling eff. [%]\t" << P->m_optical_outputs.avg_soil.as_number() << "\n";
+    message << "Average mirror degradation [%]\t" << P->m_optical_outputs.avg_degr.as_number() << "\n";
+    message << "Annual generation [MWhe]\t" << P->m_simulation_outputs.annual_generation.as_number() << "\n";
+    message << "Annual cycle starts\t" << P->m_simulation_outputs.annual_cycle_starts.as_number() << "\n";
+    message << "Annual receiver starts\t" << P->m_simulation_outputs.annual_rec_starts.as_number() << "\n";
+    message << "Annual revenue units\t" << P->m_simulation_outputs.annual_revenue_units.as_number() << "\n";
+    message << "Average field availability [%]\t" << P->m_solarfield_outputs.avg_avail.as_number() << "\n";
+    message << "Heliostat repair events /yr\t" << P->m_solarfield_outputs.n_repairs.as_number() << "\n";
     
-    return P->m_financial_outputs.ppa.as_number();
+
+    message_handler(message.str().c_str());
+
+    return ppa;
 };
 
 
@@ -128,16 +150,71 @@ double optimization::run_continuous_subproblem()
     nlopt_set_ftol_rel(opt, .01);
     nlopt_set_xtol_rel(opt, .001);
 
-    if (nlopt_optimize(opt, x, &minf) < 0) 
+    int res = nlopt_optimize(opt, x, &minf);
+
+    if (res < 0)
     {
+        std::string message;
+        switch (res)
+        {
+        case NLOPT_INVALID_ARGS: // = -2,
+            message = "Invalid arguments in continuous optimization subproblem. Ensure lower and upper "
+                "bounds are correct and initial value(s) are within the specified bounds.";
+            break;
+        case NLOPT_OUT_OF_MEMORY: // = -3,
+            message = "Memory error! DAO-Tk ran out of memory while executing the continuous optimization subproblem.";
+            break;
+        case NLOPT_FORCED_STOP: // = -5,
+        case NLOPT_ROUNDOFF_LIMITED: // = -4,
+        case NLOPT_FAILURE: // = -1, /* generic failure code */
+        default:
+            message = "An error occurred while executing the continuous optimization subproblem.";
+        }
+        message_handler((message + "\n").c_str());
+
         goto CLEAN_AND_RETURN;
     }
-    else 
+    else
     {
+        std::string message;
+
+        switch (res)
+        {
+        case NLOPT_SUCCESS:  // = 1, /* generic success code */
+            message = "Continuous optimization reached optimal solution.";
+            break;
+        case NLOPT_STOPVAL_REACHED: // = 2,
+            message = "Continuous optimization reach the specified stopping value: optimization complete";
+            break;
+        case NLOPT_FTOL_REACHED: // = 3,
+            message = "Continuous optimization converged below specified objective function tolerance: optimization complete";
+            break;
+        case NLOPT_XTOL_REACHED: // = 4,
+            message = "Continuous optimization converged below specified variable change tolerance: optimization complete";
+            break;
+        case NLOPT_MAXEVAL_REACHED: // = 5,
+            message = "Continuous optimization terminated at the maximum number of function evaluations. Result may be significantly suboptimal.";
+            break;
+        case NLOPT_MAXTIME_REACHED: // = 6
+            message = "Continuous optimization solution timed out. Result may be significantly suboptimal.";
+            break;
+        }
+        
+        message.append("\n>> Final PPA: " + std::to_string(minf) + "\n>> Variable values:\n");
+
         int i = 0;
         for (std::vector<optimization_variable>::iterator vit = m_settings.variables.begin(); vit != m_settings.variables.end(); vit++)
+        {
             if (vit->is_optimized && !vit->is_integer)
-                vit->assign(x[i]);
+            {
+                message.append(">> " + vit->nice_name + " [" + vit->units + "]\t" + std::to_string(x[i]) + "\n");
+                vit->assign(x[i++]);
+            }
+        }
+
+        
+        message_handler((message + "\n").c_str());
+
     }
 
 CLEAN_AND_RETURN:
@@ -181,6 +258,17 @@ bool optimization::run_optimization()
     for (size_t i=0; i<m_settings.variables.size(); i++)
         if (m_settings.variables.at(i).is_integer)
             n++;  //count the number of integer variables
+
+    if (n < 1)
+    {
+        //only run continuous subproblem
+
+        //update the variable guess value to be the first in the initializer list
+        for (size_t i = 0; i < m_settings.variables.size(); i++)
+            m_settings.variables.at(i).assign(m_settings.variables.at(i).initializers.front());
+
+        return run_continuous_subproblem();    // Include this value in F in the next iteration (after all combinations with new_ind are formed)
+    }
 
     //require dimensions of matrices to align
     int nx = (int)m_settings.n_initials;
