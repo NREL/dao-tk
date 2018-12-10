@@ -47,18 +47,18 @@ variables::variables()
 	double dmax = -std::numeric_limits<double>::infinity();
 	double dmin = -dmax;
 	
-    h_tower.set(                          dnan,      dmin,      dmax,            "h_tower",                                     "Tower height",        "m",                         "Variables" );
-    rec_height.set(                       dnan,      dmin,      dmax,         "rec_height",                                  "Receiver height",        "m",                         "Variables" );
-    D_rec.set(                            dnan,      dmin,      dmax,              "D_rec",                                "Receiver diameter",        "m",                         "Variables" );
-    design_eff.set(                       dnan,      dmin,      dmax,         "design_eff",                                "Design efficiency",        "-",                         "Variables" );
-    dni_des.set(                          dnan,      dmin,      dmax,            "dni_des",                                 "Design point DNI",     "W/m2",                         "Variables" );
-    P_ref.set(                            dnan,      dmin,      dmax,              "P_ref",                               "Design gross power",       "kW",                         "Variables" );
-    solarm.set(                           dnan,      dmin,      dmax,             "solarm",                                   "Solar multiple",        "-",                         "Variables" );
-    tshours.set(                          dnan,      dmin,      dmax,            "tshours",              "Hours stored at full load operation",       "hr",                         "Variables" );
-    degr_replace_limit.set(               dnan,      dmin,      dmax, "degr_replace_limit",             "Mirror degradation replacement limit",        "-",                         "Variables" );
-    om_staff.set(                           -1,      -999,       999,           "om_staff",                              "Number of o&m staff",        "-",                         "Variables" );
-    n_wash_crews.set(                       -1,      -999,       999,       "n_wash_crews",                             "Number of wash crews",        "-",                         "Variables" );
-    N_panels.set(                           -1,      -999,       999,           "N_panels",                        "Number of receiver panels",        "-",                         "Variables" );
+    h_tower.set(                          dnan,      dmin,      dmax,            "h_tower",                                     "Tower height",        "m",      "Variables", false, false);
+    rec_height.set(                       dnan,      dmin,      dmax,         "rec_height",                                  "Receiver height",        "m",      "Variables", false, false);
+    D_rec.set(                            dnan,      dmin,      dmax,              "D_rec",                                "Receiver diameter",        "m",      "Variables", false, false);
+    design_eff.set(                       dnan,      dmin,      dmax,         "design_eff",                                "Design efficiency",        "-",      "Variables", false, false);
+    dni_des.set(                          dnan,      dmin,      dmax,            "dni_des",                                 "Design point DNI",     "W/m2",      "Variables", false, false);
+    P_ref.set(                            dnan,      dmin,      dmax,              "P_ref",                               "Design gross power",       "kW",      "Variables", false, false);
+    solarm.set(                           dnan,      dmin,      dmax,             "solarm",                                   "Solar multiple",        "-",      "Variables", false, false);
+    tshours.set(                          dnan,      dmin,      dmax,            "tshours",              "Hours stored at full load operation",       "hr",      "Variables", false, false);
+    degr_replace_limit.set(               dnan,      dmin,      dmax, "degr_replace_limit",             "Mirror degradation replacement limit",        "-",      "Variables", false, false);
+    om_staff.set(                           -1,      -999,       999,           "om_staff",                              "Number of o&m staff",        "-",      "Variables", false, true);
+    n_wash_crews.set(                       -1,      -999,       999,       "n_wash_crews",                             "Number of wash crews",        "-",      "Variables", false, true);
+    N_panels.set(                           -1,      -999,       999,           "N_panels",                        "Number of receiver panels",        "-",      "Variables", false, true);
 
     (*this)["h_tower"] = &h_tower;
     (*this)["rec_height"] = &rec_height;
@@ -777,20 +777,30 @@ Project::Project()
         F()  :  Financial model calculations
         Z()  :  Rolled-up objective function
     */
-    m_variables.h_tower.triggers = 
-    m_variables.rec_height.triggers = 
-    m_variables.D_rec.triggers = 
-    m_variables.design_eff.triggers = 
-    m_variables.dni_des.triggers = 
-    m_variables.solarm.triggers = { &Project::D, &Project::M, &Project::O, &Project::S, &Project::E, &Project::F };
-    m_variables.P_ref.triggers = { &Project::D, &Project::M, &Project::C, &Project::O, &Project::S, &Project::E, &Project::F };
-    m_variables.tshours.triggers = { &Project::S, &Project::E, &Project::F };
-    m_variables.degr_replace_limit.triggers = { &Project::O, &Project::S, &Project::E, &Project::F };
-    m_variables.om_staff.triggers = { &Project::M, &Project::S, &Project::E, &Project::F };
-    m_variables.n_wash_crews.triggers = { &Project::O, &Project::S, &Project::E, &Project::F };
-    m_variables.N_panels.triggers = {&Project::S, &Project::E, &Project::F };
 
-    _all_method_pointers = { &Project::D, &Project::M, &Project::C, &Project::O, &Project::S, &Project::E, &Project::F };
+    ObjectiveMethodPtr
+        pd = &Project::D,
+        pm = &Project::M,
+        pc = &Project::C,
+        po = &Project::O,
+        ps = &Project::S,
+        pe = &Project::E,
+        pf = &Project::F;
+
+    m_variables.h_tower.triggers =
+        m_variables.rec_height.triggers =
+        m_variables.D_rec.triggers =
+        m_variables.design_eff.triggers =
+        m_variables.dni_des.triggers =
+        m_variables.solarm.triggers = {pd, pm ,po, ps, pe, pf}; //{ &Project::D, &Project::M, &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.P_ref.triggers = {pd, pm, pc, po, ps, pe, pf}; //{ &Project::D, &Project::M, &Project::C, &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.tshours.triggers = { ps, pe, pf }; // { &Project::S, &Project::E, &Project::F };
+    m_variables.degr_replace_limit.triggers = { po, ps, pe, pf }; // { &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.om_staff.triggers = { pm, ps, pe, pf }; // { &Project::M, &Project::S, &Project::E, &Project::F };
+    m_variables.n_wash_crews.triggers = { po, ps, pe, pf }; // { &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.N_panels.triggers = { ps, pe, pf }; // {&Project::S, &Project::E, &Project::F };
+
+    _all_method_pointers = std::vector<ObjectiveMethodPtr>({pd, pm, pc, po, ps, pe, pf}); //({ &Project::D, &Project::M, &Project::C, &Project::O, &Project::S, &Project::E, &Project::F });
 
     add_documentation();
 }
@@ -824,9 +834,9 @@ std::vector< void* > Project::GetDataObjects()
     return rvec;
 }
 
-std::vector< ObjectiveMethodPtr > Project::GetObjectiveMethodPointers()
+std::vector< ObjectiveMethodPtr > *Project::GetObjectiveMethodPointers()
 {
-    return _all_method_pointers;
+    return &_all_method_pointers;
 }
 
 data_base *Project::GetVarPtr(const char *name)

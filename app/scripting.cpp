@@ -1136,22 +1136,24 @@ void _optimize(lk::invoke_t &cxt)
 
 	MainWindow &mw = MainWindow::Instance();
     Project *P = mw.GetProject();
-    optimization Opt;
+    optimization Opt(P);
 
-    lk::varhash_t *h = cxt.arg(0).hash();
+    //defaults
+    Opt.m_settings.convex_flag = false;
+    Opt.m_settings.max_delta = 1;
+    Opt.m_settings.trust = false;
+    //override if needed
+    if (cxt.arg_count() > 0)
+    {
+        lk::varhash_t *h = cxt.arg(0).hash();
 
-    if (h->find("convex_flag") != h->end())
-        Opt.m_settings.convex_flag = h->at("convex_flag")->as_boolean();
-    else
-        Opt.m_settings.convex_flag = false;
-    if (h->find("max_delta") != h->end())
-        Opt.m_settings.max_delta = h->at("max_delta")->as_number();
-    else
-        Opt.m_settings.max_delta = 1;
-    if (h->find("trust") != h->end())
-        Opt.m_settings.trust = h->at("trust")->as_boolean();
-    else
-        Opt.m_settings.trust = false;
+        if (h->find("convex_flag") != h->end())
+            Opt.m_settings.convex_flag = h->at("convex_flag")->as_boolean();
+        if (h->find("max_delta") != h->end())
+            Opt.m_settings.max_delta = h->at("max_delta")->as_number();
+        if (h->find("trust") != h->end())
+            Opt.m_settings.trust = h->at("trust")->as_boolean();
+    }
 
     //collect all of the variables to be optimized
     Opt.m_settings.variables.clear();
@@ -1163,12 +1165,11 @@ void _optimize(lk::invoke_t &cxt)
         if (v->is_optimized)
         {
             std::vector<double> inits;
+            
             for (int i = 0; i < (int)v->initializers.vec()->size(); i++)
                 inits.push_back( v->initializers.vec()->at(i).as_number() );
 
-            Opt.m_settings.variables.push_back(
-                optimization_variable(v->is_integer, v->name, v->minval.as_number(), v->maxval.as_number(), inits, v->as_number() )
-            );
+            Opt.m_settings.variables.push_back(optimization_variable(*v));
         }
 
     }

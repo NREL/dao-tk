@@ -23,7 +23,7 @@ static inline bool filter_where_lt(T c, T d)
 };
 //------------------------------------------
 
-optimization::optimization() {};
+//optimization::optimization() {};
 
 optimization::optimization(Project* P) { m_project_ptr = P; }
 
@@ -39,7 +39,7 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     the necessary methods to update the objective function
     */
 
-    optimization* O = static_cast<optimization*>(data);
+    optimization* O = static_cast<optimization* const>(data);
 
     //figure out which variables were changed and as a result, which components of the objective function need updating
     ObjectiveMethodSet triggered_methods;
@@ -67,8 +67,8 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
             double newx = x[i++];
             v.iteration_history.push_back(newx);
             v.assign(newx);
+            ncheck++;
         }
-        ncheck++;
     }
 
     if (ncheck != n)
@@ -77,8 +77,8 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     Project* P = O->get_project();
 
     //run all of the methods in order
-    std::vector<ObjectiveMethodPtr> allmethods = P->GetObjectiveMethodPointers();
-    for (std::vector<ObjectiveMethodPtr>::iterator mit = allmethods.begin(); mit != allmethods.end(); mit++)
+    std::vector<ObjectiveMethodPtr> *allmethods = P->GetObjectiveMethodPointers();
+    for (std::vector<ObjectiveMethodPtr>::iterator mit = allmethods->begin(); mit != allmethods->end(); mit++)
     {
         if (triggered_methods.find(*mit) != triggered_methods.end())
             (*mit).Run(P);
@@ -176,8 +176,13 @@ bool optimization::run_optimization()
         if( ! m_settings.trust )
             std::runtime_error("Must have trust=True when convex_flag=True");
 
+    //count number of integer variables
+    int n = 0;
+    for (size_t i=0; i<m_settings.variables.size(); i++)
+        if (m_settings.variables.at(i).is_integer)
+            n++;  //count the number of integer variables
+
     //require dimensions of matrices to align
-    int n = 0; 
     int nx = (int)m_settings.n_initials;
 
     //sort the variables so all integer variables appear first in the list
@@ -197,10 +202,8 @@ bool optimization::run_optimization()
                
             if (!(*vi).is_integer)
                 break;
-            n++;  //count the number of integer variables
             
             optimization_variable &v = (*vi);
-            
 
             LB(i) = v.minval.as_integer();
             UB(i) = vi->maxval.as_integer();

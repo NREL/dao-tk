@@ -237,19 +237,23 @@ public:
 		return true;
 	};
 	
-	void set(double _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0, bool _is_optimized = false)
+	void set(double _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0, 
+            bool _is_optimized = false, bool _is_integer = false)
 	{
         this->defaultval.assign(_defaultval); 
         this->assign(_defaultval);
         this->is_optimized = _is_optimized;
+        this->is_integer = _is_integer;
         _set_base(_vmin, _vmax, _vname, _nice_name, _units, _group);
 	};
     
-    void set(int _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0, bool _is_optimized = false)
+    void set(int _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0, 
+            bool _is_optimized = false, bool _is_integer = false)
     {
         this->defaultval.assign(_defaultval);
         this->assign(_defaultval);
         this->is_optimized = _is_optimized;
+        this->is_integer = _is_integer;
         _set_base(_vmin, _vmax, _vname, _nice_name, _units, _group);
     };
 
@@ -720,7 +724,7 @@ public:
 	data_base *GetVarPtr(const char *name);
 	lk::varhash_t *GetMergedData();
     std::vector< void* > GetDataObjects();
-    std::vector< ObjectiveMethodPtr > GetObjectiveMethodPointers();
+    std::vector< ObjectiveMethodPtr > *GetObjectiveMethodPointers();
 };
 
 

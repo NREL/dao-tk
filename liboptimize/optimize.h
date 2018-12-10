@@ -14,6 +14,19 @@ public:
     std::vector< double > iteration_history;
 
     optimization_variable() {};
+
+    optimization_variable(variable &v)
+    {
+        is_integer = v.is_integer;
+        is_optimized = v.is_optimized;
+        minval.assign(v.minval.as_number());
+        maxval.assign(v.maxval.as_number());
+        this->assign(v.as_number());
+        iteration_history.clear();
+        iteration_history.push_back(as_number());
+        triggers = v.triggers;
+    };
+
     optimization_variable(bool is_integer, std::string _name, double _lower, double _upper, std::vector<double> _inits, double _value = 0.)
     {
         this->is_integer = is_integer;
@@ -83,7 +96,7 @@ class optimization
 {
     Project *m_project_ptr;
 public:
-    optimization();
+    //optimization();
     optimization(Project* p);
 
     optimization_settings m_settings;
