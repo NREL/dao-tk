@@ -611,6 +611,7 @@ struct objective_outputs : public lk::varhash_t
 	parameter heliostat_om_labor_real;
 	parameter heliostat_wash_cost_real;
 	parameter heliostat_refurbish_cost_real;
+	parameter heliostat_wash_capital_cost;
 	parameter om_cost_real;
 
 	parameter cycle_repair_cost_real;

@@ -552,7 +552,8 @@ objective_outputs::objective_outputs()
     heliostat_om_labor_real.set(           nan,      "heliostat_om_labor_real",       true,                         "Heliostat O&M labor cost",        "$",                 "Objective|Outputs" );
     heliostat_wash_cost_real.set(          nan,     "heliostat_wash_cost_real",       true,                          "Heliostat O&M wash cost",        "$",                 "Objective|Outputs" );
     heliostat_refurbish_cost_real.set(     nan,"heliostat_refurbish_cost_real",       true,                         "Heliostat refurbish cost",        "$",                 "Objective|Outputs" );
-    om_cost_real.set(                      nan,                 "om_cost_real",       true,                                   "Total O&M cost",        "$",                 "Objective|Outputs" );
+	heliostat_wash_capital_cost.set(       nan,  "heliostat_wash_capital_cost",       true,                      "Heliostat wash vehicle cost",        "$",                 "Objective|Outputs" );
+	om_cost_real.set(                      nan,                 "om_cost_real",       true,                                   "Total O&M cost",        "$",                 "Objective|Outputs" );
 	
     sales.set(                             nan,                        "sales",       true,                                            "Sales",        "$",                 "Objective|Outputs" );
     cash_flow.set(                         nan,                    "cash_flow",       true,                                        "Cash flow",        "$",                 "Objective|Outputs" );
@@ -806,7 +807,7 @@ Project::Project()
     m_variables.tshours.triggers = { "S", "E", "F"}; // { &Project::S, &Project::E, &Project::F };
     m_variables.degr_replace_limit.triggers = { "O", "S", "E", "F"}; // { &Project::O, &Project::S, &Project::E, &Project::F };
     m_variables.om_staff.triggers = { "M", "S", "E", "F" }; // { &Project::M, &Project::S, &Project::E, &Project::F };
-    m_variables.n_wash_crews.triggers = { "O", "S", "E", "F" }; // { &Project::O, &Project::S, &Project::E, &Project::F };
+    //m_variables.n_wash_crews.triggers = { "O", "S", "E", "F" }; // { &Project::O, &Project::S, &Project::E, &Project::F };
     m_variables.N_panels.triggers = { "S", "E", "F" }; // {&Project::S, &Project::E, &Project::F };
 
     _all_method_pointers.clear();
@@ -2164,6 +2165,7 @@ bool Project::Z()
 	m_objective_outputs.cost_tes_real.assign(m_explicit_outputs.cost_tes_real.as_number());			  // E
 	m_objective_outputs.cost_land_real.assign(m_design_outputs.cost_land_real.as_number());			  // D
 	m_objective_outputs.cost_sf_real.assign(m_design_outputs.cost_sf_real.as_number());				  // D
+	m_objective_outputs.heliostat_wash_capital_cost.assign(m_explicit_outputs.heliostat_wash_capital_cost.as_number()); //E
 
 	double cap_cost = m_objective_outputs.cost_receiver_real.as_number() +
 					m_objective_outputs.cost_tower_real.as_number() +
@@ -2171,7 +2173,7 @@ bool Project::Z()
 					m_objective_outputs.cost_tes_real.as_number() +
 					m_objective_outputs.cost_land_real.as_number() +
 					m_objective_outputs.cost_sf_real.as_number() + 
-					m_explicit_outputs.heliostat_wash_capital_cost.as_number();
+					m_objective_outputs.heliostat_wash_capital_cost.as_number();
 
 	m_objective_outputs.cap_cost_real.assign(cap_cost);
 
