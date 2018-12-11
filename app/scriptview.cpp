@@ -63,6 +63,7 @@ static lk::fcall_t *daotk_functions()
 		_simulate_cycle,
         _optimize,
 		_var,
+        _varinfo,
 		0 };
 
 	return (lk::fcall_t*)st;

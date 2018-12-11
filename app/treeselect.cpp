@@ -58,7 +58,7 @@
 //******* VarTreeView control *************
 
 VarTreeView::VarTreeView( wxWindow *parent, int id, wxString imagedir, const wxPoint &pos, const wxSize &size)
-    : wxTreeCtrl(parent, id, pos, size, wxTR_HAS_BUTTONS|wxTR_SINGLE|wxTR_HIDE_ROOT|wxTR_ROW_LINES)
+    : wxTreeCtrl(parent, id, pos, size, wxTR_HAS_BUTTONS|wxTR_SINGLE|wxTR_ROW_LINES)    //wxTR_HIDE_ROOT
 {
     bCheckMode = true;
     wxImageList *images = new wxImageList( 16, 16 );

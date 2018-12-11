@@ -1,3 +1,4 @@
+#include <set>
 
 #include <lk/env.h>
 #include <ssc/sscapi.h>
@@ -131,9 +132,80 @@ void _initialize(lk::invoke_t &cxt)
 	mw.UpdateDataTable();
 }
 
+void _varinfo(lk::invoke_t &cxt)
+{
+    LK_DOC2("varinfo", "Interact with variable properties.",
+        "Set variable properties. Keys include 'upper_bound', 'lower_bound', 'initializers,' 'is_integer,' and 'is_optimized'. Returns true when "
+        "variable with the specified name exists, false if variable does not exist.", "(table:values):boolean",
+        "Get table of properties currently assigned to a variable.", "(void):table"
+    );
+
+    MainWindow &mw = MainWindow::Instance();
+    Project *project = mw.GetProject();
+
+    //collect the item name
+    std::string namearg = cxt.arg(0).as_string();
+    data_base* dat = project->GetVarPtr(namearg.c_str());
+    if (!dat)
+    {
+        //variable not found
+        mw.Log(wxString::Format("The specified variable name (%s) is not "
+                                "included in the available variables.",
+                                namearg.c_str()
+                                )
+        );
+        cxt.result().assign(0.);
+        return;
+    }
+
+    if (cxt.arg_count() == 2)
+    {
+
+        lk::varhash_t *h = cxt.arg(1).hash();
+
+        variable* v = static_cast<variable*>(dat);
+        std::vector<double> inits;
+
+        if (h->find("upper_bound") != h->end())
+            v->maxval.assign( h->at("upper_bound")->as_number() );
+        if (h->find("lower_bound") != h->end())
+            v->minval.assign(h->at("lower_bound")->as_number());
+        if (h->find("is_optimized") != h->end())
+            v->is_optimized = h->at("is_optimized")->as_boolean();
+        if (h->find("is_integer") != h->end())
+            v->is_integer= h->at("is_integer")->as_boolean();
+        if (h->find("initializers") != h->end())
+        {
+            v->initializers.empty_vector();
+            int n = h->at("initializers")->vec()->size();
+            v->initializers.vec()->resize(n);
+            for (int i = 0; i < n; i++)
+                v->initializers.vec()->at(i).assign(h->at("initializers")->vec()->at(i).as_number());
+        }
+    }
+    else if( cxt.arg_count()==1)
+    {
+        variable* v = static_cast<variable*>(dat);
+        cxt.result().empty_hash();
+        cxt.result().hash_item("upper_bound", v->maxval.as_number());
+        cxt.result().hash_item("lower_bound", v->minval.as_number());
+        cxt.result().hash_item("is_optimized", v->is_optimized);
+        cxt.result().hash()->at("initializers")->empty_vector();
+        cxt.result().hash()->at("initializers")->vec()->resize(v->initializers.vec()->size());
+        for (int i = 0; i < v->initializers.vec()->size(); i++)
+            cxt.result().hash()->at("initializers")->vec()->at(i).assign( v->initializers.vec()->at(i).as_number());
+    }
+    else
+    {
+        cxt.result().assign(0.);
+        return;
+    }
+
+}
+
 void _var(lk::invoke_t &cxt)
 {
-	LK_DOC2("var", "Sets or gets a variable value.",
+    LK_DOC2("var", "Interact with variables or parameters.",
 		"Set a variable value.", "(string:name, variant:value):none",
 		"Get a variable value", "(string:name):variant");
 
@@ -1053,46 +1125,80 @@ void _simulate_cycle(lk::invoke_t &cxt)
 	mw.UpdateDataTable();
 }
 
-double f(std::vector<int> &x)
-{
-    int rval=0;
-    for(int i=0; i<x.size(); i++)
-        rval += (x.at(i))*(x.at(i));
-
-    return rval;
-}
 
 void _optimize(lk::invoke_t &cxt)
 {
-    LK_DOC("O", "Run outer-loop optimization.", "([table:options]):table");
+    LK_DOC("optimize_system", 
+    "Run outer-loop optimization. Specify the variables to optimize in the options table, "
+    "optionally, along with upper bounds, lower bounds, and initial value(s) to sample. "
+    "Note that the sample values will be tested for each variable in the order that they are specified, "
+    "and the length of the sample list must be the same for all variables. "
+    "For example:\n\n"
+    "my_opt_vars = {\n\t \"n_wash_crews\" = {\"upper_bound\" = 15, \"lower_bound\" = 1, \"guess\" = [5,10]},\n\t"
+    "\"h_tower\" = { \"upper_bound\" = 250, \"lower_bound\" = 50, \"guess\"=[175,155]}, \n\t...\t};\rresult = optimize_system(options=my_opt_vars);\n\n"
+    "Several optimization settings may also be specified, including 'convex_flag,' 'max_delta,' and 'trust.' ",
+    "([table:options, table:settings]):table");
 
 	MainWindow &mw = MainWindow::Instance();
-    optimization Opt;
+    Project *P = mw.GetProject();
+    optimization Opt(P);
 
-    Opt.m_settings.f_objective = f;
+    //defaults
     Opt.m_settings.convex_flag = false;
     Opt.m_settings.max_delta = 1;
-    Opt.m_settings.trust = true;
-
-    //npanel, nom, nwash
-    Opt.m_settings.lower_bounds = std::vector<int>{ -6,-6 };
-    Opt.m_settings.upper_bounds = std::vector<int>{ 2, 2 };
-    Opt.m_settings.X = std::vector< std::vector<int> >
+    Opt.m_settings.trust = false;
+    //override if needed
+    if (cxt.arg_count() > 0)
     {
-        std::vector<int>{1,0},
-        std::vector<int>{0,1},
-        std::vector<int>{-1,0},
-        std::vector<int>{0,-1},
-        std::vector<int>{0,0}
-    };
+        lk::varhash_t *h = cxt.arg(0).hash();
+
+        if (h->find("convex_flag") != h->end())
+            Opt.m_settings.convex_flag = h->at("convex_flag")->as_boolean();
+        if (h->find("max_delta") != h->end())
+            Opt.m_settings.max_delta = h->at("max_delta")->as_number();
+        if (h->find("trust") != h->end())
+            Opt.m_settings.trust = h->at("trust")->as_boolean();
+    }
+
+    //collect all of the variables to be optimized
+    Opt.m_settings.variables.clear();
+
+    for (variables::iterator vh = P->m_variables.begin(); vh != P->m_variables.end(); vh++)
+    {
+        variable *v = static_cast<variable*>(vh->second);
     
-    Opt.run_integer_optimization();
+        if (v->is_optimized)
+        {
+            std::vector<double> inits;
+
+            for (int i = 0; i < (int)v->initializers.vec()->size(); i++)
+                inits.push_back( v->initializers.vec()->at(i).as_number() );
+
+            Opt.m_settings.variables.push_back(optimization_variable(*v));
+        }
+
+    }
+
+
+    ////npanel, nom, nwash
+    //Opt.m_settings.lower_bounds = std::vector<int>{ -6,-6 };
+    //Opt.m_settings.upper_bounds = std::vector<int>{ 2, 2 };
+    //Opt.m_settings.X_sample = std::vector< std::vector<int> >
+    //{
+    //    std::vector<int>{1,0},
+    //    std::vector<int>{0,1},
+    //    std::vector<int>{-1,0},
+    //    std::vector<int>{0,-1},
+    //    std::vector<int>{0,0}
+    //};
+    //
+    Opt.run_optimization();
 
     optimization_outputs* oo = &mw.GetProject()->m_optimization_outputs;
 
     int n, m;
 
-    oo->eta_i.empty_vector();
+    /*oo->eta_i.empty_vector();
     n = (int)Opt.m_results.eta_i.size();
     m = (int)Opt.m_results.eta_i.front().size();
     for (int i = 0; i < n; i++)
@@ -1102,6 +1208,6 @@ void _optimize(lk::invoke_t &cxt)
         for (int j = 0; j < m; j++)
             row.vec_append(Opt.m_results.eta_i.at(i).at(j));
         oo->eta_i.vec()->push_back(row);
-    }
+    }*/
 
 }

@@ -1,5 +1,4 @@
 #include "project.h"
-#include <wx/wx.h>
 #include <limits>
 
  int double_scale(double val, int *scale)
@@ -15,7 +14,7 @@
 
      int ival = (int)(val*std::pow(10, *scale));
 
-    std::string sival = wxString::Format("%d", ival).ToStdString();
+    std::string sival = std::to_string(ival);
 
     for(size_t i=sival.length()-1; i>0; i++)
     {
@@ -47,18 +46,18 @@ variables::variables()
 	double dmax = -std::numeric_limits<double>::infinity();
 	double dmin = -dmax;
 	
-    h_tower.set(                          dnan,      dmin,      dmax,            "h_tower",                                     "Tower height",        "m",                         "Variables" );
-    rec_height.set(                       dnan,      dmin,      dmax,         "rec_height",                                  "Receiver height",        "m",                         "Variables" );
-    D_rec.set(                            dnan,      dmin,      dmax,              "D_rec",                                "Receiver diameter",        "m",                         "Variables" );
-    design_eff.set(                       dnan,      dmin,      dmax,         "design_eff",                                "Design efficiency",        "-",                         "Variables" );
-    dni_des.set(                          dnan,      dmin,      dmax,            "dni_des",                                 "Design point DNI",     "W/m2",                         "Variables" );
-    P_ref.set(                            dnan,      dmin,      dmax,              "P_ref",                               "Design gross power",       "kW",                         "Variables" );
-    solarm.set(                           dnan,      dmin,      dmax,             "solarm",                                   "Solar multiple",        "-",                         "Variables" );
-    tshours.set(                          dnan,      dmin,      dmax,            "tshours",              "Hours stored at full load operation",       "hr",                         "Variables" );
-    degr_replace_limit.set(               dnan,      dmin,      dmax, "degr_replace_limit",             "Mirror degradation replacement limit",        "-",                         "Variables" );
-    om_staff.set(                           -1,      -999,       999,           "om_staff",                              "Number of o&m staff",        "-",                         "Variables" );
-    n_wash_crews.set(                       -1,      -999,       999,       "n_wash_crews",                             "Number of wash crews",        "-",                         "Variables" );
-    N_panels.set(                           -1,      -999,       999,           "N_panels",                        "Number of receiver panels",        "-",                         "Variables" );
+    h_tower.set(                          dnan,      dmin,      dmax,            "h_tower",                                     "Tower height",        "m",      "Variables", false, false);
+    rec_height.set(                       dnan,      dmin,      dmax,         "rec_height",                                  "Receiver height",        "m",      "Variables", false, false);
+    D_rec.set(                            dnan,      dmin,      dmax,              "D_rec",                                "Receiver diameter",        "m",      "Variables", false, false);
+    design_eff.set(                       dnan,      dmin,      dmax,         "design_eff",                                "Design efficiency",        "-",      "Variables", false, false);
+    dni_des.set(                          dnan,      dmin,      dmax,            "dni_des",                                 "Design point DNI",     "W/m2",      "Variables", false, false);
+    P_ref.set(                            dnan,      dmin,      dmax,              "P_ref",                               "Design gross power",       "kW",      "Variables", false, false);
+    solarm.set(                           dnan,      dmin,      dmax,             "solarm",                                   "Solar multiple",        "-",      "Variables", false, false);
+    tshours.set(                          dnan,      dmin,      dmax,            "tshours",              "Hours stored at full load operation",       "hr",      "Variables", false, false);
+    degr_replace_limit.set(               dnan,      dmin,      dmax, "degr_replace_limit",             "Mirror degradation replacement limit",        "-",      "Variables", false, false);
+    om_staff.set(                           -1,      -999,       999,           "om_staff",                              "Number of o&m staff",        "-",      "Variables", false, true);
+    n_wash_crews.set(                       -1,      -999,       999,       "n_wash_crews",                             "Number of wash crews",        "-",      "Variables", false, true);
+    N_panels.set(                           -1,      -999,       999,           "N_panels",                        "Number of receiver panels",        "-",      "Variables", false, true);
 
     (*this)["h_tower"] = &h_tower;
     (*this)["rec_height"] = &rec_height;
@@ -595,7 +594,7 @@ optimization_outputs::optimization_outputs()
     secants_i.set(empty_vec_d, "obj_function_secants", true, "Objective function secants", "-", "Optimization|Outputs");
     feas_secants_i.set(empty_vec_d, "obj_function_secants_f", true, "Feasible objective function secants", "-", "Optimization|Outputs");
     eval_order.set(empty_vec_d, "obj_eval_order", true, "Objective function evaluation order", "-", "Optimization|Outputs");
-    wall_time_i.set(empty_vec_d, "obj_wall_time", true, "Clock time for objective function evaluation", "Optimization|Outputs");
+    wall_time_i.set(empty_vec_d, "obj_wall_time", true, "Clock time for objective function evaluation", "-", "Optimization|Outputs");
 
     (*this)["obj_function_lower_b"] = &eta_i;
     (*this)["obj_function_secants"] = &secants_i;
@@ -644,8 +643,7 @@ bool Project::Validate(Project::CALLING_SIM::E sim_type, std::string *error_msg)
 		}
 		if( ! valid_flag && error_msg != 0)
 		{
-			(*error_msg).append(wxString::Format("Variable or parameter has invalid data: %s (%s)\n", 
-												v->nice_name.c_str(), v->name.c_str()).c_str());
+            (*error_msg).append((std::stringstream() << "Variable or parameter has invalid data: " << v->nice_name << " (" << v->name << ")\n").str());
 			any_var_errors = true;
 		}
 	}
@@ -709,8 +707,10 @@ bool Project::Validate(Project::CALLING_SIM::E sim_type, std::string *error_msg)
 		case CALLING_SIM::FINANCE:
 			if( !( is_design_valid && is_simulation_valid && is_explicit_valid) )
 			{
-				(*error_msg).append(wxString::Format( "Error: Cannot calculate system financial metrics without a valid %s.\n",
-													is_design_valid ? (is_simulation_valid ? "cost simulation" : "plant performance simulation") : "solar field design").c_str() );
+                (*error_msg).append((std::stringstream() << "Error: Cannot calculate system financial metrics without a valid " <<
+                    (is_design_valid ? (is_simulation_valid ? "cost simulation" : "plant performance simulation") : "solar field design") << ".\n").str()
+                );
+                    
 				return false;
 			}
 
@@ -774,6 +774,52 @@ Project::Project()
 		}
 	}
 
+    /*
+    Keep track of which methods need to be called when a specific variable value changes
+        D()  :  Solar field layout and design
+        M()  :  Heliostat mechanical availability
+        C()  :  Cycle availability 
+        O()  :  Optical degradation and soiling
+        S()  :  Production simulation
+        E()  :  Explicit cost calculations
+        F()  :  Financial model calculations
+        Z()  :  Rolled-up objective function
+    */
+
+    ObjectiveMethodPtr
+        pd = &Project::D,
+        pm = &Project::M,
+        pc = &Project::C,
+        po = &Project::O,
+        ps = &Project::S,
+        pe = &Project::E,
+        pf = &Project::F;
+
+    m_variables.h_tower.triggers = 
+        m_variables.rec_height.triggers =
+        m_variables.D_rec.triggers =
+        m_variables.design_eff.triggers =
+        m_variables.dni_des.triggers =
+        m_variables.solarm.triggers = { "D", "M", "O", "S", "E", "F" }; //{ &Project::D, &Project::M, &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.P_ref.triggers = {"D", "M", "C", "O", "S", "E", "F"};  //{ &Project::D, &Project::M, &Project::C, &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.tshours.triggers = { "S", "E", "F"}; // { &Project::S, &Project::E, &Project::F };
+    m_variables.degr_replace_limit.triggers = { "O", "S", "E", "F"}; // { &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.om_staff.triggers = { "M", "S", "E", "F" }; // { &Project::M, &Project::S, &Project::E, &Project::F };
+    m_variables.n_wash_crews.triggers = { "O", "S", "E", "F" }; // { &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.N_panels.triggers = { "S", "E", "F" }; // {&Project::S, &Project::E, &Project::F };
+
+    _all_method_pointers.clear();
+    _all_method_pointers["D"] = pd;
+    _all_method_pointers["M"] = pm;
+    _all_method_pointers["C"] = pc;
+    _all_method_pointers["O"] = po;
+    _all_method_pointers["S"] = ps;
+    _all_method_pointers["E"] = pe;
+    _all_method_pointers["F"] = pf;
+
+    _all_method_names.clear();
+    _all_method_names = { "D", "M", "C", "O", "S", "E", "F" };
+
     add_documentation();
 }
 
@@ -805,6 +851,17 @@ std::vector< void* > Project::GetDataObjects()
 
     return rvec;
 }
+
+bool Project::CallMethodByName(const std::string &method)
+{
+    return _all_method_pointers.at(method).Run(this);
+}
+
+std::vector<std::string> Project::GetAllMethodNames()
+{
+    return _all_method_names;
+}
+
 
 data_base *Project::GetVarPtr(const char *name)
 {
@@ -1242,8 +1299,7 @@ bool Project::D()
 	FILE *fp = fopen(m_parameters.solar_resource_file.as_string().c_str(), "r");
 	if (fp == NULL)
 	{
-		message_handler(wxString::Format("The solar resource file could not be located (Design module). The specified path is:\n%s", 
-            m_parameters.solar_resource_file.as_string().c_str()).c_str());
+		message_handler( (std::stringstream() << "The solar resource file could not be located (Design module). The specified path is:\n" << m_parameters.solar_resource_file.as_string() ).str().c_str() );
 		return false;;
 	}
 	fclose(fp);
@@ -2716,14 +2772,7 @@ void Project::calc_avg_annual_schedule(double original_ts, double new_ts, const 
     return;
 }
 
-void Project::Optimize(lk::varhash_t* vars)
-{
-    /* 
-    
-    */
 
-
-}
 
 
 void Project::initialize_cycle_model(PowerCycle &pc)
