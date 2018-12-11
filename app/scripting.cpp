@@ -259,7 +259,7 @@ void _test(lk::invoke_t &cxt)
 	P->m_variables.tshours.assign( 10. );
 	P->m_variables.degr_replace_limit.assign( .7 );
 	P->m_variables.om_staff.assign( 5 );
-	P->m_variables.n_wash_crews.assign( 3 );
+	//P->m_variables.n_wash_crews.assign( 3 );
 	P->m_variables.N_panels.assign( 16 );
 
 	//P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
@@ -302,13 +302,21 @@ void _test(lk::invoke_t &cxt)
 	P->C();
 	
 	mw.Log(wxString::Format("Total field area: %.2f", P->m_design_outputs.area_sf.as_number()));
+	mw.Log(wxString::Format("Number of heliostats: %d", (int)P->m_design_outputs.number_heliostats.as_integer()));
 	mw.Log(wxString::Format("Number of repairs: %d", (int)P->m_solarfield_outputs.n_repairs.as_integer()));
 	mw.Log(wxString::Format("Number of mirror replacements: %d", (int)P->m_optical_outputs.n_replacements.as_integer()));
+	mw.Log(wxString::Format("Heliostat replacement cost: %.2f", P->m_optical_outputs.heliostat_refurbish_cost.as_number()));
+	mw.Log(wxString::Format("Heliostat replacement cost_y1: %.2f", P->m_optical_outputs.heliostat_refurbish_cost_y1.as_number()));
 	mw.Log(wxString::Format("Average soiling: %.2f", P->m_optical_outputs.avg_soil.as_number()));
 	mw.Log(wxString::Format("Average degradation: %.2f", P->m_optical_outputs.avg_degr.as_number()));
 	mw.Log(wxString::Format("Average cycle repair labor costs: %.2f", P->m_cycle_outputs.cycle_labor_cost.as_number()));
 	mw.Log(wxString::Format("Number of failed components: %d", P->m_cycle_outputs.num_failures.as_integer()));
-
+	mw.Log(wxString::Format("Number of wash crews: %d", P->m_optical_outputs.n_wash_crews.as_integer()));
+	mw.Log(wxString::Format("Total sales: %.2f", P->m_financial_outputs.ppa.as_number()));
+	mw.Log(wxString::Format("Total Cash flow: %.2f", P->m_objective_outputs.cash_flow.as_number()));
+	mw.Log(wxString::Format("Real LCOE: %.2f", P->m_financial_outputs.lcoe_real.as_number()));
+	mw.Log(wxString::Format("Nominal LCOE: %.2f", P->m_financial_outputs.lcoe_nom.as_number()));
+	mw.Log(wxString::Format("PPA Price: %.2f", P->m_financial_outputs.ppa.as_number()));
 
 	mw.SetProgress(0.);
 	mw.UpdateDataTable();

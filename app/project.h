@@ -206,7 +206,7 @@ struct variables : public lk::varhash_t
 	variable tshours;
 	variable degr_replace_limit;
 	variable om_staff;
-	variable n_wash_crews;
+	//variable n_wash_crews;
 	variable N_panels;
 
 	variables();
@@ -337,6 +337,7 @@ struct parameters : public lk::varhash_t
 	parameter cluster_ndays;
 	parameter cluster_nprev;
 	parameter cycle_nyears;
+	parameter wash_vehicle_life;
     //doubles
 	parameter rec_ref_cost;
 	parameter rec_ref_area;
@@ -355,12 +356,11 @@ struct parameters : public lk::varhash_t
 	parameter heliostat_repair_cost;
 	parameter om_staff_max_hours_week;
 	parameter n_heliostats_sim;
-	parameter wash_units_per_hour;
+	parameter wash_rate;
 	parameter wash_crew_max_hours_day;
 	parameter wash_crew_max_hours_week;
 	parameter wash_crew_capital_cost;
 	parameter price_per_kwh;
-	parameter operating_margin;
 	parameter TES_powercycle_eff;
 	parameter degr_per_hour;
 	parameter degr_accel_per_year;
@@ -453,6 +453,7 @@ struct solarfield_outputs : public lk::varhash_t
 
 struct optical_outputs : public lk::varhash_t
 {
+	parameter n_wash_crews;
 	parameter n_replacements;
 	parameter heliostat_refurbish_cost;
 	parameter heliostat_refurbish_cost_y1;
@@ -518,6 +519,7 @@ struct explicit_outputs : public lk::varhash_t
 	parameter heliostat_om_labor_real;
 	parameter heliostat_wash_cost_y1;
 	parameter heliostat_wash_cost_real;
+	parameter heliostat_wash_capital_cost;
 
 	explicit_outputs();
 };
@@ -642,7 +644,7 @@ class Project
 	void initialize_ssc_project();
 	void update_calculated_system_values();
 	void update_calculated_values_post_layout();
-	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
+	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false, bool one_time_exp=false, int num_years=0);
 	
 	
 	bool simulate_clusters(std::unordered_map<std::string, std::vector<double>> &ssc_soln);

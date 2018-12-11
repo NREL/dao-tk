@@ -39,9 +39,9 @@ void Project::add_documentation()
     m_variables.om_staff.doc.set("-",
         "The number of staff (continuous) available for addressing operations and maintenance events, "
         "including:<br><ul><li>Heliostat failures</li><li>Cycle maintenance events</li></ul>");
-    m_variables.n_wash_crews.doc.set("-",
-        "Number of crews available to wash heliostats. Each crew consists of a washing device "
-        "and sufficient staff to operate it. Crews operate independently from one another.");
+    //m_variables.n_wash_crews.doc.set("-",
+    //    "Number of crews available to wash heliostats. Each crew consists of a washing device "
+    //    "and sufficient staff to operate it. Crews operate independently from one another.");
     m_variables.N_panels.doc.set("-",
         "Number of flux absorption panels on the receiver. A panel consists of a bank of tubes "
         "in parallel flow that share a single distribution header and collection header. The receiver "
@@ -100,11 +100,11 @@ void Project::add_documentation()
     m_parameters.heliostat_repair_cost.doc.set("","");
     m_parameters.om_staff_max_hours_week.doc.set("","");
     m_parameters.n_heliostats_sim.doc.set("","");
-    m_parameters.wash_units_per_hour.doc.set("","");
+    m_parameters.wash_rate.doc.set("","");
     m_parameters.wash_crew_max_hours_week.doc.set("","");
 	m_parameters.wash_crew_capital_cost.doc.set("","");
+	m_parameters.wash_vehicle_life.doc.set("", "");
 	m_parameters.price_per_kwh.doc.set("","");
-	m_parameters.operating_margin.doc.set("","");
 	m_parameters.TES_powercycle_eff.doc.set("","");
     m_parameters.degr_per_hour.doc.set("","");
     m_parameters.degr_accel_per_year.doc.set("","");
