@@ -122,7 +122,7 @@ public:
         //Eigen::Matrix<T, Eigen::Dynamic, 1> res(this->size());
         clear();
         for(size_t i=0; i<other.size(); i++)
-            std::vector<T>::push_back( other(i) );
+            std::vector<T>::push_back( other((int)i) );
 
         return *this;
     };
@@ -288,7 +288,7 @@ public:
         Matrix<T> result;
         for(size_t i=0; i<indices.size(); i++)
         {
-            int ind_i = indices(i);
+            int ind_i = indices((int)i);
             assert( ind_i > -1 && ind_i < rows() );
 
             result.push_back(this->row(ind_i));
@@ -443,15 +443,15 @@ public:
             return Vector<T>();
 
         //dot product
-        int n = rhs.size();
+        int n = (int)rhs.size();
         
         if( this->cols() != n )
             std::runtime_error("Dimension mismatch in matrix-vector dot product");
 
-        Vector<T> result(this->rows(),0.);
+        Vector<T> result(this->rows(), (T)0.);
         for(int i=0; i<this->rows(); i++)
             for(int j=0; j<n; j++)
-                result(i) += this->operator()(i,j)*rhs(j);
+                result(i) += (T)( this->operator()(i,j)*rhs(j) );
 
         return result;
     };

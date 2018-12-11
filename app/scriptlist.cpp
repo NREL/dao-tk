@@ -34,9 +34,9 @@ myDateTime myDateTime::Today()
 wxString myDateTime::GetDisplayDate()
 {
     if( this->IsLaterThan( wxDateTime::Today().ResetTime() ) )
-        return this->FormatTime();
+        return this->FormatISOTime();
     else
-        return this->FormatDate();
+        return this->FormatISODate();
 }
 
 bool myDateTime::SetFromString(const std::string datestr )
@@ -57,7 +57,7 @@ ScriptList::ScriptList(wxSplitterWindow *parent, wxFileName *imagedir)
     m_imagelist = new wxImageList(16,16); //create and add image list to listctrl before adding images
         
     m_list = new wxListCtrl(this, ID_SCRIPT_LIST, wxDefaultPosition, wxDefaultSize, wxLC_LIST|wxLC_SINGLE_SEL);
-    m_list->SetFont( wxFont(FONTSIZE, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
+    m_list->SetFont( wxFont(FONTSIZE, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
     m_list->SetImageList( m_imagelist, wxIMAGE_LIST_SMALL);
 
     m_imagelist->Add( wxIcon( imagedir->GetPath() + "/edit.png", wxBITMAP_TYPE_PNG ) ); //ID_IMG::NONE
@@ -89,42 +89,60 @@ void ScriptList::UpdateScriptList()
 {
     m_list->DeleteAllItems();
 
-    m_list->SetItemCount((long)m_scripts.size());
+    long nscript = m_scripts.size();
+
+    if (nscript == 0)
+        return;
+
+    //m_list->SetItemCount(nscript);
+    std::vector<wxString> prettypaths;
 
     wxSize maxextent(-1,-1);
-    for(int i=0; i<(int)m_scripts.size(); i++)
+    for(int i=0; i<(int)nscript; i++)
     {
 
-        int index = m_list->InsertItem((long)i, (int)( m_scripts.at(i).status) );
 
         wxArrayString spath = wxSplit(m_scripts.at(i).path, '/');
         int psize = spath.Last().size();
 
-        int pmax=25, dmax=8;
+        int pmax=33, dmax=8;
 
         wxString truncpath = m_scripts.at(i).path;
-        if(psize < pmax-1)
+        if(psize > pmax-1)
             truncpath = ".." + truncpath.SubString(truncpath.length()-(pmax-2), truncpath.length() );
-        else if( truncpath.length() > pmax )
-            truncpath = truncpath.SubString(0,pmax-2) + "..";
+        /*else if( truncpath.length() < pmax )
+            truncpath = truncpath.SubString(0,pmax-2) + "..";*/
+
+        std::string modified = m_scripts.at(i).modified.GetDisplayDate();
+        std::string created = m_scripts.at(i).created.GetDisplayDate();
 
         wxString prettypath = wxString::Format( 
             wxString::Format("%s-%ds%s-3s%s-%ds%s-2s%s-%ds", "%", pmax, "%", "%", dmax, "%", "%", dmax),
                                 truncpath.c_str(),
                                 "",
-                                m_scripts.at(i).modified.GetDisplayDate().c_str(),
+                                modified.c_str(),
                                 "",
-                                m_scripts.at(i).created.GetDisplayDate().c_str()
+                                created.c_str()
                              );
+        prettypaths.push_back(prettypath);
 
-        m_list->SetItemText(index, prettypath);
-        
         wxSize thisextent = m_list->GetTextExtent(prettypath);
         if(thisextent.GetWidth() > maxextent.GetWidth())
             maxextent = thisextent;
     }
-    if( maxextent.GetWidth() > 0 )
-        m_parent->SetSashPosition(maxextent.GetWidth(), true);
+        
+    if (maxextent.GetWidth() > 0)
+    {
+        m_parent->SetSashPosition(maxextent.GetWidth()+50, true);
+        m_list->SetColumnWidth(0, maxextent.GetWidth()+50);
+    }
+
+    for (int i = 0; i < (int)nscript; i++)
+    {
+        int index = m_list->InsertItem((long)i, (int)(m_scripts.at(i).status));
+        
+        m_list->SetItemText(index, prettypaths.at(i));
+    }
 }
 
 void ScriptList::Add()

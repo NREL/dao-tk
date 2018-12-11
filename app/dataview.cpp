@@ -459,7 +459,7 @@ void DataView::SetSelections(const wxArrayString &sel, const wxArrayString &labe
             m_varlist->Check( item_id, true );
     }
 
-    // m_varlist->Expand(m_root);
+    m_varlist->Expand(m_root);
 	m_varlist->ExpandAll();
     m_varlist->UnselectAll();
 
@@ -729,8 +729,9 @@ void DataView::OnTextSearch( wxCommandEvent & evt)
     }
     else
     {
-		wxTreeItemId current_item = m_varlist->GetRootItem();
+        wxTreeItemId current_item; // = m_varlist->GetRootItem();
 		wxTreeItemIdValue cookie; 		//unused, but required for the call
+        current_item = m_varlist->GetFirstChild(m_varlist->GetRootItem(), cookie);
 
 		while( current_item.IsOk() )
 		{

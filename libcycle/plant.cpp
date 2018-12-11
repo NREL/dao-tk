@@ -2277,7 +2277,7 @@ std::string PowerCycle::GetOperatingMode(int t)
 	if (power_out > m_sim_params.epsilon)
 	{
 		if (IsOnline())
-		{
+        {
 			if (m_current_cycle_state.time_online <= 1.0 - m_sim_params.epsilon)
 				return "OF"; //in the first hour of power cycle operation
 			else
@@ -2288,7 +2288,7 @@ std::string PowerCycle::GetOperatingMode(int t)
 	else if (standby >= 0.5)
 	{
 		if (IsOnStandby())
-		{
+        {
 			if (m_current_cycle_state.time_in_standby <= 1.0 - m_sim_params.epsilon)
 				return "SF"; //in first hour of standby
 			else

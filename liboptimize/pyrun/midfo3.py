@@ -4,7 +4,7 @@ from scipy import linalg # For updating QR factorization
 from scipy import spatial # For pairwise distances
 import itertools # For generating combinations
 import time,sys
-#import nlopt
+import nlopt
 
 def main(func, LB, UB, X, pflag=False, data_out=False, trust=False, convex_flag=False, max_delta=np.inf):
     """
@@ -187,30 +187,30 @@ def nlopt_for_continuous(x_int):
 
         return fval
 
-    # n_cont = len(x_int) # Dimension of continuous variables (can be different from length of x_int)
+    n_cont = len(x_int) # Dimension of continuous variables (can be different from length of x_int)
 
-    # opt = nlopt.opt(nlopt.LN_BOBYQA, n_cont)
+    opt = nlopt.opt(nlopt.LN_BOBYQA, n_cont)
 
-    # # Bounds on continuous variables
-    # lb = 2*np.ones(n) 
-    # ub = 10*np.ones(n)
-    # opt.set_lower_bounds(lb)
-    # opt.set_upper_bounds(ub)
+    # Bounds on continuous variables
+    lb = 2*np.ones(n) 
+    ub = 10*np.ones(n)
+    opt.set_lower_bounds(lb)
+    opt.set_upper_bounds(ub)
 
-    # x0 = 5*np.ones(n) # Starting point for continuous variables
+    x0 = 5*np.ones(n) # Starting point for continuous variables
 
-    # opt.set_initial_step(1)
+    opt.set_initial_step(1)
 
-    # opt.set_maxeval(100) # Max number of objective evaluations for a given set of integer values
-    # opt.set_min_objective(lambda x_cont, grad: nlopt_obj_fun(x_cont, grad, x_int))
+    opt.set_maxeval(100) # Max number of objective evaluations for a given set of integer values
+    opt.set_min_objective(lambda x_cont, grad: nlopt_obj_fun(x_cont, grad, x_int))
 
-    # opt.set_ftol_rel(1e-2)
-    # opt.set_xtol_rel(1e-2)
+    opt.set_ftol_rel(1e-2)
+    opt.set_xtol_rel(1e-2)
 
-    # # You may want to use x_opt as a starting point for the next evaluation
-    # x_opt = opt.optimize(x0)
+    # You may want to use x_opt as a starting point for the next evaluation
+    x_opt = opt.optimize(x0)
 
-    # minf = opt.last_optimum_value()
+    minf = opt.last_optimum_value()
 
     return sum([x**2 for x in x_int]) #minf
 
@@ -230,13 +230,13 @@ if __name__ == "__main__":
 
     x_opt, eta_i, obj_ub_i, wall_time_i, secants_i, feas_secants_i, eval_order = main(nlopt_for_continuous, LB, UB, X, data_out=True, trust=trust, convex_flag=convex_flag, max_delta=max_delta)
 
-    np.savez('func=%s'%func.__name__ + '_n=%d'%n + '_bound=4' + '_trust=%d'%trust,
-            x_opt = x_opt, 
-            eta_i         =eta_i,
-            obj_ub_i      =obj_ub_i,
-            wall_time_i   =wall_time_i,
-            secants_i     =secants_i,
-            feas_secants_i=feas_secants_i,
-            eval_order    =eval_order,
-            )
+    # np.savez('func=%s'%func.__name__ + '_n=%d'%n + '_bound=4' + '_trust=%d'%trust,
+    #         x_opt = x_opt, 
+    #         eta_i         =eta_i,
+    #         obj_ub_i      =obj_ub_i,
+    #         wall_time_i   =wall_time_i,
+    #         secants_i     =secants_i,
+    #         feas_secants_i=feas_secants_i,
+    #         eval_order    =eval_order,
+    #         )
 
