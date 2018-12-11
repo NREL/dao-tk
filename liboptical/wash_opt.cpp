@@ -190,12 +190,6 @@ void WashCrewOptimizer::GroupMirrors(int scale)
 
 	scale -- number of mirrors per group
 	*/
-	if (scale == 1)
-	{
-		m_condensed_data = m_solar_data;
-		GetTotalFieldOutput();
-		return;
-	}
 	solar_field_data new_data;
 	m_condensed_data = new_data;
 	m_condensed_data.scale = scale;
