@@ -1,0 +1,29 @@
+/* 
+Test script for optimization
+*/
+
+var('solar_resource_file', 'C:/Users/mwagner/Documents/NREL/projects/sam/deploy/solar_resource/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv');
+
+var('P_ref', 55);	//MWe
+
+ovars = 
+	[
+//		['rec_height', [12], 6., 16.],
+		['h_tower', [80], 20., 175.],
+//		['D_rec', [12], 5, 18.],
+		['tshours',[8], 2., 20.],
+		['dni_des',[900], 600., 1100.],
+		['solarm', [2.4], 0.8, 5],
+		['N_panels',[16],12,22],
+		['om_staff', [3], 0, 25]
+	];
+
+for(i=0; i<#ovars; i++)
+{
+	varinfo(ovars[i][0], 
+		{'is_optimized'=true, 'initializers'=ovars[i][1], 
+		'lower_bound'=ovars[i][2], 'upper_bound'=ovars[i][3]}
+		);
+}
+
+R = optimize_system();
