@@ -34,17 +34,14 @@ void WashCrewOptimizer::Initialize()
 	/*
 	Initializes settings and parameters to default values.
 	*/
-	//m_solar_data.mirror_size = 115.7;  //m^2 per mirror 
-	//m_solar_data.annual_dni = 2685;  //in kWh per m^2 per year
-	m_settings.capital_cost_per_crew = 100000; //no source
+	m_settings.capital_cost_per_crew = 100000; //Kolb 2007
 	m_settings.crew_hours_per_week = 40;  //no source
-	m_settings.discount_rate = 0.10; //no source
-	m_settings.hourly_cost_per_crew = 100;  //no source
-	m_settings.wash_time = 4. / 3;
+	m_settings.discount_rate = 0.06; // roger 2016
+	m_settings.hourly_cost_per_crew = 50;  //$/hour, Kolb 2007 (several items rolled up)
+	m_settings.wash_rate = 3680; //meters-squared/hour, Wolferstetter 2018
 	m_settings.system_efficiency = 0.4;  // power to grid / DNI received
-	m_settings.num_years = 15.;
-	m_settings.price_per_kwh = 0.15; //$/kWh
-	m_settings.operating_margin = 0.1;  //% of revenue going to profit
+	m_settings.num_years = 25.;
+	m_settings.price_per_kwh = 0.137; //$/kWh, source = Crescent Dunes 
 	m_settings.max_num_crews = 40;
 }
 
@@ -111,7 +108,7 @@ void WashCrewOptimizer::ReadFromFiles()
 	{
 		m_solar_data.num_mirrors_by_group[i] = 1;
 	}
-	m_solar_data.num_mirror_groups = (int)hel_id.size();
+	m_solar_data.num_mirror_groups = hel_id.size();
 	
 }
 
@@ -242,7 +239,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 	(provided as input) to wash once.
 	*/
 	m_solution_data = solar_field_data();
-	m_solution_data.scale = hours * int(60. / m_settings.wash_time);
+	m_solution_data.scale = hours * (m_settings.wash_rate / m_settings.heliostat_size);
 	m_solution_data.groupings.clear();
 
 	std::vector<double> mirror_output = {};
@@ -315,7 +312,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 		m_solution_data.num_mirrors_by_group[i] = num_mirrors_by_group.at(i);
 	}
 	m_solution_data.total_mirror_output = m_condensed_data.total_mirror_output*1.0;
-	m_solution_data.num_mirror_groups = (int)mirror_output.size();
+	m_solution_data.num_mirror_groups = mirror_output.size();
 	m_results.assignments = new_assignments;
 }
 
@@ -328,22 +325,29 @@ void WashCrewOptimizer::CalculateRevenueAndCosts()
 	m_settings.revenuw_per_mirror and m_settings.total_cost_per_crew,
 	respectively.
 	*/
-	double ann_cost = m_settings.capital_cost_per_crew + (
+	double ann_cost = (
 		m_settings.hourly_cost_per_crew * m_settings.crew_hours_per_week * 52
 		);
+
+	double vehicle_cost = m_settings.capital_cost_per_crew;
+	for (int yrs = m_settings.vehicle_life; yrs < m_settings.num_years; yrs += m_settings.vehicle_life)
+	{
+		vehicle_cost += m_settings.capital_cost_per_crew / std::pow(1 / (1 + m_settings.discount_rate), yrs);
+	}
 	
 	double multiplier = (
 		(1 - std::pow(1 / (1 + m_settings.discount_rate), m_settings.num_years))
 		/ (1 - (1 / (1 + m_settings.discount_rate)))
 		);
+
+	double labor_multiplier = m_settings.num_years;
 	
 	m_settings.annual_multiplier = multiplier;
 
-	m_settings.total_cost_per_crew = ann_cost * multiplier;
+	m_settings.total_cost_per_crew = ann_cost * labor_multiplier + vehicle_cost;
 
-	m_settings.profit_per_kwh = (   //NPV per kWh sent to receiver by heliostat
-		m_settings.price_per_kwh * m_settings.system_efficiency 
-		* m_settings.operating_margin * multiplier
+	m_settings.profit_per_kwh = (   //NPV per annual kWh sent to receiver by heliostat
+		m_settings.price_per_kwh * m_settings.system_efficiency * multiplier
 		);
 
 }
@@ -415,14 +419,15 @@ double WashCrewOptimizer::GetAssignmentCost(int i, int j)
 	{
 		total_output += m_condensed_data.mirror_output[k];
 	}
-	double time = GetNumberOfMirrors(i, j) * m_settings.wash_time * (168. / m_settings.crew_hours_per_week);
+	double mirrors_per_hour = (m_settings.wash_rate / m_settings.heliostat_size);
+	double time = GetNumberOfMirrors(i, j) * (60./mirrors_per_hour) * (168. / m_settings.crew_hours_per_week); //in minutes between cleanings
 	/*
 	if (j > 960)
 	{
 		std::cerr << i << "," << j << "," << total_output << "," << time << "," << m_func->Evaluate(time) << "\n";
 	}
 	*/
-	return m_settings.profit_per_kwh * total_output * m_func->Evaluate(time) + m_settings.capital_cost_per_crew;
+	return m_settings.profit_per_kwh * total_output * m_func->Evaluate(time) + m_settings.total_cost_per_crew;
 }
 
 double WashCrewOptimizer::EvaluatePath(std::vector<int> path)
@@ -459,7 +464,7 @@ double WashCrewOptimizer::EvaluateFieldEfficiency(std::vector<int> path)
 			group_eff += m_condensed_data.mirror_output[k];
 		}
 		//get the time elapsed and average efficiency hit.
-		time = GetNumberOfMirrors(start_idx, end_idx) * m_settings.wash_time * (168. / m_settings.crew_hours_per_week);
+		time = GetNumberOfMirrors(start_idx, end_idx) * (60./(m_settings.wash_rate / m_settings.heliostat_size)) * (168. / m_settings.crew_hours_per_week);
 		sum_soiling_eff += group_eff * m_func->Evaluate(time);
 	}
 	return 1 - (sum_soiling_eff / m_solar_data.total_mirror_output);
@@ -514,6 +519,16 @@ int WashCrewOptimizer::FindMinDistaceNode(
 		}
 	}
 	return best_node;
+}
+
+std::vector<int> WashCrewOptimizer::GetEqualAssignmentPath(int num_crews)
+{
+	std::vector<int> path = {0};
+	for (int j = 1; j <= num_crews; j++)
+	{
+		path.push_back(round(j * (float)(m_condensed_data.num_mirror_groups) / num_crews));
+	}
+	return path;
 }
 
 void WashCrewOptimizer::RunDynamicProgram()
@@ -635,7 +650,7 @@ std::vector<int> WashCrewOptimizer::RetracePath(
 		path.push_back(parent);
 		parent = parents[i*row_length + parent];
 	}
-	for (int i = (int)(path.size()-1); i >= 0; i--)
+	for (int i = path.size()-1; i >= 0; i--)
 	{
 		rev_path.push_back(path.at(i));
 	}
@@ -673,9 +688,11 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 
 	//determine the lowest-cost path from the possible number of crews.
 	std::vector<int> path;
+	std::vector<int> equal_path;
 	std::vector<int> best_path;
-	double cost;
-	double field_eff;
+	
+	double cost, cost_eq;
+	double field_eff, field_eff_eq;
 	double min_cost = INFINITY;
 	for (int i = 1; i <= m_settings.max_num_crews; i++)
 	{
@@ -687,24 +704,47 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 		
 		field_eff = EvaluateFieldEfficiency(path);
 
-		//std::cerr << "Cost for " << i << " wash crews: " << cost
-		//	<< "\nAssignment: ";
+		std::cerr << "Cost for " << i << " wash crews: " << cost
+			<< "\nAssignment: ";
 		for (int j = 0; j < path.size(); j++)
 		{
 			std::cerr << path.at(j) << ",";
 		}
-		//std::cerr << "\nAverage field efficiency: " << field_eff << "\n";
+		std::cerr << "\nAverage field efficiency: " << field_eff << "\n";
 
-		if (cost < min_cost)
+		equal_path = GetEqualAssignmentPath(i);
+		cost_eq = EvaluatePath(equal_path);
+		field_eff_eq = EvaluateFieldEfficiency(equal_path);
+		std::cerr << "Cost for " << i << " equal-assigned wash crews: " << cost_eq
+			<< "\nAssignment: ";
+		for (int j = 0; j < equal_path.size(); j++)
 		{
-			best_path = path;
-			min_cost = cost * 1.0;
+			std::cerr << equal_path.at(j) << ",";
+		}
+		std::cerr << "\nAverage field efficiency for equal assignment: " << field_eff_eq << "\n";
+
+		//use the equal-assignment path if specified; otherwise, use DP output.
+		if (m_settings.use_uniform_assignment)
+		{
+			if (cost_eq < min_cost)
+			{
+				best_path = equal_path;
+				min_cost = cost_eq * 1.0;
+			}
+		}
+		else
+		{
+			if (cost < min_cost)
+			{
+				best_path = path;
+				min_cost = cost * 1.0;
+			}
 		}
 	}
-	//std::cerr << "optimal cost: " << min_cost << "\nNumber of wash crews: "
-	//	<< best_path.size()-1 << "\n";
+	std::cerr << "optimal cost: " << min_cost << "\nNumber of wash crews: "
+		<< best_path.size()-1 << "\n";
 	m_results.assignments = best_path;
-	m_results.num_wash_crews = (int)(best_path.size() - 1);
+	m_results.num_wash_crews = best_path.size() - 1;
 	if (output)
 	{
 		OutputResults();
