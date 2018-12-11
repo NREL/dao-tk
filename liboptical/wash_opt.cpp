@@ -703,7 +703,8 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 		cost = EvaluatePath(path);
 		
 		field_eff = EvaluateFieldEfficiency(path);
-
+		
+		/*
 		std::cerr << "Cost for " << i << " wash crews: " << cost
 			<< "\nAssignment: ";
 		for (int j = 0; j < path.size(); j++)
@@ -711,10 +712,12 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 			std::cerr << path.at(j) << ",";
 		}
 		std::cerr << "\nAverage field efficiency: " << field_eff << "\n";
-
+		*/
 		equal_path = GetEqualAssignmentPath(i);
 		cost_eq = EvaluatePath(equal_path);
 		field_eff_eq = EvaluateFieldEfficiency(equal_path);
+		
+		/*
 		std::cerr << "Cost for " << i << " equal-assigned wash crews: " << cost_eq
 			<< "\nAssignment: ";
 		for (int j = 0; j < equal_path.size(); j++)
@@ -722,6 +725,7 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 			std::cerr << equal_path.at(j) << ",";
 		}
 		std::cerr << "\nAverage field efficiency for equal assignment: " << field_eff_eq << "\n";
+		*/
 
 		//use the equal-assignment path if specified; otherwise, use DP output.
 		if (m_settings.use_uniform_assignment)
