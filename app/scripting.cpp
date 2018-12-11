@@ -92,13 +92,21 @@ ssc_bool_t ssc_progress_handler( ssc_module_t , ssc_handler_t , int action, floa
 		wxString msg;
 		switch( (int)f0 )
 		{
-		case SSC_NOTICE: msg << "Notice: " << s0 << " time " << f1; break;
-		case SSC_WARNING: msg << "Warning: " << s0 << " time " << f1; break;
-		case SSC_ERROR: msg << "Error: " << s0 << " time " << f1; break;
-		default: msg << "Log notice uninterpretable: " << f0 << " time " << f1; break;
+		case SSC_NOTICE: 
+            //msg << "Notice: " << s0 << " time " << f1; 
+            break;
+		case SSC_WARNING: 
+            msg << "Warning: " << s0 << " time " << f1; 
+            break;
+		case SSC_ERROR: 
+            msg << "Error: " << s0 << " time " << f1; 
+            break;
+		default: 
+            msg << "Log notice uninterpretable: " << f0 << " time " << f1; 
+            break;
 		}
-		
-		MainWindow::Instance().Log(msg);
+		if(!msg.IsEmpty())
+		    MainWindow::Instance().Log(msg);
 		return 1;
 	}
 	else if (action == SSC_UPDATE)
@@ -114,7 +122,11 @@ ssc_bool_t ssc_progress_handler( ssc_module_t , ssc_handler_t , int action, floa
 
 void message_handler(const char *msg)
 {
-	MainWindow::Instance().Log(msg);
+    wxString wmsg(msg);
+    if (wmsg.StartsWith("Notice:"))
+        return;
+    else
+	    MainWindow::Instance().Log(msg);
 }
 
 bool sim_progress_handler(float progress, const char *msg)

@@ -1319,8 +1319,14 @@ bool Project::D()
 
 	//Run design to get field layout
 	ssc_module_t mod_solarpilot = ssc_module_create("solarpilot");
-	ssc_module_exec_with_handler(mod_solarpilot, m_ssc_data, ssc_progress_handler, 0);
-	
+	ssc_bool_t res = ssc_module_exec_with_handler(mod_solarpilot, m_ssc_data, ssc_progress_handler, 0);
+    if (!res)
+    {
+        ssc_module_free(mod_solarpilot);
+        is_design_valid = false;
+        return false;
+    }
+
 	//Collect calculated data
     ssc_to_lk_hash(m_ssc_data, m_design_outputs);
 	
