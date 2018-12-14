@@ -265,7 +265,7 @@ struct variables : public lk::varhash_t
 	variable degr_replace_limit;
 	variable om_staff;
 	//variable n_wash_crews;
-	variable N_panels;
+	variable N_panel_pairs;
 
 	variables();
 };
@@ -635,6 +635,8 @@ struct optimization_outputs : public lk::varhash_t
     parameter eval_order;
     //Vector<long long> 
     parameter wall_time_i;
+
+
 
     optimization_outputs();
 };

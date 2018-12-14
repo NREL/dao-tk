@@ -43,48 +43,54 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
 
     //figure out which variables were changed and as a result, which components of the objective function need updating
     std::set<std::string> triggered_methods;
-    int i = 0; 
     int ncheck = 0;
-    std::stringstream message; 
+    std::stringstream message;
     message <<  "*************************************************\n"
                 "Optimization evaluation point:\n"
                 "*************************************************\n";
-    for (std::vector<optimization_variable>::iterator vit = O->m_settings.variables.begin(); vit != O->m_settings.variables.end(); vit++)
+    //limit scope of 'i'
     {
-        optimization_variable &v = *vit;
-
-        if (!v.is_optimized)
-            continue;
-
-        //collect all triggered objective methods
-        if (v.value_changed())
-            for (size_t j = 0; j < v.triggers.size(); j++)
-                triggered_methods.insert(v.triggers.at(j));
-
-        message << v.nice_name << "[" << v.units << "]\t" << v.as_number() << "\n";
-        
-
-        //keep track of variable iteration history
-        if (v.is_integer)
+        int i = 0;
+        for (std::vector<optimization_variable>::iterator vit = O->m_settings.variables.begin(); vit != O->m_settings.variables.end(); vit++)
         {
-            v.iteration_history.push_back(v.iteration_history.back());
-        }
-        else
-        {
-            double newx = x[i++];
-            v.iteration_history.push_back(newx);
-            v.assign(newx);
-            ncheck++;
+            optimization_variable &v = *vit;
+
+            if (!v.is_optimized)
+                continue;
+
+            //collect all triggered objective methods
+            if (v.value_changed())
+                for (size_t j = 0; j < v.triggers.size(); j++)
+                    triggered_methods.insert(v.triggers.at(j));
+
+            message << v.nice_name << " [" << v.units << "]\t" << v.as_number() << "\n";
+
+
+            //keep track of variable iteration history
+            if (v.is_integer)
+            {
+                v.iteration_history.push_back(v.iteration_history.back());
+            }
+            else
+            {
+                double newx = x[i++];
+                v.iteration_history.push_back(newx);
+                v.assign(newx);
+                ncheck++;
+            }
         }
     }
 
     if (ncheck != n)
         throw std::runtime_error("Error in continuous objective function evaluation. Variable count has changed. See user support for help.");
+    message_handler(message.str().c_str());
+    message.flush();
 
     Project* P = O->get_project();
 
     //run all of the methods in order
     std::vector<std::string> allmethods = P->GetAllMethodNames();
+    
     for (std::vector<std::string>::iterator mit = allmethods.begin(); mit != allmethods.end(); mit++)
     {
         if (triggered_methods.find(*mit) != triggered_methods.end())
@@ -126,21 +132,22 @@ double optimization::run_continuous_subproblem()
 
     */
 
-    int nvmax = (int)m_settings.variables.size();
-    int n = 0;
-    double* x = new double[nvmax];
-    double* ub = new double[nvmax];
-    double* lb = new double[nvmax];
+    std::vector< optimization_variable* > continuous_variables = m_settings.continuous_variables();
+        
+    int n = (int)continuous_variables.size();
+    double* x = new double[n];
+    double* ub = new double[n];
+    double* lb = new double[n];
 
     //get initial state for all continuous variables x
-    for (std::vector<optimization_variable>::iterator vit = m_settings.variables.begin(); vit != m_settings.variables.end(); vit++)
+
+
+    for( size_t i=0; i<continuous_variables.size(); i++)
     {
-        if (vit->is_optimized && !vit->is_integer)
-        {
-            lb[n] = (*vit).minval.as_number();
-            ub[n] = (*vit).maxval.as_number();
-            x[n++] = (*vit).as_number();
-        }
+        optimization_variable* vit = continuous_variables.at(i);
+        lb[i] = (*vit).minval.as_number();
+        ub[i] = (*vit).maxval.as_number();
+        x[i] = (*vit).as_number();
     }
     
     double minf = std::numeric_limits<double>::infinity(); //initialize minimum obj function return value
@@ -210,17 +217,13 @@ double optimization::run_continuous_subproblem()
         
         message.append("\n>> Final PPA: " + std::to_string(minf) + "\n>> Variable values:\n");
 
-        int i = 0;
-        for (std::vector<optimization_variable>::iterator vit = m_settings.variables.begin(); vit != m_settings.variables.end(); vit++)
+        for(size_t i=0; i<continuous_variables.size(); i++)
         {
-            if (vit->is_optimized && !vit->is_integer)
-            {
-                message.append(">> " + vit->nice_name + " [" + vit->units + "]\t" + std::to_string(x[i]) + "\n");
-                vit->assign(x[i++]);
-            }
+            variable* vit = continuous_variables.at(i);
+            message.append(">> " + vit->nice_name + " [" + vit->units + "]\t" + std::to_string(x[i]) + "\n");
+            vit->assign(x[i]);
         }
 
-        
         message_handler((message + "\n").c_str());
 
     }
@@ -259,18 +262,17 @@ bool optimization::run_optimization()
 
         std::chrono::time_point<std::chrono::system_clock> startcputime = std::chrono::system_clock::now();
 
+        std::vector< optimization_variable* > continuous_variables = m_settings.continuous_variables();
+        std::vector< optimization_variable* > integer_variables = m_settings.integer_variables();
 
         if (m_settings.convex_flag)
             if (!m_settings.trust)
                 std::runtime_error("Must have trust=True when convex_flag=True");
 
         //count number of integer variables
-        int n = 0;
-        for (size_t i = 0; i < m_settings.variables.size(); i++)
-            if (m_settings.variables.at(i).is_integer)
-                n++;  //count the number of integer variables
+        int n = (int)integer_variables.size();
 
-        //update the variable guess value to be the first in the initializer list
+        //update the variable guess value for all variables to be the first in the initializer list
         for (size_t i = 0; i < m_settings.variables.size(); i++)
             m_settings.variables.at(i).assign(m_settings.variables.at(i).initializers.front());
 
@@ -283,37 +285,25 @@ bool optimization::run_optimization()
         //require dimensions of matrices to align
         int nx = (int)m_settings.n_initials;
 
-        //sort the variables so all integer variables appear first in the list
-        std::sort(m_settings.variables.begin(), m_settings.variables.end(),
-            [](const optimization_variable &a, const optimization_variable &b) -> bool
-        {
-            return (int)a.is_integer > (int)b.is_integer;
-        });
-
         //transfer input data into eigen containers
         Vector<int> LB(n), UB(n);
         Matrix<int> X(nx, n);
         {
-            int i = 0;
-            for (std::vector<optimization_variable>::iterator vi = m_settings.variables.begin(); vi != m_settings.variables.end(); vi++)
+            for(size_t i=0; i<integer_variables.size(); i++)
             {
-
-                if (!(*vi).is_integer)
-                    break;
-
-                optimization_variable &v = (*vi);
+                optimization_variable &v = (*integer_variables.at(i));
 
                 LB(i) = v.minval.as_integer();
-                UB(i) = vi->maxval.as_integer();
-                if (vi->initializers.size() != n)
+                UB(i) = v.maxval.as_integer();
+                if (v.initializers.size() != n)
                 {
                     std::runtime_error((std::stringstream()
-                        << "Malformed data in optimization routine. Dimensionality of the initializer array for variable '" << vi->name << "' is incorrect. "
-                        << "Expecting " << n << " values but received " << vi->initializers.size() << " instead.").str()
+                        << "Malformed data in optimization routine. Dimensionality of the initializer array for variable '" << v.name << "' is incorrect. "
+                        << "Expecting " << n << " values but received " << v.initializers.size() << " instead.").str()
                     );
                 }
-                for (int j = 0; j < vi->initializers.size(); j++)
-                    X(j, i) = (int)vi->initializers.at(j);
+                for (int j = 0; j < v.initializers.size(); j++)
+                    X(j, i) = (int)v.initializers.at(j);
             }
         }
 
@@ -373,12 +363,10 @@ bool optimization::run_optimization()
         for (int i = 0; i < nx; i++)
         {
             std::stringstream xstr;
-            //Vector< int > x;
-            for (int j = 0; j < n; j++)
+            for (int j = 0; j < (int)integer_variables.size(); j++)
             {
                 xstr << X(i, j) << ",";
-                //x.push_back( X(i,j) );
-                m_settings.variables.at(j).assign(X(i, j));
+                integer_variables.at(j)->assign(X(i, j));
             }
 
             int row_in_grid = (int)(std::find(indices_lookup.begin(), indices_lookup.end(), xstr.str()) - indices_lookup.begin());
@@ -618,7 +606,7 @@ bool optimization::run_optimization()
                         eval_performed_flag = true;
 
                         Vector<int> x_star_maybe;
-                        for (int i = 0; i < n; i++)
+                        for (int i = 0; i < integer_variables.size(); i++)
                         {
                             int vv = grid(new_ind, i + 1);
                             m_settings.variables.at(i).assign(vv);
@@ -654,8 +642,8 @@ bool optimization::run_optimization()
             else
                 new_ind = (int)(std::min_element(eta.begin(), eta.end()) - eta.begin());
 
-            for (int i = 0; i < n; i++)
-                m_settings.variables.at(i).assign(grid(new_ind, i + 1));
+            for (int i = 0; i < (int)integer_variables.size(); i++)
+                integer_variables.at(i)->assign(grid(new_ind, 1 + i));
 
             Fnew = run_continuous_subproblem();    // Include this value in F in the next iteration (after all combinations with new_ind are formed)
             obj_ub = Fnew < obj_ub ? Fnew : obj_ub;   // Update upper bound on the value of the global optimizer
@@ -666,19 +654,17 @@ bool optimization::run_optimization()
             if ((m_settings.trust && eval_performed_flag) || !m_settings.trust)
             {
                 //m_results.eta_i.push_back( eta );
+                m_results.obj_ub_i.vec_append(obj_ub);
 
-                m_results.obj_ub_i.push_back(obj_ub);
+                m_results.wall_time_i.vec_append((double)((std::chrono::system_clock::now() - startcputime).count()));
 
-                m_results.wall_time_i.push_back((double)((std::chrono::system_clock::now() - startcputime).count()));
+                m_results.secants_i.vec_append(count + 1);
 
-                m_results.secants_i.push_back(count + 1);
+                m_results.feas_secants_i.vec_append(feas_secants);
 
-                m_results.feas_secants_i.push_back(feas_secants);
-
-                m_results.eval_order.push_back(new_ind);
+                m_results.eval_order.vec_append(new_ind);
             }
 
-            // print(obj_ub - np.min(eta), count+1, sum(eta<obj_ub),sum(~np.isnan(F)), grid[new_ind, 1:]);sys.stdout.flush()
             int sum_eta_lt_obj_ub = 0;
             for (int i = 0; i < (int)eta.size(); i++)
                 if (eta(i) < obj_ub)
@@ -688,13 +674,6 @@ bool optimization::run_optimization()
                 if (!std::isnan(F(i)))
                     sum_F_defined++;
 
-            //std::cout << obj_ub - eta.minCoeff() << "\t" 
-            //          << count+1 << "\t"
-            //          << sum_eta_lt_obj_ub << "\t"
-            //          << sum_F_defined << "\t";
-            //for(int i=0; i<n; i++)
-            //    std::cout << grid(new_ind,i+1) << ( i<n-1 ? ", " : "\n" );
-
             if
                 (
                 (m_settings.convex_flag && (obj_ub - eta.minCoeff() <= optimality_gap)) ||
@@ -703,13 +682,11 @@ bool optimization::run_optimization()
                     )
             {
                 F(new_ind) = Fnew;
-                // print(grid[np.nanargmin(F),1:],sum(~np.isnan(F)),m_settings.trust,func)
+
                 Vector<int> x_at_fmin = grid.at(argmin(F, true));
 
-                //m_results.x_star.clear();
-                for (int i = 0; i < n; i++)
-                    m_settings.variables.at(i).assign(x_at_fmin(i + 1));
-                //std::cout << sum_F_defined << "\t" << m_settings.trust << "\t" << m_settings.f_objective << "\n";
+                for (int i = 0; i < (int)integer_variables.size(); i++)
+                    integer_variables.at(i)->assign(x_at_fmin(1 + i));
 
                 return true;
             }
@@ -718,7 +695,12 @@ bool optimization::run_optimization()
     }
     catch (nlopt::forced_stop)
     {
-        sim_progress_handler(0., "");
+        sim_progress_handler(0., "User cancelled");
+        return false;
+    }
+    catch (...)
+    {
+        sim_progress_handler(0., "Unhandled exception");
         return false;
     }
 

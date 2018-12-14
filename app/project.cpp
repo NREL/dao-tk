@@ -56,8 +56,7 @@ variables::variables()
     tshours.set(                          dnan,      dmin,      dmax,            "tshours",              "Hours stored at full load operation",       "hr",      "Variables", false, false);
     degr_replace_limit.set(               dnan,      dmin,      dmax, "degr_replace_limit",             "Mirror degradation replacement limit",        "-",      "Variables", false, false);
     om_staff.set(                           -1,      -999,       999,           "om_staff",                              "Number of o&m staff",        "-",      "Variables", false, true);
-    //n_wash_crews.set(                       -1,      -999,       999,       "n_wash_crews",                             "Number of wash crews",        "-",      "Variables", false, true);
-    N_panels.set(                           -1,      -999,       999,           "N_panels",                        "Number of receiver panels",        "-",      "Variables", false, true);
+    N_panel_pairs.set(                      -1,      -999,       999,       "N_panel_pairs",                   "Number of receiver panel pairs",        "-",      "Variables", false, true);
 
 
     (*this)["h_tower"] = &h_tower;
@@ -70,8 +69,7 @@ variables::variables()
     (*this)["tshours"] = &tshours;
     (*this)["degr_replace_limit"] = &degr_replace_limit;
     (*this)["om_staff"] = &om_staff;
-    //(*this)["n_wash_crews"] = &n_wash_crews;
-    (*this)["N_panels"] = &N_panels;
+    (*this)["N_panel_pairs"] = &N_panel_pairs;
 
 };
 
@@ -394,7 +392,7 @@ optical_outputs::optical_outputs()
 
 	double nan = std::numeric_limits<double>::quiet_NaN();
 	std::vector< double > empty_vec;
-	n_wash_crews.set(                      nan,                 "n_wash_crews",       true,                       "Number of wash crews hired",        "-"        "Optical degradation|Outputs" );
+	n_wash_crews.set(                      nan,                 "n_wash_crews",       true,                       "Number of wash crews hired",        "-",        "Optical degradation|Outputs" );
     n_replacements.set(                    nan,               "n_replacements",       true,                              "Mirror replacements",        "-",       "Optical degradation|Outputs" );
     heliostat_refurbish_cost.set(          nan,     "heliostat_refurbish_cost",       true,                          "Mirror replacement cost",        "$",       "Optical degradation|Outputs" );
     heliostat_refurbish_cost_y1.set(       nan,  "heliostat_refurbish_cost_y1",       true,                 "Mirror replacement cost (year 1)",        "$",       "Optical degradation|Outputs" );
@@ -807,8 +805,7 @@ Project::Project()
     m_variables.tshours.triggers = { "S", "E", "F"}; // { &Project::S, &Project::E, &Project::F };
     m_variables.degr_replace_limit.triggers = { "O", "S", "E", "F"}; // { &Project::O, &Project::S, &Project::E, &Project::F };
     m_variables.om_staff.triggers = { "M", "S", "E", "F" }; // { &Project::M, &Project::S, &Project::E, &Project::F };
-    //m_variables.n_wash_crews.triggers = { "O", "S", "E", "F" }; // { &Project::O, &Project::S, &Project::E, &Project::F };
-    m_variables.N_panels.triggers = { "S", "E", "F" }; // {&Project::S, &Project::E, &Project::F };
+    m_variables.N_panel_pairs.triggers = { "S", "E", "F" }; // {&Project::S, &Project::E, &Project::F };
 
     _all_method_pointers.clear();
     _all_method_pointers["D"] = pd;
@@ -1011,7 +1008,7 @@ void Project::update_calculated_system_values()
 	//	design_eff
 	//	dni_des
 	//	gross_net_conversion_factor
-	//	N_panels
+	//	N_panel_pairs
 	//	P_ref
 	//	solarm
 	//	tshours
@@ -1067,8 +1064,8 @@ void Project::update_calculated_system_values()
 	ssc_data_set_number(m_ssc_data, "tower_technology", 0.);
 
 	////Flux grid resolution limited by number of panels(only used as in input to solarpilot compute module)
-	//D["n_flux_x"] = max(12, D["N_panels"])
-	ssc_data_set_number(m_ssc_data, "n_flux_x", m_variables.N_panels.as_number() > 12 ? m_variables.N_panels.as_number() : 12);
+	//D["n_flux_x"] = max(12, D["N_panel_pairs"])
+	ssc_data_set_number(m_ssc_data, "n_flux_x", m_variables.N_panel_pairs.as_number()*2 > 12 ? m_variables.N_panel_pairs.as_number()*2 : 12);
 
 	//D["field_model_type"] = 2  // 0 = design field and tower / receiver geometry 1 = design field 2 = user field, calculate performance 3 = user performance maps vs solar position
 	ssc_data_set_number(m_ssc_data, "field_model_type", 2);

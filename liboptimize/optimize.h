@@ -92,15 +92,24 @@ struct optimization_settings
 
         return varnames;
     };
-};
 
-struct optimization_results
-{
-    std::vector<double> obj_ub_i;   //optimization upper bound at iteration 'i'
-    std::vector<double> secants_i;  //secant values at iteration 'i'
-    std::vector<double> feas_secants_i;     //feasible secants at iteration 'i'
-    std::vector<double> eval_order;         //evaluation order at iteration 'i'
-    std::vector<double> wall_time_i;        //wall time elapsed at iteration 'i'
+    std::vector< optimization_variable* > integer_variables()
+    {
+        std::vector< optimization_variable* > res;
+        for (size_t i = 0; i < variables.size(); i++)
+            if (variables.at(i).is_integer)
+                res.push_back(&variables.at(i));
+        return res;
+    };
+
+    std::vector< optimization_variable* > continuous_variables()
+    {
+        std::vector< optimization_variable* > res;
+        for (size_t i = 0; i < variables.size(); i++)
+            if (!variables.at(i).is_integer)
+                res.push_back(&variables.at(i));
+        return res;
+    };
 };
 
 class optimization
@@ -111,7 +120,7 @@ public:
     optimization(Project* p);
 
     optimization_settings m_settings;
-    optimization_results m_results;
+    optimization_outputs m_results;
 
     Project* get_project();
     void set_project(Project *p);

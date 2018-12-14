@@ -96,7 +96,7 @@ ssc_bool_t ssc_progress_handler( ssc_module_t , ssc_handler_t , int action, floa
             //msg << "Notice: " << s0 << " time " << f1; 
             break;
 		case SSC_WARNING: 
-            msg << "Warning: " << s0 << " time " << f1; 
+            //msg << "Warning: " << s0 << " time " << f1; 
             break;
 		case SSC_ERROR: 
             msg << "Error: " << s0 << " time " << f1; 
@@ -123,7 +123,7 @@ ssc_bool_t ssc_progress_handler( ssc_module_t , ssc_handler_t , int action, floa
 void message_handler(const char *msg)
 {
     wxString wmsg(msg);
-    if (wmsg.StartsWith("Notice:"))
+    if (wmsg.IsEmpty())
         return;
     else
 	    MainWindow::Instance().Log(msg);
@@ -333,21 +333,25 @@ void _test(lk::invoke_t &cxt)
 
 	Project *P = mw.GetProject();
 	
-	P->m_variables.h_tower.assign( 100. );
-	P->m_variables.rec_height.assign( 15. );
-	P->m_variables.D_rec.assign( 12. );
+	P->m_variables.h_tower.assign( 193. );
+	P->m_variables.rec_height.assign( 21. );
+	P->m_variables.D_rec.assign( 17. );
 	P->m_variables.design_eff.assign( .41 );
 	P->m_variables.dni_des.assign( 950. );
-	P->m_variables.P_ref.assign( 25. );
+	P->m_variables.P_ref.assign( 115. );
 	P->m_variables.solarm.assign( 2.4 );
 	P->m_variables.tshours.assign( 10. );
 	P->m_variables.degr_replace_limit.assign( .7 );
 	P->m_variables.om_staff.assign( 5 );
 	//P->m_variables.n_wash_crews.assign( 3 );
-	P->m_variables.N_panels.assign( 16 );
+    P->m_parameters.heliostat_repair_cost.assign(0.);
+	P->m_variables.N_panel_pairs.assign( 8 );
+    P->m_parameters.degr_per_hour.assign(0.);
+    P->m_parameters.degr_accel_per_year.assign(0.);
 
-	//P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
-	P->m_parameters.solar_resource_file.assign( "C:/Users/AZOLAN/Documents/GitHub/daotk_dev/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+    //P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+    P->m_parameters.solar_resource_file.assign( "C:/Users/mwagner/Documents/NREL/projects/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+	//P->m_parameters.solar_resource_file.assign( "C:/Users/AZOLAN/Documents/GitHub/daotk_dev/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
 
 	/*
 	P->m_parameters.sim_length.assign( 720 );
@@ -380,10 +384,13 @@ void _test(lk::invoke_t &cxt)
 		}
 	}
 	*/
-	P->D();
-	P->O();
-	P->M();
-	P->C();
+    if (!P->D()) return;
+    if (!P->O()) return;
+    if (!P->M()) return;
+    if (!P->E()) return;
+    if (!P->S()) return;
+    if (!P->F()) return;
+    //if (!P->C()) return;
 	
 	mw.Log(wxString::Format("Total field area: %.2f", P->m_design_outputs.area_sf.as_number()));
 	mw.Log(wxString::Format("Number of heliostats: %d", (int)P->m_design_outputs.number_heliostats.as_integer()));
@@ -942,7 +949,7 @@ void _simulate_performance(lk::invoke_t &cxt)
 	// P->m_variables.degr_replace_limit.assign( .7 );
 	// P->m_variables.om_staff.assign( 5 );
 	// P->m_variables.n_wash_crews.assign( 3 );
-	// P->m_variables.N_panels.assign( 16 );
+	// P->m_variables.N_panel_pairs.assign( 16 );
 
 	// P->m_parameters.is_dispatch.assign( 1. );
 	// P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_weather.csv" );	
@@ -1217,6 +1224,8 @@ void _optimize(lk::invoke_t &cxt)
     optimization_outputs* oo = &mw.GetProject()->m_optimization_outputs;
 
     int n, m;
+
+    mw.UpdateDataTable();
 
     /*oo->eta_i.empty_vector();
     n = (int)Opt.m_results.eta_i.size();

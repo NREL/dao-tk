@@ -41,7 +41,7 @@ void Project::add_documentation()
     //m_variables.n_wash_crews.doc.set("-",
     //    "Number of crews available to wash heliostats. Each crew consists of a washing device "
     //    "and sufficient staff to operate it. Crews operate independently from one another.");
-    m_variables.N_panels.doc.set("-",
+    m_variables.N_panel_pairs.doc.set("-",
         "Number of flux absorption panels on the receiver. A panel consists of a bank of tubes "
         "in parallel flow that share a single distribution header and collection header. The receiver "
         "\"cylinder\" is comprised of the assembly of panels.");
