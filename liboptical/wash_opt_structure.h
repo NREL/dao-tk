@@ -53,6 +53,7 @@ public:
 struct wash_crew_settings
 {
 	
+	//inputs
 	int max_num_crews;
 	double capital_cost_per_crew; // fixed
 	double hourly_cost_per_crew;  //per hour
@@ -60,16 +61,17 @@ struct wash_crew_settings
 	double wash_rate; //in m^2 per hour
 	double heliostat_size; //m^2
 	double crew_hours_per_week;
-	double crew_hours_per_day;
-	double total_cost_per_crew;  //NPV of labor and capital costs
 	double system_efficiency; //assumed efficiency including receiver, TES losses, power cycle
-	double profit_per_kwh;  //per kwh dni sent to receiver, assuming no soiling/degr.
 	double num_years;      //years of operation to calculate NPV of annual costs
 	double price_per_kwh;  //assumed average for grid output
-	double annual_multiplier;
 	int vehicle_life;  //years
-	
+
 	bool use_uniform_assignment;
+
+	//derived parameters
+	double profit_per_kwh;  //per kwh dni sent to receiver, assuming no soiling/degr.
+	double annual_multiplier;
+	double total_cost_per_crew;
 
 	wash_crew_settings();
 	void print();
