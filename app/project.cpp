@@ -1700,7 +1700,6 @@ bool Project::O()
 	wc.m_settings.capital_cost_per_crew = m_parameters.wash_crew_capital_cost.as_number();
 	wc.m_settings.heliostat_size = (double)(helio_width * helio_height);
 	wc.m_settings.crew_hours_per_week = m_parameters.wash_crew_max_hours_week.as_number();
-	wc.m_settings.crew_hours_per_day = m_parameters.wash_crew_max_hours_day.as_number();
 	wc.m_settings.discount_rate = term_int_rate * 0.01;
 	wc.m_settings.hourly_cost_per_crew = m_parameters.wash_crew_cost.as_number();
 	wc.m_settings.num_years = m_parameters.plant_lifetime.as_number();
@@ -1709,12 +1708,7 @@ bool Project::O()
 	wc.m_settings.wash_rate = m_parameters.wash_rate.as_number();
 	wc.m_settings.vehicle_life = m_parameters.wash_vehicle_life.as_integer();
 	wc.m_settings.use_uniform_assignment = true;
-	wc.m_settings.max_num_crews = (int)(
-		num_heliostats / (
-			(wc.m_settings.wash_rate / wc.m_settings.heliostat_size) *
-			wc.m_settings.crew_hours_per_day
-			)
-		) +	1;
+	wc.m_settings.max_num_crews = 10;
 	wc.OptimizeWashCrews();
 	while (wc.m_settings.max_num_crews == wc.m_results.num_wash_crews)
 	{
