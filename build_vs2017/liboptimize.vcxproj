@@ -19,44 +19,44 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\liboptimize\optimize.cpp" />
+    <ClInclude Include="..\liboptimize\optimize.h" />
+    <ClInclude Include="..\liboptimize\optutil.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\liboptimize\optutil.h" />
-    <ClInclude Include="..\liboptimize\optimize.h" />
+    <ClCompile Include="..\liboptimize\optimize.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{9E9CC8BF-A3FC-4AF7-96C7-0A246944A8BB}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>liboptimize</RootNamespace>
     <ProjectName>liboptimize</ProjectName>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>NotSet</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>NotSet</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>false</WholeProgramOptimization>
-    <CharacterSet>NotSet</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>false</WholeProgramOptimization>
-    <CharacterSet>NotSet</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -189,7 +189,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>__DLL__;__32BIT__;__WINDOWS__;__VISUALC__;_CRT_SECURE_NO_WARNINGS; _CRT_SECURE_NO_WARNINGS; _CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\liboptimize;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\app;$(LKDIR)\include;$(SSCDIR);$(SolutionDir)\..\liboptimize;$(SolutionDir)\..\liboptimize\nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -203,6 +203,10 @@
     </Link>
     <PostBuildEvent>
     </PostBuildEvent>
+    <Lib>
+      <AdditionalLibraryDirectories>$(WEXDIR);$(LKDIR);$(SSCDIR)\build_vs2017\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalDependencies>nlopt.lib;wex.lib;lk.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -213,7 +217,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>__DLL__;__64BIT__;__WINDOWS__;__VISUALC__;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\liboptimize;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\app;$(LKDIR)\include;$(SSCDIR);$(SolutionDir)\..\liboptimize;$(SolutionDir)\..\liboptimize\nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -228,12 +232,16 @@
     </Link>
     <PostBuildEvent>
     </PostBuildEvent>
+    <Lib>
+      <AdditionalLibraryDirectories>$(WEXDIR);$(LKDIR);$(SSCDIR)\build_vs2017\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalDependencies>nlopt.lib;wexx64.lib;lkx64.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>__DLL__;__32BIT__;__WINDOWS__;_DEBUG;__VISUALC__;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\liboptimize;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\app;$(LKDIR)\include;$(SSCDIR);$(SolutionDir)\..\liboptimize;$(SolutionDir)\..\liboptimize\nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
@@ -243,12 +251,16 @@
     </Link>
     <PostBuildEvent>
     </PostBuildEvent>
+    <Lib>
+      <AdditionalLibraryDirectories>$(WEXDIR);$(LKDIR);$(SSCDIR)\build_vs2017\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalDependencies>nlopt.lib;wexd.lib;lkd.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>__DLL__;__64BIT__;__WINDOWS__;_DEBUG;__VISUALC__;_CRT_SECURE_NO_WARNINGS;</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\liboptimize;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\app;$(LKDIR)\include;$(SSCDIR);$(SolutionDir)\..\liboptimize;$(SolutionDir)\..\liboptimize\nlopt;$(SolutionDir)\..\liboptimize\nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -259,6 +271,10 @@
     </Link>
     <PostBuildEvent>
     </PostBuildEvent>
+    <Lib>
+      <AdditionalDependencies>nlopt.lib;wexx64d.lib;lkx64d.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(WEXDIR);$(LKDIR);$(SSCDIR)\build_vs2017\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug32|Win32'">
     <ClCompile>

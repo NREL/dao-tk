@@ -14,6 +14,8 @@ struct opt_settings
     double hours_per_day;
     double hours_per_week;
     
+	bool use_fixed_replacement_threshold;
+	bool use_mean_replacement_threshold;
     double replacement_threshold;
 
     double soil_loss_per_hr;
@@ -72,7 +74,7 @@ struct opt_results
 
     int n_schedule;
 
-    int n_replacements;
+    float n_replacements;
 
 	float heliostat_refurbish_cost;
 	float heliostat_refurbish_cost_y1;

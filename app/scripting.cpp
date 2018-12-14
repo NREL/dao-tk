@@ -1,3 +1,4 @@
+#include <set>
 
 #include <lk/env.h>
 #include <ssc/sscapi.h>
@@ -91,13 +92,21 @@ ssc_bool_t ssc_progress_handler( ssc_module_t , ssc_handler_t , int action, floa
 		wxString msg;
 		switch( (int)f0 )
 		{
-		case SSC_NOTICE: msg << "Notice: " << s0 << " time " << f1; break;
-		case SSC_WARNING: msg << "Warning: " << s0 << " time " << f1; break;
-		case SSC_ERROR: msg << "Error: " << s0 << " time " << f1; break;
-		default: msg << "Log notice uninterpretable: " << f0 << " time " << f1; break;
+		case SSC_NOTICE: 
+            //msg << "Notice: " << s0 << " time " << f1; 
+            break;
+		case SSC_WARNING: 
+            //msg << "Warning: " << s0 << " time " << f1; 
+            break;
+		case SSC_ERROR: 
+            msg << "Error: " << s0 << " time " << f1; 
+            break;
+		default: 
+            msg << "Log notice uninterpretable: " << f0 << " time " << f1; 
+            break;
 		}
-		
-		MainWindow::Instance().Log(msg);
+		if(!msg.IsEmpty())
+		    MainWindow::Instance().Log(msg);
 		return 1;
 	}
 	else if (action == SSC_UPDATE)
@@ -113,7 +122,11 @@ ssc_bool_t ssc_progress_handler( ssc_module_t , ssc_handler_t , int action, floa
 
 void message_handler(const char *msg)
 {
-	MainWindow::Instance().Log(msg);
+    wxString wmsg(msg);
+    if (wmsg.IsEmpty())
+        return;
+    else
+	    MainWindow::Instance().Log(msg);
 }
 
 bool sim_progress_handler(float progress, const char *msg)
@@ -131,9 +144,80 @@ void _initialize(lk::invoke_t &cxt)
 	mw.UpdateDataTable();
 }
 
+void _varinfo(lk::invoke_t &cxt)
+{
+    LK_DOC2("varinfo", "Interact with variable properties.",
+        "Set variable properties. Keys include 'upper_bound', 'lower_bound', 'initializers,' 'is_integer,' and 'is_optimized'. Returns true when "
+        "variable with the specified name exists, false if variable does not exist.", "(table:values):boolean",
+        "Get table of properties currently assigned to a variable.", "(void):table"
+    );
+
+    MainWindow &mw = MainWindow::Instance();
+    Project *project = mw.GetProject();
+
+    //collect the item name
+    std::string namearg = cxt.arg(0).as_string();
+    data_base* dat = project->GetVarPtr(namearg.c_str());
+    if (!dat)
+    {
+        //variable not found
+        mw.Log(wxString::Format("The specified variable name (%s) is not "
+                                "included in the available variables.",
+                                namearg.c_str()
+                                )
+        );
+        cxt.result().assign(0.);
+        return;
+    }
+
+    if (cxt.arg_count() == 2)
+    {
+
+        lk::varhash_t *h = cxt.arg(1).hash();
+
+        variable* v = static_cast<variable*>(dat);
+        std::vector<double> inits;
+
+        if (h->find("upper_bound") != h->end())
+            v->maxval.assign( h->at("upper_bound")->as_number() );
+        if (h->find("lower_bound") != h->end())
+            v->minval.assign(h->at("lower_bound")->as_number());
+        if (h->find("is_optimized") != h->end())
+            v->is_optimized = h->at("is_optimized")->as_boolean();
+        if (h->find("is_integer") != h->end())
+            v->is_integer= h->at("is_integer")->as_boolean();
+        if (h->find("initializers") != h->end())
+        {
+            v->initializers.empty_vector();
+            int n = h->at("initializers")->vec()->size();
+            v->initializers.vec()->resize(n);
+            for (int i = 0; i < n; i++)
+                v->initializers.vec()->at(i).assign(h->at("initializers")->vec()->at(i).as_number());
+        }
+    }
+    else if( cxt.arg_count()==1)
+    {
+        variable* v = static_cast<variable*>(dat);
+        cxt.result().empty_hash();
+        cxt.result().hash_item("upper_bound", v->maxval.as_number());
+        cxt.result().hash_item("lower_bound", v->minval.as_number());
+        cxt.result().hash_item("is_optimized", v->is_optimized);
+        cxt.result().hash()->at("initializers")->empty_vector();
+        cxt.result().hash()->at("initializers")->vec()->resize(v->initializers.vec()->size());
+        for (int i = 0; i < v->initializers.vec()->size(); i++)
+            cxt.result().hash()->at("initializers")->vec()->at(i).assign( v->initializers.vec()->at(i).as_number());
+    }
+    else
+    {
+        cxt.result().assign(0.);
+        return;
+    }
+
+}
+
 void _var(lk::invoke_t &cxt)
 {
-	LK_DOC2("var", "Sets or gets a variable value.",
+    LK_DOC2("var", "Interact with variables or parameters.",
 		"Set a variable value.", "(string:name, variant:value):none",
 		"Get a variable value", "(string:name):variant");
 
@@ -249,21 +333,25 @@ void _test(lk::invoke_t &cxt)
 
 	Project *P = mw.GetProject();
 	
-	P->m_variables.h_tower.assign( 100. );
-	P->m_variables.rec_height.assign( 15. );
-	P->m_variables.D_rec.assign( 12. );
+	P->m_variables.h_tower.assign( 193. );
+	P->m_variables.rec_height.assign( 21. );
+	P->m_variables.D_rec.assign( 17. );
 	P->m_variables.design_eff.assign( .41 );
 	P->m_variables.dni_des.assign( 950. );
-	P->m_variables.P_ref.assign( 25. );
+	P->m_variables.P_ref.assign( 115. );
 	P->m_variables.solarm.assign( 2.4 );
 	P->m_variables.tshours.assign( 10. );
 	P->m_variables.degr_replace_limit.assign( .7 );
 	P->m_variables.om_staff.assign( 5 );
-	P->m_variables.n_wash_crews.assign( 3 );
-	P->m_variables.N_panels.assign( 16 );
+	//P->m_variables.n_wash_crews.assign( 3 );
+    P->m_parameters.heliostat_repair_cost.assign(0.);
+	P->m_variables.N_panel_pairs.assign( 8 );
+    P->m_parameters.degr_per_hour.assign(0.);
+    P->m_parameters.degr_accel_per_year.assign(0.);
 
-	//P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
-	P->m_parameters.solar_resource_file.assign( "C:/Users/AZOLAN/Documents/GitHub/daotk_dev/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+    //P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+    P->m_parameters.solar_resource_file.assign( "C:/Users/mwagner/Documents/NREL/projects/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+	//P->m_parameters.solar_resource_file.assign( "C:/Users/AZOLAN/Documents/GitHub/daotk_dev/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
 
 	/*
 	P->m_parameters.sim_length.assign( 720 );
@@ -296,19 +384,30 @@ void _test(lk::invoke_t &cxt)
 		}
 	}
 	*/
-	P->D();
-	P->O();
-	P->M();
-	P->C();
+    if (!P->D()) return;
+    if (!P->O()) return;
+    if (!P->M()) return;
+    if (!P->E()) return;
+    if (!P->S()) return;
+    if (!P->F()) return;
+    //if (!P->C()) return;
 	
 	mw.Log(wxString::Format("Total field area: %.2f", P->m_design_outputs.area_sf.as_number()));
+	mw.Log(wxString::Format("Number of heliostats: %d", (int)P->m_design_outputs.number_heliostats.as_integer()));
 	mw.Log(wxString::Format("Number of repairs: %d", (int)P->m_solarfield_outputs.n_repairs.as_integer()));
 	mw.Log(wxString::Format("Number of mirror replacements: %d", (int)P->m_optical_outputs.n_replacements.as_integer()));
+	mw.Log(wxString::Format("Heliostat replacement cost: %.2f", P->m_optical_outputs.heliostat_refurbish_cost.as_number()));
+	mw.Log(wxString::Format("Heliostat replacement cost_y1: %.2f", P->m_optical_outputs.heliostat_refurbish_cost_y1.as_number()));
 	mw.Log(wxString::Format("Average soiling: %.2f", P->m_optical_outputs.avg_soil.as_number()));
 	mw.Log(wxString::Format("Average degradation: %.2f", P->m_optical_outputs.avg_degr.as_number()));
 	mw.Log(wxString::Format("Average cycle repair labor costs: %.2f", P->m_cycle_outputs.cycle_labor_cost.as_number()));
 	mw.Log(wxString::Format("Number of failed components: %d", P->m_cycle_outputs.num_failures.as_integer()));
-
+	mw.Log(wxString::Format("Number of wash crews: %d", P->m_optical_outputs.n_wash_crews.as_integer()));
+	mw.Log(wxString::Format("Total sales: %.2f", P->m_financial_outputs.ppa.as_number()));
+	mw.Log(wxString::Format("Total Cash flow: %.2f", P->m_objective_outputs.cash_flow.as_number()));
+	mw.Log(wxString::Format("Real LCOE: %.2f", P->m_financial_outputs.lcoe_real.as_number()));
+	mw.Log(wxString::Format("Nominal LCOE: %.2f", P->m_financial_outputs.lcoe_nom.as_number()));
+	mw.Log(wxString::Format("PPA Price: %.2f", P->m_financial_outputs.ppa.as_number()));
 
 	mw.SetProgress(0.);
 	mw.UpdateDataTable();
@@ -850,7 +949,7 @@ void _simulate_performance(lk::invoke_t &cxt)
 	// P->m_variables.degr_replace_limit.assign( .7 );
 	// P->m_variables.om_staff.assign( 5 );
 	// P->m_variables.n_wash_crews.assign( 3 );
-	// P->m_variables.N_panels.assign( 16 );
+	// P->m_variables.N_panel_pairs.assign( 16 );
 
 	// P->m_parameters.is_dispatch.assign( 1. );
 	// P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_weather.csv" );	
@@ -1053,46 +1152,82 @@ void _simulate_cycle(lk::invoke_t &cxt)
 	mw.UpdateDataTable();
 }
 
-double f(std::vector<int> &x)
-{
-    int rval=0;
-    for(int i=0; i<x.size(); i++)
-        rval += (x.at(i))*(x.at(i));
-
-    return rval;
-}
 
 void _optimize(lk::invoke_t &cxt)
 {
-    LK_DOC("O", "Run outer-loop optimization.", "([table:options]):table");
+    LK_DOC("optimize_system", 
+    "Run outer-loop optimization. Specify the variables to optimize in the options table, "
+    "optionally, along with upper bounds, lower bounds, and initial value(s) to sample. "
+    "Note that the sample values will be tested for each variable in the order that they are specified, "
+    "and the length of the sample list must be the same for all variables. "
+    "For example:\n\n"
+    "my_opt_vars = {\n\t \"n_wash_crews\" = {\"upper_bound\" = 15, \"lower_bound\" = 1, \"guess\" = [5,10]},\n\t"
+    "\"h_tower\" = { \"upper_bound\" = 250, \"lower_bound\" = 50, \"guess\"=[175,155]}, \n\t...\t};\rresult = optimize_system(options=my_opt_vars);\n\n"
+    "Several optimization settings may also be specified, including 'convex_flag,' 'max_delta,' and 'trust.' ",
+    "([table:options, table:settings]):table");
 
 	MainWindow &mw = MainWindow::Instance();
-    optimization Opt;
+    Project *P = mw.GetProject();
+    optimization Opt(P);
 
-    Opt.m_settings.f_objective = f;
+    //defaults
     Opt.m_settings.convex_flag = false;
     Opt.m_settings.max_delta = 1;
-    Opt.m_settings.trust = true;
-
-    //npanel, nom, nwash
-    Opt.m_settings.lower_bounds = std::vector<int>{ -6,-6 };
-    Opt.m_settings.upper_bounds = std::vector<int>{ 2, 2 };
-    Opt.m_settings.X = std::vector< std::vector<int> >
+    Opt.m_settings.trust = false;
+    //override if needed
+    if (cxt.arg_count() > 0)
     {
-        std::vector<int>{1,0},
-        std::vector<int>{0,1},
-        std::vector<int>{-1,0},
-        std::vector<int>{0,-1},
-        std::vector<int>{0,0}
-    };
+        lk::varhash_t *h = cxt.arg(0).hash();
+
+        if (h->find("convex_flag") != h->end())
+            Opt.m_settings.convex_flag = h->at("convex_flag")->as_boolean();
+        if (h->find("max_delta") != h->end())
+            Opt.m_settings.max_delta = h->at("max_delta")->as_number();
+        if (h->find("trust") != h->end())
+            Opt.m_settings.trust = h->at("trust")->as_boolean();
+    }
+
+    //collect all of the variables to be optimized
+    Opt.m_settings.variables.clear();
+
+    for (variables::iterator vh = P->m_variables.begin(); vh != P->m_variables.end(); vh++)
+    {
+        variable *v = static_cast<variable*>(vh->second);
     
-    Opt.run_integer_optimization();
+        if (v->is_optimized)
+        {
+            std::vector<double> inits;
+
+            for (int i = 0; i < (int)v->initializers.vec()->size(); i++)
+                inits.push_back( v->initializers.vec()->at(i).as_number() );
+
+            Opt.m_settings.variables.push_back(optimization_variable(*v));
+        }
+
+    }
+
+
+    ////npanel, nom, nwash
+    //Opt.m_settings.lower_bounds = std::vector<int>{ -6,-6 };
+    //Opt.m_settings.upper_bounds = std::vector<int>{ 2, 2 };
+    //Opt.m_settings.X_sample = std::vector< std::vector<int> >
+    //{
+    //    std::vector<int>{1,0},
+    //    std::vector<int>{0,1},
+    //    std::vector<int>{-1,0},
+    //    std::vector<int>{0,-1},
+    //    std::vector<int>{0,0}
+    //};
+    //
+    Opt.run_optimization();
 
     optimization_outputs* oo = &mw.GetProject()->m_optimization_outputs;
 
     int n, m;
 
-    oo->eta_i.empty_vector();
+    mw.UpdateDataTable();
+
+    /*oo->eta_i.empty_vector();
     n = (int)Opt.m_results.eta_i.size();
     m = (int)Opt.m_results.eta_i.front().size();
     for (int i = 0; i < n; i++)
@@ -1102,6 +1237,6 @@ void _optimize(lk::invoke_t &cxt)
         for (int j = 0; j < m; j++)
             row.vec_append(Opt.m_results.eta_i.at(i).at(j));
         oo->eta_i.vec()->push_back(row);
-    }
+    }*/
 
 }

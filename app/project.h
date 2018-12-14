@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vector>
+#include <sstream>
+#include <set>
 
 #include <lk/env.h>
 #include <ssc/sscapi.h>
@@ -20,6 +22,8 @@ A class containing the aspects of the current project
 */
 
 #define SIGNIF_FIGURE 5 	//specify the significant digit requirement for data storage
+
+class Project;
 
 extern ssc_bool_t ssc_progress_handler(ssc_module_t, ssc_handler_t, int action, float f0, float f1, const char *s0, const char *, void *);
 extern bool sim_progress_handler(float progress, const char *msg);
@@ -131,7 +135,7 @@ public:
     };
 	std::string GetDisplayName()
 	{
-		return wxString::Format("[%s] %s", units, nice_name).ToStdString();
+		return (std::stringstream() << "[" << units << "] " << nice_name ).str();
 	};
 
 	bool IsInvalidAllowed()
@@ -142,9 +146,53 @@ public:
     virtual void CreateDoc() {};
 };
 
+
+struct ObjectiveMethodPtr
+{
+protected:
+    bool (Project::*_m)();
+public:
+    ObjectiveMethodPtr() {};
+    ObjectiveMethodPtr(bool (Project::*m)())
+    {
+        _m = m;
+    };
+    bool operator < (const ObjectiveMethodPtr &rhs) const
+    {
+        return (void*)&_m < rhs.MethodPointer();
+    };
+    bool operator > (const ObjectiveMethodPtr &rhs) const
+    {
+        return (void*)&_m > rhs.MethodPointer();
+    };
+    void operator = ( bool (Project::*rhs)() ) 
+    {
+        _m = rhs;
+    };
+    bool operator == (const ObjectiveMethodPtr &rhs) const 
+    {
+        return (void*)&_m == rhs.MethodPointer();
+    };
+    bool operator != (const ObjectiveMethodPtr &rhs) const
+    {
+        return (void*)&_m != rhs.MethodPointer();
+    };
+    void* MethodPointer() const
+    {
+        return (void*)&_m;
+    };
+    bool Run(Project* parent)
+    {
+        return (*parent.*_m)();
+    };
+};
+
+typedef unordered_map<std::string, ObjectiveMethodPtr > ObjectiveMethodSet;
+
 class variable : public data_base
 {
 protected:
+
     void _set_base(double vmin, double vmax, std::string vname, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
 		set_limits(vmin, vmax);
@@ -160,6 +208,10 @@ public:
     lk::vardata_t minval;
     lk::vardata_t maxval;
     lk::vardata_t defaultval;
+    lk::vardata_t initializers;
+    std::vector< std::string > triggers;
+    bool is_optimized;
+    bool is_integer;
 
 	bool set_limits(double vmin, double vmax)
 	{
@@ -171,17 +223,23 @@ public:
 		return true;
 	};
 	
-	void set(double _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0)
+	void set(double _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0, 
+            bool _is_optimized = false, bool _is_integer = false)
 	{
         this->defaultval.assign(_defaultval); 
         this->assign(_defaultval);
+        this->is_optimized = _is_optimized;
+        this->is_integer = _is_integer;
         _set_base(_vmin, _vmax, _vname, _nice_name, _units, _group);
 	};
     
-    void set(int _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0)
+    void set(int _defaultval, double _vmin, double _vmax, std::string _vname, const char *_nice_name=0, const char *_units=0, const char *_group=0, 
+            bool _is_optimized = false, bool _is_integer = false)
     {
         this->defaultval.assign(_defaultval);
         this->assign(_defaultval);
+        this->is_optimized = _is_optimized;
+        this->is_integer = _is_integer;
         _set_base(_vmin, _vmax, _vname, _nice_name, _units, _group);
     };
 
@@ -206,8 +264,8 @@ struct variables : public lk::varhash_t
 	variable tshours;
 	variable degr_replace_limit;
 	variable om_staff;
-	variable n_wash_crews;
-	variable N_panels;
+	//variable n_wash_crews;
+	variable N_panel_pairs;
 
 	variables();
 };
@@ -219,15 +277,15 @@ protected:
     {
         this->name = vname;
 		if(_nice_name)
-            this->nice_name = *_nice_name;
+            this->nice_name = std::string(_nice_name);
         else
             this->nice_name = "";
 		if(_units)
-            this->units = *_units;
+            this->units = std::string(_units);
         else
             this->units = "";
 		if(_group)
-            this->group = *_group;
+            this->group = std::string(_group);
         else
             this->group = "";
         
@@ -259,7 +317,7 @@ public:
     //string
     void set(std::string v, std::string vname, bool calculated, const char *_nice_name=0, const char *_units=0, const char *_group=0)
     {
-        this->assign(v);
+        this->assign(v.c_str());
         _set_base(vname, calculated, _nice_name, _units, _group) ;
     };
     //vector-double
@@ -337,6 +395,7 @@ struct parameters : public lk::varhash_t
 	parameter cluster_ndays;
 	parameter cluster_nprev;
 	parameter cycle_nyears;
+	parameter wash_vehicle_life;
     //doubles
 	parameter rec_ref_cost;
 	parameter rec_ref_area;
@@ -355,12 +414,11 @@ struct parameters : public lk::varhash_t
 	parameter heliostat_repair_cost;
 	parameter om_staff_max_hours_week;
 	parameter n_heliostats_sim;
-	parameter wash_units_per_hour;
+	parameter wash_rate;
 	parameter wash_crew_max_hours_day;
 	parameter wash_crew_max_hours_week;
 	parameter wash_crew_capital_cost;
 	parameter price_per_kwh;
-	parameter operating_margin;
 	parameter TES_powercycle_eff;
 	parameter degr_per_hour;
 	parameter degr_accel_per_year;
@@ -453,6 +511,7 @@ struct solarfield_outputs : public lk::varhash_t
 
 struct optical_outputs : public lk::varhash_t
 {
+	parameter n_wash_crews;
 	parameter n_replacements;
 	parameter heliostat_refurbish_cost;
 	parameter heliostat_refurbish_cost_y1;
@@ -518,6 +577,7 @@ struct explicit_outputs : public lk::varhash_t
 	parameter heliostat_om_labor_real;
 	parameter heliostat_wash_cost_y1;
 	parameter heliostat_wash_cost_real;
+	parameter heliostat_wash_capital_cost;
 
 	explicit_outputs();
 };
@@ -551,6 +611,7 @@ struct objective_outputs : public lk::varhash_t
 	parameter heliostat_om_labor_real;
 	parameter heliostat_wash_cost_real;
 	parameter heliostat_refurbish_cost_real;
+	parameter heliostat_wash_capital_cost;
 	parameter om_cost_real;
 
 	parameter cycle_repair_cost_real;
@@ -575,6 +636,8 @@ struct optimization_outputs : public lk::varhash_t
     //Vector<long long> 
     parameter wall_time_i;
 
+
+
     optimization_outputs();
 };
 
@@ -592,6 +655,9 @@ class Project
 	ssc_data_t m_ssc_data;
 	
 	lk::varhash_t _merged_data;
+
+    ObjectiveMethodSet _all_method_pointers;
+    std::vector<std::string> _all_method_names;
 
 
 	struct plant_state
@@ -642,7 +708,7 @@ class Project
 	void initialize_ssc_project();
 	void update_calculated_system_values();
 	void update_calculated_values_post_layout();
-	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false);
+	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false, bool one_time_exp=false, int num_years=0);
 	
 	
 	bool simulate_clusters(std::unordered_map<std::string, std::vector<double>> &ssc_soln);
@@ -689,32 +755,24 @@ public:
 	struct CALLING_SIM{ enum E {DESIGN=1, HELIO_AVAIL, HELIO_OPTIC, CYCLE_AVAIL, SIMULATION, EXPLICIT, FINANCE, OBJECTIVE, NULLSIM=0}; };
 	bool Validate(CALLING_SIM::E simtype=CALLING_SIM::E::NULLSIM, std::string *error_msg=0);
 	void Initialize();
-    void Optimize(lk::varhash_t* vars);
 
 	//objective function methods
-	bool D();
-	bool M();
-	bool C();
-	bool O();
-	bool S();
-	bool E();
-	bool F();
-	bool Z();
+	bool D();       //Solar field layout and design
+	bool M();       //Heliostat mechanical availability
+	bool C();       //Cycle availability 
+	bool O();       //Optical degradation and soiling
+	bool S();       //Production simulation
+	bool E();       //Explicit cost calculations
+	bool F();       //Financial model calculations
+	bool Z();       //Rolled-up objective function
 
 	bool setup_clusters();
 
 	data_base *GetVarPtr(const char *name);
 	lk::varhash_t *GetMergedData();
     std::vector< void* > GetDataObjects();
-
-	// def setup_clusters(self, Nclusters, Ndays = 2, Nprev = 1, Nnext = 1, user_weights = None, user_divisions = None):
-	// def M(self, variables, design):
-	// def O(self, variables, design):
-	// def S(self, design, variables, sf_avail=None, sf_soil=None, sf_degr=None, sample_weeks=None, Nclusters = None, cluster_inputs = None, pv_production = None):
-	// def E(self, variables):
-	// def F(self, variables, S, om_cost): #total_installed_cost, generation, pricing_mult):
-	// def Z(self, variables, **kwargs):
-
+    bool CallMethodByName(const std::string &method);
+    std::vector<std::string> GetAllMethodNames();
 };
 
 

@@ -244,13 +244,12 @@ MainWindow::MainWindow()
 	m_notebook->AddPage(splitwin, "Script");
 
 	splitwin->SplitHorizontally(splitscript, m_LogViewForm, 390);
+    splitwin->SetSashGravity(0.8);
 
 	m_tabList->Append("Data");
 	m_DataViewForm = new DataView(m_notebook, m_image_dir.GetFullPath().c_str() );
 	m_DataViewForm->SetDataObject( m_project.GetMergedData() );
 	m_notebook->AddPage(m_DataViewForm, "Data");
-
-    //m_ScriptViewForm->GetEditor()->AddText("O();");
 
 	UpdateFrameTitle();
 }
@@ -356,6 +355,8 @@ void MainWindow::Save()
 
 	unsigned int cest=0;	//counter to estimate required file size
 
+    char charbuf[10000];
+
 	for( lk::varhash_t::iterator it = all_data->begin(); it != all_data->end(); it++ )
 	{
 		data_base *v = static_cast< data_base* >( it->second );
@@ -384,13 +385,19 @@ void MainWindow::Save()
 			case lk::vardata_t::STRING:
 			{
 				std::string strval = v->as_string();
-				char *buf = new char[strval.length()];
-				sprintf(buf, "%s", strval.c_str());
 
-				jdata.SetString(buf, strval.length(), alloc );
+                if (strval.length() > 0)
+                {
+                    //char *buf = new char[strval.length()];
+                    int len = sprintf(charbuf, "%s", strval.c_str());
 
-				delete buf;
-				cest += strval.length();
+                    jdata.SetString(charbuf, len, alloc);
+
+                    //delete buf;
+                    cest += len;
+                }
+                else
+                    jdata.SetString("", 0, alloc);
 			}
 			break;
 			case lk::vardata_t::VECTOR:
@@ -545,7 +552,7 @@ bool MainWindow::Open()
 		wxFD_OPEN | wxFD_FILE_MUST_EXIST | wxFD_CHANGE_DIR);
 
 	if (dlg.ShowModal() == wxID_OK)
-		if (!Load(dlg.GetPath()))
+		if (!Load(dlg.GetPath().ToStdString()))
 		{
 			wxMessageBox("Could not load file:\n\n" + dlg.GetPath());
 			return false;

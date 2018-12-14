@@ -100,7 +100,7 @@ void Project::initialize_ssc_project()
 	ssc_data_set_number( m_ssc_data, "tshours",  10 );
 	ssc_data_set_number( m_ssc_data, "solarm",  2.4 );
 	ssc_data_set_number( m_ssc_data, "receiver_type",  0 );
-	ssc_data_set_number( m_ssc_data, "N_panels",  20 );
+	ssc_data_set_number( m_ssc_data, "N_panel_pairs",  10 );
 	ssc_data_set_number( m_ssc_data, "d_tube_out",  40 );
 	ssc_data_set_number( m_ssc_data, "th_tube",  1.25 );
 	ssc_data_set_number( m_ssc_data, "mat_tube",  2 );

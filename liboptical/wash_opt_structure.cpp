@@ -52,14 +52,18 @@ wash_crew_settings::wash_crew_settings()
 	capital_cost_per_crew = 0.;
 	hourly_cost_per_crew = 0.;
 	discount_rate = 0.;
-	wash_time = 1.5;
+	wash_rate = 3677.885;
+	heliostat_size = 115;  //crescent dunes site
 	crew_hours_per_week = 0.;
-	total_cost_per_crew = 0.;  //NPV
+	total_cost_per_crew = 0.;  //NPV, incl. labor and capital
 	system_efficiency = 0.;
-	profit_per_kwh = 0.;  //assuming 100% efficiency
-	num_years = 0.;   //years of operation to calculate NPV of annual costs
-	price_per_kwh = 0.;  //assumed NPV (includes multiplier)
+	profit_per_kwh = 0.;  
+	num_years = 0.;  
+	price_per_kwh = 0.;  
 	annual_multiplier = 0.;
+	vehicle_life = 10;
+
+	use_uniform_assignment = false;
 }
 
 void wash_crew_settings::print()
@@ -69,15 +73,17 @@ void wash_crew_settings::print()
 		<< "capital_cost_per_crew" << ": " << capital_cost_per_crew << "\n"
 		<< "hourly_cost_per_crew" << ": " << hourly_cost_per_crew << "\n"
 		<< "discount_rate" << ": " << discount_rate << "\n"
-		<< "wash_time" << ": " << wash_time << "\n"
+		<< "wash_rate" << ": " << wash_rate << "\n"
+		<< "heliostat_size" << ": " << heliostat_size << "\n"
 		<< "crew_hours_per_week" << ": " << crew_hours_per_week << "\n"
 		<< "total_cost_per_crew" << ": " << total_cost_per_crew << "\n"
 		<< "system_efficiency" << ": " << system_efficiency << "\n"
 		<< "profit_per_kwh" << ": " << profit_per_kwh << "\n"
-		<< "operating_margin" << ": " << operating_margin << "\n"
 		<< "num_years" << ": " << num_years << "\n"
 		<< "price_per_kwh" << ": " << price_per_kwh << "\n"
-		<< "annual_multiplier" << ": " << annual_multiplier << "\n";
+		<< "annual_multiplier" << ": " << annual_multiplier << "\n"
+		<< "vehicle_life" << ": " << vehicle_life << "\n"
+		<< "use_uniform_assignment" << ": " << use_uniform_assignment << "\n";
 }
 
 /*

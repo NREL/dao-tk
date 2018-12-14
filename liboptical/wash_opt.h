@@ -59,6 +59,8 @@ public:
 		int array_size
 	);
 
+	std::vector<int> GetEqualAssignmentPath(int num_crews);
+
 	void RunDynamicProgram();
 
 	std::vector<int> RetracePath(int *parents, int num_rows, int row_length);

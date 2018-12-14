@@ -72,7 +72,7 @@ double optical_degradation::get_replacement_threshold(
 	{
 	
 		//use bisection to obtain the optimal time interval.
-		double b, c, logc, z_lo, z_med, z_hi, lo, med, hi, interval, min_t, max_t;
+		double b, c, logc, r, z_lo, z_med, z_hi, lo, med, hi, interval, min_t, max_t;
 		
 		b = rev_loss_rate * m_settings.degr_loss_per_hr;
 		c = (1 + m_settings.degr_accel_per_year);
@@ -243,14 +243,42 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		crews.push_back(c);
 	}
 		
-	//determine replacement thresholds for heliostats.
-	for (int i = 0; i < n_helio_s; i++)
+	//determine replacement thresholds for heliostats.  
+	if (m_settings.use_fixed_replacement_threshold)
 	{
-		helios.at(i).replacement_threshold = get_replacement_threshold(
+		for (int i = 0; i < n_helio_s; i++)
+		{
+			helios.at(i).replacement_threshold = m_settings.replacement_threshold;
+		}
+	}
+	else if (m_settings.use_mean_replacement_threshold)
+	{
+		int total_mirrors = 0;
+		for (int i = 0; i < n_helio_s; i++)
+		{
+			total_mirrors += m_solar_data.num_mirrors_by_group[i];
+			//std::cerr << i << "  " << helios.at(i).replacement_threshold << "  " << m_solar_data.mirror_output[i] <<  "  "   << m_solar_data.num_mirrors_by_group[i] << "\n";
+		}
+		double mean_threshold = get_replacement_threshold(
+			m_solar_data.total_mirror_output / total_mirrors,
+			1
+		);
+		for (int i = 0; i < n_helio_s; i++)
+		{
+			helios.at(i).replacement_threshold = mean_threshold;
+		}
+	}
+	else
+	{
+		//at this point, we optimize the threshold for each heliostat.
+		for (int i = 0; i < n_helio_s; i++)
+		{
+			helios.at(i).replacement_threshold = get_replacement_threshold(
 				m_solar_data.mirror_output[i],
 				m_solar_data.num_mirrors_by_group[i]
 			);
-		//std::cerr << i << "  " << helios.at(i).replacement_threshold << "  " << m_solar_data.mirror_output[i] <<  "  "   << m_solar_data.num_mirrors_by_group[i] << "\n";
+			//std::cerr << i << "  " << helios.at(i).replacement_threshold << "  " << m_solar_data.mirror_output[i] <<  "  "   << m_solar_data.num_mirrors_by_group[i] << "\n";
+		}
 	}
 
 	std::vector< double > soil(m_settings.n_hr_sim);
