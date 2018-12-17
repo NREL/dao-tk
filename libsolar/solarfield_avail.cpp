@@ -1,5 +1,6 @@
 #include "solarfield_structures.h"
 #include "solarfield_avail.h"
+#include "./../libcycle/distributions.h"
 
 #include <random>
 #include <vector>
@@ -90,7 +91,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 
 	int n_components = (int)m_settings.helio_components.size();
 
-	std::default_random_engine rand(m_settings.seed);
+	WELLFiveTwelve rand(m_settings.seed % 100);
 
 	if (m_settings.is_allow_multiple_per_helio)
 		m_settings.is_trade_repairs = false;	

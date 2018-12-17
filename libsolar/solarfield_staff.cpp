@@ -112,7 +112,7 @@ void solarfield_repair_staff::add_member(double fraction = 1.0)
 
 
 
-void solarfield_repair_staff::add_to_queue(solarfield_heliostat *h, std::default_random_engine &gen)
+void solarfield_repair_staff::add_to_queue(solarfield_heliostat *h, WELLFiveTwelve &gen)
 {
 	int nq = (int)m_queue.size();
 	m_total_repair_time += h->get_total_repair_time();
@@ -167,8 +167,7 @@ void solarfield_repair_staff::add_to_queue(solarfield_heliostat *h, std::default
 			}
 			else if (m_repair_order == RANDOM)	// Add at random position
 			{
-				std::uniform_real_distribution<double> uniform((double)jmin, (double)jmax);
-				j = (int)round(uniform(gen));
+				j = (int)round(jmin + gen.getVariate() * (jmax-jmin));
 			}
 		}
 
@@ -198,7 +197,7 @@ void solarfield_repair_staff::assign_from_queue(int staff_index, int queue_index
 	return;
 }
 
-void solarfield_repair_staff::assign_to_queue(int staff_index, std::default_random_engine &gen)
+void solarfield_repair_staff::assign_to_queue(int staff_index, WELLFiveTwelve &gen)
 {
 	solarfield_staff_member *st = m_members[staff_index];
 	solarfield_heliostat* hel = st->m_helio_assigned;
