@@ -389,6 +389,9 @@ struct parameters : public lk::varhash_t
 	parameter num_salt_pumps;
 	parameter num_salt_pumps_required;
 	parameter num_water_pumps;
+	parameter num_water_pumps_required;
+	parameter num_boiler_pumps;
+	parameter num_boiler_pumps_required;
 	parameter num_turbines;
 	parameter num_scenarios;
 	parameter n_clusters;

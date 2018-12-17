@@ -101,10 +101,14 @@ parameters::parameters()
     radiators_per_train.set(                 2,          "radiators_per_train",      false,          "Number of radiators per condenser train",           "-",                  "Cycle|Parameters" );
     num_salt_steam_trains.set(               2,        "num_salt_steam_trains",      false,                   "Number of salt-to-steam trains",           "-",                  "Cycle|Parameters" );
     num_fwh.set(                             6,                      "num_fwh",      false,                      "Number of feedwater heaters",           "-",                  "Cycle|Parameters" );
-    num_salt_pumps.set(                      4,               "num_salt_pumps",      false,                         "Number of hot salt pumps",           "-",                  "Cycle|Parameters" );
-	num_salt_pumps_required.set(             3,      "num_salt_pumps_required",      false,  "Number of hot salt pumps to operate at capacity",           "-",                  "Cycle|Parameters" );
-	num_water_pumps.set(                     2,              "num_water_pumps",      false,                 "Number of boiler and water pumps",           "-",                  "Cycle|Parameters" );
-    num_turbines.set(                        1,                 "num_turbines",      false,               "Number of turbine-generator shafts",           "-",                  "Cycle|Parameters" );
+    num_salt_pumps.set(                      3,               "num_salt_pumps",      false,                         "Number of hot salt pumps",           "-",                  "Cycle|Parameters" );
+	num_salt_pumps_required.set(             2,      "num_salt_pumps_required",      false,  "Number of hot salt pumps to operate at capacity",           "-",                  "Cycle|Parameters" );
+	num_water_pumps.set(                     2,              "num_water_pumps",      false,                            "Number of water pumps",           "-",                  "Cycle|Parameters" );
+	num_water_pumps_required.set(            1,     "num_water_pumps_required",      false,     "Number of water pumps to operate at capacity",           "-",                  "Cycle|Parameters" );
+	num_boiler_pumps.set(                    2,             "num_boiler_pumps",      false,                           "Number of boiler pumps",           "-",                  "Cycle|Parameters" );
+	num_boiler_pumps_required.set(           1,    "num_boiler_pumps_required",      false,     "Number of boilerpumps to operate at capacity",           "-",                  "Cycle|Parameters" );
+
+	num_turbines.set(                        1,                 "num_turbines",      false,               "Number of turbine-generator shafts",           "-",                  "Cycle|Parameters" );
     num_scenarios.set(                       1,                "num_scenarios",      false,                              "Number of scenarios",           "-",                  "Cycle|Parameters" );
 	wash_vehicle_life.set(                  10,            "wash_vehicle_life",      false,                           "Wash vehicle lifetime",           "yr",    "Optical degradation|Parameters" );
 
@@ -2812,9 +2816,19 @@ void Project::initialize_cycle_model(PowerCycle &pc)
 		c_eff_hot.push_back(m_parameters.condenser_eff_hot.vec()->at(i).as_number());
 	}
 
-	pc.GeneratePlantComponents(m_parameters.num_condenser_trains.as_integer(), m_parameters.fans_per_train.as_integer(), m_parameters.radiators_per_train.as_integer(),
-		m_parameters.num_salt_steam_trains.as_integer(), m_parameters.num_fwh.as_integer(), m_parameters.num_salt_pumps.as_integer(),
-		m_parameters.num_salt_pumps_required.as_integer(), m_parameters.num_water_pumps.as_integer(), m_parameters.num_turbines.as_integer(),
+	pc.GeneratePlantComponents(
+		m_parameters.num_condenser_trains.as_integer(), 
+		m_parameters.fans_per_train.as_integer(), 
+		m_parameters.radiators_per_train.as_integer(),
+		m_parameters.num_salt_steam_trains.as_integer(), 
+		m_parameters.num_fwh.as_integer(),
+		m_parameters.num_salt_pumps.as_integer(),
+		m_parameters.num_salt_pumps_required.as_integer(), 
+		m_parameters.num_water_pumps.as_integer(),
+		m_parameters.num_water_pumps_required.as_integer(),
+		m_parameters.num_boiler_pumps.as_integer(),
+		m_parameters.num_boiler_pumps_required.as_integer(),
+		m_parameters.num_turbines.as_integer(),
 		c_eff_cold, c_eff_hot);
 
 	pc.m_sim_params.num_scenarios = m_parameters.num_scenarios.as_integer();

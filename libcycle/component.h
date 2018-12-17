@@ -65,6 +65,7 @@ class Component
 	double m_efficiency_reduction;
 	bool m_new_repair;
 	bool m_new_failure;
+	bool m_reset_hazard_rate;
 	double m_mean_repair_time;
 	std::string m_repair_mode; // "A"=Anytime; "S"=standby or downtime; "D"=downtime only
     ComponentStatus m_status;
@@ -78,19 +79,24 @@ public:
 
     Component();
 
-    Component(std::string name, std::string type, //std::string dist_type, double failure_alpha, double failure_beta, 
-		double mean_repair_time, double repair_cooldown_time,
+    Component(std::string name, 
+		std::string type, 
+		double mean_repair_time, 
+		double repair_cooldown_time,
 		std::unordered_map< std::string, failure_event > *failure_events, 
 		double availability_reduction = 1.0, 
-		double efficiency_reduction = 1.0, double repair_cost = 0.0,
-		std::string repair_mode = "D", std::vector< std::string > *failure_event_labels = {}
+		double efficiency_reduction = 1.0, 
+		double repair_cost = 0.0,
+		std::string repair_mode = "D", 
+		std::vector< std::string > *failure_event_labels = {},
+		bool reset_hazard_rate = true
 		);
 
     void ReadStatus( ComponentStatus &status );
         
     std::string GetName();
         
-    std::string GetType();
+	std::string GetType();
 
 	std::vector<FailureType> GetFailureTypes();
         
@@ -124,6 +130,8 @@ public:
 	bool IsNewFailure();
 
 	bool IsNewRepair();
+
+	void SetResetHazardRatePolicy(bool reset_hazard);
 
 	void ResetFailureAndRepairFlags();
         
@@ -170,8 +178,7 @@ public:
 		std::string mode
 	);
         
-    void ReadFailure(double downtime, double life_remaining,
-		int fail_idx, bool reset_hazard);
+    void ReadFailure(double downtime, double life_remaining, int fail_idx);
                 
     void GenerateFailure(
 		WELLFiveTwelve &life_gen,

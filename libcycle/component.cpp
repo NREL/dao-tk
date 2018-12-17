@@ -37,7 +37,8 @@ Component::Component(std::string name, std::string type,
 		double mean_repair_time, double repair_cooldown_time,
 		std::unordered_map< std::string, failure_event > *failure_events,
 		double capacity_reduction, double efficiency_reduction, double repair_cost, std::string repair_mode,
-		std::vector<std::string> *failure_event_labels)
+		std::vector<std::string> *failure_event_labels,
+		bool reset_hazard_rate)
 {
     /*
     Description of attributes:
@@ -51,6 +52,7 @@ Component::Component(std::string name, std::string type,
     repair_cost -- dollar cost of repairs, not including revenue lost ($)
     repair_mode -- indicator of in which modes the component may be repaired
 	failure_event_labels -- keys to parent failure events dictionary
+	reset_hazard_rate -- true if a repair resets the hazard rate, false o.w.
     */
 
     if( name == "MAINTENANCE" )
@@ -66,6 +68,7 @@ Component::Component(std::string name, std::string type,
 	m_mean_repair_time = mean_repair_time;
 	m_new_failure = false;
 	m_new_repair = false;
+	m_reset_hazard_rate = reset_hazard_rate;
 
 	m_status.hazard_rate = 1.0;
     m_status.downtime_remaining = 0.0;
@@ -231,6 +234,11 @@ bool Component::IsNewFailure()
 bool Component::IsNewRepair()
 {
 	return m_new_repair;
+}
+
+void Component::SetResetHazardRatePolicy(bool reset_hazard)
+{
+	m_reset_hazard_rate = reset_hazard;
 }
 
 void Component::ResetFailureAndRepairFlags()
@@ -481,7 +489,7 @@ void Component::Operate(
 }
          
 void Component::ReadFailure(double downtime, double life_remaining, 
-	int fail_idx, bool reset_hazard=true)
+	int fail_idx)
 {
     /*
     reads a failure event.  This executes the failure without the 
@@ -494,7 +502,7 @@ void Component::ReadFailure(double downtime, double life_remaining,
 	m_status.operational = false;
     SetDowntimeRemaining(downtime);
 	m_status.lifetimes.at(fail_idx) = (life_remaining);
-	if (reset_hazard)
+	if (m_reset_hazard_rate)
 	{
 		ResetHazardRate();
 	}
@@ -522,7 +530,18 @@ void Component::GenerateFailure(
     GenerateTimeToRepair(repair_gen);
 	double labor = m_status.downtime_remaining - GetCooldownTime();
 	m_status.lifetimes.at(fail_idx) = m_failure_types.at(fail_idx).GenerateFailureVariate(life_gen);
-    ResetHazardRate();
+	/* in a single special case, superheaters have an additional cooldown 
+	time of 48 hours more than other heat exchangers in the salt-to-steam train.
+	*/
+	if (m_type == "Salt-to-steam train" && fail_idx > 11)
+	{
+		m_status.downtime_remaining += 48.;
+		m_status.repair_event_time += 48.;
+	}
+	if (m_reset_hazard_rate)
+	{
+		ResetHazardRate();
+	}
     //add a new failure to the parent (CSPPlant) failure queue
 	std::string label = "S"+std::to_string(scen_index)+"T"+std::to_string(t)+GetName()+"F"+std::to_string(fail_idx);
     (*m_parent_failure_events)[label] = failure_event(
