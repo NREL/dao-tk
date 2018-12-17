@@ -1847,6 +1847,11 @@ void PowerCycle::GeneratePlantComponents(
 	AddTurbines(num_turbines);
 	m_condenser_efficiencies_cold = condenser_eff_cold;
 	m_condenser_efficiencies_hot = condenser_eff_hot;
+	if (reset_hazard)
+	{
+		for (Component c : GetComponents())
+			c.SetResetHazardRatePolicy(reset_hazard);
+	}
 }
 
 void PowerCycle::SetPlantAttributes(
