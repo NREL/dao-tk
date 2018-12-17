@@ -19,7 +19,7 @@ solarfield_settings::solarfield_settings()
 	sunset = 19.;
 
 	seed = 123;
-	repair_order = MEAN_REPAIR_TIME;
+	repair_order = PERF_INC_RATE;
 	is_tracking = false;
 
 	is_allow_multiple_per_helio = false;

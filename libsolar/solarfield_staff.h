@@ -9,7 +9,8 @@ enum repair_order {
 	PERFORMANCE,		// Prioritize repairs based on highest to lowest heliostat performance
 	REPAIR_TIME,		// Prioritize repairs in order from shortest to longest repair time
 	MEAN_REPAIR_TIME,	// Prioritize repairs in order from shortest to longest mean repair time
-	RANDOM				// Random prioritization of repairs
+	RANDOM,				// Random prioritization of repairs
+	PERF_INC_RATE       // Prioritize repairs in order from largest to smallest expected rate of increased performance
 };
 
 
