@@ -720,63 +720,56 @@ void _simulate_optical(lk::invoke_t &cxt)
 		"soil_loss_per_hr, degr_loss_per_hr, degr_accel_per_year, n_hr_sim, rng_seed."
 		, "(table:inputs):table");
 	
-	optical_degradation OD;
-	
-	lk::varhash_t *h = cxt.arg(0).hash();
+
 
 	std::string error_msg;
 	MainWindow &mw = MainWindow::Instance();
+    Project* P = mw.GetProject();
 	if( ! mw.GetProject()->Validate(Project::CALLING_SIM::HELIO_OPTIC, &error_msg) )
 	{
 		mw.Log( error_msg );
 		return;
 	}
 
-	OD.m_settings.n_helio = 8000;
-	if( h->find("n_helio") != h->end() )
-		OD.m_settings.n_helio = h->at("n_helio")->as_integer();
+    if (cxt.arg_count() > 0)
+    {
+	    lk::varhash_t *h = cxt.arg(0).hash();
 
-	OD.m_settings.n_wash_crews = 3;
-	if ( h->find("n_wash_crews") != h->end() )
-		OD.m_settings.n_wash_crews = h->at("n_wash_crews")->as_integer();
+	    if( h->find("n_helio") != h->end() )
+            P->m_design_outputs.number_heliostats.assign( h->at("n_helio")->as_integer() );
 
-	OD.m_settings.wash_units_per_hour = 45;
-	if ( h->find("wash_units_per_hour") != h->end() )
-		OD.m_settings.wash_units_per_hour = h->at("wash_units_per_hour")->as_number();
+	    if ( h->find("n_wash_crews") != h->end() )
+            P->m_optical_outputs.n_wash_crews.assign( h->at("n_wash_crews")->as_integer() );
+
+	    if ( h->find("wash_units_per_hour") != h->end() )
+            P->m_parameters.wash_rate.assign( h->at("wash_units_per_hour")->as_number() );
 	
-	OD.m_settings.hours_per_day = 10.;
-	if ( h->find("hours_per_day") != h->end() )
-		OD.m_settings.hours_per_day = h->at("hours_per_day")->as_number();
+	    if ( h->find("hours_per_day") != h->end() )
+            P->m_parameters.wash_crew_max_hours_day.assign( h->at("hours_per_day")->as_number() );
 
-	OD.m_settings.hours_per_week = 70;
-	if ( h->find("hours_per_week") != h->end() )
-		OD.m_settings.hours_per_week = h->at("hours_per_week")->as_number();
+	    if ( h->find("hours_per_week") != h->end() )
+            P->m_parameters.wash_crew_max_hours_week.assign( h->at("hours_per_week")->as_number() );
 
-	OD.m_settings.replacement_threshold = 0.771;
-	if (h->find("replacement_threshold") != h->end())
-		OD.m_settings.replacement_threshold = h->at("replacement_threshold")->as_number();
+	    if (h->find("replacement_threshold") != h->end())
+            P->m_variables.degr_replace_limit.assign( h->at("replacement_threshold")->as_number() );
 
-	OD.m_settings.soil_loss_per_hr = 1.e-4;
-	if (h->find("soil_loss_per_hr") != h->end())
-		OD.m_settings.soil_loss_per_hr = h->at("soil_loss_per_hr")->as_number();
+	    if (h->find("soil_loss_per_hr") != h->end())
+            P->m_parameters.soil_per_hour.assign( h->at("soil_loss_per_hr")->as_number() );
 
-	OD.m_settings.degr_loss_per_hr = 1.e-7;
-	if (h->find("degr_loss_per_hr") != h->end())
-		OD.m_settings.degr_loss_per_hr = h->at("degr_loss_per_hr")->as_number();
+	    if (h->find("degr_loss_per_hr") != h->end())
+            P->m_parameters.degr_per_hour.assign( h->at("degr_loss_per_hr")->as_number() );
 
-	OD.m_settings.degr_accel_per_year = 0.125;
-	if (h->find("degr_accel_per_year") != h->end())
-		OD.m_settings.degr_accel_per_year = h->at("degr_accel_per_year")->as_number();
+	    if (h->find("degr_accel_per_year") != h->end())
+            P->m_parameters.degr_accel_per_year.assign( h->at("degr_accel_per_year")->as_number() );
 
-	OD.m_settings.n_hr_sim = 219000;
-	if (h->find("n_hr_sim") != h->end())
-		OD.m_settings.n_hr_sim = h->at("n_hr_sim")->as_number();
+	    if (h->find("n_hr_sim") != h->end())
+            P->m_parameters.plant_lifetime.assign( h->at("n_hr_sim")->as_number() );
 
-	OD.m_settings.seed = 123;
-	if (h->find("rng_seed") != h->end())
-		OD.m_settings.seed = h->at("rng_seed")->as_integer();
-
-	OD.simulate();
+	    if (h->find("rng_seed") != h->end())
+            P->m_parameters.degr_seed.assign( h->at("rng_seed")->as_integer() );
+    }
+    
+    P->O();
 
 	mw.SetProgress(0.);
 	return;

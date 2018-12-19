@@ -44,12 +44,12 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     //figure out which variables were changed and as a result, which components of the objective function need updating
     std::set<std::string> triggered_methods;
     int ncheck = 0;
-    std::stringstream message;
-    message <<  "*************************************************\n"
-                "Optimization evaluation point:\n"
-                "*************************************************\n";
     //limit scope of 'i'
     {
+        std::stringstream message;
+        message <<  "*************************************************\n"
+                    "Optimization evaluation point:\n"
+                    "*************************************************\n";
         int i = 0;
         for (std::vector<optimization_variable>::iterator vit = O->m_settings.variables.begin(); vit != O->m_settings.variables.end(); vit++)
         {
@@ -64,7 +64,8 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
                     triggered_methods.insert(v.triggers.at(j));
 
             message << v.nice_name << " [" << v.units << "]\t" << v.as_number() << "\n";
-
+            
+            O->m_results.iteration_history.hash_vector[v.name].push_back(v.as_number());
 
             //keep track of variable iteration history
             if (v.is_integer)
@@ -79,12 +80,12 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
                 ncheck++;
             }
         }
+        message_handler(message.str().c_str());
+        message.flush();
     }
 
     if (ncheck != n)
         throw std::runtime_error("Error in continuous objective function evaluation. Variable count has changed. See user support for help.");
-    message_handler(message.str().c_str());
-    message.flush();
 
     Project* P = O->get_project();
 
@@ -103,21 +104,31 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
 
     double ppa = P->m_financial_outputs.ppa.as_number();
 
-    message << "Results\n-------------------------------------------------\n";
-    message << "Objective function value (PPA) [c/kWh]\t" << ppa << "\n";
-    message << "Solar field area [m2]\t" << P->m_design_outputs.area_sf.as_number() << "\n";
-    message << "Average soiling eff. [%]\t" << P->m_optical_outputs.avg_soil.as_number()*100. << "\n";
-    message << "Number of wash crews\t" << P->m_optical_outputs.n_wash_crews.as_number() << "\n";
-    message << "Average mirror degradation [%]\t" << P->m_optical_outputs.avg_degr.as_number()*100. << "\n";
-    message << "Annual generation [GWhe]\t" << P->m_simulation_outputs.annual_generation.as_number() << "\n";
-    message << "Annual cycle starts\t" << P->m_simulation_outputs.annual_cycle_starts.as_number() << "\n";
-    message << "Annual receiver starts\t" << P->m_simulation_outputs.annual_rec_starts.as_number() << "\n";
-    message << "Annual revenue units\t" << P->m_simulation_outputs.annual_revenue_units.as_number() << "\n";
-    message << "Average field availability [%]\t" << P->m_solarfield_outputs.avg_avail.as_number()*100. << "\n";
-    message << "Heliostat repair events /yr\t" << P->m_solarfield_outputs.n_repairs.as_number() << "\n";
-    
+    {
+        std::stringstream message;
+        message << "Results\n-------------------------------------------------\n";
+        message << "Objective function value (PPA) [c/kWh]\t" << ppa << "\n";
+        message << "Solar field area [m2]\t" << P->m_design_outputs.area_sf.as_number() << "\n";
+        message << "Average soiling eff. [%]\t" << P->m_optical_outputs.avg_soil.as_number()*100. << "\n";
+        message << "Number of wash crews\t" << P->m_optical_outputs.n_wash_crews.as_number() << "\n";
+        message << "Average mirror degradation [%]\t" << P->m_optical_outputs.avg_degr.as_number()*100. << "\n";
+        message << "Annual generation [GWhe]\t" << P->m_simulation_outputs.annual_generation.as_number() << "\n";
+        message << "Annual cycle starts\t" << P->m_simulation_outputs.annual_cycle_starts.as_number() << "\n";
+        message << "Annual receiver starts\t" << P->m_simulation_outputs.annual_rec_starts.as_number() << "\n";
+        message << "Annual revenue units\t" << P->m_simulation_outputs.annual_revenue_units.as_number() << "\n";
+        message << "Average field availability [%]\t" << P->m_solarfield_outputs.avg_avail.as_number()*100. << "\n";
+        message << "Heliostat repair events per yr\t" << P->m_solarfield_outputs.n_repairs.as_number() << "\n";
+        message_handler(message.str().c_str());
+    }
 
-    message_handler(message.str().c_str());
+    ordered_hash_vector& ohv = O->m_results.iteration_history.hash_vector;
+    std::vector<parameter*> allouts = { &P->m_design_outputs.area_sf, &P->m_optical_outputs.avg_soil, &P->m_optical_outputs.n_wash_crews,
+                                       &P->m_optical_outputs.avg_degr, &P->m_simulation_outputs.annual_generation, &P->m_simulation_outputs.annual_cycle_starts,
+                                       &P->m_simulation_outputs.annual_rec_starts, &P->m_simulation_outputs.annual_revenue_units,
+                                       &P->m_solarfield_outputs.avg_avail, &P->m_solarfield_outputs.n_repairs };
+    
+    for (size_t i = 0; i < allouts.size(); i++)
+        O->m_results.iteration_history.hash_vector[allouts.at(i)->name].push_back(allouts.at(i)->as_number());
 
     return ppa;
 };

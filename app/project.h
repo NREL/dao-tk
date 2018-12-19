@@ -51,6 +51,81 @@ struct documentation
     };
 };
 
+typedef std::pair< std::string, std::vector<double> > svd_pair;
+
+struct ordered_hash_vector
+{
+private:
+    std::vector< svd_pair > _items;
+    std::vector< std::string > _keys;
+public:
+
+    std::vector<double>* has_item(std::string key)
+    {
+        ptrdiff_t ind = std::find(_keys.begin(), _keys.end(), key) - _keys.begin();
+        if( ind == _keys.size() )
+        {
+            return 0;
+        }
+        else
+        {
+            return &_items.at(ind).second;
+        }
+    };
+
+    std::vector<double>& operator[](const std::string& key)
+    {
+        std::vector<double>* it = has_item(key);
+        if (it)
+        {
+            return *it;
+        }
+        else
+        {
+            _items.push_back(svd_pair(key, std::vector<double>()));
+            _keys.push_back(key);
+            return _items.back().second;
+        }
+    };
+
+    void sort(bool reverse = false)
+    {
+        _keys.clear();
+
+        if(reverse)
+            std::sort(_items.begin(), _items.end(), [](const svd_pair &a, const svd_pair &b) ->bool {return a.first > b.first; });
+        else
+            std::sort(_items.begin(), _items.end(), [](const svd_pair &a, const svd_pair &b) ->bool {return a.first < b.first; });
+
+        for (size_t i = 0; i < _items.size(); i++)
+            _keys.push_back(_items.at(i).first);
+    };
+
+    size_t item_count()
+    {
+        return _items.size();
+    };
+
+    size_t iteration_count()
+    {
+        if (_items.size() > 0)
+            return _items.front().second.size();
+        else
+            return 0;
+    };
+
+    svd_pair& at_index(int ind)
+    {
+        return _items.at(ind);
+    };
+
+    void clear()
+    {
+        _keys.clear();
+        _items.clear();
+    };
+};
+
 class data_base : public lk::vardata_t
 {
 protected:
@@ -117,6 +192,8 @@ public:
 	std::string group;
 	bool is_shown_in_list;
     documentation doc;
+
+    ordered_hash_vector hash_vector;
 
 	void assign_vector(float *_vec, int nval)
     {
@@ -344,6 +421,19 @@ public:
             }
         _set_base(vname, calculated, _nice_name, _units, _group);
     };
+
+    void set(ordered_hash_vector& hv, std::string vname, bool calculated = false, const char *_nice_name = 0, const char *_units = 0, const char *_group = 0)
+    {
+        this->hash_vector.clear();
+        this->empty_hash();     //create an empty hash to trigger the type definition as "table"
+
+        for (size_t i = 0; i < hv.item_count(); i++)
+        {
+            svd_pair* p = &hv.at_index(i);
+            this->hash_vector[p->first] = p->second;
+        }
+        _set_base(vname, calculated, _nice_name, _units, _group);
+    }
 
     void CreateDoc()
     {
@@ -635,8 +725,7 @@ struct optimization_outputs : public lk::varhash_t
     parameter eval_order;
     //Vector<long long> 
     parameter wall_time_i;
-
-
+    parameter iteration_history;
 
     optimization_outputs();
 };

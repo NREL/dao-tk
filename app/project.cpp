@@ -53,10 +53,10 @@ variables::variables()
     dni_des.set(                          dnan,      dmin,      dmax,            "dni_des",                                 "Design point DNI",     "W/m2",      "Variables", false, false);
     P_ref.set(                            dnan,      dmin,      dmax,              "P_ref",                               "Design gross power",       "kW",      "Variables", false, false);
     solarm.set(                           dnan,      dmin,      dmax,             "solarm",                                   "Solar multiple",        "-",      "Variables", false, false);
-    tshours.set(                          dnan,      dmin,      dmax,            "tshours",              "Hours stored at full load operation",       "hr",      "Variables", false, false);
+    tshours.set(                          dnan,      dmin,      dmax,            "tshours",                             "Thermal storage size",       "hr",      "Variables", false, false);
     degr_replace_limit.set(               dnan,      dmin,      dmax, "degr_replace_limit",             "Mirror degradation replacement limit",        "-",      "Variables", false, false);
     om_staff.set(                           -1,      -999,       999,           "om_staff",                              "Number of o&m staff",        "-",      "Variables", false, true);
-    N_panel_pairs.set(                      -1,      -999,       999,       "N_panel_pairs",                   "Number of receiver panel pairs",        "-",      "Variables", false, true);
+    N_panel_pairs.set(                      -1,      -999,       999,       "N_panel_pairs",                  "Number of receiver panel pairs",        "-",      "Variables", false, true);
 
 
     (*this)["h_tower"] = &h_tower;
@@ -159,7 +159,7 @@ parameters::parameters()
     c_ces.set(                            pval,                        "c_ces",      false );
 
 	std::vector< double > pvalts(8760, 1.);
-    dispatch_factors_ts.set(            pvalts,          "dispatch_factors_ts",      false );
+    dispatch_factors_ts.set(            pvalts,          "dispatch_factors_ts",      false,                       "TOD price multiplier array",           "-",             "Simulation|Parameters" );
 
 	std::vector< double > c_eff_cold = { 0., 1., 1. };
     condenser_eff_cold.set(         c_eff_cold,           "condenser_eff_cold",      false );
@@ -519,10 +519,10 @@ financial_outputs::financial_outputs()
 
     lcoe_nom.set(                          nan,                     "lcoe_nom",       true );
     lcoe_real.set(                         nan,                    "lcoe_real",       true );
-    ppa.set(                               nan,                          "ppa",       true );
-    project_return_aftertax_npv.set(       nan,  "project_return_aftertax_npv",       true );
-    project_return_aftertax_irr.set(       nan,  "project_return_aftertax_irr",       true );
-    total_installed_cost.set(              nan,         "total_installed_cost",       true );
+    ppa.set(                               nan,                          "ppa",       true,                                         "PPA price",       "$",                 "Financial|Outputs" );
+    project_return_aftertax_npv.set(       nan,  "project_return_aftertax_npv",       true,                      "Project return after tax NPV",       "$",                 "Financial|Outputs" );
+    project_return_aftertax_irr.set(       nan,  "project_return_aftertax_irr",       true,                      "Project return after tax IRR",       "$",                 "Financial|Outputs" );
+    total_installed_cost.set(              nan,         "total_installed_cost",       true,                              "Total installed cost",       "$",                 "Financial|Outputs" );
 
 
 	(*this)["project_return_aftertax_npv"] = &project_return_aftertax_npv;
@@ -595,12 +595,14 @@ optimization_outputs::optimization_outputs()
     feas_secants_i.set(empty_vec_d, "obj_function_secants_f", true, "Feasible objective function secants", "-", "Optimization|Outputs");
     eval_order.set(empty_vec_d, "obj_eval_order", true, "Objective function evaluation order", "-", "Optimization|Outputs");
     wall_time_i.set(empty_vec_d, "obj_wall_time", true, "Clock time for objective function evaluation", "-", "Optimization|Outputs");
+    iteration_history.set(ordered_hash_vector(), "iteration_hitsory", true, "Optimization iteration data", "", "Optimization|Outputs");
 
     (*this)["obj_function_lower_b"] = &eta_i;
     (*this)["obj_function_secants"] = &secants_i;
     (*this)["obj_function_secants_f"] = &feas_secants_i;
     (*this)["obj_eval_order"] = &eval_order;
     (*this)["obj_wall_time"] = &wall_time_i;
+    (*this)["iteration_history"] = &iteration_history;
 }
 
 
@@ -949,6 +951,10 @@ void Project::lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars)
             // }
             case lk::vardata_t::VECTOR:
             {
+                //if empty, continue
+                if (v->second->vec()->empty())
+                    continue;
+
                 //vector needs to contain either another vector or a simple type
                 unsigned char cc = v->second->vec()->front().type();
                 switch(cc)
@@ -1369,6 +1375,8 @@ bool Project::D()
 	m_design_outputs.annual_helio_energy.empty_vector();
 	m_design_outputs.annual_helio_energy.assign_vector(ann_e);
 
+    lk_hash_to_ssc(m_ssc_data, m_design_outputs);
+
 	is_design_valid = true;
 	return true;
 }
@@ -1493,6 +1501,7 @@ bool Project::M()
 	
 	m_solarfield_outputs.n_repairs_per_component.assign_vector(n_per_comp);
 
+    lk_hash_to_ssc(m_ssc_data, m_solarfield_outputs);
 
 	is_sf_avail_valid = true;
 	return true;
@@ -1646,6 +1655,7 @@ bool Project::C()
 	m_simulation_outputs.annual_cycle_ramp.assign(cycle_ramp*1.e-6);
 	m_simulation_outputs.cycle_ramp_index.assign(cycle_ramp_index * 100);
 
+    lk_hash_to_ssc(m_ssc_data, m_simulation_outputs);
 
 	is_cycle_avail_valid = true;
 
@@ -1771,6 +1781,8 @@ bool Project::O()
 	m_optical_outputs.degr_schedule.assign_vector(od.m_results.degr_schedule, od.m_results.n_schedule);
 	m_optical_outputs.repl_total.assign_vector(od.m_results.repl_total, od.m_results.n_schedule);
 
+    lk_hash_to_ssc(m_ssc_data, m_optical_outputs);
+
 	is_sf_optical_valid = true;
 	return true;
 }
@@ -1825,11 +1837,14 @@ bool Project::S()
 
 
 	//--- Set ssc parameters
+    lk_hash_to_ssc(m_ssc_data, m_parameters);
+    lk_hash_to_ssc(m_ssc_data, m_variables);
+
 	ssc_number_t val, nhel, helio_height, helio_width, dens_mirror;
-	ssc_data_set_number(m_ssc_data, "P_ref", m_variables.P_ref.as_number());
-	ssc_data_set_number(m_ssc_data, "flux_max", 1000.0);
+	//ssc_data_set_number(m_ssc_data, "P_ref", m_variables.P_ref.as_number());
+	//ssc_data_set_number(m_ssc_data, "flux_max", 1000.0);
 	ssc_data_set_number(m_ssc_data, "field_model_type", 3);
-	ssc_data_set_number(m_ssc_data, "is_ampl_engine", m_parameters.is_ampl_engine.as_boolean());
+	//ssc_data_set_number(m_ssc_data, "is_ampl_engine", m_parameters.is_ampl_engine.as_boolean());
 	if (m_parameters.is_ampl_engine.as_boolean())
 		ssc_data_set_string(m_ssc_data, "ampl_data_dir", m_parameters.ampl_data_dir.as_string().c_str());
 	else
@@ -1861,7 +1876,7 @@ bool Project::S()
 
 	ssc_data_set_number(m_ssc_data, "allow_controller_exceptions", 0);
 
-
+    
 
 
 	//--- Run ssc simulation.  Cycle availability model will be run separately 
@@ -1937,7 +1952,8 @@ bool Project::S()
 		is_cycle_avail_valid = is_simulation_valid;	
 	}
 
-
+    lk_hash_to_ssc(m_ssc_data, m_simulation_outputs);
+    
 	return is_simulation_valid;
 }
 
@@ -1994,6 +2010,8 @@ bool Project::E()
 	m_explicit_outputs.heliostat_wash_cost_real.assign(heliostat_wash_cost);
 
 	m_explicit_outputs.heliostat_wash_capital_cost.assign(heliostat_wash_capital_cost);
+
+    lk_hash_to_ssc(m_ssc_data, m_explicit_outputs);
 
 	is_explicit_valid = true;
 
@@ -2073,152 +2091,163 @@ bool Project::F()
 
 	is_financial_valid = true;
 
+    lk_hash_to_ssc(m_ssc_data, m_financial_outputs);
+
 	return is_financial_valid;
 }
 
 bool Project::Z()
 {
 
-	// Check for existing simulations 
-	// Design
-	if (!is_design_valid)
-	{
-		is_sf_avail_valid = false;
-		is_sf_optical_valid = false;
-		is_simulation_valid = false;
-		is_cycle_avail_valid = false;
-		is_explicit_valid = false;
-		is_financial_valid = false;
-		D();
-	}
-	else
-		message_handler("Using existing solar field design in objective function");
+    try
+    {
 
-	// Availability
-	if (!is_sf_avail_valid)
-	{
-		is_sf_optical_valid = false;
-		is_simulation_valid = false;
-		is_cycle_avail_valid = false;
-		is_financial_valid = false;
-		M();
-	}		
-	else
-		message_handler("Using existing heliostat field availability results in objective function");
+        // Check for existing simulations 
+        // Design
+        if (!is_design_valid)
+        {
+            is_sf_avail_valid = false;
+            is_sf_optical_valid = false;
+            is_simulation_valid = false;
+            is_cycle_avail_valid = false;
+            is_explicit_valid = false;
+            is_financial_valid = false;
+            D();
+        }
+        else
+            message_handler("Using existing solar field design in objective function");
 
-
-	// Degradiation/soiling
-	if (!is_sf_optical_valid)
-	{
-		is_simulation_valid = false;
-		is_cycle_avail_valid = false;
-		is_financial_valid = false;
-		O();
-	}
-	else
-		message_handler("Using existing heliostat field soiling/degradation results in objective function");
-
-	// Simulation and cycle availability
-	if (!is_simulation_valid)
-	{
-		is_cycle_avail_valid = false;
-		is_financial_valid = false;
-		S();
-	}
-	else
-		message_handler("Using existing annual performance and cycle availability results in objective function");
-
-	// Cycle efficiency/capacity
-	if (!is_cycle_avail_valid)
-	{
-		is_financial_valid = false;
-		C();		// simulates cycle availabiltiy and de-rates generation/revenue based on availability (averaged over scenarios and simulated years)
-	}
-	else
-		message_handler("Using existing cycle availability results in objective function");
-	
-
-	// Explicit cost terms
-	if (!is_explicit_valid)
-	{
-		is_financial_valid = false;
-		E();
-	}
-	else
-		message_handler("Using existing cost results in objective function");
+        // Availability
+        if (!is_sf_avail_valid)
+        {
+            is_sf_optical_valid = false;
+            is_simulation_valid = false;
+            is_cycle_avail_valid = false;
+            is_financial_valid = false;
+            M();
+        }
+        else
+            message_handler("Using existing heliostat field availability results in objective function");
 
 
-	// Financial simulation
-	if (!is_financial_valid)
-		F();
-	else
-		message_handler("Using existing financial results in objective function");
+        // Degradiation/soiling
+        if (!is_sf_optical_valid)
+        {
+            is_simulation_valid = false;
+            is_cycle_avail_valid = false;
+            is_financial_valid = false;
+            O();
+        }
+        else
+            message_handler("Using existing heliostat field soiling/degradation results in objective function");
+
+        // Simulation and cycle availability
+        if (!is_simulation_valid)
+        {
+            is_cycle_avail_valid = false;
+            is_financial_valid = false;
+            S();
+        }
+        else
+            message_handler("Using existing annual performance and cycle availability results in objective function");
+
+        //// Cycle efficiency/capacity
+        //if (!is_cycle_avail_valid)
+        //{
+        //	is_financial_valid = false;
+        //	C();		// simulates cycle availabiltiy and de-rates generation/revenue based on availability (averaged over scenarios and simulated years)
+        //}
+        //else
+        //	message_handler("Using existing cycle availability results in objective function");
 
 
-	//-- Capital costs -> all already defined in outputs from E() and D()
-	m_objective_outputs.cost_receiver_real.assign(m_explicit_outputs.cost_receiver_real.as_number()); // E
-	m_objective_outputs.cost_tower_real.assign(m_explicit_outputs.cost_tower_real.as_number());		  // E
-	m_objective_outputs.cost_plant_real.assign(m_explicit_outputs.cost_plant_real.as_number());		  // E
-	m_objective_outputs.cost_tes_real.assign(m_explicit_outputs.cost_tes_real.as_number());			  // E
-	m_objective_outputs.cost_land_real.assign(m_design_outputs.cost_land_real.as_number());			  // D
-	m_objective_outputs.cost_sf_real.assign(m_design_outputs.cost_sf_real.as_number());				  // D
-	m_objective_outputs.heliostat_wash_capital_cost.assign(m_explicit_outputs.heliostat_wash_capital_cost.as_number()); //E
-
-	double cap_cost = m_objective_outputs.cost_receiver_real.as_number() +
-					m_objective_outputs.cost_tower_real.as_number() +
-					m_objective_outputs.cost_plant_real.as_number() +
-					m_objective_outputs.cost_tes_real.as_number() +
-					m_objective_outputs.cost_land_real.as_number() +
-					m_objective_outputs.cost_sf_real.as_number() + 
-					m_objective_outputs.heliostat_wash_capital_cost.as_number();
-
-	m_objective_outputs.cap_cost_real.assign(cap_cost);
+        // Explicit cost terms
+        if (!is_explicit_valid)
+        {
+            is_financial_valid = false;
+            E();
+        }
+        else
+            message_handler("Using existing cost results in objective function");
 
 
-	//-- O&M costs
-	m_objective_outputs.heliostat_om_labor_real.assign(m_explicit_outputs.heliostat_om_labor_real.as_number());				// E
-	m_objective_outputs.heliostat_wash_cost_real.assign(m_explicit_outputs.heliostat_wash_cost_real.as_number());			// E
-	m_objective_outputs.heliostat_repair_cost_real.assign(m_solarfield_outputs.heliostat_repair_cost.as_number());		// M
-	m_objective_outputs.heliostat_refurbish_cost_real.assign(m_optical_outputs.heliostat_refurbish_cost.as_number());	// O
-
-	double rec_start_cost_y1 = m_simulation_outputs.annual_rec_starts.as_number() * m_parameters.disp_rsu_cost.as_number();
-	double cycle_start_cost_y1 = m_simulation_outputs.annual_cycle_starts.as_number() * m_parameters.disp_csu_cost.as_number();
-	double cycle_ramp_cost_y1 = m_simulation_outputs.annual_cycle_ramp.as_number() * 1.e6 * m_parameters.disp_pen_delta_w.as_number();
-
-	m_objective_outputs.rec_start_cost_real.assign(calc_real_dollars(rec_start_cost_y1));
-	m_objective_outputs.cycle_start_cost_real.assign(calc_real_dollars(cycle_start_cost_y1));
-	m_objective_outputs.cycle_ramp_cost_real.assign(calc_real_dollars(cycle_ramp_cost_y1));
-
-	m_objective_outputs.cycle_repair_cost_real.assign(m_cycle_outputs.cycle_labor_cost.as_number());  // C
-	
-	double om_cost = m_objective_outputs.heliostat_om_labor_real.as_number() +
-					m_objective_outputs.heliostat_wash_cost_real.as_number() +
-					m_objective_outputs.heliostat_repair_cost_real.as_number() +
-					m_objective_outputs.heliostat_refurbish_cost_real.as_number() +
-					m_objective_outputs.rec_start_cost_real.as_number() +
-					m_objective_outputs.cycle_start_cost_real.as_number() +
-					m_objective_outputs.cycle_ramp_cost_real.as_number() +
-					m_objective_outputs.cycle_repair_cost_real.as_number();
-	
-	m_objective_outputs.om_cost_real.assign(om_cost);
-
-	//-- Revenue
-	ssc_number_t ppa_price_input;
-	ssc_data_get_number(m_ssc_data, "ppa_price_input", &ppa_price_input);
-	double rev = m_simulation_outputs.annual_revenue_units.as_number() * 1.e6 * ppa_price_input;  
-	double sales = calc_real_dollars(rev, true);
-	m_objective_outputs.sales.assign(sales);
-
-	// Cash flow
-	m_objective_outputs.cash_flow.assign(sales - cap_cost - om_cost);
-
-	// Financial model results
-	m_objective_outputs.ppa.assign(m_financial_outputs.ppa.as_number());				// F
-	m_objective_outputs.lcoe_nom.assign(m_financial_outputs.lcoe_nom.as_number());		// F
-	m_objective_outputs.lcoe_real.assign(m_financial_outputs.lcoe_real.as_number());	// F
+        // Financial simulation
+        if (!is_financial_valid)
+            F();
+        else
+            message_handler("Using existing financial results in objective function");
 
 
-	return true;
+        //-- Capital costs -> all already defined in outputs from E() and D()
+        m_objective_outputs.cost_receiver_real.assign(m_explicit_outputs.cost_receiver_real.as_number()); // E
+        m_objective_outputs.cost_tower_real.assign(m_explicit_outputs.cost_tower_real.as_number());		  // E
+        m_objective_outputs.cost_plant_real.assign(m_explicit_outputs.cost_plant_real.as_number());		  // E
+        m_objective_outputs.cost_tes_real.assign(m_explicit_outputs.cost_tes_real.as_number());			  // E
+        m_objective_outputs.cost_land_real.assign(m_design_outputs.cost_land_real.as_number());			  // D
+        m_objective_outputs.cost_sf_real.assign(m_design_outputs.cost_sf_real.as_number());				  // D
+        m_objective_outputs.heliostat_wash_capital_cost.assign(m_explicit_outputs.heliostat_wash_capital_cost.as_number()); //E
+
+        double cap_cost = m_objective_outputs.cost_receiver_real.as_number() +
+            m_objective_outputs.cost_tower_real.as_number() +
+            m_objective_outputs.cost_plant_real.as_number() +
+            m_objective_outputs.cost_tes_real.as_number() +
+            m_objective_outputs.cost_land_real.as_number() +
+            m_objective_outputs.cost_sf_real.as_number() +
+            m_objective_outputs.heliostat_wash_capital_cost.as_number();
+
+        m_objective_outputs.cap_cost_real.assign(cap_cost);
+
+
+        //-- O&M costs
+        m_objective_outputs.heliostat_om_labor_real.assign(m_explicit_outputs.heliostat_om_labor_real.as_number());				// E
+        m_objective_outputs.heliostat_wash_cost_real.assign(m_explicit_outputs.heliostat_wash_cost_real.as_number());			// E
+        m_objective_outputs.heliostat_repair_cost_real.assign(m_solarfield_outputs.heliostat_repair_cost.as_number());		// M
+        m_objective_outputs.heliostat_refurbish_cost_real.assign(m_optical_outputs.heliostat_refurbish_cost.as_number());	// O
+
+        double rec_start_cost_y1 = m_simulation_outputs.annual_rec_starts.as_number() * m_parameters.disp_rsu_cost.as_number();
+        double cycle_start_cost_y1 = m_simulation_outputs.annual_cycle_starts.as_number() * m_parameters.disp_csu_cost.as_number();
+        double cycle_ramp_cost_y1 = m_simulation_outputs.annual_cycle_ramp.as_number() * 1.e6 * m_parameters.disp_pen_delta_w.as_number();
+
+        m_objective_outputs.rec_start_cost_real.assign(calc_real_dollars(rec_start_cost_y1));
+        m_objective_outputs.cycle_start_cost_real.assign(calc_real_dollars(cycle_start_cost_y1));
+        m_objective_outputs.cycle_ramp_cost_real.assign(calc_real_dollars(cycle_ramp_cost_y1));
+
+        m_objective_outputs.cycle_repair_cost_real.assign(m_cycle_outputs.cycle_labor_cost.as_number());  // C
+
+        double om_cost = m_objective_outputs.heliostat_om_labor_real.as_number() +
+            m_objective_outputs.heliostat_wash_cost_real.as_number() +
+            m_objective_outputs.heliostat_repair_cost_real.as_number() +
+            m_objective_outputs.heliostat_refurbish_cost_real.as_number() +
+            m_objective_outputs.rec_start_cost_real.as_number() +
+            m_objective_outputs.cycle_start_cost_real.as_number() +
+            m_objective_outputs.cycle_ramp_cost_real.as_number() +
+            m_objective_outputs.cycle_repair_cost_real.as_number();
+
+        m_objective_outputs.om_cost_real.assign(om_cost);
+
+        //-- Revenue
+        ssc_number_t ppa_price_input;
+        ssc_data_get_number(m_ssc_data, "ppa_price_input", &ppa_price_input);
+        double rev = m_simulation_outputs.annual_revenue_units.as_number() * 1.e6 * ppa_price_input;
+        double sales = calc_real_dollars(rev, true);
+        m_objective_outputs.sales.assign(sales);
+
+        // Cash flow
+        m_objective_outputs.cash_flow.assign(sales - cap_cost - om_cost);
+
+        // Financial model results
+        m_objective_outputs.ppa.assign(m_financial_outputs.ppa.as_number());				// F
+        m_objective_outputs.lcoe_nom.assign(m_financial_outputs.lcoe_nom.as_number());		// F
+        m_objective_outputs.lcoe_real.assign(m_financial_outputs.lcoe_real.as_number());	// F
+
+
+        return true;
+    }
+    catch (...)
+    {
+        message_handler("Objective evaluation failed.");
+        return false;
+    }
 
 }
 
