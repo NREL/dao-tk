@@ -350,8 +350,8 @@ void _test(lk::invoke_t &cxt)
     P->m_parameters.degr_accel_per_year.assign(0.);
 
     //P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
-    P->m_parameters.solar_resource_file.assign( "C:/Users/mwagner/Documents/NREL/projects/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
-	//P->m_parameters.solar_resource_file.assign( "C:/Users/AZOLAN/Documents/GitHub/daotk_dev/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+    //P->m_parameters.solar_resource_file.assign( "C:/Users/mwagner/Documents/NREL/projects/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+	P->m_parameters.solar_resource_file.assign( "C:/Users/AZOLAN/Documents/GitHub/daotk_dev/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
 
 	/*
 	P->m_parameters.sim_length.assign( 720 );
@@ -439,7 +439,8 @@ void _power_cycle(lk::invoke_t &cxt)
 		"shutdown_capacity, no_restart_capacity, shutdown_efficiency, "
 		"no_restart_efficiency, num_condenser_trains, fans_per_train, "
 		"radiators_per_train, num_salt_steam_trains, num_fwh, num_salt_pumps, "
-		"num_salt_pumps_required, num_water_pumps, num_turbines,"
+		"num_salt_pumps_required, num_water_pumps, num_water_pumps_required, "
+		"num_boiler_pumps, num_boiler_pumps_required, num_turbines,"
 		" condenser_eff_cold, condenser_eff_hot", "(table:cycle_inputs):table");
 
 	MainWindow &mw = MainWindow::Instance();
@@ -560,17 +561,29 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("num_fwh") != h->end())
 		num_fwh = h->at("num_fwh")->as_integer();
 
-	int num_salt_pumps = 4;
+	int num_salt_pumps = 3;
 	if (h->find("num_salt_pumps") != h->end())
 		num_salt_pumps = h->at("num_salt_pumps")->as_integer();
 
-	int num_salt_pumps_required = 3;
+	int num_salt_pumps_required = 2;
 	if (h->find("num_salt_pumps_required") != h->end())
 		num_salt_pumps_required = h->at("num_salt_pumps_required")->as_integer();
 
 	int num_water_pumps = 2;
 	if (h->find("num_water_pumps") != h->end())
 		num_water_pumps = h->at("num_water_pumps")->as_integer();
+
+	int num_water_pumps_required = 1;
+	if (h->find("num_water_pumps_required") != h->end())
+		num_water_pumps_required = h->at("num_water_pumps_required")->as_integer();
+
+	int num_boiler_pumps = 2;
+	if (h->find("num_boiler_pumps") != h->end())
+		num_boiler_pumps = h->at("num_boiler_pumps")->as_integer();
+
+	int num_boiler_pumps_required = 1;
+	if (h->find("num_boiler_pumps_required") != h->end())
+		num_boiler_pumps_required = h->at("num_boiler_pumps_required")->as_integer();
 
 	int num_turbines = 1;
 	if (h->find("num_turbines") != h->end())
@@ -611,6 +624,9 @@ void _power_cycle(lk::invoke_t &cxt)
 		num_salt_pumps,
 		num_salt_pumps_required,
 		num_water_pumps,
+		num_water_pumps_required,
+		num_boiler_pumps_required,
+		num_boiler_pumps_required,
 		num_turbines,
 		condenser_eff_cold,
 		condenser_eff_hot

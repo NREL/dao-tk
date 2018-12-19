@@ -5,6 +5,8 @@
 #include <vector>
 #include <random>
 
+#include "./../libcycle/distributions.h"
+
 
 enum helio_status {
 	OPERATIONAL,   // Operational
@@ -57,11 +59,11 @@ public:
 	~solarfield_helio_component() {};
 
 	void set_scale(double scale);
-	void set_time_to_next_failure(std::default_random_engine &gen);
-	void set_time_to_repair(std::default_random_engine &gen);
+	void set_time_to_next_failure(WELLFiveTwelve &gen);
+	void set_time_to_repair(WELLFiveTwelve &gen);
 
 	bool test_for_failure(double timestep);
-	void fail(std::default_random_engine &gen);
+	void fail(WELLFiveTwelve &gen);
 	void operate(double timestep);
 	void repair(double repair_time);
 
@@ -116,7 +118,7 @@ public:
 		m_components.clear();
 	};
 
-	void initialize(const std::vector<helio_component_inputs> & components, std::default_random_engine &gen, double scale = 1.0, double performance = 1.0);
+	void initialize(const std::vector<helio_component_inputs> & components, WELLFiveTwelve &gen, double scale = 1.0, double performance = 1.0);
 
 	int get_n_components();
 	unsigned int get_operational_state();
@@ -127,7 +129,7 @@ public:
 	std::vector<int> get_failed_components();
 	std::vector<solarfield_helio_component *> get_components();
 
-	void fail(double timestep, std::default_random_engine &gen);
+	void fail(double timestep, WELLFiveTwelve &gen);
 	void operate(double timestep);
 	int repair(double timestep);
 

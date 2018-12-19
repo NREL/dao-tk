@@ -68,7 +68,7 @@ void solarfield_staff_member::add_time_worked(double time)
 solarfield_repair_staff::solarfield_repair_staff()
 {
 	m_members.clear();
-	m_repair_order = MEAN_REPAIR_TIME;
+	m_repair_order = PERF_INC_RATE;
 	m_is_prioritize_partial_repairs = true;
 	m_n_staff = 0;
 	m_max_hours_per_day = std::numeric_limits<double>::quiet_NaN();
@@ -112,7 +112,7 @@ void solarfield_repair_staff::add_member(double fraction = 1.0)
 
 
 
-void solarfield_repair_staff::add_to_queue(solarfield_heliostat *h, std::default_random_engine &gen)
+void solarfield_repair_staff::add_to_queue(solarfield_heliostat *h, WELLFiveTwelve &gen)
 {
 	int nq = (int)m_queue.size();
 	m_total_repair_time += h->get_total_repair_time();
@@ -167,8 +167,13 @@ void solarfield_repair_staff::add_to_queue(solarfield_heliostat *h, std::default
 			}
 			else if (m_repair_order == RANDOM)	// Add at random position
 			{
-				std::uniform_real_distribution<double> uniform((double)jmin, (double)jmax);
-				j = (int)round(uniform(gen));
+				j = (int)round(jmin + gen.getVariate() * (jmax-jmin));
+			}
+			else if (m_repair_order == PERF_INC_RATE) // Prioritize repairs in order from largest to smallest expected rate of increased performance
+			{
+				double rate_inc = h->get_performance() / h->get_mean_repair_time();
+				while (j > jmin && m_queue[j - 1]->get_performance() / m_queue[j - 1]->get_mean_repair_time() < rate_inc)
+					j--;
 			}
 		}
 
@@ -198,7 +203,7 @@ void solarfield_repair_staff::assign_from_queue(int staff_index, int queue_index
 	return;
 }
 
-void solarfield_repair_staff::assign_to_queue(int staff_index, std::default_random_engine &gen)
+void solarfield_repair_staff::assign_to_queue(int staff_index, WELLFiveTwelve &gen)
 {
 	solarfield_staff_member *st = m_members[staff_index];
 	solarfield_heliostat* hel = st->m_helio_assigned;

@@ -68,12 +68,11 @@ void solarfield_helio_component::set_scale(double scale)
 	return;
 }
 
-void solarfield_helio_component::set_time_to_next_failure(std::default_random_engine &gen)
+void solarfield_helio_component::set_time_to_next_failure(WELLFiveTwelve &gen)
 {
 	double tf = std::numeric_limits<double>::quiet_NaN();  
 
-	std::uniform_real_distribution<double> uniform(0., 1.0);
-	double r = uniform(gen);
+	double r = gen.getVariate();
 
 	if (m_properties.m_beta == 1.0)
 		tf = -m_properties.m_eta * log(1.0 - r);
@@ -89,10 +88,9 @@ void solarfield_helio_component::set_time_to_next_failure(std::default_random_en
 	return;
 }
 
-void solarfield_helio_component::set_time_to_repair(std::default_random_engine &gen)
+void solarfield_helio_component::set_time_to_repair(WELLFiveTwelve &gen)
 {
-	std::uniform_real_distribution<double> uniform(0., 1.0);
-	double r = uniform(gen);
+	double r = gen.getVariate();
 	double time = -m_properties.m_mean_repair_time * log(1.0 - r);  // Exponential distribution of repair times
 
 	time = fmax(time, m_properties.m_min_repair_time);
@@ -108,7 +106,7 @@ bool solarfield_helio_component::test_for_failure(double timestep)
 	return time_remain <= 0;
 }
 
-void solarfield_helio_component::fail(std::default_random_engine &gen)
+void solarfield_helio_component::fail(WELLFiveTwelve &gen)
 {
 	m_status = FAILED;
 	m_age_at_last_failure = m_operational_age;
@@ -199,7 +197,7 @@ void solarfield_heliostat::add_component(const helio_component_inputs &inputs)
 	return;
 }
 
-void solarfield_heliostat::initialize(const std::vector<helio_component_inputs> & components, std::default_random_engine &gen, double scale, double performance)
+void solarfield_heliostat::initialize(const std::vector<helio_component_inputs> & components, WELLFiveTwelve &gen, double scale, double performance)
 {
 	m_n_components = (int)components.size();
 	m_status = OPERATIONAL;
@@ -284,7 +282,7 @@ std::vector<int> solarfield_heliostat::get_failed_components()
 
 
 
-void solarfield_heliostat::fail(double timestep, std::default_random_engine &gen)
+void solarfield_heliostat::fail(double timestep, WELLFiveTwelve &gen)
 {
 	m_status = FAILED;
 	m_repair_time_remaining = 0.0;

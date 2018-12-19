@@ -42,9 +42,9 @@ void PowerCycle::InitializeCyclingDists()
 	/*
 	Sets distributions from which cycling penalties are generated.
 	*/
-	m_hs_dist = BoundedJohnsonDist(1.044471, 0.256348, 4.137E-5, 5.163E-4, "BoundedJohnson");
-	m_ws_dist = BoundedJohnsonDist(2.220435, 0.623145, 2.914E-5, 1.773E-3, "BoundedJohnson");
-	m_cs_dist = BoundedJohnsonDist(0.469391, 0.581813, 3.691E-5, 2.369E-4, "BoundedJohnson");
+	m_hs_dist = BoundedJohnsonDist(1.044471, 0.256348, 2.0685E-3, 2.5815E-2, "BoundedJohnson");
+	m_ws_dist = BoundedJohnsonDist(2.220435, 0.623145, 1.457E-3, 8.865E-2, "BoundedJohnson");
+	m_cs_dist = BoundedJohnsonDist(0.469391, 0.581813, 1.8455E-3, 1.1845E-2, "BoundedJohnson");
 }
 
 void PowerCycle::AssignGenerators( 
@@ -198,9 +198,12 @@ void PowerCycle::ClearComponents()
 	m_num_feedwater_heaters = 0;
 	m_num_salt_pumps = 0;
 	m_num_salt_pumps_required = 0;
+	m_num_water_pumps = 0;
+	m_num_water_pumps_required = 0;
+	m_num_boiler_pumps = 0;
+	m_num_boiler_pumps_required = 0;
 	m_num_salt_steam_trains = 0;
 	m_num_turbines = 0;
-	m_num_water_pumps = 0;
 	m_condenser_efficiencies_cold.clear();
 	m_condenser_efficiencies_hot.clear();
 }
@@ -393,7 +396,6 @@ void PowerCycle::WriteStateToFiles()
 		+ "b.csv",
 		3 * m_current_scenario + 2
 	);
-	WriteFailuresFile();
 	WriteCapEffFile();
 }
 
@@ -406,9 +408,10 @@ void PowerCycle::WritePlantLayoutFile()
 		);
 	std::ofstream ofile;
 	ofile.open(filename);
-	ofile << "num_condener_trains,fans_per_train,radiators_per_train,"
-		<< "num_salt_steam_trains,num_fwh,num_salt_pumps,"
-		<< "num_salt_pumps_required,num_water_pumps,num_turbines\n";
+	ofile << "num_condener_trains, fans_per_train, radiators_per_train, "
+		<< "num_salt_steam_trains, num_fwh, num_salt_pumps, "
+		<< "num_salt_pumps_required, num_water_pumps, num_water_pumps_required, "
+		<< "num_boiler_pumps, num_boiler_pumps_required, num_turbines\n";
 	ofile << m_num_condenser_trains << ","
 		<< m_fans_per_condenser_train << ","
 		<< m_radiators_per_condenser_train << ","
@@ -416,7 +419,10 @@ void PowerCycle::WritePlantLayoutFile()
 		<< m_num_feedwater_heaters << ","
 		<< m_num_salt_pumps << ","
 		<< m_num_salt_pumps_required << ","
-		<< m_num_water_pumps << ","
+		<< m_num_water_pumps << "," 
+		<< m_num_water_pumps_required << ","
+		<< m_num_boiler_pumps << ","
+		<< m_num_boiler_pumps_required << ","
 		<< m_num_turbines << "\n";
 	for (size_t i = 0; i < m_condenser_efficiencies_cold.size()-1; i++)
 	{
@@ -525,7 +531,14 @@ void PowerCycle::WriteFailuresFile()
 		".csv"
 		);
 	std::ofstream ofile;
-	ofile.open(failure_filename);
+	if (m_file_settings.day_idx == 0)
+	{
+		ofile.open(failure_filename);
+	}
+	else
+	{
+		ofile.open(failure_filename, std::ios::app);
+	}
 	for (size_t i = 0; i < m_failure_event_labels.size(); i++)
 	{
 		ofile << m_failure_event_labels.at(i) << ","
@@ -606,6 +619,7 @@ void PowerCycle::WriteAMPLParams(int extra_periods)
 		outfile << (i + 1) << "  " << m_results.cycle_capacity[m_current_scenario].at(m_sim_params.sim_length - 1) << "\n";
 	}
 	outfile << ";\n\n";
+	/*
 	outfile << "param x_fixed := \n";
 	double x;
 	for (int i = 0; i < m_sim_params.sim_length; i++)
@@ -627,16 +641,62 @@ void PowerCycle::WriteAMPLParams(int extra_periods)
 
 
 	outfile.close();
+	*/
 }
 
 void PowerCycle::WriteAMPLParamsToDefault()
 {
+	/*
 	//create empty MxSim.dat file so that dispatch defaults are use (i.e., param last_fixed_period := -1, Fcap = Feff = 1)
 		std::string filename = "MxSim.dat";
 		std::ofstream outfile;
 		outfile.open(filename);
 		outfile.close();
+	*/
 	
+	
+	//write first 24 hours of effective capacity and efficiency for use with first run of next day (for ongoing repairs)
+	/*
+	Writes the cycle efficiency and capacity over time, to file.
+	*/
+	std::string filename = (
+		m_file_settings.ampl_param_file
+		);
+	filename += ".dat";
+	std::ofstream outfile;
+	outfile.open(filename);
+	outfile << "param Feff := \n";
+	//for (int i = 0; i < m_sim_params.sim_length; i++)
+	//{
+	//	outfile << (i + 1) << "  " << m_results.cycle_efficiency[m_current_scenario].at(i) << "\n";
+	//}
+	int ctr = 1;
+	for (
+		int i = m_sim_params.sim_length;
+		i < m_sim_params.sim_length + 24;
+		i++
+		)
+	{
+		outfile << (ctr) << "  " << m_results.cycle_efficiency[m_current_scenario].at(m_sim_params.sim_length-1) << "\n";
+		ctr++;
+	}
+	outfile << ";\n\n";
+	outfile << "param Fcap := \n";
+	//for (int i = 0; i < m_sim_params.sim_length; i++)
+	//{
+	//	outfile << (i + 1) << "  " << m_results.cycle_capacity[m_current_scenario].at(i) << "\n";
+	//}
+	ctr = 1;
+	for (
+		int i = m_sim_params.sim_length;
+		i < m_sim_params.sim_length + 24;
+		i++
+		)
+	{
+		outfile << (ctr) << "  " << m_results.cycle_capacity[m_current_scenario].at(m_sim_params.sim_length - 1) << "\n";
+		ctr++;
+	}
+	outfile << ";\n\n";
 }
 
 void PowerCycle::WriteCapEffFile()
@@ -673,6 +733,42 @@ void PowerCycle::WriteCapEffFile()
 	ofile.close();
 }
 
+void PowerCycle::WriteFinalEffFile()
+{
+	/*
+	The efficiency file contains the final efficiency per period for the entire time horizon.
+	This file is used by ssc to lower power generated during efficiency reductions.
+	*/
+	
+	std::string final_cap_eff_file = ("final_eff.csv");
+	std::ofstream ofile;
+	if (m_file_settings.day_idx == 0){
+		ofile.open(final_cap_eff_file, std::ofstream::trunc);
+	} else ofile.open(final_cap_eff_file, std::ofstream::app);
+	
+	//capacity and efficiency time series
+	for (size_t i = 0; i < m_results.cycle_efficiency[m_current_scenario].size(); i++)
+	{
+		ofile << m_results.cycle_efficiency[m_current_scenario].at(i) << ",";
+	}
+	ofile.close();
+}
+
+void PowerCycle::WriteFailureStats()
+{
+	std::ofstream ofile;
+	if (m_file_settings.day_idx == 0) 
+	{
+		ofile.open(m_file_settings.num_failures_file+".csv", std::ofstream::trunc);
+	}
+	else 
+	{
+		ofile.open(m_file_settings.num_failures_file + ".csv", std::ofstream::app);
+	}
+	ofile << m_file_settings.day_idx << "," << m_failure_event_labels.size() << "\n";
+	ofile.close();
+}
+
 void PowerCycle::ReadStateFromFiles(bool init)
 {
 	ReadSimParamsFile();
@@ -688,7 +784,7 @@ void PowerCycle::ReadStateFromFiles(bool init)
 	}
 	ReadComponentFile();
 	ReadPlantFile();
-	ReadFailuresFromFile();
+	//ReadFailuresFromFile();
 	ReadCapEffFile();
 	m_life_gen->ReadRNGStateFile(
 		m_file_settings.rng_state_filename
@@ -746,7 +842,10 @@ void PowerCycle::ReadPlantLayoutFile()
 	int num_salt_pumps = std::stoi(split_line[5]);
 	int num_salt_pumps_required = std::stoi(split_line[6]);
 	int num_water_pumps = std::stoi(split_line[7]);
-	int num_turbines = std::stoi(split_line[8]);
+	int num_water_pumps_required = std::stoi(split_line[8]);
+	int num_boiler_pumps = std::stoi(split_line[9]);
+	int num_boiler_pumps_required = std::stoi(split_line[10]);
+	int num_turbines = std::stoi(split_line[11]);
 	split_line.clear();
 	//condener efficiencies cold
 	getline(pfile, pline);
@@ -790,6 +889,9 @@ void PowerCycle::ReadPlantLayoutFile()
 		num_salt_pumps,
 		num_salt_pumps_required,
 		num_water_pumps,
+		num_water_pumps_required,
+		num_boiler_pumps,
+		num_boiler_pumps_required, 
 		num_turbines,
 		eff_cold,
 		eff_hot
@@ -1487,6 +1589,10 @@ void PowerCycle::AddComponent(
 		m_sst_idx.push_back(m_components.size() - 1);
 	else if (type == "Molten salt pump")
 		m_salt_pump_idx.push_back(m_components.size() - 1);
+	else if (type == "Water pump")
+		m_water_pump_idx.push_back(m_components.size() - 1);
+	else if (type == "Boiler pump")
+		m_boiler_pump_idx.push_back(m_components.size() - 1);
 }
 
 void PowerCycle::AddFailureType(std::string component, std::string id, std::string failure_mode,
@@ -1576,7 +1682,7 @@ void PowerCycle::AddSaltToSteamTrains(int num_trains)
 	{
 		m_num_salt_steam_trains += 1;
 		component_name = "SST" + std::to_string(m_num_salt_steam_trains);
-		AddComponent(component_name, "Salt-to-steam train", 2.14, 72, capacity_reduction, 0., 7.777, "A");
+		AddComponent(component_name, "Salt-to-steam train", 192., 72., capacity_reduction, 0., 7.777, "A");
 		AddFailureType(component_name, "Boiler External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
 		AddFailureType(component_name, "Boiler External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
 		AddFailureType(component_name, "Boiler External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
@@ -1603,7 +1709,7 @@ void PowerCycle::AddFeedwaterHeaters(int num_fwh)
 	{
 		m_num_feedwater_heaters += 1;
 		component_name = "FWH" + std::to_string(m_num_feedwater_heaters);
-		AddComponent(component_name, "Feedwater heater", 2.14, 48., 0., 0.05, 7.777, "A");
+		AddComponent(component_name, "Feedwater heater", 2.14, 24., 0., 0.05, 7.777, "A");
 		AddFailureType(component_name, "External_Leak_Large_(shell)", "O", "gamma", 0.3, 75000000);
 		AddFailureType(component_name, "External_Leak_Large_(tube)", "O", "gamma", 0.3, 10000000);
 		AddFailureType(component_name, "External_Leak_Small_(shell)", "O", "gamma", 0.5, 10000000);
@@ -1619,7 +1725,7 @@ void PowerCycle::AddSaltPumps(int num_pumps, int num_required)
 	{
 		m_num_salt_pumps += 1;
 		component_name = "SP" + std::to_string(m_num_salt_pumps);
-		AddComponent(component_name, "Molten salt pump", 7.09, 72., 0., 0., 7.777, "A");
+		AddComponent(component_name, "Molten salt pump", 7.09, 24., 0., 0., 7.777, "A");
 		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
 		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
 		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "gamma", 1.5, 3750);
@@ -1630,14 +1736,32 @@ void PowerCycle::AddSaltPumps(int num_pumps, int num_required)
 	}
 }
 
-void PowerCycle::AddWaterPumps(int num_pumps)
+void PowerCycle::AddBoilerPumps(int num_pumps, int num_required)
 {
 	std::string component_name;
+	m_num_boiler_pumps_required = num_required;
+	for (int i = 0; i < num_pumps; i++)
+	{
+		m_num_boiler_pumps += 1;
+		component_name = "BP" + std::to_string(m_num_boiler_pumps);
+		AddComponent(component_name, "Boiler pump", 7.09, 5., 0., 0., 7.777, "D");
+		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
+		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
+		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "gamma", 1.5, 3750);
+		AddFailureType(component_name, "Fail_to_Run_>_1_hour_(standby)", "OO", "gamma", 0.5, 83300);
+		AddFailureType(component_name, "Fail_to_Start_(standby)", "OS", "beta", 0.9, 599);
+	}
+}
+
+void PowerCycle::AddWaterPumps(int num_pumps, int num_required)
+{
+	std::string component_name;
+	m_num_water_pumps_required = num_required;
 	for (int i = 0; i < num_pumps; i++)
 	{
 		m_num_water_pumps += 1;
 		component_name = "WP" + std::to_string(m_num_water_pumps);
-		AddComponent(component_name, "Water pump", 0.5, 0., 1., 1., 7.777, "D");
+		AddComponent(component_name, "Water pump", 7.09, 1., 0., 0., 7.777, "D");
 		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
 		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
 		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "gamma", 1.5, 3750);
@@ -1661,7 +1785,7 @@ void PowerCycle::AddTurbines(int num_turbines)
 	{
 		m_num_turbines += 1;
 		component_name = "T" + std::to_string(m_num_turbines);
-		AddComponent(component_name, "Turbine", 32.7, 72, capacity_reduction, 0., 7.777, "D");
+		AddComponent(component_name, "Turbine", 32.7, 36, capacity_reduction, 0., 7.777, "D");
 		AddFailureType(component_name, "MBTF", "O", "gamma", 1, 51834.31953);
 		//AddFailureType(component_name, "MBTF_High-pressure", "O", "gamma", 1, 51834.31953);
 		//AddFailureType(component_name, "MBTF_Medium-pressure", "O", "gamma", 1, 51834.31953);
@@ -1678,9 +1802,13 @@ void PowerCycle::GeneratePlantComponents(
 	int num_salt_pumps,
 	int num_salt_pumps_required,
 	int num_water_pumps,
+	int num_water_pumps_required,
+	int num_boiler_pumps,
+	int num_boiler_pumps_required,
 	int num_turbines,
 	std::vector<double> condenser_eff_cold,
-	std::vector<double> condenser_eff_hot 
+	std::vector<double> condenser_eff_hot,
+	bool reset_hazard
 )
 {
 	/* 
@@ -1696,6 +1824,9 @@ void PowerCycle::GeneratePlantComponents(
 	num_salt_pumps -- Number of molten salt pumps in power cycle
 	num_salt_pumps_required -- Number of molten salt pumps required to operate power cycle at capacity
 	num_water_pumps -- Number of water pumps in power cycle
+	num_water_pumps_required -- Number of water pumps required to operate power cycle at capacity
+	num_boiler_pumps -- Number of boiler pumps in power cycle
+	num_boiler_pumps_required -- Number of boiler pumps required to operate power cycle at capacity
 	num_turbines -- Number of turbine-generator shafts in power cycle
 	condenser_eff_cold -- Efficiency of condenser according to how many trains are operational for low ambient temperatures 
 	condenser_eff_hot -- Efficiency of condenser according to how many trains are operational for high ambient temperatures 
@@ -1711,10 +1842,16 @@ void PowerCycle::GeneratePlantComponents(
 	AddSaltToSteamTrains(num_salt_steam_trains);
 	AddFeedwaterHeaters(num_fwh);
 	AddSaltPumps(num_salt_pumps, num_salt_pumps_required);
-	AddWaterPumps(num_water_pumps);
+	AddWaterPumps(num_water_pumps, num_water_pumps_required);
+	AddBoilerPumps(num_boiler_pumps, num_boiler_pumps_required);
 	AddTurbines(num_turbines);
 	m_condenser_efficiencies_cold = condenser_eff_cold;
 	m_condenser_efficiencies_hot = condenser_eff_hot;
+	if (reset_hazard)
+	{
+		for (Component c : GetComponents())
+			c.SetResetHazardRatePolicy(reset_hazard);
+	}
 }
 
 void PowerCycle::SetPlantAttributes(
@@ -1848,7 +1985,7 @@ double PowerCycle::GetCondenserEfficiency(double temp)
 		if (m_components.at(i).IsOperational())
 		{
 			num_streams++;
-			for (size_t j = 1; j <= (size_t)m_fans_per_condenser_train; j++)
+			for (size_t j = 1; j <= m_fans_per_condenser_train; j++)
 			{
 				if (!m_components.at(i + j).IsOperational())
 				{
@@ -1961,11 +2098,39 @@ double PowerCycle::GetSaltPumpCapacity()
 	return std::min(1.0, num_pumps_operational / m_num_salt_pumps_required);
 }
 
+double PowerCycle::GetWaterPumpCapacity()
+{
+	double num_pumps_operational = 0.;
+	for (size_t i : m_water_pump_idx)
+	{
+		if (m_components.at(i).IsOperational())
+		{
+			num_pumps_operational += 1;
+		}
+	}
+	return std::min(1.0, num_pumps_operational / m_num_water_pumps_required);
+}
+
+double PowerCycle::GetBoilerPumpCapacity()
+{
+	double num_pumps_operational = 0.;
+	for (size_t i : m_boiler_pump_idx)
+	{
+		if (m_components.at(i).IsOperational())
+		{
+			num_pumps_operational += 1;
+		}
+	}
+	return std::min(1.0, num_pumps_operational / m_num_boiler_pumps_required);
+}
+
 double PowerCycle::GetSaltPumpEfficiency()
 {
 	/*
 	Returns the relative efficiency of all salt pumps that
-	are operational.
+	are operational.  This model assumes that efficiency
+	reductions are only due to reductions in capacity; 
+	hence, we have removed them from consideration.
 	*/
 	return 1.0;
 	/*
@@ -1979,6 +2144,16 @@ double PowerCycle::GetSaltPumpEfficiency()
 	}
 	return 1.0 - 0.035 * std::max(0.0, m_num_salt_pumps_required - num_pumps_operational);
 	*/
+}
+
+double PowerCycle::GetWaterPumpEfficiency()
+{
+	return 1.0;
+}
+
+double PowerCycle::GetBoilerPumpEfficiency()
+{
+	return 1.0;
 }
 
 void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
@@ -2006,8 +2181,12 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
 	double turbine_eff = GetTurbineEfficiency(age, false);
 	double turbine_cap = GetTurbineCapacity(age, false);
 	double sst_cap = GetSaltSteamTrainCapacity();
-	double pump_cap = GetSaltPumpCapacity();
-	double pump_eff = GetSaltPumpEfficiency();
+	double salt_pump_cap = GetSaltPumpCapacity();
+	double salt_pump_eff = GetSaltPumpEfficiency();
+	double water_pump_cap = GetWaterPumpCapacity();
+	double water_pump_eff = GetWaterPumpEfficiency();
+	double boiler_pump_cap = GetBoilerPumpCapacity();
+	double boiler_pump_eff = GetBoilerPumpEfficiency();
 	double rem_eff = 1.0;
 	double rem_cap = 1.0;
 	for (size_t i = 0; i < m_components.size(); i++)
@@ -2021,14 +2200,18 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
 	//efficiency and capacity reductions assumed equal for all components but
 	//turbines and salt-to-steam trains
 	m_cycle_capacity = std::max(0., 
-		std::min(pump_cap,
-			std::min(turbine_cap,
-				std::min(sst_cap, rem_cap)
+		std::min(salt_pump_cap,
+			std::min(water_pump_cap,
+				std::min(boiler_pump_cap,
+					std::min(turbine_cap,
+						std::min(sst_cap, rem_cap)
+					)
+				)
 			) 
 		) 
 	);
 	m_cycle_efficiency = std::max(
-		0., pump_eff*turbine_eff*condenser_eff*rem_eff
+		0., salt_pump_eff*water_pump_eff*boiler_pump_eff*turbine_eff*condenser_eff*rem_eff
 	); 
 }
 
@@ -2054,12 +2237,13 @@ void PowerCycle::TestForComponentFailures(double ramp_mult, int t, std::string s
 	mode -- string indicating operating mode (e.g., Offline, Standby)
 	*/
 	double hazard_increase = 0.;
+	double hazard_multiplier = 100.; // multiplier due to NREL Cycling Cost EFOR being too low
 	if (start == "HotStart")
-		hazard_increase = m_current_cycle_state.hot_start_penalty;
+		hazard_increase = m_current_cycle_state.hot_start_penalty*hazard_multiplier;
 	else if (start == "WarmStart")
-		hazard_increase = m_current_cycle_state.warm_start_penalty;
+		hazard_increase = m_current_cycle_state.warm_start_penalty*hazard_multiplier;
 	else if (start == "ColdStart")
-		hazard_increase = m_current_cycle_state.cold_start_penalty;
+		hazard_increase = m_current_cycle_state.cold_start_penalty*hazard_multiplier;
 	for (size_t i = 0; i < m_components.size(); i++)
 		m_components.at(i).TestForFailure(
 			m_sim_params.steplength, ramp_mult, *m_life_gen, 
@@ -2277,23 +2461,19 @@ std::string PowerCycle::GetOperatingMode(int t)
 	if (power_out > m_sim_params.epsilon)
 	{
 		if (IsOnline())
-        {
 			if (m_current_cycle_state.time_online <= 1.0 - m_sim_params.epsilon)
 				return "OF"; //in the first hour of power cycle operation
 			else
 				return "OO"; //ongoing (>1 hour) power cycle operation
-        }
 		return "OS";  //starting power cycle operation
 	}
 	else if (standby >= 0.5)
 	{
 		if (IsOnStandby())
-        {
 			if (m_current_cycle_state.time_in_standby <= 1.0 - m_sim_params.epsilon)
 				return "SF"; //in first hour of standby
 			else
 				return "SO"; // ongoing standby (>1 hour)
-        }
 		return "SS";  // if not currently on standby, then starting standby
 	}
 	return "OFF";
@@ -2323,8 +2503,7 @@ void PowerCycle::ReadInComponentFailures(int t)
 				m_components.at(j).ReadFailure(
 					m_failure_events[label].duration,
 					m_failure_events[label].new_life,
-					m_failure_events[label].fail_idx,
-					true //we reset all hazard rates after repair; may revisit
+					m_failure_events[label].fail_idx
 				);
 
 				if (m_sim_params.print_output)
@@ -2654,7 +2833,11 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory,
 		StoreCycleState();
 		m_results.period_of_last_failure[m_current_scenario] = -1;
 		m_results.period_of_last_repair[m_current_scenario] = -1;
-		//JW: this is where you'd output failures to file.
+		if (m_file_settings.output_to_files)
+		{
+			WriteFailureStats();
+			WriteFailuresFile();
+		}
 		ClearFailureEvents();
 	}
 	if (m_file_settings.output_ampl_file)

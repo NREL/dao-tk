@@ -2,13 +2,15 @@
 #define _SF_STAFFH_
 
 #include "solarfield_heliostat.h"
+#include "./../libcycle/distributions.h"
 
 enum repair_order {
 	FAILURE_ORDER,		// Repair in order failed
 	PERFORMANCE,		// Prioritize repairs based on highest to lowest heliostat performance
 	REPAIR_TIME,		// Prioritize repairs in order from shortest to longest repair time
 	MEAN_REPAIR_TIME,	// Prioritize repairs in order from shortest to longest mean repair time
-	RANDOM				// Random prioritization of repairs
+	RANDOM,				// Random prioritization of repairs
+	PERF_INC_RATE       // Prioritize repairs in order from largest to smallest expected rate of increased performance
 };
 
 
@@ -73,9 +75,9 @@ public:
 	solarfield_repair_staff(int nstaff, double max_per_day, double max_per_week, const std::vector<double> &time_fraction);
 	void add_member(double fraction);
 
-	void add_to_queue(solarfield_heliostat *h, std::default_random_engine &gen);
+	void add_to_queue(solarfield_heliostat *h, WELLFiveTwelve &gen);
 	void assign_from_queue(int staff_index, int queue_index);
-	void assign_to_queue(int staff_index, std::default_random_engine &gen);
+	void assign_to_queue(int staff_index, WELLFiveTwelve &gen);
 	void repair(int staff_index, double repair_time);
 	void queue_tracking();
 

@@ -62,9 +62,12 @@ The power cycle composition should be defined by the user, but defaults are incl
 | radiators_per_train | Integer | Number of radiators in each condenser train | 1 |
 | num_salt_steam_trains | Integer | Number of salt-to-steam trains in power cycle | 2 |
 | num_fwh | Integer | Number of feedwater heaters in power cycle | 6 |
-| num_salt_pumps | Integer | Number of molten salt pumps in power cycle | 4 |
-| num_salt_pumps_required | Integer | Number of molten salt pumps required to operate power cycle at capacity | 3 |
-| num_water_pumps | Integer | Number of water pumps in power cycle | 2 |
+| num_salt_pumps | Integer | Number of molten salt pumps in power cycle | 3 |
+| num_salt_pumps_required | Integer | Number of molten salt pumps required to operate power cycle at capacity | 2 |
+| num_water_pumps | Integer | Number of feedwater heater pumps in power cycle | 2 |
+| num_water_pumps_required | Integer | Number of feedwater heater pumps required to operate power cycle at capacity | 1 |
+| num_boiler_pumps | Integer | Number of boiler pumps in power cycle | 2 |
+| num_boiler_pumps_required | Integer | Number of boiler pumps required to operate power cycle at capacity | 1 |
 | num_turbines |  Integer | Number of turbine-generator shafts in power cycle | 1 |
 | condenser_eff_cold | Vector of floating point numbers | Efficiency of condenser according to how many trains are operational for low ambient temperatures | {0,1,1} |
 | condenser_eff_hot | Vector of floating point numbers | Efficiency of condenser according to how many trains are operational for high ambient temperatures | {0,0.95,1} |
@@ -98,6 +101,7 @@ Power cycle parameters are all scalars, so no sets are included in the table tha
 These parameters indicate when the simulation model shuts the power cycle down for unplanned maintenance.  These can be adjusted via the method "SetPlantAttributes".
 
 | Parameter | Data Type | Description (Units) | Default Value (if any) |
+| --- | --- | --- | --- |
 | shutdown_capacity | Floating point number | Capacity threshold for power cycle immediate shutdown (fraction) | 0.3 |
 | no_restart_capacity | Floating point number | Capacity threshold for maintenance at next power cycle shutdown (fraction) | 0.8 |
 | shutdown_efficiency | Floating point number | Efficiency threshold for power cycle immediate shutdown (fraction) | 0.7 |

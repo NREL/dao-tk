@@ -21,8 +21,10 @@ struct cycle_file_settings
 	std::string plant_out_state;
 	std::string ampl_param_file;
 	std::string failure_file;
+	std::string num_failures_file;
 	std::string cap_eff_filename;
 	bool output_ampl_file;
+	bool output_to_files;
 	int day_idx;
 	int additional_periods;
 	cycle_file_settings();

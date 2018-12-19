@@ -25,6 +25,8 @@ class PowerCycle
  	std::vector< size_t > m_sst_idx;   //salt-to-steam train indices of component vector
 	std::vector< size_t > m_condenser_idx; //condenser train indices of component vector
 	std::vector< size_t > m_salt_pump_idx; //salt pump indices of component vector
+	std::vector< size_t > m_water_pump_idx; //water pump indices of component vector
+	std::vector< size_t > m_boiler_pump_idx; //boiler pump indices of component vector
 	
 	int m_num_condenser_trains = 0;
 	int m_fans_per_condenser_train = 0;
@@ -38,6 +40,9 @@ class PowerCycle
 	int m_num_salt_pumps = 0;
 	int m_num_salt_pumps_required = 0;   //number required for capacity operation
 	int m_num_water_pumps = 0;
+	int m_num_water_pumps_required = 0;
+	int m_num_boiler_pumps = 0;
+	int m_num_boiler_pumps_required = 0;
 	int m_num_turbines = 0; // HP, IP, LP turbines and generator count 
 							// as a single component
 	//Dispatch inputs
@@ -129,6 +134,8 @@ public:
 	void WriteAMPLParams(int extra_periods = 0);
 	void WriteAMPLParamsToDefault();
 	void WriteCapEffFile();
+	void WriteFinalEffFile();
+	void WriteFailureStats();
 
 	void ReadStateFromFiles(bool init);
 	void ReadPlantLayoutFile();
@@ -198,7 +205,8 @@ public:
 	void AddSaltToSteamTrains(int num_trains);
 	void AddFeedwaterHeaters(int num_fwh);
 	void AddSaltPumps(int num_pumps, int num_required);
-	void AddWaterPumps(int num_pumps);
+	void AddWaterPumps(int num_pumps, int num_required);
+	void AddBoilerPumps(int num_pumps, int num_required);
 	void AddTurbines(int num_turbines);
 	void GeneratePlantComponents(
 		int num_condenser_trains = 2,
@@ -206,12 +214,16 @@ public:
 		int radiators_per_train = 1,
 		int num_salt_steam_trains = 2,
 		int num_fwh = 6,
-		int num_salt_pumps = 4,
-		int num_salt_pumps_required = 3,
+		int num_salt_pumps = 3,
+		int num_salt_pumps_required = 2,
 		int num_water_pumps = 2,
+		int num_water_pumps_required = 1,
+		int num_boiler_pumps = 2,
+		int num_boiler_pumps_required = 1,
 		int num_turbines = 1,
 		std::vector<double> condenser_eff_cold = { 0.,1.,1. },
-		std::vector<double> condenser_eff_hot = { 0.,0.95,1. }
+		std::vector<double> condenser_eff_hot = { 0.,0.95,1. },
+		bool reset_hazard = false
 	);
 	void SetPlantAttributes(
 		double maintenance_interval = 1.e6,
@@ -240,7 +252,11 @@ public:
 	double GetTurbineCapacity(bool age, bool include_failures = false);
 	double GetSaltSteamTrainCapacity();
 	double GetSaltPumpCapacity();
+	double GetWaterPumpCapacity();
+	double GetBoilerPumpCapacity();
 	double GetSaltPumpEfficiency();
+	double GetWaterPumpEfficiency();
+	double GetBoilerPumpEfficiency();
 	void SetCycleCapacityAndEfficiency(double temp, bool age = false);
 	double GetCycleCapacity();
 	double GetCycleEfficiency();

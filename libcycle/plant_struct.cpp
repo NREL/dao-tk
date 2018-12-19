@@ -19,8 +19,10 @@ cycle_file_settings::cycle_file_settings()
 	component_out_state = "./component_state";
 	ampl_param_file = "./MxSim";
 	failure_file = "./failures";
+	num_failures_file = "./num_failures";
 	cap_eff_filename = "./capeff";
 	output_ampl_file = false;
+	output_to_files = false;
 	day_idx = 0;
 	additional_periods = 0;
 }
