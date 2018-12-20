@@ -430,15 +430,19 @@ cycle_outputs::cycle_outputs()
 {
 	std::vector< double > empty_vec;
 
-    cycle_efficiency.set(    empty_vec,                       "cycle_efficiency",  true,                             "Cycle efficiency time series",  "-",  "Cycle|Outputs" );
-    cycle_capacity.set(      empty_vec,                         "cycle_capacity",  true,                               "Cycle capacity time series",  "-",  "Cycle|Outputs" );
-	cycle_labor_cost.set(          nan,                       "cycle_labor_cost",  true,              "Expected labor costs for power cycle repair",  "$",  "Cycle|Outputs" );
-	num_failures.set(		nan,								"num_failures",		true,					"Average number of annual cycle failures", "",	 "Cycle|Outputs");
+    cycle_efficiency.set(       empty_vec,                "cycle_efficiency",        true,                   "Cycle efficiency time series",       "-",                     "Cycle|Outputs" );
+    cycle_capacity.set(         empty_vec,                  "cycle_capacity",        true,                     "Cycle capacity time series",       "-",                     "Cycle|Outputs" );
+	cycle_labor_cost.set(       nan,                      "cycle_labor_cost",        true,    "Expected labor costs for power cycle repair",       "$",                     "Cycle|Outputs" );
+	num_failures.set(		    nan,                          "num_failures",		 true,		  "Average number of annual cycle failures",        "",	                    "Cycle|Outputs" );
+    cycle_efficiency_ave.set(   nan,                  "cycle_efficiency_ave",        true,                "Average cycle efficiency derate",       "-",                     "Cycle|Outputs" );
+    cycle_capacity_ave.set(     nan,                    "cycle_capacity_ave",        true,                  "Average cycle capacity derate",       "-",                     "Cycle|Outputs" );
 
 	(*this)["cycle_efficiency"] = &cycle_efficiency;
 	(*this)["cycle_capacity"] = &cycle_capacity;
 	(*this)["cycle_labor_cost"] = &cycle_labor_cost;
 	(*this)["num_failures"] = &num_failures;
+    (*this)["cycle_efficiency_ave"] = &cycle_efficiency_ave;
+    (*this)["cycle_capacity_ave"] = &cycle_capacity_ave;
 }
 
 simulation_outputs::simulation_outputs()
@@ -853,7 +857,7 @@ std::vector< void* > Project::GetDataObjects()
         (void*)&m_optical_outputs, 
         (void*)&m_solarfield_outputs,
         (void*)&m_simulation_outputs, 
-        //(void*)&m_cycle_outputs,
+        (void*)&m_cycle_outputs,
         (void*)&m_objective_outputs,
         (void*)&m_optimization_outputs
     }; 
@@ -2604,10 +2608,10 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
                 if (simthread[i].IsFinished())
                     nthread_done++;
 
-                int ns, nr;
-                simthread[i].GetStatus(&ns, &nr);
+                int ns, nrem;
+                simthread[i].GetStatus(&ns, &nrem);
                 nsim_done += ns;
-                nsim_remain += nr;
+                nsim_remain += nrem;
 
 
             }
@@ -2946,9 +2950,21 @@ void Project::initialize_cycle_model(PowerCycle &pc)
 void Project::save_cycle_outputs(std::vector<double> &capacity, std::vector<double> &efficiency, double n_failures, double yearly_labor_cost)
 {
 
+    double cea = 0.;
+    double cca = 0.;
+    for (size_t i = 0; i < capacity.size(); i++)
+    {
+        cca += capacity.at(i);
+        cea += efficiency.at(i);
+    }
+    cea /= (double)capacity.size();
+    cca /= (double)capacity.size();
+
 	m_cycle_outputs.cycle_capacity.assign_vector(capacity);
 	m_cycle_outputs.cycle_efficiency.assign_vector(efficiency);
 	m_cycle_outputs.num_failures.assign(n_failures);
+    m_cycle_outputs.cycle_capacity_ave.assign(cca);
+    m_cycle_outputs.cycle_efficiency_ave.assign(cea);
 
 	double labor_cost = calc_real_dollars(yearly_labor_cost);
 	m_cycle_outputs.cycle_labor_cost.assign(labor_cost);
@@ -3217,7 +3233,8 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 				delete[] p_data;
 
 				// Run ssc
-				if (!ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0))
+				//if (!ssc_module_exec_with_handler(mod_mspt, m_ssc_data, ssc_progress_handler, 0))
+                if(! ssc_module_exec(mod_mspt, m_ssc_data) )
 				{
 					message_handler("SSC simulation failed");
 					ssc_module_free(mod_mspt);
@@ -3251,6 +3268,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 			}
 			
+
 			std::vector<double>cycle_capacity_in = cycle_capacity;
 			std::vector<double>cycle_efficiency_in = cycle_efficiency;
 
@@ -3611,6 +3629,7 @@ bool Project::integrate_cycle_and_clusters(const std::unordered_map<std::string,
 
 		// run 'integrate_cycle_and_simulation' for this time block starting from the existing solution (will not re-run ssc unless failures/repairs occur)
 		inputs.initial_state = final_state;
+        sim_progress_handler((double)g / (double)ng, "Simulating cycle availability");
 		if (!integrate_cycle_and_simulation(pc, inputs, final_state, local_soln, local_cap, local_eff, nf, lc))
 			return false;
 
@@ -3627,7 +3646,7 @@ bool Project::integrate_cycle_and_clusters(const std::unordered_map<std::string,
 
 		inputs.use_stored_state = true;  // use stored state after g = 0
 	}
-
+    sim_progress_handler(0., "");
 	save_cycle_outputs(capacity, efficiency, n_failures, labor_cost);
 
 	return true;

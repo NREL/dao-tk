@@ -1165,15 +1165,9 @@ void _simulate_cycle(lk::invoke_t &cxt)
 void _optimize(lk::invoke_t &cxt)
 {
     LK_DOC("optimize_system", 
-    "Run outer-loop optimization. Specify the variables to optimize in the options table, "
-    "optionally, along with upper bounds, lower bounds, and initial value(s) to sample. "
-    "Note that the sample values will be tested for each variable in the order that they are specified, "
-    "and the length of the sample list must be the same for all variables. "
-    "For example:\n\n"
-    "my_opt_vars = {\n\t \"n_wash_crews\" = {\"upper_bound\" = 15, \"lower_bound\" = 1, \"guess\" = [5,10]},\n\t"
-    "\"h_tower\" = { \"upper_bound\" = 250, \"lower_bound\" = 50, \"guess\"=[175,155]}, \n\t...\t};\rresult = optimize_system(options=my_opt_vars);\n\n"
+    "Run outer-loop optimization. Specify the variables and parameters using the 'var_info()' call. "
     "Several optimization settings may also be specified, including 'convex_flag,' 'max_delta,' and 'trust.' ",
-    "([table:options, table:settings]):table");
+    "([table:settings]):void");
 
 	MainWindow &mw = MainWindow::Instance();
     Project *P = mw.GetProject();
@@ -1216,36 +1210,10 @@ void _optimize(lk::invoke_t &cxt)
     }
 
 
-    ////npanel, nom, nwash
-    //Opt.m_settings.lower_bounds = std::vector<int>{ -6,-6 };
-    //Opt.m_settings.upper_bounds = std::vector<int>{ 2, 2 };
-    //Opt.m_settings.X_sample = std::vector< std::vector<int> >
-    //{
-    //    std::vector<int>{1,0},
-    //    std::vector<int>{0,1},
-    //    std::vector<int>{-1,0},
-    //    std::vector<int>{0,-1},
-    //    std::vector<int>{0,0}
-    //};
-    //
     Opt.run_optimization();
 
-    optimization_outputs* oo = &mw.GetProject()->m_optimization_outputs;
-
-    int n, m;
+    //optimization_outputs* oo = &mw.GetProject()->m_optimization_outputs;
 
     mw.UpdateDataTable();
-
-    /*oo->eta_i.empty_vector();
-    n = (int)Opt.m_results.eta_i.size();
-    m = (int)Opt.m_results.eta_i.front().size();
-    for (int i = 0; i < n; i++)
-    {
-        lk::vardata_t row;
-        row.empty_vector();
-        for (int j = 0; j < m; j++)
-            row.vec_append(Opt.m_results.eta_i.at(i).at(j));
-        oo->eta_i.vec()->push_back(row);
-    }*/
 
 }

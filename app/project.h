@@ -627,7 +627,9 @@ struct cycle_outputs : public lk::varhash_t
 	parameter cycle_capacity;
 	parameter cycle_labor_cost;
 	parameter num_failures;
-
+    parameter cycle_efficiency_ave;
+    parameter cycle_capacity_ave;
+    
 	cycle_outputs();
 };
 

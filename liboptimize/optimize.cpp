@@ -114,6 +114,9 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
         message << "Average mirror degradation [%]\t" << P->m_optical_outputs.avg_degr.as_number()*100. << "\n";
         message << "Annual generation [GWhe]\t" << P->m_simulation_outputs.annual_generation.as_number() << "\n";
         message << "Annual cycle starts\t" << P->m_simulation_outputs.annual_cycle_starts.as_number() << "\n";
+        message << "Annual cycle failures\t" << P->m_cycle_outputs.num_failures.as_number() << "\n";
+        message << "Average cycle availability\t" << P->m_cycle_outputs.cycle_efficiency_ave.as_number() << "\n";
+        message << "Average cycle capacity\t" << P->m_cycle_outputs.cycle_capacity_ave.as_number() << "\n";
         message << "Annual receiver starts\t" << P->m_simulation_outputs.annual_rec_starts.as_number() << "\n";
         message << "Annual revenue units\t" << P->m_simulation_outputs.annual_revenue_units.as_number() << "\n";
         message << "Average field availability [%]\t" << P->m_solarfield_outputs.avg_avail.as_number()*100. << "\n";
