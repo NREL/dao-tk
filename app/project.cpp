@@ -1,4 +1,6 @@
 #include "project.h"
+#include "clusterthread.h"
+#include <wx/thread.h>
 #include <limits>
 
  int double_scale(double val, int *scale)
@@ -111,6 +113,7 @@ parameters::parameters()
 	num_turbines.set(                        1,                 "num_turbines",      false,               "Number of turbine-generator shafts",           "-",                  "Cycle|Parameters" );
     num_scenarios.set(                       1,                "num_scenarios",      false,                              "Number of scenarios",           "-",                  "Cycle|Parameters" );
 	wash_vehicle_life.set(                  10,            "wash_vehicle_life",      false,                           "Wash vehicle lifetime",           "yr",    "Optical degradation|Parameters" );
+	n_sim_threads.set(                       3,                "n_sim_threads",      false,      "Number of threads available for simulation",            "-",                          "Settings" );
 
     rec_ref_cost.set(                1.03e+008,                 "rec_ref_cost",      false,                          "Receiver reference cost",           "$",              "Financial|Parameters" );
     rec_ref_area.set(                    1571.,                 "rec_ref_area",      false,                          "Receiver reference area",          "m2",              "Financial|Parameters" );
@@ -192,7 +195,7 @@ parameters::parameters()
 
     cluster_ndays.set(                       2,                "cluster_ndays",      false );
     cluster_nprev.set(                       1,                "cluster_nprev",      false );
-    is_run_continuous.set(                true,            "is_run_continuous",      false );
+    is_run_continuous.set(                true,            "is_run_continuous",      false,             "Run performance sim. as continuous",           "-",                            "Settings" );
 	std::string ca = "affinity_propagation";
     cluster_algorithm.set(                  ca,            "cluster_algorithm",      false );
 
@@ -253,6 +256,7 @@ parameters::parameters()
     (*this)["wash_crew_max_hours_week"] = &wash_crew_max_hours_week;
 	(*this)["wash_crew_max_hours_day"] = &wash_crew_max_hours_day;
 	(*this)["wash_crew_capital_cost"] = &wash_crew_capital_cost;
+    (*this)["n_sim_threads"] = &n_sim_threads;
 	(*this)["price_per_kwh"] = &price_per_kwh;
 	(*this)["TES_powercycle_eff"] = &TES_powercycle_eff;
     (*this)["degr_per_hour"] = &degr_per_hour;
@@ -2491,8 +2495,25 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
 		for (size_t i = 0; i < ssc_keys.size(); i++)
 			collect_ssc_data[ssc_keys[i]].assign(nrec, nan);
 
-		for (int g = 0; g < ng; g++)
+        //how many groups per thread?
+        int nthread = std::min(ng, std::min( m_parameters.n_sim_threads.as_integer(), wxThread::GetCPUCount()));
+        ClusterThread *simthread = new ClusterThread[nthread];
+
+        int npg;
+        if (ng % nthread == 0)
+            npg = ng / nthread;
+        else
+            npg = ng / (nthread - 1);
+
+#define USE_THREAD_SIM 
+
+#ifdef USE_THREAD_SIM
+		for (int i=0; i<nthread; i++)
+#else
+        for(int g=0; g<ng; g++)
+#endif
 		{
+#ifndef USE_THREAD_SIM
 			int ncount = csim.inputs.combined.n.at(g) * csim.inputs.days.ncount;	  // Number of days counting toward results in this group
 			int nsim_nom = ncount + csim.inputs.days.nprev + csim.inputs.days.nnext;  // Nominal total number of days simulated in this group
 
@@ -2564,8 +2585,39 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
 				for (int h = 0; h < nperday*ncount; h++)
 					collect_ssc_data[key].at(doy_full*nperday + h) = p_data[doy_sim*nperday + h];
 			}
+#else
+            int glast = (i+1)*npg > ng ? ng : (i+1)*npg;
+            std::string nm = std::to_string(i + 1);
+            simthread[i].Setup(nm, this, &csim, m_ssc_data, &sfavail, &avg_sfavail, &collect_ssc_data, &ssc_keys, i*npg, glast);
+#endif
+        }
+#ifdef USE_THREAD_SIM
+        for(int i=0; i<nthread; i++)
+            std::thread( &ClusterThread::StartThread, std::ref( simthread[i] ) ).detach();
 
-		}
+        //Wait loop
+        while (true)
+        {
+            int nsim_done = 0, nsim_remain = 0, nthread_done = 0;
+            for (int i = 0; i < nthread; i++)
+            {
+                if (simthread[i].IsFinished())
+                    nthread_done++;
+
+                int ns, nr;
+                simthread[i].GetStatus(&ns, &nr);
+                nsim_done += ns;
+                nsim_remain += nr;
+
+
+            }
+            sim_progress_handler((double)nsim_done / (double)ng, "Multi-threaded performance simulation");
+            if (nthread_done == nthread) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        }
+
+        delete [] simthread;
+#endif
 	}
 
 	ssc_module_free(mod_mspt);

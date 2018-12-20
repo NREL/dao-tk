@@ -191,6 +191,7 @@ void Project::add_documentation()
     m_parameters.om_staff_max_hours_week.doc.set("om_staff_max_hours_week", "_om_staff_max_hours_week");
     m_parameters.n_heliostats_sim.doc.set("n_heliostats_sim", "_n_heliostats_sim");
     m_parameters.wash_rate.doc.set("wash_rate", "wash_rate");
+    m_parameters.n_sim_threads.doc.set("", "");
     m_parameters.wash_crew_max_hours_week.doc.set("wash_crew_max_hours_week", "_wash_crew_max_hours_week");
     m_parameters.degr_per_hour.doc.set("degr_per_hour", "_degr_per_hour");
     m_parameters.degr_accel_per_year.doc.set("degr_accel_per_year", "_degr_accel_per_year");

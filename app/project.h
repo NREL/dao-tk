@@ -489,6 +489,7 @@ struct parameters : public lk::varhash_t
 	parameter cluster_nprev;
 	parameter cycle_nyears;
 	parameter wash_vehicle_life;
+    parameter n_sim_threads;
     //doubles
 	parameter rec_ref_cost;
 	parameter rec_ref_area;
