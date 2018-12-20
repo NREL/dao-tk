@@ -77,186 +77,140 @@ void Project::add_documentation()
         "Local path to the directory containing the AMPL run and data output files. Requires that <a href=\""
         "#doc_is_dispatch\">dispatch optimization</a> and the <a href=\"#doc_is_ampl_engine\">AMPL engine</a> are enabled.");
 
-    //m_parameters.solar_resource_file.doc.set("","");
-    //m_parameters.disp_steps_per_hour.doc.set("","");
-    //m_parameters.avail_seed.doc.set("","");
-    //m_parameters.plant_lifetime.doc.set("","");
-    //m_parameters.finance_period.doc.set("","");
-    //m_parameters.ppa_multiplier_model.doc.set("","");
-    //m_parameters.rec_ref_cost.doc.set("","");
-    //m_parameters.rec_ref_area.doc.set("","");
-    //m_parameters.tes_spec_cost.doc.set("","");
-    //m_parameters.tower_fixed_cost.doc.set("","");
-    //m_parameters.tower_exp.doc.set("","");
-    //m_parameters.heliostat_spec_cost.doc.set("","");
-    //m_parameters.site_spec_cost.doc.set("","");
-    //m_parameters.land_spec_cost.doc.set("","");
-    //m_parameters.c_cps0.doc.set("","");
-    //m_parameters.c_cps1.doc.set("","");
-    //m_parameters.om_staff_cost.doc.set("","");
-    //m_parameters.wash_crew_cost.doc.set("","");
-    //m_parameters.heliostat_refurbish_cost.doc.set("","");
-    //m_parameters.helio_mtf.doc.set("","");
-    //m_parameters.heliostat_repair_cost.doc.set("","");
-    //m_parameters.om_staff_max_hours_week.doc.set("","");
-    //m_parameters.n_heliostats_sim.doc.set("","");
-    //m_parameters.wash_units_per_hour.doc.set("","");
-    //m_parameters.wash_crew_max_hours_week.doc.set("","");
-    //m_parameters.degr_per_hour.doc.set("","");
-    //m_parameters.degr_accel_per_year.doc.set("","");
-    //m_parameters.degr_seed.doc.set("","");
-    //m_parameters.soil_per_hour.doc.set("","");
-    //m_parameters.adjust_constant.doc.set("","");
-    //m_parameters.helio_reflectance.doc.set("","");
-    //m_parameters.disp_rsu_cost.doc.set("","");
-    //m_parameters.disp_csu_cost.doc.set("","");
-    //m_parameters.disp_pen_delta_w.doc.set("","");
-    //m_parameters.rec_su_delay.doc.set("","");
-    //m_parameters.rec_qf_delay.doc.set("","");
-    //m_parameters.startup_time.doc.set("","");
-    //m_parameters.startup_frac.doc.set("","");
-    //m_parameters.v_wind_max.doc.set("","");
-    //m_parameters.flux_max.doc.set("","");
-    //m_parameters.c_ces.doc.set("","");
-    //m_parameters.dispatch_factors_ts.doc.set("","");
-    //m_parameters.user_sf_avail.doc.set("","");
-
-    //m_design_outputs.number_heliostats.doc.set("","");
-    //m_design_outputs.area_sf.doc.set("","");
-    //m_design_outputs.base_land_area.doc.set("","");
-    //m_design_outputs.land_area.doc.set("","");
-    //m_design_outputs.h_tower_opt.doc.set("","");
-    //m_design_outputs.rec_height_opt.doc.set("","");
-    //m_design_outputs.rec_aspect_opt.doc.set("","");
-    //m_design_outputs.cost_rec_tot.doc.set("","");
-    //m_design_outputs.cost_sf_tot.doc.set("","");
-    //m_design_outputs.cost_sf_real.doc.set("","");
-    //m_design_outputs.cost_tower_tot.doc.set("","");
-    //m_design_outputs.cost_land_tot.doc.set("","");
-    //m_design_outputs.cost_land_real.doc.set("","");
-    //m_design_outputs.cost_site_tot.doc.set("","");
-    //m_design_outputs.flux_max_observed.doc.set("","");
-    //m_design_outputs.opteff_table.doc.set("","");
-    //m_design_outputs.flux_table.doc.set("","");
-    //m_design_outputs.heliostat_positions.doc.set("","");
-	m_design_outputs.annual_helio_energy.doc.set("", "");
-
-    //m_solarfield_outputs.n_repairs.doc.set("","");
-    //m_solarfield_outputs.staff_utilization.doc.set("","");
-    //m_solarfield_outputs.heliostat_repair_cost_y1.doc.set("","");
-    //m_solarfield_outputs.heliostat_repair_cost.doc.set("","");
-    //m_solarfield_outputs.avail_schedule.doc.set("","");
-
-    //m_optical_outputs.n_replacements.doc.set("","");
-    //m_optical_outputs.heliostat_refurbish_cost.doc.set("","");
-    //m_optical_outputs.heliostat_refurbish_cost_y1.doc.set("","");
-    //m_optical_outputs.avg_soil.doc.set("","");
-    //m_optical_outputs.avg_degr.doc.set("","");
-
-    //m_optical_outputs.soil_schedule.doc.set("","");
-    //m_optical_outputs.degr_schedule.doc.set("","");
-    //m_optical_outputs.repl_schedule.doc.set("","");
-    //m_optical_outputs.repl_total.doc.set("","");
-
-    //m_simulation_outputs.generation_arr.doc.set("","");
-    //m_simulation_outputs.solar_field_power_arr.doc.set("","");
-    //m_simulation_outputs.tes_charge_state.doc.set("","");
-    //m_simulation_outputs.dni_arr.doc.set("","");
-    //m_simulation_outputs.price_arr.doc.set("","");
-    //m_simulation_outputs.dni_templates.doc.set("","");
-    //m_simulation_outputs.price_templates.doc.set("","");
-    //m_simulation_outputs.annual_generation.doc.set("","");
-    //m_simulation_outputs.annual_revenue_units.doc.set("","");
-    m_parameters.solar_resource_file.doc.set("solar_resource_file", "_solar_resource_file");
-    m_parameters.disp_steps_per_hour.doc.set("disp_steps_per_hour", "_disp_steps_per_hour");
-    m_parameters.avail_seed.doc.set("avail_seed", "_avail_seed");
-    m_parameters.plant_lifetime.doc.set("plant_lifetime", "_plant_lifetime");
-    m_parameters.finance_period.doc.set("finance_period", "_finance_period");
-    m_parameters.ppa_multiplier_model.doc.set("ppa_multiplier_model", "_ppa_multiplier_model");
-    m_parameters.rec_ref_cost.doc.set("rec_ref_cost", "_rec_ref_cost");
-    m_parameters.rec_ref_area.doc.set("rec_ref_area", "_rec_ref_area");
-    m_parameters.tes_spec_cost.doc.set("tes_spec_cost", "_tes_spec_cost");
-    m_parameters.tower_fixed_cost.doc.set("tower_fixed_cost", "_tower_fixed_cost");
-    m_parameters.tower_exp.doc.set("tower_exp", "_tower_exp");
-    m_parameters.heliostat_spec_cost.doc.set("heliostat_spec_cost", "_heliostat_spec_cost");
-    m_parameters.site_spec_cost.doc.set("site_spec_cost", "_site_spec_cost");
-    m_parameters.land_spec_cost.doc.set("land_spec_cost", "_land_spec_cost");
+    m_parameters.solar_resource_file.doc.set("", "Path specifying the weather file location.");
+    m_parameters.disp_steps_per_hour.doc.set("-", 
+        "Number of time steps per hour to be used in the dispatch optimization model. "
+        "This value may differ from the time step in the weather file data.");
+    m_parameters.avail_seed.doc.set("-", "Seed for the solar field availability model random number generator.");
+    m_parameters.plant_lifetime.doc.set("yr", "Expected operational lifetime of the plant. The expected lifetime has total revenue, degradation, and failure implications.");
+    m_parameters.finance_period.doc.set("yr", "Term during which loans are repayed in full.");
+    m_parameters.ppa_multiplier_model.doc.set("-", 
+        "Flag indicating whether the PPA price multiplier schedule is determined "
+        "from the monthly-hourly TOD table (=0) or from a time series with values at each time step (=1).");
+    m_parameters.rec_ref_cost.doc.set("$", "Cost of the receiver in the reference case, corresponding to the receiver reference area 'rec_ref_area'.");
+    m_parameters.rec_ref_area.doc.set("m2", "Receiver surface area in the reference case, corresponding to the receiver reference cost 'rec_ref_cost'.");
+    m_parameters.tes_spec_cost.doc.set("$/kWht", "Cost of thermal storage per unit capacity.");
+    m_parameters.tower_fixed_cost.doc.set("$", "Cost multiplier for the tower. The fixed cost is scaled by an exponential term that is dependent on tower height.");
+    m_parameters.tower_exp.doc.set("-", "Coefficient multiplier of tower height that relates tower cost to height.");
+    m_parameters.heliostat_spec_cost.doc.set("$/m2", "Heliostat specific cost per unit aperture area.");
+    m_parameters.site_spec_cost.doc.set("$/m2", "Site preparation cost per unit of total solar field aperture area.");
+    m_parameters.land_spec_cost.doc.set("$/acre", "Cost of land per acre occupied.");
     m_parameters.c_cps0.doc.set("c_cps0", "_c_cps0");
     m_parameters.c_cps1.doc.set("c_cps1", "_c_cps1");
-    m_parameters.om_staff_cost.doc.set("om_staff_cost", "_om_staff_cost");
-    m_parameters.wash_crew_cost.doc.set("wash_crew_cost", "_wash_crew_cost");
-    m_parameters.heliostat_refurbish_cost.doc.set("heliostat_refurbish_cost", "_heliostat_refurbish_cost");
-    m_parameters.helio_mtf.doc.set("helio_mtf", "_helio_mtf");
-    m_parameters.heliostat_repair_cost.doc.set("heliostat_repair_cost", "_heliostat_repair_cost");
-    m_parameters.om_staff_max_hours_week.doc.set("om_staff_max_hours_week", "_om_staff_max_hours_week");
-    m_parameters.n_heliostats_sim.doc.set("n_heliostats_sim", "_n_heliostats_sim");
-    m_parameters.wash_rate.doc.set("wash_rate", "wash_rate");
-    m_parameters.n_sim_threads.doc.set("", "");
-    m_parameters.wash_crew_max_hours_week.doc.set("wash_crew_max_hours_week", "_wash_crew_max_hours_week");
-    m_parameters.degr_per_hour.doc.set("degr_per_hour", "_degr_per_hour");
-    m_parameters.degr_accel_per_year.doc.set("degr_accel_per_year", "_degr_accel_per_year");
-    m_parameters.degr_seed.doc.set("degr_seed", "_degr_seed");
-    m_parameters.soil_per_hour.doc.set("soil_per_hour", "_soil_per_hour");
-    m_parameters.adjust_constant.doc.set("adjust_constant", "_adjust_constant");
-    m_parameters.helio_reflectance.doc.set("helio_reflectance", "_helio_reflectance");
-    m_parameters.disp_rsu_cost.doc.set("disp_rsu_cost", "_disp_rsu_cost");
-    m_parameters.disp_csu_cost.doc.set("disp_csu_cost", "_disp_csu_cost");
-    m_parameters.disp_pen_delta_w.doc.set("disp_pen_delta_w", "_disp_pen_delta_w");
-    m_parameters.rec_su_delay.doc.set("rec_su_delay", "_rec_su_delay");
-    m_parameters.rec_qf_delay.doc.set("rec_qf_delay", "_rec_qf_delay");
-    m_parameters.startup_time.doc.set("startup_time", "_startup_time");
-    m_parameters.startup_frac.doc.set("startup_frac", "_startup_frac");
-    m_parameters.v_wind_max.doc.set("v_wind_max", "_v_wind_max");
-    m_parameters.flux_max.doc.set("flux_max", "_flux_max");
+    m_parameters.om_staff_cost.doc.set("$/person-hr", "Cost of O&M staff per hour worked per person.");
+    m_parameters.wash_crew_cost.doc.set("$/person-hr", "Cost of washing crew labor and supplies per hour worked per crew.");
+    m_parameters.heliostat_refurbish_cost.doc.set("$", "Cost to replace a mirror due to degradation below the reflectivity replacement threshold.");
+    m_parameters.helio_mtf.doc.set("hr", "Mean time to failure for a heliostat.");
+    m_parameters.heliostat_repair_cost.doc.set("$", "Cost per failue to repair a heliostat that has failed.");
+    m_parameters.om_staff_max_hours_week.doc.set("hr", 
+        "Maximum number of hours worked for each O&M staff member per week. "
+        "Worked hours are considered to be productive.");
+    m_parameters.n_heliostats_sim.doc.set("-", 
+        "Number of heliostats to be simulated in the degradation, soiling, and availabiliy models. The number is the <sl>actual</sl> "
+        "count in the simulation, and the results of the simulation are scaled according the number of heliostats included in the "
+        "plant. Fewer heliostats for simulation corresponds to more significant random effects during stochastic evaluation, while "
+        "more heliostats reduces uncertainty effects but incurs more computational expense.");
+    m_parameters.wash_rate.doc.set("1/hr", "Number of heliostats washed per hour per wash crew.");
+    m_parameters.n_sim_threads.doc.set("-", "Maximum number of CPU threads to utilize in simulating plant performance. "
+        "Multithreading is only available if ");
+    m_parameters.is_run_continuous.doc.set("", 
+        "Simulate plant performance using a single evaluation in the SSC engine wherein all simulated days "
+        "are evaluated within a single call to the SSC engine. If <b>false</b>, performance simulation days "
+        "are evaluated using separate calls to the SSC engine. <br> <sl> Tip: If running with a single thread/CPU, "
+        "it is typically faster to run continuously. If running with multi-threading, the runs must not be "
+        "continuous so as to allow the software to evaluate simulation days on multiple threads.</sl>"
+    );
+    m_parameters.wash_crew_max_hours_week.doc.set("hr", "Maximum number of hours that a wash crew can work per week.");
+    m_parameters.degr_per_hour.doc.set("1/hr", "Expected mirror reflectivity degradation (fractional) per hour of service.");
+    m_parameters.degr_accel_per_year.doc.set("1/(hr-yr)", "Rate at which mirror degradation accelerates (or decelerates) per year.");
+    m_parameters.degr_seed.doc.set("-", "Seed for the mirror degradation random number generator.");
+    m_parameters.soil_per_hour.doc.set("1/hr", "Expected mirror soiling rate (fractional) per hour of service.");
+    m_parameters.adjust_constant.doc.set("%", "Miscellaneous fixed power loss from the plant.");
+    m_parameters.helio_reflectance.doc.set("-", "Heliostat material reflectivity in a <b>new</b> condition.");
+    m_parameters.disp_rsu_cost.doc.set("$/start", 
+        "Expected cost to start the receiver in long-term maintenance. "
+        "This value is used to optimize plant performance and is not included as a cost in the financial calculations.");
+    m_parameters.disp_csu_cost.doc.set("$/start", 
+        "Expected cost to start the power cycle in long-term maintenance. "
+        "This value is used to optimize plant performance and is not included as a cost in the financial calculations.");
+    m_parameters.disp_pen_delta_w.doc.set("$/kWe-change", 
+        "Expected cost of ramping power cycle output up or down in expected long-term maintenance. "
+        "This value is used to optimize plant performance and is not included as a cost in the financial calculations.");
+    m_parameters.rec_su_delay.doc.set("hr", "Required minimum receiver startup time.");
+    m_parameters.rec_qf_delay.doc.set("MWht/MWt-cap-hr", 
+        "Required minimum receiver energy input to achieve start up. "
+        "The value is expressed as a fraction of energy (rated thermal capacity producing over a one hour period) that is consumed by "
+        "the receiver before producing useful power.");
+    m_parameters.startup_time.doc.set("hr", "Required minimum power cycle startup time.");
+    m_parameters.startup_frac.doc.set("MWht/MWt-cap-hr", "Required minimum power cycle energy input to achieve start up. "
+        "The value is expressed as a fraction of energy (rated capacity over a one hour period) that is consumed by "
+        "the cycle before producing useful power.");
+    m_parameters.v_wind_max.doc.set("m/s", "Maximum wind speed before the heliostat field goes into stow mode and ceases power production.");
+    m_parameters.flux_max.doc.set("kW/m2", "Maximum allowable flux density incident at any location on the receiver under design conditions.");
     m_parameters.c_ces.doc.set("c_ces", "_c_ces");
-    m_parameters.dispatch_factors_ts.doc.set("dispatch_factors_ts", "_dispatch_factors_ts");
-    m_parameters.user_sf_avail.doc.set("user_sf_avail", "_user_sf_avail");
+    m_parameters.dispatch_factors_ts.doc.set("-", 
+        "Time series vector of length equal to the number of time steps in the simulation horizon that "
+        "specifies the temporally dependent PPA price multiplier."
+    );
+    m_parameters.user_sf_avail.doc.set("-", 
+        "Time series vector of length equal to the number of time steps in the simulation horizon that "
+        "specifies the solar field power output loss as a function of time."
+    );
 
-    m_design_outputs.number_heliostats.doc.set("number_heliostats", "_number_heliostats");
-    m_design_outputs.area_sf.doc.set("area_sf", "_area_sf");
-    m_design_outputs.base_land_area.doc.set("base_land_area", "_base_land_area");
-    m_design_outputs.land_area.doc.set("land_area", "_land_area");
-    m_design_outputs.h_tower_opt.doc.set("h_tower_opt", "_h_tower_opt");
-    m_design_outputs.rec_height_opt.doc.set("rec_height_opt", "_rec_height_opt");
-    m_design_outputs.rec_aspect_opt.doc.set("rec_aspect_opt", "_rec_aspect_opt");
-    m_design_outputs.cost_rec_tot.doc.set("cost_rec_tot", "_cost_rec_tot");
-    m_design_outputs.cost_sf_tot.doc.set("cost_sf_tot", "_cost_sf_tot");
-    m_design_outputs.cost_sf_real.doc.set("cost_sf_real", "_cost_sf_real");
-    m_design_outputs.cost_tower_tot.doc.set("cost_tower_tot", "_cost_tower_tot");
-    m_design_outputs.cost_land_tot.doc.set("cost_land_tot", "_cost_land_tot");
-    m_design_outputs.cost_land_real.doc.set("cost_land_real", "_cost_land_real");
-    m_design_outputs.cost_site_tot.doc.set("cost_site_tot", "_cost_site_tot");
-    m_design_outputs.flux_max_observed.doc.set("flux_max_observed", "_flux_max_observed");
-    m_design_outputs.opteff_table.doc.set("opteff_table", "_opteff_table");
-    m_design_outputs.flux_table.doc.set("flux_table", "_flux_table");
+    //calculated
+    m_design_outputs.number_heliostats.doc.set("-", "Calculated number of heliostats in the solar field layout.");
+    m_design_outputs.area_sf.doc.set("m2", "Total heliostat aperture area of the solar field (i.e., the summation of "
+        "aperture area over all heliostats in the field.)");
+    m_design_outputs.base_land_area.doc.set("acre", 
+        "The land area directly occupied by the solar field and power block. "
+        "The base land area is calculated as the convex hull of all heliostat positions."
+    );
+    m_design_outputs.land_area.doc.set("acre", "Total land area occupied, including base land area and supplemental land area.");
+    m_design_outputs.h_tower_opt.doc.set("m", "Optimized tower height.");
+    m_design_outputs.rec_height_opt.doc.set("m", "Optimized reciever height.");
+    m_design_outputs.rec_aspect_opt.doc.set("-", "Optimized receiver aspect ratio (height/diameter).");
+    m_design_outputs.cost_rec_tot.doc.set("$", "Total receiver subsystem cost.");
+    m_design_outputs.cost_sf_tot.doc.set("$", "Total solar field (heliostats) cost.");
+    m_design_outputs.cost_sf_real.doc.set("$", "Total solar field cost - discounted to today's dollars.");
+    m_design_outputs.cost_tower_tot.doc.set("$", "Total tower cost.");
+    m_design_outputs.cost_land_tot.doc.set("$", "Total land cost");
+    m_design_outputs.cost_land_real.doc.set("$", "Total land cost - discounted to today's dollars.");
+    m_design_outputs.cost_site_tot.doc.set("$", "Site preparation cost.");
+    m_design_outputs.flux_max_observed.doc.set("kW/m2", "Peak observed flux incident on the receiver at design.");
+    m_design_outputs.opteff_table.doc.set("-", "Table providing total optical efficiency of the heliostat field "
+        "over a set of representative sun positions. The table entries are rows including sets of [azimuth, zenith, efficiency] "
+        "in which azimuth is defined as 0deg to the south.");
+    m_design_outputs.flux_table.doc.set("-", "Table providing the normalized flux profile on the receiver over "
+        "a set of representative sun positions.");
     m_design_outputs.heliostat_positions.doc.set("heliostat_positions", "_heliostat_positions");
 
-    m_solarfield_outputs.n_repairs.doc.set("n_repairs", "_n_repairs");
-    m_solarfield_outputs.staff_utilization.doc.set("staff_utilization", "_staff_utilization");
-    m_solarfield_outputs.heliostat_repair_cost_y1.doc.set("heliostat_repair_cost_y1", "_heliostat_repair_cost_y1");
-    m_solarfield_outputs.heliostat_repair_cost.doc.set("heliostat_repair_cost", "_heliostat_repair_cost");
-    m_solarfield_outputs.avail_schedule.doc.set("avail_schedule", "_avail_schedule");
+    m_solarfield_outputs.n_repairs.doc.set("-", "Number of repairs made to heliostats in the heliostat availability model.");
+    m_solarfield_outputs.staff_utilization.doc.set("-", "Fractional usage (hours worked over maximum hours available) of "
+        "heliostat field O&M staff.");
+    m_solarfield_outputs.heliostat_repair_cost_y1.doc.set("$/yr", "Annualized cost of all heliostat repairs made discounted to year 1.");
+    m_solarfield_outputs.heliostat_repair_cost.doc.set("$", "Lifetime cost of all heliostat repairs made.");
+    m_solarfield_outputs.avail_schedule.doc.set("-", "Calculated solar field availability time series based on modeled failure and repair events.");
 
-    m_optical_outputs.n_replacements.doc.set("n_replacements", "_n_replacements");
-    m_optical_outputs.heliostat_refurbish_cost.doc.set("heliostat_refurbish_cost", "_heliostat_refurbish_cost");
-    m_optical_outputs.heliostat_refurbish_cost_y1.doc.set("heliostat_refurbish_cost_y1", "_heliostat_refurbish_cost_y1");
-    m_optical_outputs.avg_soil.doc.set("avg_soil", "_avg_soil");
-    m_optical_outputs.avg_degr.doc.set("avg_degr", "_avg_degr");
+    m_optical_outputs.n_replacements.doc.set("1/yr", "Number of replacements made due to heliostat optical degradation.");
+    m_optical_outputs.heliostat_refurbish_cost.doc.set("$", "Total cost incurred for mirror replacement on a heliostat due to optical degradation.");
+    m_optical_outputs.heliostat_refurbish_cost_y1.doc.set("$", "Cost of replacing degraded mirrors discounted to year 1.");
+    m_optical_outputs.avg_soil.doc.set("-", "Average steady-state soiling efficiency.");
+    m_optical_outputs.avg_degr.doc.set("-", "Average lifetime degradation efficiency.");
 
-    m_optical_outputs.soil_schedule.doc.set("soil_schedule", "_soil_schedule");
-    m_optical_outputs.degr_schedule.doc.set("degr_schedule", "_degr_schedule");
-    m_optical_outputs.repl_schedule.doc.set("repl_schedule", "_repl_schedule");
-    m_optical_outputs.repl_total.doc.set("repl_total", "_repl_total");
+    m_optical_outputs.soil_schedule.doc.set("-", "Time series vector of solar field average soiling efficiency.");
+    m_optical_outputs.degr_schedule.doc.set("-", "Time series vector of solar field average optical degradation.");
+    m_optical_outputs.repl_schedule.doc.set("-", "Time series vector indicating the number of mirror replacements at each time step.");
+    m_optical_outputs.repl_total.doc.set("-", "Total number of lifetime modeled mirror replacements.");
 
-    m_simulation_outputs.generation_arr.doc.set("generation_arr", "_generation_arr");
-    m_simulation_outputs.solar_field_power_arr.doc.set("solar_field_power_arr", "_solar_field_power_arr");
-    m_simulation_outputs.tes_charge_state.doc.set("tes_charge_state", "_tes_charge_state");
-    m_simulation_outputs.dni_arr.doc.set("dni_arr", "_dni_arr");
-    m_simulation_outputs.price_arr.doc.set("price_arr", "_price_arr");
-    m_simulation_outputs.dni_templates.doc.set("dni_templates", "_dni_templates");
-    m_simulation_outputs.price_templates.doc.set("price_templates", "_price_templates");
-    m_simulation_outputs.annual_generation.doc.set("annual_generation", "_annual_generation");
-    m_simulation_outputs.annual_revenue_units.doc.set("annual_revenue_units", "annual_revenue_units");
+    m_simulation_outputs.generation_arr.doc.set("MWe", "Time series vector of net power generation from the power cycle.");
+    m_simulation_outputs.solar_field_power_arr.doc.set("MWt", "Time series vector of solar field thermal power output.");
+    m_simulation_outputs.tes_charge_state.doc.set("MWht", "Time series vector of energy stored in thermal storage");
+    m_simulation_outputs.dni_arr.doc.set("W/m2", "Time series vector of direct normal irradiance (DNI) from the weather file.");
+    m_simulation_outputs.price_arr.doc.set("-", "Time series vector of PPA price multipliers used in the simulation.");
+    m_simulation_outputs.dni_templates.doc.set("W/m2", "Listing of DNI clustering templates that were used in the simulation (if applicable).");
+    m_simulation_outputs.price_templates.doc.set("-", "Listing of pricing clustering templates that were used in the simulation (if applicable).");
+    m_simulation_outputs.annual_generation.doc.set("GWhe", "Total simulated electrical energy production per year.");
+    m_simulation_outputs.annual_revenue_units.doc.set("-", "The total normalized revenue achieved by the evaluated system over the course of 1 year.");
 
     for (lk::varhash_t::iterator vit = _merged_data.begin(); vit != _merged_data.end(); vit++)
         static_cast<data_base*>(vit->second)->CreateDoc();

@@ -40,6 +40,7 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     */
 
     optimization* O = static_cast<optimization* const>(data);
+    Project *P = O->get_project();
 
     //figure out which variables were changed and as a result, which components of the objective function need updating
     std::set<std::string> triggered_methods;
@@ -65,7 +66,7 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
 
             message << v.nice_name << " [" << v.units << "]\t" << v.as_number() << "\n";
             
-            O->m_results.iteration_history.hash_vector[v.name].push_back(v.as_number());
+            P->m_optimization_outputs.iteration_history.hash_vector[v.name].push_back(v.as_number());
 
             //keep track of variable iteration history
             if (v.is_integer)
@@ -86,8 +87,6 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
 
     if (ncheck != n)
         throw std::runtime_error("Error in continuous objective function evaluation. Variable count has changed. See user support for help.");
-
-    Project* P = O->get_project();
 
     //run all of the methods in order
     std::vector<std::string> allmethods = P->GetAllMethodNames();
@@ -124,14 +123,14 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
         message_handler(message.str().c_str());
     }
 
-    ordered_hash_vector& ohv = O->m_results.iteration_history.hash_vector;
+    ordered_hash_vector& ohv = P->m_optimization_outputs.iteration_history.hash_vector;
     std::vector<parameter*> allouts = { &P->m_design_outputs.area_sf, &P->m_optical_outputs.avg_soil, &P->m_optical_outputs.n_wash_crews,
                                        &P->m_optical_outputs.avg_degr, &P->m_simulation_outputs.annual_generation, &P->m_simulation_outputs.annual_cycle_starts,
                                        &P->m_simulation_outputs.annual_rec_starts, &P->m_simulation_outputs.annual_revenue_units,
                                        &P->m_solarfield_outputs.avg_avail, &P->m_solarfield_outputs.n_repairs };
     
     for (size_t i = 0; i < allouts.size(); i++)
-        O->m_results.iteration_history.hash_vector[allouts.at(i)->name].push_back(allouts.at(i)->as_number());
+        P->m_optimization_outputs.iteration_history.hash_vector[allouts.at(i)->name].push_back(allouts.at(i)->as_number());
 
     return ppa;
 };
@@ -667,16 +666,16 @@ bool optimization::run_optimization()
             // Store information about the iteration (do not store if m_settings.trust and no evaluation)
             if ((m_settings.trust && eval_performed_flag) || !m_settings.trust)
             {
-                //m_results.eta_i.push_back( eta );
-                m_results.obj_ub_i.vec_append(obj_ub);
+                //m_project_ptr->m_optimization_outputs.eta_i.push_back( eta );
+                m_project_ptr->m_optimization_outputs.obj_ub_i.vec_append(obj_ub);
 
-                m_results.wall_time_i.vec_append((double)((std::chrono::system_clock::now() - startcputime).count()));
+                m_project_ptr->m_optimization_outputs.wall_time_i.vec_append((double)((std::chrono::system_clock::now() - startcputime).count()));
 
-                m_results.secants_i.vec_append(count + 1);
+                m_project_ptr->m_optimization_outputs.secants_i.vec_append(count + 1);
 
-                m_results.feas_secants_i.vec_append(feas_secants);
+                m_project_ptr->m_optimization_outputs.feas_secants_i.vec_append(feas_secants);
 
-                m_results.eval_order.vec_append(new_ind);
+                m_project_ptr->m_optimization_outputs.eval_order.vec_append(new_ind);
             }
 
             int sum_eta_lt_obj_ub = 0;

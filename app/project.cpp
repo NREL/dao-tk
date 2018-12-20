@@ -81,6 +81,7 @@ parameters::parameters()
 	Initialize members
 	*/
 
+	n_sim_threads.set(                       3,                "n_sim_threads",      false,      "Number of threads available for simulation",            "-",                          "Settings" );
     print_messages.set(                   true,               "print_messages",      false,                                "Print full output",           "-",                          "Settings" );
     check_max_flux.set(                   true,               "check_max_flux",      false,                                   "Check max flux",           "-",                          "Settings" );
     is_optimize.set(                     false,                  "is_optimize",      false );
@@ -113,7 +114,6 @@ parameters::parameters()
 	num_turbines.set(                        1,                 "num_turbines",      false,               "Number of turbine-generator shafts",           "-",                  "Cycle|Parameters" );
     num_scenarios.set(                       1,                "num_scenarios",      false,                              "Number of scenarios",           "-",                  "Cycle|Parameters" );
 	wash_vehicle_life.set(                  10,            "wash_vehicle_life",      false,                           "Wash vehicle lifetime",           "yr",    "Optical degradation|Parameters" );
-	n_sim_threads.set(                       3,                "n_sim_threads",      false,      "Number of threads available for simulation",            "-",                          "Settings" );
 
     rec_ref_cost.set(                1.03e+008,                 "rec_ref_cost",      false,                          "Receiver reference cost",           "$",              "Financial|Parameters" );
     rec_ref_area.set(                    1571.,                 "rec_ref_area",      false,                          "Receiver reference area",          "m2",              "Financial|Parameters" );

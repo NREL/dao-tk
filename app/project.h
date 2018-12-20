@@ -159,6 +159,14 @@ protected:
         else
             fmt_units = "[" + this->doc.units + "]";
 
+        std::string valstr = this->as_string();
+        if (valstr.size() > 15)
+        {
+            valstr.erase(valstr.begin() + 15, valstr.end());
+            valstr.append("...");
+        }
+        
+
         sprintf(buf,
             "<h3 name=\"doc_%s\">%s <font color=\"#C0C0C0\">%s</font></h3>"
             "<font color=\"#800000\">"
@@ -166,9 +174,11 @@ protected:
             "<tr><td>Handle</td><td><b>%s</b></td></tr>"
             "<tr><td>Group</td><td>%s</td></tr>"
             "<tr><td>Type</td><td>%s%s</td></tr>"
+            "<tr><td>Default</td><td>%s</td></tr>"
             "</table>"
             "</font>"
-            "<p><font size=\"+1\">%s</font></p><br><a href=\"id?%s\">Add</a><hr>",
+            "<p><font size=\"+1\">%s</font></p><br>"
+                "<table style=\"background-color:#EEE;\"><tr><td><a href=\"sid?%s\">Insert SET</a></td><td><a href=\"gid?%s\">Insert GET</a></td></tr></table><hr>",
             this->name.c_str(),
             this->nice_name.c_str(),
             fmt_units.c_str(),
@@ -176,7 +186,9 @@ protected:
             this->group.c_str(),
             vartype.c_str(),
             is_calculated ? " (calculated)" : "",
+            valstr.c_str(),
             this->doc.description.c_str(),
+            this->name.c_str(),
             this->name.c_str()
             );
         

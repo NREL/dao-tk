@@ -120,7 +120,6 @@ public:
     optimization(Project* p);
 
     optimization_settings m_settings;
-    optimization_outputs m_results;
 
     Project* get_project();
     void set_project(Project *p);
