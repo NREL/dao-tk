@@ -200,11 +200,16 @@ MainWindow::MainWindow()
 	m_notebook = new wxSimplebook(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
 
     m_statusLabel = new wxStaticText(parent, wxID_ANY, "Status");
-	m_progressBar = new wxGauge(parent, wxID_ANY, 100 );
+    m_statusLabel->SetFont(wxFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
+    
+    int ht = m_statusLabel->GetTextExtent("TEST!@2415").GetHeight();
+
+	m_progressBar = new wxGauge(parent, wxID_ANY, 100, wxDefaultPosition, wxSize(400,30), wxGA_HORIZONTAL|wxGA_SMOOTH );
 	
 	wxBoxSizer *sz_stat = new wxBoxSizer( wxHORIZONTAL );
 	sz_stat->Add( m_progressBar, 1, wxALL|wxEXPAND, 3 );
-	sz_stat->Add( m_statusLabel, 5, wxALL|wxEXPAND, 3 );
+    sz_stat->AddSpacer(7);
+	sz_stat->Add( m_statusLabel, 5, wxTOP|wxEXPAND, 15-ht/2 );
 
 	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(tools, 0, wxALL | wxEXPAND, 0);
