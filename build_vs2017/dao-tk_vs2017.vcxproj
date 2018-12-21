@@ -22,6 +22,7 @@
     <ResourceCompile Include="app.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\app\clusterthread.cpp" />
     <ClCompile Include="..\app\daotk_app.cpp" />
     <ClCompile Include="..\app\dataview.cpp" />
     <ClCompile Include="..\app\logview.cpp" />
@@ -35,6 +36,7 @@
     <ClCompile Include="..\app\vardocument.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\app\clusterthread.h" />
     <ClInclude Include="..\app\daotk_app.h" />
     <ClInclude Include="..\app\dataview.h" />
     <ClInclude Include="..\app\logview.h" />

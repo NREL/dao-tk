@@ -35,6 +35,7 @@ OBJECTS  = \
 	scriptview.o \
 	scriptlist.o \
 	vardocument.o \
+	clusterthread.o \
 	vardialog.o
 
 TARGET = dao-tk

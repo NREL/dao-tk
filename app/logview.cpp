@@ -26,8 +26,8 @@ LogView::LogView(wxWindow *parent)
 
 	wxBoxSizer *top_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-	top_sizer->Add(new wxButton(this, ID_LOG_CLEAR, "Clear log"), 0, wxALL, 5);
-	top_sizer->Add(new wxButton(this, ID_LOG_COPY, "Copy log"), 0, wxALL, 5);
+	top_sizer->Add(new wxButton(this, ID_LOG_CLEAR, "Clear log", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
+	top_sizer->Add(new wxButton(this, ID_LOG_COPY, "Copy log", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
 
 	m_TextLog = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
 		wxTE_READONLY | wxTE_MULTILINE | wxHSCROLL | wxTE_DONTWRAP | wxBORDER_NONE);

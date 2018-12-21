@@ -4,13 +4,27 @@ Test script for optimization
 
 var('solar_resource_file', 'C:/Users/mwagner/Documents/NREL/projects/sam/deploy/solar_resource/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv');
 
-var('P_ref', 25);	//MWe
+var('P_ref', 75);	//MWe
+var('is_dispatch', true);
+var('is_use_clusters', true);
+var('n_clusters', 25 );
+
+price = [];
+for(i=0; i<8760; i++)
+{
+	hr = mod(i,24);
+	if( (hr > 5 && hr < 8) || (hr > 16 && hr < 22) )
+		price[i] = 2.3;
+	else
+		price[i] = 0.46;
+}
+var('price_arr', price);
 
 ovars = 
 	[
-//		['rec_height', [12], 6., 16.],
-		['h_tower', [60], 20., 175.],
-//		['D_rec', [12], 5, 18.],
+		['rec_height', [16], 6., 23.],
+		['h_tower', [150], 60., 215.],
+		['D_rec', [15], 7, 23.],
 		['tshours',[8], 2., 20.],
 		['dni_des',[900], 600., 1100.],
 		['solarm', [2.4], 0.8, 5],

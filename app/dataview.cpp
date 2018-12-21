@@ -217,6 +217,29 @@ public:
 					return ret;
 				}
 			}
+            else if (v->type() == lk::vardata_t::HASH)
+            {
+                variable* vv = static_cast<variable*>(v);
+                if (vv->hash_vector.item_count() == 0 || vv->hash_vector.iteration_count() == 0)
+                    return "";
+                
+                wxString ret;
+
+                for (int j = 0; j < (int)vv->hash_vector.item_count(); j++)
+                    ret += wxString::Format("%10s", vv->hash_vector.at_index(j).first.c_str());
+                ret += "\n";
+
+                for (int j = 0; j < (int)vv->hash_vector.item_count(); j++)
+                {
+                    for (int i = 0; i < (int)vv->hash_vector.iteration_count(); i++)
+                    {
+                        ret += wxString::Format("%10.7f", vv->hash_vector.at_index(j).second.at(i));
+                    }
+                    ret += "\n";
+                }
+
+                return ret;
+            }
 
 		}
 		
@@ -568,6 +591,12 @@ void DataView::UpdateView()
 							label += wxString::Format( "array [%d]", (int)v->vec()->size() );
                     }
                 }
+                else if (dv->type() == lk::vardata_t::HASH)
+                {
+                    ordered_hash_vector* ov = &(static_cast<variable*>(dv))->hash_vector;
+                    label += "table " + wxString::Format("[%d x %d]", (int)ov->item_count(), (int)ov->iteration_count());
+                }
+
    				labels.Add( label );
 			}
 

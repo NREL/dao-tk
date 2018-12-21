@@ -185,50 +185,37 @@ MainWindow::MainWindow()
     m_local_dir.SetPath( wxPathOnly(wxStandardPaths::Get().GetUserLocalDataDir()) );
     m_local_dir.AppendDir("dao-tk");
 
+    wxPanel* main_panel = new wxPanel(this);
+    wxPanel* parent = main_panel;
+
 	wxBoxSizer *tools = new wxBoxSizer(wxHORIZONTAL);
 
-	tools->Add(m_mainMenuButton = new wxMetroButton(this, ID_MAIN_MENU, wxEmptyString, wxIcon( m_image_dir.GetPath() + "/main-menu.png", wxBITMAP_TYPE_PNG ), wxDefaultPosition, wxDefaultSize /*, wxMB_DOWNARROW */), 0, wxALL | wxEXPAND, 0);
+	tools->Add(m_mainMenuButton = new wxMetroButton(parent, ID_MAIN_MENU, wxEmptyString, wxIcon( m_image_dir.GetPath() + "/main-menu.png", wxBITMAP_TYPE_PNG ), wxDefaultPosition, wxDefaultSize /*, wxMB_DOWNARROW */), 0, wxALL | wxEXPAND, 0);
     
-	tools->Add(m_scriptMenuButton = new wxMetroButton(this, ID_SCRIPT_MENU, wxEmptyString, wxIcon( m_image_dir.GetPath() + "/script-menu.png", wxBITMAP_TYPE_PNG ), wxDefaultPosition, wxDefaultSize /*, wxMB_DOWNARROW */), 0, wxALL | wxEXPAND, 0);
-	m_tabList = new wxMetroTabList(this, ID_TABS, wxDefaultPosition, wxDefaultSize);
+	tools->Add(m_scriptMenuButton = new wxMetroButton(parent, ID_SCRIPT_MENU, wxEmptyString, wxIcon( m_image_dir.GetPath() + "/script-menu.png", wxBITMAP_TYPE_PNG ), wxDefaultPosition, wxDefaultSize /*, wxMB_DOWNARROW */), 0, wxALL | wxEXPAND, 0);
+	m_tabList = new wxMetroTabList(parent, ID_TABS, wxDefaultPosition, wxDefaultSize);
 	tools->Add(m_tabList, 1, wxALL | wxEXPAND, 0);
-	tools->Add(new wxMetroButton(this, ID_SCRIPT_HELP, wxEmptyString, wxBITMAP_PNG_FROM_DATA(qmark), wxDefaultPosition, wxDefaultSize), 0, wxALL | wxEXPAND, 0);
+	tools->Add(new wxMetroButton(parent, ID_SCRIPT_HELP, wxEmptyString, wxBITMAP_PNG_FROM_DATA(qmark), wxDefaultPosition, wxDefaultSize), 0, wxALL | wxEXPAND, 0);
 
-	m_notebook = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+	m_notebook = new wxSimplebook(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
 
-	m_statusLabel = new wxStaticText(this, wxID_ANY, "Status");
-	m_progressBar = new wxGauge( this, wxID_ANY, 100 );
+    m_statusLabel = new wxStaticText(parent, wxID_ANY, "Status");
+    m_statusLabel->SetFont(wxFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
+    
+    int ht = m_statusLabel->GetTextExtent("TEST!@2415").GetHeight();
+
+	m_progressBar = new wxGauge(parent, wxID_ANY, 100, wxDefaultPosition, wxSize(400,30), wxGA_HORIZONTAL|wxGA_SMOOTH );
 	
 	wxBoxSizer *sz_stat = new wxBoxSizer( wxHORIZONTAL );
 	sz_stat->Add( m_progressBar, 1, wxALL|wxEXPAND, 3 );
-	sz_stat->Add( m_statusLabel, 5, wxALL|wxEXPAND, 3 );
+    sz_stat->AddSpacer(7);
+	sz_stat->Add( m_statusLabel, 5, wxTOP|wxEXPAND, 15-ht/2 );
 
 	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(tools, 0, wxALL | wxEXPAND, 0);
 	sizer->Add(m_notebook, 1, wxALL | wxEXPAND, 0);
 	sizer->Add(sz_stat, 0, wxALL|wxEXPAND, 0 );
 
-	SetSizer(sizer);
-
-	std::vector<wxAcceleratorEntry> entries;
-	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'o', wxID_OPEN));
-	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 's', wxID_SAVE));
-	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'w', wxID_CLOSE));
-	entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F1, wxID_CLOSE));
-    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL|wxACCEL_SHIFT, 'a', wxID_SAVEAS));
-	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL|wxACCEL_SHIFT, 'o', ID_OPEN_SCRIPT));
-	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL|wxACCEL_SHIFT, 'n', ID_NEW_SCRIPT));
-	entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL|wxACCEL_SHIFT, 's', ID_SAVE_SCRIPT));
-    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL|wxACCEL_SHIFT, 's', ID_SAVE_SCRIPT_AS));
-	entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F5, ID_RUN_SCRIPT));
-	entries.push_back(wxAcceleratorEntry(wxACCEL_SHIFT, WXK_F1, ID_SCRIPT_HELP));
-    entries.push_back(wxAcceleratorEntry(wxACCEL_SHIFT, WXK_F2, ID_SCRIPT_VARIABLES));
-    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'f', ID_SCRIPT_FIND));
-    entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F3, ID_SCRIPT_NEXT));
-    // entries.push_back(wxAcceleratorEntry(wxACCEL_SHIFT, WXK_F3, ID_SCRIPT_PREV));
-	SetAcceleratorTable(wxAcceleratorTable(entries.size(), &entries[0]));
-
-	
 	wxSplitterWindow *splitwin = new wxSplitterWindow(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE ); 
 	splitwin->SetMinimumPaneSize(210);
 
@@ -243,13 +230,36 @@ MainWindow::MainWindow()
 
 	m_notebook->AddPage(splitwin, "Script");
 
-	splitwin->SplitHorizontally(splitscript, m_LogViewForm, 390);
-    splitwin->SetSashGravity(0.8);
-
+	splitwin->SplitVertically(splitscript, m_LogViewForm, 400);
+    splitwin->SetSashGravity(0.4);
+    
 	m_tabList->Append("Data");
 	m_DataViewForm = new DataView(m_notebook, m_image_dir.GetFullPath().c_str() );
 	m_DataViewForm->SetDataObject( m_project.GetMergedData() );
 	m_notebook->AddPage(m_DataViewForm, "Data");
+    
+    wxBoxSizer* main_sizer = new wxBoxSizer(wxHORIZONTAL);
+    main_sizer->Add(main_panel, 1, wxEXPAND, 0);
+    main_panel->SetSizerAndFit(sizer);
+    SetSizer(main_sizer);
+
+    std::vector<wxAcceleratorEntry> entries;
+    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'o', wxID_OPEN));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 's', wxID_SAVE));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'w', wxID_CLOSE));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F1, wxID_CLOSE));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL | wxACCEL_SHIFT, 'a', wxID_SAVEAS));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL | wxACCEL_SHIFT, 'o', ID_OPEN_SCRIPT));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL | wxACCEL_SHIFT, 'n', ID_NEW_SCRIPT));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL | wxACCEL_SHIFT, 's', ID_SAVE_SCRIPT));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL | wxACCEL_SHIFT, 's', ID_SAVE_SCRIPT_AS));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F5, ID_RUN_SCRIPT));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_SHIFT, WXK_F1, ID_SCRIPT_HELP));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_SHIFT, WXK_F2, ID_SCRIPT_VARIABLES));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'f', ID_SCRIPT_FIND));
+    entries.push_back(wxAcceleratorEntry(wxACCEL_NORMAL, WXK_F3, ID_SCRIPT_NEXT));
+    // entries.push_back(wxAcceleratorEntry(wxACCEL_SHIFT, WXK_F3, ID_SCRIPT_PREV));
+    SetAcceleratorTable(wxAcceleratorTable(entries.size(), &entries[0]));
 
 	UpdateFrameTitle();
 }
@@ -802,6 +812,7 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
         m_ScriptViewForm->GetEditor()->ShowFindReplaceDialog();
         break;
 	};
+    UpdateFrameTitle();
 }
 
 void MainWindow::OnCaseTabChange(wxCommandEvent &evt)

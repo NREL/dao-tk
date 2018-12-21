@@ -51,6 +51,81 @@ struct documentation
     };
 };
 
+typedef std::pair< std::string, std::vector<double> > svd_pair;
+
+struct ordered_hash_vector
+{
+private:
+    std::vector< svd_pair > _items;
+    std::vector< std::string > _keys;
+public:
+
+    std::vector<double>* has_item(std::string key)
+    {
+        ptrdiff_t ind = std::find(_keys.begin(), _keys.end(), key) - _keys.begin();
+        if( ind == _keys.size() )
+        {
+            return 0;
+        }
+        else
+        {
+            return &_items.at(ind).second;
+        }
+    };
+
+    std::vector<double>& operator[](const std::string& key)
+    {
+        std::vector<double>* it = has_item(key);
+        if (it)
+        {
+            return *it;
+        }
+        else
+        {
+            _items.push_back(svd_pair(key, std::vector<double>()));
+            _keys.push_back(key);
+            return _items.back().second;
+        }
+    };
+
+    void sort(bool reverse = false)
+    {
+        _keys.clear();
+
+        if(reverse)
+            std::sort(_items.begin(), _items.end(), [](const svd_pair &a, const svd_pair &b) ->bool {return a.first > b.first; });
+        else
+            std::sort(_items.begin(), _items.end(), [](const svd_pair &a, const svd_pair &b) ->bool {return a.first < b.first; });
+
+        for (size_t i = 0; i < _items.size(); i++)
+            _keys.push_back(_items.at(i).first);
+    };
+
+    size_t item_count()
+    {
+        return _items.size();
+    };
+
+    size_t iteration_count()
+    {
+        if (_items.size() > 0)
+            return _items.front().second.size();
+        else
+            return 0;
+    };
+
+    svd_pair& at_index(int ind)
+    {
+        return _items.at(ind);
+    };
+
+    void clear()
+    {
+        _keys.clear();
+        _items.clear();
+    };
+};
+
 class data_base : public lk::vardata_t
 {
 protected:
@@ -84,6 +159,14 @@ protected:
         else
             fmt_units = "[" + this->doc.units + "]";
 
+        std::string valstr = this->as_string();
+        if (valstr.size() > 15)
+        {
+            valstr.erase(valstr.begin() + 15, valstr.end());
+            valstr.append("...");
+        }
+        
+
         sprintf(buf,
             "<h3 name=\"doc_%s\">%s <font color=\"#C0C0C0\">%s</font></h3>"
             "<font color=\"#800000\">"
@@ -91,9 +174,11 @@ protected:
             "<tr><td>Handle</td><td><b>%s</b></td></tr>"
             "<tr><td>Group</td><td>%s</td></tr>"
             "<tr><td>Type</td><td>%s%s</td></tr>"
+            "<tr><td>Default</td><td>%s</td></tr>"
             "</table>"
             "</font>"
-            "<p><font size=\"+1\">%s</font></p><br><a href=\"id?%s\">Add</a><hr>",
+            "<p><font size=\"+1\">%s</font></p><br>"
+                "<table style=\"background-color:#EEE;\"><tr><td><a href=\"sid?%s\">Insert SET</a></td><td><a href=\"gid?%s\">Insert GET</a></td></tr></table><hr>",
             this->name.c_str(),
             this->nice_name.c_str(),
             fmt_units.c_str(),
@@ -101,7 +186,9 @@ protected:
             this->group.c_str(),
             vartype.c_str(),
             is_calculated ? " (calculated)" : "",
+            valstr.c_str(),
             this->doc.description.c_str(),
+            this->name.c_str(),
             this->name.c_str()
             );
         
@@ -117,6 +204,8 @@ public:
 	std::string group;
 	bool is_shown_in_list;
     documentation doc;
+
+    ordered_hash_vector hash_vector;
 
 	void assign_vector(float *_vec, int nval)
     {
@@ -345,6 +434,19 @@ public:
         _set_base(vname, calculated, _nice_name, _units, _group);
     };
 
+    void set(ordered_hash_vector& hv, std::string vname, bool calculated = false, const char *_nice_name = 0, const char *_units = 0, const char *_group = 0)
+    {
+        this->hash_vector.clear();
+        this->empty_hash();     //create an empty hash to trigger the type definition as "table"
+
+        for (size_t i = 0; i < hv.item_count(); i++)
+        {
+            svd_pair* p = &hv.at_index(i);
+            this->hash_vector[p->first] = p->second;
+        }
+        _set_base(vname, calculated, _nice_name, _units, _group);
+    }
+
     void CreateDoc()
     {
         BaseFormattedDoc(is_calculated, 0);
@@ -399,6 +501,7 @@ struct parameters : public lk::varhash_t
 	parameter cluster_nprev;
 	parameter cycle_nyears;
 	parameter wash_vehicle_life;
+    parameter n_sim_threads;
     //doubles
 	parameter rec_ref_cost;
 	parameter rec_ref_area;
@@ -536,7 +639,9 @@ struct cycle_outputs : public lk::varhash_t
 	parameter cycle_capacity;
 	parameter cycle_labor_cost;
 	parameter num_failures;
-
+    parameter cycle_efficiency_ave;
+    parameter cycle_capacity_ave;
+    
 	cycle_outputs();
 };
 
@@ -638,8 +743,7 @@ struct optimization_outputs : public lk::varhash_t
     parameter eval_order;
     //Vector<long long> 
     parameter wall_time_i;
-
-
+    parameter iteration_history;
 
     optimization_outputs();
 };

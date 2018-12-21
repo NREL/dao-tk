@@ -236,7 +236,18 @@ void VariableDialog::UpdateHelp(const char* filter, const char* type)
     }
 
     //always construct the header
-    filtered_text.append("<table style=\"width:80%;background-color:#FF7926;padding:5px;border:2px;\"><tr><td><font size=\"+1\" color=\"#000\"><tr>");
+    filtered_text.append(
+        "<table "
+            "style=\""
+                "width:100%;"
+                "color:#000;"
+                "background-color:#FF7926;"
+                "padding:5px;"
+                "text-decoration:none;"
+                "border:2px;"
+            "\">"
+        "<tr><td><font size=\"-1\" color=\"#000\"><tr>"
+    );
     for(size_t i=0; i<all_group_names.size(); i++)
     {
         wxArrayString groupparse = wxSplit( all_group_names.at(i), '#');
@@ -275,11 +286,20 @@ void VariableDialog::OnHtmlEvent(wxHtmlLinkEvent &evt)
             lk::varhash_t::iterator vfind = (*vgroup)->find(var);
             if( vfind != (*vgroup)->end() )   
             {
-                MainWindow::Instance().ScriptInsert( (wxString::Format("var(\"%s\")", vfind->first.c_str())).c_str() );
+                if( link.Find("gid?") > -1)  //get
+                    MainWindow::Instance().ScriptInsert( (wxString::Format("var(\"%s\")", vfind->first.c_str())).c_str() );
+                else if (link.Find("sid?") > -1) //set
+                {
+                    std::string valstr = vfind->second->as_string();
+                    MainWindow::Instance().ScriptInsert((wxString::Format("var(\"%s\",%s);\n", vfind->first.c_str(), valstr.c_str())).c_str());
+                }
+
                 return;
             }
         }
     }
+    else
+        evt.Skip();
     return;
 }
 
@@ -294,5 +314,5 @@ BEGIN_EVENT_TABLE( VariableDialog, wxFrame )
     EVT_BUTTON(ID_NAV_TOP, VariableDialog::OnCommand)
     EVT_BUTTON(ID_NAV_NEXT_SECTION, VariableDialog::OnCommand)
     EVT_BUTTON(ID_NAV_PREV_SECTION, VariableDialog::OnCommand)
-    // EVT_HTML_LINK_CLICKED(ID_VAR_HELP, VariableDialog::OnHtmlEvent)
+    EVT_HTML_LINK_CLICKED(ID_VAR_HELP, VariableDialog::OnHtmlEvent)
 END_EVENT_TABLE()
