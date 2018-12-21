@@ -10,7 +10,7 @@ enum repair_order {
 	REPAIR_TIME,		// Prioritize repairs in order from shortest to longest repair time
 	MEAN_REPAIR_TIME,	// Prioritize repairs in order from shortest to longest mean repair time
 	RANDOM,				// Random prioritization of repairs
-	PERF_INC_RATE       // Prioritize repairs in order from largest to smallest expected rate of increased performance
+	PERF_OVER_MRT       // Prioritize repairs in order from largest to smallest expected rate of increased performance
 };
 
 
