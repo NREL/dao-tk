@@ -483,7 +483,16 @@ void DataView::SetSelections(const wxArrayString &sel, const wxArrayString &labe
     }
 
     m_varlist->Expand(m_root);
-	m_varlist->ExpandAll();
+    
+    wxTreeItemIdValue cookie; //unused
+    wxTreeItemId node = m_varlist->GetFirstChild(m_varlist->GetRootItem(), cookie);
+    while (node.IsOk())
+    {
+        m_varlist->CollapseAllChildren(node);
+        node = m_varlist->GetNextSibling(node);
+    }
+    m_varlist->EnsureVisible(m_varlist->GetRootItem());
+
     m_varlist->UnselectAll();
 
 }
