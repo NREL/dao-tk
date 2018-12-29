@@ -201,6 +201,8 @@ public:
 
 	void assign_vector(float *_vec, int nval)
     {
+        if (!_vec)
+            return;
         this->empty_vector();
         this->vec()->resize(nval);
         for (int i = 0; i < nval; i++)
