@@ -429,6 +429,7 @@ optical_outputs::optical_outputs()
 cycle_outputs::cycle_outputs()
 {
 	std::vector< double > empty_vec;
+    double nan = std::numeric_limits<double>::quiet_NaN();
 
     cycle_efficiency.set(       empty_vec,                "cycle_efficiency",        true,                   "Cycle efficiency time series",       "-",                     "Cycle|Outputs" );
     cycle_capacity.set(         empty_vec,                  "cycle_capacity",        true,                     "Cycle capacity time series",       "-",                     "Cycle|Outputs" );
@@ -598,16 +599,16 @@ objective_outputs::objective_outputs()
 
 optimization_outputs::optimization_outputs()
 {
-	double nan = std::numeric_limits<double>::quiet_NaN();
 	std::vector< double > empty_vec_d;
     std::vector< std::vector<double> > empty_mat;
+    ordered_hash_vector ohv;
     	
     eta_i.set(empty_mat, "obj_function_lower_b", true, "Lower bound on objective at evaluation points", "-", "Optimization|Outputs");
     secants_i.set(empty_vec_d, "obj_function_secants", true, "Objective function secants", "-", "Optimization|Outputs");
     feas_secants_i.set(empty_vec_d, "obj_function_secants_f", true, "Feasible objective function secants", "-", "Optimization|Outputs");
     eval_order.set(empty_vec_d, "obj_eval_order", true, "Objective function evaluation order", "-", "Optimization|Outputs");
     wall_time_i.set(empty_vec_d, "obj_wall_time", true, "Clock time for objective function evaluation", "-", "Optimization|Outputs");
-    iteration_history.set(ordered_hash_vector(), "iteration_hitsory", true, "Optimization iteration data", "", "Optimization|Outputs");
+    iteration_history.set(ohv, "iteration_hitsory", true, "Optimization iteration data", "", "Optimization|Outputs");
 
     (*this)["obj_function_lower_b"] = &eta_i;
     (*this)["obj_function_secants"] = &secants_i;
@@ -1240,13 +1241,13 @@ double Project::calc_real_dollars(const double &dollars, bool is_revenue, bool i
 
 	ssc_number_t inflation_rate; 
 	ssc_data_get_number(m_ssc_data, "inflation_rate", &inflation_rate);
-	inflation_rate *= .01;
+	inflation_rate *= (ssc_number_t)0.01;
 	
 	if (is_revenue)
 	{
 		ssc_number_t ppa_escalation; 
 		ssc_data_get_number(m_ssc_data, "ppa_escalation", &ppa_escalation);
-		ppa_escalation *= .01;
+		ppa_escalation *= (ssc_number_t)0.01;
 
 		double r = 1. + ppa_escalation - inflation_rate;
 
@@ -1277,15 +1278,15 @@ double Project::calc_real_dollars(const double &dollars, bool is_revenue, bool i
 
 		ssc_number_t debt_percent;
 		ssc_data_get_number(m_ssc_data, "debt_percent", &debt_percent);
-		debt_percent *= .01;
+		debt_percent *= (ssc_number_t)0.01;
 
 		ssc_number_t cost_debt_fee;
 		ssc_data_get_number(m_ssc_data, "cost_debt_fee", &cost_debt_fee);
-		cost_debt_fee *= .01;
+		cost_debt_fee *= (ssc_number_t)0.01;
 
 		ssc_number_t term_int_rate;
 		ssc_data_get_number(m_ssc_data, "term_int_rate", &term_int_rate);
-		term_int_rate *= .01;
+		term_int_rate *= (ssc_number_t)0.01;
 
 		double pv = dollars * debt_percent; // present value of debt
 		double dp = pv * cost_debt_fee;		// debt financing cost
@@ -1822,7 +1823,7 @@ bool Project::S()
 	double sim_ts = 1. / (double)wf_steps_per_hour;
 
 	ssc_data_set_number(m_ssc_data, "time_steps_per_hour", wf_steps_per_hour);
-	ssc_data_set_number(m_ssc_data, "disp_mip_gap", 0.02);
+	ssc_data_set_number(m_ssc_data, "disp_mip_gap", (ssc_number_t)0.02);
 
 	//--- Set the solar field availability schedule
 	std::vector<double> avail(nrec, 1.);
@@ -2372,7 +2373,6 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
 
 	ssc_number_t wf_steps_per_hour;
 	ssc_data_get_number(m_ssc_data, "time_steps_per_hour", &wf_steps_per_hour);
-	int nperday = (int)wf_steps_per_hour * 24;
 	int nrec = (int)wf_steps_per_hour * 8760;
 
 	unordered_map < std::string, std::vector<double>> collect_ssc_data;
@@ -3246,9 +3246,9 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 				for (int k = 0; k < (int)ssc_keys.size(); k++)
 				{
 					std::string key = ssc_keys[k];
-					ssc_number_t *p_data = ssc_data_get_array(m_ssc_data, key.c_str(), &nr);
+					ssc_number_t *pk_data = ssc_data_get_array(m_ssc_data, key.c_str(), &nr);
 					for (int r = 0; r < nr; r++)
-						current_soln[key][step_now + r] = p_data[r];
+						current_soln[key][step_now + r] = pk_data[r];
 				}
 
 				// Update dispatch operation targets
@@ -3257,11 +3257,11 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 					for (int k = 0; k < (int)disp_target_keys.size(); k++)
 					{
 						std::string key = disp_target_keys[k];
-						ssc_number_t *p_data = ssc_data_get_array(m_ssc_data, key.c_str(), &nr);
+						ssc_number_t *pk_data = ssc_data_get_array(m_ssc_data, key.c_str(), &nr);
 						for (int r = 0; r < nr; r++)
 						{
-							optimized_targets[key][step_now + r] = p_data[r];
-							adjusted_targets[key][step_now + r] = p_data[r];
+							optimized_targets[key][step_now + r] = pk_data[r];
+							adjusted_targets[key][step_now + r] = pk_data[r];
 						}
 					}
 				}
@@ -3432,7 +3432,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 
 
 			//--- Set dispatch targets if next ssc call will not involve re-optimization
-			double e_ch_tes_adj = nan;
+			//double e_ch_tes_adj = nan;
 			if (!is_reoptimize && !use_existing_ssc_soln && next_start_pt < nsteps)
 			{
 

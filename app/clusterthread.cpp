@@ -135,14 +135,16 @@ void ClusterThread::StartThread() //Entry()
 
 
         //Simulate for each time
-        StatusLock.lock();
-        bool is_cancel = this->CancelFlag; //check for cancelled simulation
-        StatusLock.unlock();
-        if (is_cancel) {
-            FinishedLock.lock();
-            Finished = true;
-            FinishedLock.unlock();
-            return; // (wxThread::ExitCode)-1;
+        {
+            StatusLock.lock();
+            bool is_cancel = this->CancelFlag; //check for cancelled simulation
+            StatusLock.unlock();
+            if (is_cancel) {
+                FinishedLock.lock();
+                Finished = true;
+                FinishedLock.unlock();
+                return; // (wxThread::ExitCode)-1;
+            }
         }
         
         ssc_module_t mod_mspt = ssc_module_create("tcsmolten_salt");
@@ -177,7 +179,6 @@ void ClusterThread::StartThread() //Entry()
             ssc_number_t wf_steps_per_hour;
             ssc_data_get_number(_ssc_data, "time_steps_per_hour", &wf_steps_per_hour);
             int nperday = (int)wf_steps_per_hour * 24;
-            int nrec = (int)wf_steps_per_hour * 8760;
 
             // Update solar field hourly availability to reflect cluster-average values for this exemplar simulation
             std::vector<double> sfavail_sim = *_sf_avail;
@@ -223,7 +224,6 @@ void ClusterThread::StartThread() //Entry()
             {
                 message_handler("SSC simulation failed");
                 int ty; float tms;
-                bool chck=true;
                 for (int k = 0; ; k++)
                 {
                     const char *msg = ssc_module_log(mod_mspt, k, &ty, &tms);

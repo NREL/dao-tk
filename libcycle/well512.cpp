@@ -105,7 +105,7 @@ double WELLFiveTwelve::getVariate()
     state[newV1()] = z1 ^ z2;
     state[newV0()] = MAT0NEG(-2, z0) ^ MAT0NEG(-18, z1) ^ MAT3NEG(-28, z2) ^ MAT4NEG(-5, 0xda442d24, state[newV1()] );
     state_i = (state_i + 15) & 0x0000000f;
-    return state[state_i] * FACT;
+    return (double)(state[state_i] * FACT);
 }
 
 
@@ -234,7 +234,7 @@ void WELLFiveTwelve::saveStates(int scenario)
 }
 
 void WELLFiveTwelve::UpdateStoredState(
-	int scenario, std::vector< uint32_t > new_state, int new_state_i
+	int, std::vector< uint32_t > new_state, int new_state_i
 )
 {
 	/*
@@ -243,7 +243,7 @@ void WELLFiveTwelve::UpdateStoredState(
 	*/
 	for (int i = 0; i < 16; i++)
 	{
-		state[i] = new_state[i] * 1.0;
+		state[i] = (unsigned int)(new_state[i] * 1.0);
 	}
 	state_i = new_state_i;
 }
@@ -254,7 +254,7 @@ void WELLFiveTwelve::ReadRNGStateFile(std::string filename, int scenario)
 	std::ifstream pfile;
 	std::string delimiter = ",";
 	size_t pos = 0;
-	int cindex = 0;
+	//int cindex = 0;
 	std::string pline;
 	std::vector<std::string> split_line = {};
 	std::string token;

@@ -19,7 +19,7 @@
 #include <cmath>
 #ifdef _MSC_VER
 /* taken from wxMSW-2.9.1/include/wx/defs.h - appropriate for Win32/Win64 */
-#define va_copy(d, s) ((d)=(s))
+#define my_va_copy(d, s) ((d)=(s))
 #endif
 
 std::vector< std::string > util::split( const std::string &str, const std::string &delim, bool ret_empty, bool ret_delim )
@@ -171,10 +171,10 @@ bool util::dir_exists( const char *path )
 	// Windows fails to find directory named "c:\dir\" even if "c:\dir" exists,
 	// so remove all trailing backslashes from the path - but don't do this for
 	// the paths "d:\" (which are different from "d:") nor for just "\"
-	char *wpath = strdup( path );
+	char *wpath = _strdup( path );
 	if (!wpath) return false;
 
-	int pos = strlen(wpath)-1;
+	int pos = (int)strlen(wpath)-1;
 	while (pos > 1 && (wpath[pos] == '/' || wpath[pos] == '\\'))
 	{
 		if (pos == 3 && wpath[pos-1] == ':') break;
@@ -201,9 +201,9 @@ bool util::remove_file( const char *path )
 }
 
 #ifdef _WIN32
-#define make_dir(x) ::mkdir(x)
+#define my_make_dir(x) ::_mkdir(x)
 #else
-#define make_dir(x) ::mkdir(x, 0777)
+#define my_make_dir(x) ::mkdir(x, 0777)
 #endif
 
 bool util::mkdir( const char *path, bool make_full )
@@ -221,7 +221,7 @@ bool util::mkdir( const char *path, bool make_full )
 			cur_path += parts[i];
 
 			if ( !dir_exists(cur_path.c_str()) )
-				if (0 != make_dir( cur_path.c_str() ) ) return false;
+				if (0 != my_make_dir( cur_path.c_str() ) ) return false;
 						
 			cur_path += path_separator();
 		}
@@ -229,7 +229,7 @@ bool util::mkdir( const char *path, bool make_full )
 		return true;
 	}
 	else
-		return 0 == make_dir( path );
+		return 0 == my_make_dir( path );
 }
 
 std::string util::path_only( const std::string &path )
@@ -290,7 +290,7 @@ std::string util::read_file( const std::string &file )
 	FILE *fp = fopen(file.c_str(), "r");
 	if (fp)
 	{
-		while ( (c=fgetc(fp))!=EOF )
+		while ( (c=(char)fgetc(fp))!=EOF )
 			buf += c;
 		fclose(fp);
 	}
@@ -516,7 +516,7 @@ std::string util::format(const char *fmt, ...)
 	do
 	{
 		va_list argptr_copy;
-		va_copy( argptr_copy, arglist );
+		my_va_copy( argptr_copy, arglist );
 		ret = util::format_vn(buffer,size-1,fmt,argptr_copy);
 		va_end( argptr_copy );
 
@@ -827,7 +827,7 @@ void util::month_hour(int hour_of_year, int & out_month, int & out_hour)
 		if (hour_of_year + 1 <= tmpSum)
 		{
 			// get the day of the month
-			int tmp = floor((float)(hour_of_year) / 24);
+			int tmp = (int)(floor((float)(hour_of_year) / 24)+0.0000001);
 			hour = (hour_of_year + 1) - (tmp * 24);
 			break;
 		}
@@ -843,7 +843,7 @@ int util::hour_of_day(int hour_of_year)
 
 bool util::weekday(int hour_of_year)
 {
-	int day_of_year = floor((float)(hour_of_year) / 24);
+	int day_of_year = (int)(floor((float)(hour_of_year) / 24)+0.0000001);
 	int day_of_week = day_of_year;
 
 	if (day_of_week > 6)
@@ -984,9 +984,9 @@ bool util::translate_schedule(int tod[8760], const matrix_t<float> &wkday, const
 			for (int h = 0; h<24; h++)
 			{
 				if (is_weekday)
-					tod[i] = wkday.at(m, h);
+					tod[i] = (int)wkday.at(m, h);
 				else
-					tod[i] = wkend.at(m, h);
+					tod[i] = (int)wkend.at(m, h);
 
 				if (tod[i] < min_val) tod[i] = min_val;
 				if (tod[i] > max_val) tod[i] = max_val;

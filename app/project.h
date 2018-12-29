@@ -63,7 +63,7 @@ public:
     std::vector<double>* has_item(std::string key)
     {
         ptrdiff_t ind = std::find(_keys.begin(), _keys.end(), key) - _keys.begin();
-        if( ind == _keys.size() )
+        if( ind == (ptrdiff_t)_keys.size() )
         {
             return 0;
         }
@@ -132,7 +132,8 @@ protected:
 	bool m_is_invalid_allowed; //allow values to contain invalid data during simulation (values will be assigned/updated by the program)
     std::string BaseFormattedDoc(bool is_calculated, const char* limits = 0)
     {
-        char buf[2000];
+        std::stringstream buf;
+        //char buf[2000];
 
         std::string vartype;
         switch (this->type())
@@ -167,34 +168,25 @@ protected:
         }
         
 
-        sprintf(buf,
-            "<h3 name=\"doc_%s\">%s <font color=\"#C0C0C0\">%s</font></h3>"
-            "<font color=\"#800000\">"
-            "<table style=\"background-color:#DDD\">"
-            "<tr><td>Handle</td><td><b>%s</b></td></tr>"
-            "<tr><td>Group</td><td>%s</td></tr>"
-            "<tr><td>Type</td><td>%s%s</td></tr>"
-            "<tr><td>Default</td><td>%s</td></tr>"
-            "</table>"
-            "</font>"
-            "<p><font size=\"+1\">%s</font></p><br>"
-                "<table style=\"background-color:#EEE;\"><tr><td><a href=\"sid?%s\">Insert SET</a></td><td><a href=\"gid?%s\">Insert GET</a></td></tr></table><hr>",
-            this->name.c_str(),
-            this->nice_name.c_str(),
-            fmt_units.c_str(),
-            this->name.c_str(), 
-            this->group.c_str(),
-            vartype.c_str(),
-            is_calculated ? " (calculated)" : "",
-            valstr.c_str(),
-            this->doc.description.c_str(),
-            this->name.c_str(),
-            this->name.c_str()
-            );
+        //sprintf(buf,
+        buf << "<h3 name=\"doc_" << this->name << "\">" << this->nice_name << " <font color=\"#C0C0C0\">" << fmt_units << "</font></h3>";
+        buf << "<font color=\"#800000\">";
+        buf << "<table style=\"background-color:#DDD\">";
+        buf << "<tr><td>Handle</td><td><b>" << this->name << "</b></td></tr>";
+        buf << "<tr><td>Group</td><td>" << this->group << "</td></tr>";
+        buf << "<tr><td>Type</td><td>" << vartype << (is_calculated ? " (calculated)" : "") << "</td></tr>";
+        buf << "<tr><td>Default</td><td>" << valstr << "</td></tr>";
+        if (limits)
+            buf << "<tr><td>Limits</td><td>" << limits << "</td></tr>";
+        buf << "</table>";
+        buf << "</font>";
+        buf << "<p><font size=\"+1\">" << this->doc.description << "</font></p><br>";
+        buf << "<table style=\"background-color:#EEE;\"><tr><td><a href=\"sid?" << this->name;
+        buf << "\">Insert SET</a></td><td><a href=\"gid?" << this->name << "\">Insert GET</a></td></tr></table><hr>",
         
-        this->doc.formatted_doc = buf;
+        this->doc.formatted_doc = buf.str();
 
-        return std::string(buf);
+        return buf.str();
     };
 
 public:
@@ -441,7 +433,7 @@ public:
 
         for (size_t i = 0; i < hv.item_count(); i++)
         {
-            svd_pair* p = &hv.at_index(i);
+            svd_pair* p = &hv.at_index((int)i);
             this->hash_vector[p->first] = p->second;
         }
         _set_base(vname, calculated, _nice_name, _units, _group);

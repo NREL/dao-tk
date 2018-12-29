@@ -434,26 +434,26 @@ void DataView::SetSelections(const wxArrayString &sel, const wxArrayString &labe
 			wxArrayString cxt_list = wxSplit(parsename[0], wxChar('|'));
 
 			//need to figure out at which level the first difference appears
-			int i_level = 0;
+			int j_level = 0;
 			
 			int ncxt_list = cxt_list.Count();
 			int ncur_context_list = cur_context_list.Count();
 
-			for(int i=0; i<ncxt_list; i++)
+			for(int j=0; j<ncxt_list; j++)
 			{
-				if( i > ncur_context_list-1 )
+				if( j > ncur_context_list-1 )
 				{
-					i_level = i;
+					j_level = j;
 					break;
 				}
-				if( cxt_list[i] != cur_context_list[i] )
+				if( cxt_list[j] != cur_context_list[j] )
 				{
-					i_level = i;
+					j_level = j;
 					break;
 				}
 			}
 
-			int nlevels_up = cur_context_list.Count() - i_level;
+			int nlevels_up = cur_context_list.Count() - j_level;
 			
 			for( int ind=0; ind<nlevels_up; ind++)
 				cur_parent = m_varlist->GetItemParent(cur_parent);
@@ -462,7 +462,7 @@ void DataView::SetSelections(const wxArrayString &sel, const wxArrayString &labe
 				cur_parent = m_root;	//needed on first pass through
 
 			//reconstruct nodes back down
-			for( int ind=i_level; ind<ncxt_list; ind++)
+			for( int ind=j_level; ind<ncxt_list; ind++)
 			{
 				cur_parent = m_varlist->AppendItem(cur_parent, cxt_list[ind], -1, -1, new TreeItemData(cxt.c_str()) );
             	m_varlist->SetItemBold(cur_parent);
@@ -478,7 +478,7 @@ void DataView::SetSelections(const wxArrayString &sel, const wxArrayString &labe
         else
             item_id = m_varlist->AppendItem( m_root, lbl, VarTreeView::ICON_CHECK_FALSE, -1, new TreeItemData(m_names[i].c_str()) );
 
-        if ( m_selections.Index( m_names[i] ) >= 0 )
+        if ( sel.Index( m_names[i] ) >= 0 )
             m_varlist->Check( item_id, true );
     }
 

@@ -2510,7 +2510,7 @@ void PowerCycle::ReadInComponentFailures(int t)
 					output_log.push_back(util::format(
 						"Failure Read: %d, %d, %s",
 						t, m_sim_params.read_periods, 
-						m_failure_events[label].print())
+						m_failure_events[label].print().c_str())
 					);
 			}
 		}

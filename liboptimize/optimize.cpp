@@ -85,7 +85,7 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
         message.flush();
     }
 
-    if (ncheck != n)
+    if (ncheck != (int)n)
         throw std::runtime_error("Error in continuous objective function evaluation. Variable count has changed. See user support for help.");
 
     //run all of the methods in order
@@ -123,7 +123,7 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
         message_handler(message.str().c_str());
     }
 
-    ordered_hash_vector& ohv = P->m_optimization_outputs.iteration_history.hash_vector;
+    //ordered_hash_vector& ohv = P->m_optimization_outputs.iteration_history.hash_vector;
     std::vector<parameter*> allouts = { &P->m_design_outputs.area_sf, &P->m_optical_outputs.avg_soil, &P->m_optical_outputs.n_wash_crews,
                                        &P->m_optical_outputs.avg_degr, &P->m_simulation_outputs.annual_generation, &P->m_simulation_outputs.annual_cycle_starts,
                                        &P->m_simulation_outputs.annual_rec_starts, &P->m_simulation_outputs.annual_revenue_units,
@@ -306,8 +306,8 @@ bool optimization::run_optimization()
             {
                 optimization_variable &v = (*integer_variables.at(i));
 
-                LB(i) = v.minval.as_integer();
-                UB(i) = v.maxval.as_integer();
+                LB((int)i) = v.minval.as_integer();
+                UB((int)i) = v.maxval.as_integer();
                 if (v.initializers.size() != n)
                 {
                     std::runtime_error((std::stringstream()
@@ -316,7 +316,7 @@ bool optimization::run_optimization()
                     );
                 }
                 for (int j = 0; j < v.initializers.size(); j++)
-                    X(j, i) = (int)v.initializers.at(j);
+                    X(j, (int)i) = (int)v.initializers.at(j);
             }
         }
 
