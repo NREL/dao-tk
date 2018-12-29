@@ -91,14 +91,22 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     //run all of the methods in order
     std::vector<std::string> allmethods = P->GetAllMethodNames();
     
+    std::string failedmethod;
     for (std::vector<std::string>::iterator mit = allmethods.begin(); mit != allmethods.end(); mit++)
     {
         if (triggered_methods.find(*mit) != triggered_methods.end())
+        {
             if (!P->CallMethodByName(*mit))
             {
-                message_handler(("Objective function evaluation failed during method execution " + *mit + "()\n").c_str());
-                throw nlopt::forced_stop();
+                failedmethod = *mit;
+                break;
             }
+        }
+    }
+    if(! failedmethod.empty() )
+    {
+        message_handler(("Objective function evaluation failed during method execution " + failedmethod + "()\n").c_str());
+        throw nlopt::forced_stop();
     }
 
     double ppa = P->m_financial_outputs.ppa.as_number();
