@@ -42,6 +42,12 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     optimization* O = static_cast<optimization* const>(data);
     Project *P = O->get_project();
 
+    //list of all output variables
+    std::vector<parameter*> allouts = { &P->m_design_outputs.area_sf, &P->m_optical_outputs.avg_soil, &P->m_optical_outputs.n_wash_crews,
+                                   &P->m_optical_outputs.avg_degr, &P->m_simulation_outputs.annual_generation, &P->m_simulation_outputs.annual_cycle_starts,
+                                   &P->m_simulation_outputs.annual_rec_starts, &P->m_simulation_outputs.annual_revenue_units,
+                                   &P->m_solarfield_outputs.avg_avail, &P->m_solarfield_outputs.n_repairs };
+       
     //figure out which variables were changed and as a result, which components of the objective function need updating
     std::set<std::string> triggered_methods;
     int ncheck = 0;
@@ -84,6 +90,11 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
         message_handler(message.str().c_str());
         message.flush();
     }
+
+    //also initialize the outputs in the iteration history in case of fail or user cancel
+    for (size_t i = 0; i < allouts.size(); i++)
+        P->m_optimization_outputs.iteration_history.hash_vector[allouts.at(i)->name].push_back(std::numeric_limits<double>::quiet_NaN());
+
 
     if (ncheck != (int)n)
         throw std::runtime_error("Error in continuous objective function evaluation. Variable count has changed. See user support for help.");
@@ -131,14 +142,9 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
         message_handler(message.str().c_str());
     }
 
-    //ordered_hash_vector& ohv = P->m_optimization_outputs.iteration_history.hash_vector;
-    std::vector<parameter*> allouts = { &P->m_design_outputs.area_sf, &P->m_optical_outputs.avg_soil, &P->m_optical_outputs.n_wash_crews,
-                                       &P->m_optical_outputs.avg_degr, &P->m_simulation_outputs.annual_generation, &P->m_simulation_outputs.annual_cycle_starts,
-                                       &P->m_simulation_outputs.annual_rec_starts, &P->m_simulation_outputs.annual_revenue_units,
-                                       &P->m_solarfield_outputs.avg_avail, &P->m_solarfield_outputs.n_repairs };
-    
+    //update the actual output value to override the NAN that was initialized
     for (size_t i = 0; i < allouts.size(); i++)
-        P->m_optimization_outputs.iteration_history.hash_vector[allouts.at(i)->name].push_back(allouts.at(i)->as_number());
+        P->m_optimization_outputs.iteration_history.hash_vector[allouts.at(i)->name].back() = allouts.at(i)->as_number();
 
     return ppa;
 };

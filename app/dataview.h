@@ -62,6 +62,7 @@
 
 class wxExtGridCtrl;
 class VarTreeView;
+class variable;
 
 class DataView : public wxPanel
 {
@@ -138,6 +139,23 @@ private:
 	wxNumericCtrl *numMax;
 	wxNumericCtrl *numMean;
 	wxNumericCtrl *numMin;
+};
+
+class TableViewDialog : public wxDialog
+{
+    variable *_vardata;
+    wxGrid *_grid;
+    int _type;
+    wxKeyboardState _keyboardstate;
+
+    void OnCommand(wxCommandEvent &evt);
+    void OnCopy(wxKeyEvent &evt);
+
+    DECLARE_EVENT_TABLE();
+public:
+    enum {TVD_TABLE, TVD_VECTHASH, TVD_ARRAY};
+
+    TableViewDialog(wxWindow *parent, variable* vardata, wxString title, int id=wxID_ANY, long style=wxDEFAULT_DIALOG_STYLE);
 };
 
 

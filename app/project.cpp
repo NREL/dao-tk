@@ -602,13 +602,19 @@ optimization_outputs::optimization_outputs()
 	std::vector< double > empty_vec_d;
     std::vector< std::vector<double> > empty_mat;
     ordered_hash_vector ohv;
+
+    //std::vector<std::string> keys = { "first","second","monday","tuesday","wednesday" };
+    //int ii = 0;
+    //for (std::vector<std::string>::iterator k = keys.begin(); k != keys.end(); k++)
+    //    for (int i = 0; i < 20; i++)
+    //        ohv[*k].push_back(ii++);
     	
     eta_i.set(empty_mat, "obj_function_lower_b", true, "Lower bound on objective at evaluation points", "-", "Optimization|Outputs");
     secants_i.set(empty_vec_d, "obj_function_secants", true, "Objective function secants", "-", "Optimization|Outputs");
     feas_secants_i.set(empty_vec_d, "obj_function_secants_f", true, "Feasible objective function secants", "-", "Optimization|Outputs");
     eval_order.set(empty_vec_d, "obj_eval_order", true, "Objective function evaluation order", "-", "Optimization|Outputs");
     wall_time_i.set(empty_vec_d, "obj_wall_time", true, "Clock time for objective function evaluation", "-", "Optimization|Outputs");
-    iteration_history.set(ohv, "iteration_hitsory", true, "Optimization iteration data", "", "Optimization|Outputs");
+    iteration_history.set(ohv, "iteration_history", true, "Optimization iteration data", "", "Optimization|Outputs");
 
     (*this)["obj_function_lower_b"] = &eta_i;
     (*this)["obj_function_secants"] = &secants_i;
