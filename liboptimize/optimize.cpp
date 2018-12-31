@@ -6,6 +6,7 @@
 #include <exception>
 #include <set>
 #include <iostream>
+#include <iomanip>
 #include <stdio.h>
 #include <algorithm>
 
@@ -25,7 +26,12 @@ static inline bool filter_where_lt(T c, T d)
 
 //optimization::optimization() {};
 
-optimization::optimization(Project* P) { m_project_ptr = P; }
+optimization::optimization(Project* P) 
+{ 
+    m_project_ptr = P; 
+    m_current_iteration = 0;
+    m_time_elapsed_ms = 0;
+}
 
 void optimization::set_project(Project* P) { m_project_ptr = P; }
 
@@ -51,12 +57,18 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     //figure out which variables were changed and as a result, which components of the objective function need updating
     std::set<std::string> triggered_methods;
     int ncheck = 0;
+
+    std::chrono::time_point<std::chrono::system_clock> curcputime = std::chrono::system_clock::now();
+
     //limit scope of 'i'
     {
+        char buf[200];
+        sprintf(buf, "Iter %d (%.1f s) ", O->get_and_up_iteration(), (curcputime.time_since_epoch().count() - O->get_time_init_ms()) *1e-6);
+
         std::stringstream message;
-        message <<  "*************************************************\n"
-                    "Optimization evaluation point:\n"
-                    "*************************************************\n";
+        message << "*************************************************\n";
+        message << std::string(buf) << "Optimization evaluation point:\n"
+                   "*************************************************\n";
         int i = 0;
         for (std::vector<optimization_variable>::iterator vit = O->m_settings.variables.begin(); vit != O->m_settings.variables.end(); vit++)
         {
@@ -149,6 +161,15 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     return ppa;
 };
 
+int optimization::get_and_up_iteration()
+{
+    return m_current_iteration++;
+}
+
+long long optimization::get_time_init_ms()
+{
+    return m_time_init_ms;
+}
 
 double optimization::run_continuous_subproblem()
 {
@@ -288,6 +309,7 @@ bool optimization::run_optimization()
 
 
         std::chrono::time_point<std::chrono::system_clock> startcputime = std::chrono::system_clock::now();
+        m_time_init_ms = startcputime.time_since_epoch().count();
 
         std::vector< optimization_variable* > continuous_variables = m_settings.continuous_variables();
         std::vector< optimization_variable* > integer_variables = m_settings.integer_variables();
