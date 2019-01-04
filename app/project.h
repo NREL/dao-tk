@@ -546,6 +546,7 @@ struct parameters : public lk::varhash_t
 	parameter no_restart_efficiency;
 	parameter cycle_hourly_labor_cost;
 	parameter avail_model_timestep;
+    parameter forecast_gamma;
     //vector-doubles
 	parameter c_ces;
 	parameter dispatch_factors_ts;
@@ -738,6 +739,7 @@ struct optimization_outputs : public lk::varhash_t
     //Vector<long long> 
     parameter wall_time_i;
     parameter iteration_history;
+    parameter best_point;
 
     optimization_outputs();
 };

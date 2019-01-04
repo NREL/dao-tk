@@ -144,13 +144,14 @@ parameters::parameters()
     helio_reflectance.set(                0.95,            "helio_reflectance",      false,                       "Initial mirror reflectance",           "-",    "Optical degradation|Parameters" );
     disp_rsu_cost.set(                    950.,                "disp_rsu_cost",      false,                            "Receiver startup cost",           "$",             "Simulation|Parameters" );
     disp_csu_cost.set(                  10000.,                "disp_csu_cost",      false,                         "Power block startup cost",           "$",             "Simulation|Parameters" );
-    disp_pen_delta_w.set(                  0.1,             "disp_pen_delta_w",      false,                         "Power block ramp penalty",  "$/delta-kW",            "Simulation|Parameters" );
+    disp_pen_delta_w.set(                  0.1,             "disp_pen_delta_w",      false,                         "Power block ramp penalty",  "$/delta-kW",             "Simulation|Parameters" );
     rec_su_delay.set(                      0.2,                 "rec_su_delay",      false,                        "Receiver min startup time",          "hr",             "Simulation|Parameters" );
     rec_qf_delay.set(                     0.25,                 "rec_qf_delay",      false,                      "Receiver min startup energy",     "MWh/MWh",             "Simulation|Parameters" );
     startup_time.set(                      0.5,                 "startup_time",      false,                     "Power block min startup time",          "hr",             "Simulation|Parameters" );
     startup_frac.set(                      0.5,                 "startup_frac",      false,                       "Power block startup energy",     "MWh/MWh",             "Simulation|Parameters" );
     v_wind_max.set(                        15.,                   "v_wind_max",      false,                    "Max operational wind velocity",         "m/s",             "Simulation|Parameters" );
     flux_max.set(                        1000.,                     "flux_max",      false,                            "Maximum receiver flux",       "kW/m2",             "Simulation|Parameters" );
+    forecast_gamma.set(                     0.,                      "fc_gamma",     false,                      "Forecast TES hedging factor",           "-",             "Simulation|Parameters" );
     maintenance_interval.set(             1.e6,         "maintenance_interval",      false,      "Runtime duration between maintenance events",           "h",                  "Cycle|Parameters" );
     maintenance_duration.set(             168.,         "maintenance_duration",      false,                   "Duration of maintenance events",           "h",                  "Cycle|Parameters" );
     downtime_threshold.set(                 24,           "downtime_threshold",      false,                "Downtime threshold for warm start",           "h",                  "Cycle|Parameters" );
@@ -290,6 +291,7 @@ parameters::parameters()
 
 	(*this)["helio_repair_priority"] = &helio_repair_priority;
 	(*this)["avail_model_timestep"] = &avail_model_timestep;
+    (*this)["forecast_gamma"] = &forecast_gamma;
 	(*this)["helio_comp_weibull_shape"] = &helio_comp_weibull_shape;
 	(*this)["helio_comp_weibull_scale"] = &helio_comp_weibull_scale;
 	(*this)["helio_comp_mtr"] = &helio_comp_mtr;
@@ -615,6 +617,7 @@ optimization_outputs::optimization_outputs()
     eval_order.set(empty_vec_d, "obj_eval_order", true, "Objective function evaluation order", "-", "Optimization|Outputs");
     wall_time_i.set(empty_vec_d, "obj_wall_time", true, "Clock time for objective function evaluation", "-", "Optimization|Outputs");
     iteration_history.set(ohv, "iteration_history", true, "Optimization iteration data", "", "Optimization|Outputs");
+    best_point.set(ohv, "best_point", true, "Best point found during optimization", "", "Optimization|Outputs");
 
     (*this)["obj_function_lower_b"] = &eta_i;
     (*this)["obj_function_secants"] = &secants_i;
@@ -622,6 +625,7 @@ optimization_outputs::optimization_outputs()
     (*this)["obj_eval_order"] = &eval_order;
     (*this)["obj_wall_time"] = &wall_time_i;
     (*this)["iteration_history"] = &iteration_history;
+    (*this)["best_point"] = &best_point;
 }
 
 

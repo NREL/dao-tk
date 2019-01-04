@@ -49,7 +49,8 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     Project *P = O->get_project();
 
     //list of all output variables
-    std::vector<parameter*> allouts = { &P->m_design_outputs.area_sf, &P->m_optical_outputs.avg_soil, &P->m_optical_outputs.n_wash_crews,
+    std::vector<parameter*> allouts = { &P->m_financial_outputs.ppa, &P->m_financial_outputs.lcoe_real, &P->m_financial_outputs.total_installed_cost,
+                                   &P->m_design_outputs.area_sf, &P->m_optical_outputs.avg_soil, &P->m_optical_outputs.n_wash_crews,
                                    &P->m_optical_outputs.avg_degr, &P->m_simulation_outputs.annual_generation, &P->m_simulation_outputs.annual_cycle_starts,
                                    &P->m_simulation_outputs.annual_rec_starts, &P->m_simulation_outputs.annual_revenue_units,
                                    &P->m_solarfield_outputs.avg_avail, &P->m_solarfield_outputs.n_repairs };
@@ -63,7 +64,7 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     //limit scope of 'i'
     {
         char buf[200];
-        sprintf(buf, "Iter %d (%.1f s) ", O->get_and_up_iteration(), (curcputime.time_since_epoch().count() - O->get_time_init_ms()) *1e-6);
+        sprintf(buf, "Iter %d (%.1f s) ", O->get_and_up_iteration(), (curcputime.time_since_epoch().count() - O->get_time_init_ms()) *1e-7);
 
         std::stringstream message;
         message << "*************************************************\n";
@@ -115,16 +116,21 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     std::vector<std::string> allmethods = P->GetAllMethodNames();
     
     std::string failedmethod;
-    for (std::vector<std::string>::iterator mit = allmethods.begin(); mit != allmethods.end(); mit++)
     {
-        if (triggered_methods.find(*mit) != triggered_methods.end())
+        message_handler( "Executing methods: ");
+        for (std::vector<std::string>::iterator mit = allmethods.begin(); mit != allmethods.end(); mit++)
         {
-            if (!P->CallMethodByName(*mit))
+            if (triggered_methods.find(*mit) != triggered_methods.end())
             {
-                failedmethod = *mit;
-                break;
+                message_handler( (*mit + " ").c_str() );
+                if (!P->CallMethodByName(*mit))
+                {
+                    failedmethod = *mit;
+                    break;
+                }
             }
         }
+        message_handler("\n");
     }
     if(! failedmethod.empty() )
     {
