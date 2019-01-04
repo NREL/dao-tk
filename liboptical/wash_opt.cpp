@@ -108,7 +108,7 @@ void WashCrewOptimizer::ReadFromFiles()
 	{
 		m_solar_data.num_mirrors_by_group[i] = 1;
 	}
-	m_solar_data.num_mirror_groups = hel_id.size();
+	m_solar_data.num_mirror_groups = (int)hel_id.size();
 	
 }
 
@@ -233,7 +233,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 	(provided as input) to wash once.
 	*/
 	m_solution_data = solar_field_data();
-	m_solution_data.scale = hours * (m_settings.wash_rate / m_settings.heliostat_size);
+	m_solution_data.scale = (int)(hours * (m_settings.wash_rate / m_settings.heliostat_size));
 	m_solution_data.groupings.clear();
 
 	std::vector<double> mirror_output = {};
@@ -306,7 +306,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 		m_solution_data.num_mirrors_by_group[i] = num_mirrors_by_group.at(i);
 	}
 	m_solution_data.total_mirror_output = m_condensed_data.total_mirror_output*1.0;
-	m_solution_data.num_mirror_groups = mirror_output.size();
+	m_solution_data.num_mirror_groups = (int)mirror_output.size();
 	m_results.assignments = new_assignments;
 }
 
@@ -520,7 +520,7 @@ std::vector<int> WashCrewOptimizer::GetEqualAssignmentPath(int num_crews)
 	std::vector<int> path = {0};
 	for (int j = 1; j <= num_crews; j++)
 	{
-		path.push_back(round(j * (float)(m_condensed_data.num_mirror_groups) / num_crews));
+		path.push_back((int)round(j * (float)(m_condensed_data.num_mirror_groups) / num_crews));
 	}
 	return path;
 }
@@ -644,7 +644,7 @@ std::vector<int> WashCrewOptimizer::RetracePath(
 		path.push_back(parent);
 		parent = parents[i*row_length + parent];
 	}
-	for (int i = path.size()-1; i >= 0; i--)
+	for (int i = (int)path.size()-1; i >= 0; i--)
 	{
 		rev_path.push_back(path.at(i));
 	}
@@ -742,7 +742,7 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 	std::cerr << "optimal cost: " << min_cost << "\nNumber of wash crews: "
 		<< best_path.size()-1 << "\n";
 	m_results.assignments = best_path;
-	m_results.num_wash_crews = best_path.size() - 1;
+	m_results.num_wash_crews = (int)best_path.size() - 1;
 	if (output)
 	{
 		OutputResults();

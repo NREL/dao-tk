@@ -6,6 +6,7 @@
 #include <exception>
 #include <set>
 #include <iostream>
+#include <iomanip>
 #include <stdio.h>
 #include <algorithm>
 
@@ -25,7 +26,12 @@ static inline bool filter_where_lt(T c, T d)
 
 //optimization::optimization() {};
 
-optimization::optimization(Project* P) { m_project_ptr = P; }
+optimization::optimization(Project* P) 
+{ 
+    m_project_ptr = P; 
+    m_current_iteration = 0;
+    m_time_elapsed_ms = 0;
+}
 
 void optimization::set_project(Project* P) { m_project_ptr = P; }
 
@@ -42,15 +48,28 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     optimization* O = static_cast<optimization* const>(data);
     Project *P = O->get_project();
 
+    //list of all output variables
+    std::vector<parameter*> allouts = { &P->m_financial_outputs.ppa, &P->m_financial_outputs.lcoe_real, &P->m_financial_outputs.total_installed_cost,
+                                   &P->m_design_outputs.area_sf, &P->m_optical_outputs.avg_soil, &P->m_optical_outputs.n_wash_crews,
+                                   &P->m_optical_outputs.avg_degr, &P->m_simulation_outputs.annual_generation, &P->m_simulation_outputs.annual_cycle_starts,
+                                   &P->m_simulation_outputs.annual_rec_starts, &P->m_simulation_outputs.annual_revenue_units,
+                                   &P->m_solarfield_outputs.avg_avail, &P->m_solarfield_outputs.n_repairs };
+       
     //figure out which variables were changed and as a result, which components of the objective function need updating
     std::set<std::string> triggered_methods;
     int ncheck = 0;
+
+    std::chrono::time_point<std::chrono::system_clock> curcputime = std::chrono::system_clock::now();
+
     //limit scope of 'i'
     {
+        char buf[200];
+        sprintf(buf, "Iter %d (%.1f s) ", O->get_and_up_iteration(), (curcputime.time_since_epoch().count() - O->get_time_init_ms()) *1e-7);
+
         std::stringstream message;
-        message <<  "*************************************************\n"
-                    "Optimization evaluation point:\n"
-                    "*************************************************\n";
+        message << "*************************************************\n";
+        message << std::string(buf) << "Optimization evaluation point:\n"
+                   "*************************************************\n";
         int i = 0;
         for (std::vector<optimization_variable>::iterator vit = O->m_settings.variables.begin(); vit != O->m_settings.variables.end(); vit++)
         {
@@ -85,20 +104,38 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
         message.flush();
     }
 
-    if (ncheck != n)
+    //also initialize the outputs in the iteration history in case of fail or user cancel
+    for (size_t i = 0; i < allouts.size(); i++)
+        P->m_optimization_outputs.iteration_history.hash_vector[allouts.at(i)->name].push_back(std::numeric_limits<double>::quiet_NaN());
+
+
+    if (ncheck != (int)n)
         throw std::runtime_error("Error in continuous objective function evaluation. Variable count has changed. See user support for help.");
 
     //run all of the methods in order
     std::vector<std::string> allmethods = P->GetAllMethodNames();
     
-    for (std::vector<std::string>::iterator mit = allmethods.begin(); mit != allmethods.end(); mit++)
+    std::string failedmethod;
     {
-        if (triggered_methods.find(*mit) != triggered_methods.end())
-            if (!P->CallMethodByName(*mit))
+        message_handler( "Executing methods: ");
+        for (std::vector<std::string>::iterator mit = allmethods.begin(); mit != allmethods.end(); mit++)
+        {
+            if (triggered_methods.find(*mit) != triggered_methods.end())
             {
-                message_handler(("Objective function evaluation failed during method execution " + *mit + "()\n").c_str());
-                throw nlopt::forced_stop();
+                message_handler( (*mit + " ").c_str() );
+                if (!P->CallMethodByName(*mit))
+                {
+                    failedmethod = *mit;
+                    break;
+                }
             }
+        }
+        message_handler("\n");
+    }
+    if(! failedmethod.empty() )
+    {
+        message_handler(("Objective function evaluation failed during method execution " + failedmethod + "()\n").c_str());
+        throw nlopt::forced_stop();
     }
 
     double ppa = P->m_financial_outputs.ppa.as_number();
@@ -123,18 +160,22 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
         message_handler(message.str().c_str());
     }
 
-    ordered_hash_vector& ohv = P->m_optimization_outputs.iteration_history.hash_vector;
-    std::vector<parameter*> allouts = { &P->m_design_outputs.area_sf, &P->m_optical_outputs.avg_soil, &P->m_optical_outputs.n_wash_crews,
-                                       &P->m_optical_outputs.avg_degr, &P->m_simulation_outputs.annual_generation, &P->m_simulation_outputs.annual_cycle_starts,
-                                       &P->m_simulation_outputs.annual_rec_starts, &P->m_simulation_outputs.annual_revenue_units,
-                                       &P->m_solarfield_outputs.avg_avail, &P->m_solarfield_outputs.n_repairs };
-    
+    //update the actual output value to override the NAN that was initialized
     for (size_t i = 0; i < allouts.size(); i++)
-        P->m_optimization_outputs.iteration_history.hash_vector[allouts.at(i)->name].push_back(allouts.at(i)->as_number());
+        P->m_optimization_outputs.iteration_history.hash_vector[allouts.at(i)->name].back() = allouts.at(i)->as_number();
 
     return ppa;
 };
 
+int optimization::get_and_up_iteration()
+{
+    return m_current_iteration++;
+}
+
+long long optimization::get_time_init_ms()
+{
+    return m_time_init_ms;
+}
 
 double optimization::run_continuous_subproblem()
 {
@@ -274,6 +315,7 @@ bool optimization::run_optimization()
 
 
         std::chrono::time_point<std::chrono::system_clock> startcputime = std::chrono::system_clock::now();
+        m_time_init_ms = startcputime.time_since_epoch().count();
 
         std::vector< optimization_variable* > continuous_variables = m_settings.continuous_variables();
         std::vector< optimization_variable* > integer_variables = m_settings.integer_variables();
@@ -306,8 +348,8 @@ bool optimization::run_optimization()
             {
                 optimization_variable &v = (*integer_variables.at(i));
 
-                LB(i) = v.minval.as_integer();
-                UB(i) = v.maxval.as_integer();
+                LB((int)i) = v.minval.as_integer();
+                UB((int)i) = v.maxval.as_integer();
                 if (v.initializers.size() != n)
                 {
                     std::runtime_error((std::stringstream()
@@ -316,7 +358,7 @@ bool optimization::run_optimization()
                     );
                 }
                 for (int j = 0; j < v.initializers.size(); j++)
-                    X(j, i) = (int)v.initializers.at(j);
+                    X(j, (int)i) = (int)v.initializers.at(j);
             }
         }
 

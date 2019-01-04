@@ -156,6 +156,11 @@ void Project::add_documentation()
         "Time series vector of length equal to the number of time steps in the simulation horizon that "
         "specifies the solar field power output loss as a function of time."
     );
+    m_parameters.forecast_gamma.doc.set("-", 
+        "Weighting factor for hedging thermal storage inventory against forecast uncertainty. "
+        "The dispatch optimization objective function is formulated such that:<br>"
+        "max Z = (1-gamma) * (Revenue days 1 and 2) + gamma * (TES charge end day 1)"
+    );
 
     //calculated
     m_design_outputs.number_heliostats.doc.set("-", "Calculated number of heliostats in the solar field layout.");
@@ -201,6 +206,9 @@ void Project::add_documentation()
     m_optical_outputs.degr_schedule.doc.set("-", "Time series vector of solar field average optical degradation.");
     m_optical_outputs.repl_schedule.doc.set("-", "Time series vector indicating the number of mirror replacements at each time step.");
     m_optical_outputs.repl_total.doc.set("-", "Total number of lifetime modeled mirror replacements.");
+
+    m_optimization_outputs.best_point.doc.set("-", "Best point and response values identified during optimization iterations.");
+    m_optimization_outputs.iteration_history.doc.set("-", "All points and response values evaluated during optimization iterations.");
 
     m_simulation_outputs.generation_arr.doc.set("MWe", "Time series vector of net power generation from the power cycle.");
     m_simulation_outputs.solar_field_power_arr.doc.set("MWt", "Time series vector of solar field thermal power output.");

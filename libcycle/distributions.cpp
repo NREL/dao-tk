@@ -20,7 +20,7 @@ bool Distribution::IsBinary()
 	return false;
 }
 
-double Distribution::GetVariate(WELLFiveTwelve & gen)
+double Distribution::GetVariate(WELLFiveTwelve &)
 {
 	return -1.0;
 }
@@ -336,6 +336,8 @@ double GammaProcessDist::GetAlpha(double t, double delta_t)
 				std::exp(m_b + m_c * (t))
 			);
 	}
+    
+    return std::numeric_limits<double>::quiet_NaN();
 }
 
 double GammaProcessDist::GetMean(double t, double delta_t)

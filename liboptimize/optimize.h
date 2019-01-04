@@ -115,6 +115,9 @@ struct optimization_settings
 class optimization
 {
     Project *m_project_ptr;
+    int m_current_iteration;
+    long long m_time_elapsed_ms;
+    long long m_time_init_ms;
 public:
     //optimization();
     optimization(Project* p);
@@ -126,6 +129,9 @@ public:
 
     bool run_optimization();
     double run_continuous_subproblem();
+
+    int get_and_up_iteration();
+    long long get_time_init_ms();
                 
 }; // optimize
 

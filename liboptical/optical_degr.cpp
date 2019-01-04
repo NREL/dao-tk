@@ -72,7 +72,7 @@ double optical_degradation::get_replacement_threshold(
 	{
 	
 		//use bisection to obtain the optimal time interval.
-		double b, c, logc, r, z_lo, z_med, z_hi, lo, med, hi, interval, min_t, max_t;
+		double b, c, logc, z_lo, z_med, z_hi, lo, med, hi, interval, min_t, max_t;
 		
 		b = rev_loss_rate * m_settings.degr_loss_per_hr;
 		c = (1 + m_settings.degr_accel_per_year);
@@ -509,7 +509,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		replacements_made += crews.at(s).replacements_made;
 	}
 
-	m_results.n_replacements = replacements_made;
+	m_results.n_replacements = (float)replacements_made;
 
 	m_results.soil_schedule = new float[m_settings.n_hr_sim];
 	m_results.degr_schedule = new float[m_settings.n_hr_sim];
@@ -521,13 +521,13 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 
 	for (int i = 0; i<m_settings.n_hr_sim; i++)
 	{
-		float s = soil.at(i);
-		float d = degr.at(i);
+		float s = (float)soil.at(i);
+		float d = (float)degr.at(i);
 
 		m_results.soil_schedule[i] = s;
 		m_results.degr_schedule[i] = d;
-		m_results.repl_schedule[i] = repr.at(i);
-		m_results.repl_total[i] = repr_cum.at(i);
+		m_results.repl_schedule[i] = (float)repr.at(i);
+		m_results.repl_total[i] = (float)repr_cum.at(i);
 
 		m_results.avg_degr += d;
 		m_results.avg_soil += s;

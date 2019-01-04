@@ -185,7 +185,7 @@ void ScriptList::SortById()
 
 }
 
-void ScriptList::MoveItemInList(size_t sel, bool is_up)
+void ScriptList::MoveItemInList(size_t /*sel*/, bool /*is_up*/)
 {
 
 }
