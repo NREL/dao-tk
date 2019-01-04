@@ -176,7 +176,7 @@ parameters::parameters()
 
 
 	// Availability parameters
-	std::string rp = "mean_repair_time";
+	std::string rp = "perf_over_mrt";
     helio_repair_priority.set(              rp,        "helio_repair_priority",      false,                        "Heliostat repair priority",           "-", "Heliostat availability|Parameters" );
     avail_model_timestep.set(               24,         "avail_model_timestep",      false,                      "Availability model timestep",          "hr", "Heliostat availability|Parameters" );
 
@@ -1460,9 +1460,11 @@ bool Project::M()
 		sfa.m_settings.repair_order = MEAN_REPAIR_TIME;
 	else if (repair_priority == "random")
 		sfa.m_settings.repair_order = RANDOM;
+	else if (repair_priority == "perf_over_mrt")
+		sfa.m_settings.repair_order = PERF_OVER_MRT;
 	else
 	{
-		message_handler("Specified helio_repair_priority not recognized. Valid inputs are 'random', 'failure_order', 'repair_time', 'mean_repair_time'");
+		message_handler("Specified helio_repair_priority not recognized. Valid inputs are 'random', 'failure_order', 'repair_time', 'mean_repair_time', 'perf_over_mrt'");
 		return false;
 	}
 
@@ -1492,7 +1494,16 @@ bool Project::M()
 
 
 	sfa.m_settings.is_tracking = false;
-	sfa.m_settings.helio_performance.assign(sfa.m_settings.n_helio, 1.0);
+
+	int nr;
+	std::vector< double > ann_e = {};
+	ssc_number_t *ann = ssc_data_get_array(m_ssc_data, "annual_helio_energy", &nr);
+	for (int i = 0; i < nr; i++)
+	{
+		ann_e.push_back((double)ann[i]);
+	}
+
+	sfa.m_settings.helio_performance = ann_e;
 	sfa.simulate(sim_progress_handler);
 
 

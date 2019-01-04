@@ -64,8 +64,7 @@ These are the general quick steps you need to follow to set up your computer for
 
 ## Repository Access
 
-Access is currently limited only to project partners. The project will be made public and open-source at a 
-later date. To grant others access, please send a request to [Mike](mailto://mike.wagner@nrel.gov).
+Access is currently limited only to project partners. To obtain access, please send a request to [Mike](mailto://mike.wagner@nrel.gov).
 
 ## Contributing
 
@@ -74,8 +73,7 @@ specific information on contributing.
 
 ## License
 
-This work is not currently publicly available and should not be disseminated. A license governing usage 
-will be developed and posted at a later date. 
+DAO-Tk's open source code is copyrighted by the U.S. Department of Energy -- Energy Efficiency and Renewable Energy under a [mixed MIT and GPLv3 license](https://github.com/NREL/dao-tk/blob/develop/LICENSE.md). It allows for-profit and not-for-profit organizations to develop and redistribute software based on DAO-Tk under terms of an MIT license and requires that research entities including national laboratories, colleges and universities, and non-profit organizations make the source code of any redistribution publicly available under terms of a GPLv3 license.
 
 ## Project organization
 
@@ -83,17 +81,20 @@ The code in this project is organized as follows:
 
 <table>
 <tr><th>Folder</th><th>Description</th></tr>
-<tr><td>./app</td><td>Source code for the user interface</td></tr>
+<tr><td>./app</td><td>Source code for the user interface and scripting routines</td></tr>
 <tr><td>./build_linux</td><td>Build and makefiles for linux platforms</td></tr>
 <tr><td>./build_vs2017</td><td>Build and project files for VisualStudio 2017 (v15)</td></tr>
 <tr><td>./deploy</td><td>Files contained in the distribution package</td></tr>
 <tr><td>./deploy/samples</td><td>Sample project and script files</td></tr>
 <tr><td>./deploy/libraries</td><td>Libraries used by the models</td></tr>
 <tr><td>./deploy/site_data</td><td>Site data used by the models</td></tr>
-<tr><td>./doc</td><td>Documentation and resources</td></tr>
 <tr><td>./libcluster</td><td>Source code for the data clustering model</td></tr>
 <tr><td>./libcycle</td><td>Source code for the cycle availability and failure model</td></tr>
-<tr><td>./libopt</td><td>Source code and libraries for the nonlinear design optimization problem</td></tr>
+<tr><td>./libclearsky</td><td>Source code for clear sky irradiance model</td></tr>
+<tr><td>./liboptimize</td><td>Source code and libraries for the nonlinear design optimization problem</td></tr>
 <tr><td>./liboptical</td><td>Source code for the optical degradation and soiling model</td></tr>
 <tr><td>./libsolar</td><td>Source code for the solar field failure model</td></tr>
+<tr><td>./rapidjson</td><td>JSON read-write library (see note)</td></tr>
 </table>
+
+Source code for the JSON library credit [Tencent/rapidjson](https://github.com/Tencent/rapidjson).

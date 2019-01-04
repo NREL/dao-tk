@@ -68,7 +68,7 @@ void solarfield_staff_member::add_time_worked(double time)
 solarfield_repair_staff::solarfield_repair_staff()
 {
 	m_members.clear();
-	m_repair_order = PERF_INC_RATE;
+	m_repair_order = PERF_OVER_MRT;
 	m_is_prioritize_partial_repairs = true;
 	m_n_staff = 0;
 	m_max_hours_per_day = std::numeric_limits<double>::quiet_NaN();
@@ -169,7 +169,7 @@ void solarfield_repair_staff::add_to_queue(solarfield_heliostat *h, WELLFiveTwel
 			{
 				j = (int)round(jmin + gen.getVariate() * (jmax-jmin));
 			}
-			else if (m_repair_order == PERF_INC_RATE) // Prioritize repairs in order from largest to smallest expected rate of increased performance
+			else if (m_repair_order == PERF_OVER_MRT) // Prioritize repairs in order from largest to smallest expected rate of increased performance
 			{
 				double rate_inc = h->get_performance() / h->get_mean_repair_time();
 				while (j > jmin && m_queue[j - 1]->get_performance() / m_queue[j - 1]->get_mean_repair_time() < rate_inc)
