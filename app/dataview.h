@@ -123,7 +123,7 @@ private:
 
 
 class wxExtGridCtrl;
-class wxNumericCtrl;
+//class wxNumericCtrl;
 
 class StatDialog: public wxDialog
 {
@@ -134,11 +134,11 @@ public:
 
 private:
 	wxExtGridCtrl *grdMonthly;
-	wxNumericCtrl *numSumOver1000;
-	wxNumericCtrl *numSum;
-	wxNumericCtrl *numMax;
-	wxNumericCtrl *numMean;
-	wxNumericCtrl *numMin;
+	wxTextCtrl *numSumOver1000;
+	wxTextCtrl *numSum;
+	wxTextCtrl *numMax;
+	wxTextCtrl *numMean;
+	wxTextCtrl *numMin;
 };
 
 class TableViewDialog : public wxDialog
