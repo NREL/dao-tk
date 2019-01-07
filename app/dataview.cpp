@@ -973,18 +973,18 @@ StatDialog::StatDialog( wxWindow *parent, const wxString &title )
 	wxBoxSizer *sz_h1 = new wxBoxSizer( wxHORIZONTAL );
 	
 	sz_h1->Add( new wxStaticText( this, wxID_ANY, "Mean:" ), 0, wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
-	sz_h1->Add( numMean = new wxNumericCtrl(this) );
+	sz_h1->Add( numMean = new wxTextCtrl(this, wxID_ANY) );
 	sz_h1->Add( new wxStaticText( this, wxID_ANY, "Min:" ), 0, wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
-	sz_h1->Add( numMin = new wxNumericCtrl(this) );
+	sz_h1->Add( numMin = new wxTextCtrl(this, wxID_ANY) );
 	sz_h1->Add( new wxStaticText( this, wxID_ANY, "Max:" ), 0, wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
-	sz_h1->Add( numMax = new wxNumericCtrl(this) );
+	sz_h1->Add( numMax = new wxTextCtrl(this, wxID_ANY) );
 
 	wxBoxSizer *sz_h2 = new wxBoxSizer( wxHORIZONTAL );
 
 	sz_h2->Add( new wxStaticText( this, wxID_ANY, "Sum:" ), 0, wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
-	sz_h2->Add( numSum = new wxNumericCtrl(this) );
+	sz_h2->Add( numSum = new wxTextCtrl(this, wxID_ANY) );
 	sz_h2->Add( new wxStaticText( this, wxID_ANY, "Sum/1000:" ), 0, wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
-	sz_h2->Add( numSumOver1000 = new wxNumericCtrl(this) );
+	sz_h2->Add( numSumOver1000 = new wxTextCtrl(this, wxID_ANY) );
 	
 	grdMonthly = new wxExtGridCtrl(this, wxID_ANY);
 	grdMonthly->CreateGrid(12,4);
@@ -1041,11 +1041,11 @@ static int nday[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
 	if( mean != mean )
 		mean = (min+max)/2.;
 
-	numMin->SetValue( min );
-	numMax->SetValue( max );
-	numMean->SetValue( mean );
-	numSum->SetValue( sum );
-	numSumOver1000->SetValue( sum/1000.0 );
+	numMin->SetValue( wxString::Format("%f",min) );
+	numMax->SetValue(wxString::Format("%f", max));
+	numMean->SetValue(wxString::Format("%f", mean));
+	numSum->SetValue(wxString::Format("%f", sum));
+	numSumOver1000->SetValue(wxString::Format("%f", sum/1000.0) );
 
 	size_t multiple = len / 8760;
 	if ( multiple*8760 == len )
