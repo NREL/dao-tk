@@ -195,9 +195,9 @@ parameters::parameters()
     is_use_clusters.set(                 false,              "is_use_clusters",      false,                                    "Use clusters?",           "-",                          "Settings" );
     n_clusters.set(                         30,                   "n_clusters",      false,                               "Number of clusters",           "-",                          "Settings" );
 
-    cluster_ndays.set(                       2,                "cluster_ndays",      false );
-    cluster_nprev.set(                       1,                "cluster_nprev",      false );
-    is_run_continuous.set(                true,            "is_run_continuous",      false,             "Run performance sim. as continuous",           "-",                            "Settings" );
+    cluster_ndays.set(                       2,                "cluster_ndays",      false,                       "Number of days per cluster",         "day",                          "Settings" );
+    cluster_nprev.set(                       1,                "cluster_nprev",      false,                   "Number of cluster warm-up days",         "day",                          "Settings" );
+    is_run_continuous.set(                true,            "is_run_continuous",      false,               "Run performance sim. as continuous",           "-",                          "Settings" );
 	std::string ca = "affinity_propagation";
     cluster_algorithm.set(                  ca,            "cluster_algorithm",      false );
 
@@ -339,12 +339,12 @@ design_outputs::design_outputs()
     rec_aspect_opt.set(                    nan,               "rec_aspect_opt",       true );
 
 	std::vector< std::vector< double > > empty_mat;
-    opteff_table.set(                empty_mat,                 "opteff_table",       true );
-    flux_table.set(                  empty_mat,                   "flux_table",       true );
-    heliostat_positions.set(         empty_mat,          "heliostat_positions",       true );
+    opteff_table.set(                empty_mat,                 "opteff_table",       true,                 "Field optical efficiency matrix",         "-",                    "Design|Outputs" );
+    flux_table.set(                  empty_mat,                   "flux_table",       true,                   "Receiver incident flux matrix",     "kW/m2",                    "Design|Outputs" );
+    heliostat_positions.set(         empty_mat,          "heliostat_positions",       true,                "Heliostat field layout positions",         "m",                    "Design|Outputs" );
 
 	std::vector< std::vector< double > > empty_vec;
-	annual_helio_energy.set(         empty_vec,          "annual_helio_energy",       true );
+	annual_helio_energy.set(         empty_vec,          "annual_helio_energy",       true,               "Annual energy output by heliostat",      "MWht",                    "Design|Outputs" );
 
     (*this)["number_heliostats"] = &number_heliostats;
     (*this)["area_sf"] = &area_sf;
@@ -382,7 +382,7 @@ solarfield_outputs::solarfield_outputs()
     avg_avail.set(                         nan,                    "avg_avail",       true,                    "Average lifetime availability",        "-",    "Heliostat availability|Outputs" );
 
 	std::vector< double > empty_vec;
-    avail_schedule.set(              empty_vec,               "avail_schedule",       true );
+    avail_schedule.set(              empty_vec,               "avail_schedule",       true,            "Heliostat field availability schedule",        "-",    "Heliostat availability|Outputs" );
     n_repairs_per_component.set(     empty_vec,      "n_repairs_per_component",       true,       "Average annual heliostat component repairs",        "-",    "Heliostat availability|Outputs" );
 
     (*this)["n_repairs"] = &n_repairs;
@@ -533,11 +533,11 @@ financial_outputs::financial_outputs()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();
 
-    lcoe_nom.set(                          nan,                     "lcoe_nom",       true );
-    lcoe_real.set(                         nan,                    "lcoe_real",       true );
-    ppa.set(                               nan,                          "ppa",       true,                                         "PPA price",       "$",                 "Financial|Outputs" );
+    lcoe_nom.set(                          nan,                     "lcoe_nom",       true,                                    "LCOE (nominal)",  "$/kWhe",                 "Financial|Outputs" );
+    lcoe_real.set(                         nan,                    "lcoe_real",       true,                                       "LCOE (real)",  "$/kWhe",                 "Financial|Outputs" );
+    ppa.set(                               nan,                          "ppa",       true,                                         "PPA price",  "$/kWhe",                 "Financial|Outputs" );
     project_return_aftertax_npv.set(       nan,  "project_return_aftertax_npv",       true,                      "Project return after tax NPV",       "$",                 "Financial|Outputs" );
-    project_return_aftertax_irr.set(       nan,  "project_return_aftertax_irr",       true,                      "Project return after tax IRR",       "$",                 "Financial|Outputs" );
+    project_return_aftertax_irr.set(       nan,  "project_return_aftertax_irr",       true,                      "Project return after tax IRR",       "%",                 "Financial|Outputs" );
     total_installed_cost.set(              nan,         "total_installed_cost",       true,                              "Total installed cost",       "$",                 "Financial|Outputs" );
 
 
@@ -612,11 +612,11 @@ optimization_outputs::optimization_outputs()
     //    for (int i = 0; i < 20; i++)
     //        ohv[*k].push_back(ii++);
     	
-    eta_i.set(empty_mat, "obj_function_lower_b", true, "Lower bound on objective at evaluation points", "-", "Optimization|Outputs");
-    secants_i.set(empty_vec_d, "obj_function_secants", true, "Objective function secants", "-", "Optimization|Outputs");
-    feas_secants_i.set(empty_vec_d, "obj_function_secants_f", true, "Feasible objective function secants", "-", "Optimization|Outputs");
-    eval_order.set(empty_vec_d, "obj_eval_order", true, "Objective function evaluation order", "-", "Optimization|Outputs");
-    wall_time_i.set(empty_vec_d, "obj_wall_time", true, "Clock time for objective function evaluation", "-", "Optimization|Outputs");
+    eta_i.set(empty_mat, "obj_function_lower_b", true); //, "Lower bound on objective at evaluation points", "-", "Optimization|Outputs");
+    secants_i.set(empty_vec_d, "obj_function_secants", true); //, "Objective function secants", "-", "Optimization|Outputs");
+    feas_secants_i.set(empty_vec_d, "obj_function_secants_f", true); //, "Feasible objective function secants", "-", "Optimization|Outputs");
+    eval_order.set(empty_vec_d, "obj_eval_order", true); //, "Objective function evaluation order", "-", "Optimization|Outputs");
+    wall_time_i.set(empty_vec_d, "obj_wall_time", true); //, "Clock time for objective function evaluation", "-", "Optimization|Outputs");
     iteration_history.set(ohv, "iteration_history", true, "Optimization iteration data", "", "Optimization|Outputs");
     best_point.set(ohv, "best_point", true, "Best point found during optimization", "", "Optimization|Outputs");
 
