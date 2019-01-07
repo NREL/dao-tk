@@ -597,7 +597,7 @@ void DataView::UpdateView()
 					else
                     {
 						if( v->vec()->front().type() == lk::vardata_t::VECTOR)
-							label += wxString::Format("matrix [%d,%d]", (int)v->vec()->size(), (int)v->vec()->front().vec()->size() );
+							label += wxString::Format("matrix [%d,%d]", (int)v->vec()->front().vec()->size(), (int)v->vec()->size());
 						else
 							label += wxString::Format( "array [%d]", (int)v->vec()->size() );
                     }
@@ -845,13 +845,13 @@ void DataView::ShowStats( wxString name )
 			return;
 		}
         //if it's a hash vector or table, show the listing in a popup. Otherwise, show stats for an array type.
-        if (v->type() == lk::vardata_t::VECTOR)
+        /*if (v->type() == lk::vardata_t::VECTOR)
         {
 		    StatDialog dlg(this, "Stats for: " + usename);
 		    dlg.Compute( *v->vec() );
 		    dlg.ShowModal();
-        }
-        else if (v->type() == lk::vardata_t::HASH)
+        }*/
+        else if (v->type() == lk::vardata_t::HASH || v->type() == lk::vardata_t::VECTOR)
         {
             //call the hash popup dialog
             TableViewDialog dlg(this, static_cast<variable*>(v), "Variable data", wxID_ANY, wxDEFAULT_DIALOG_STYLE|wxMINIMIZE_BOX|wxMAXIMIZE_BOX|wxRESIZE_BORDER);
