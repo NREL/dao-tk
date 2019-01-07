@@ -68,7 +68,9 @@ void FluxSimThread::Setup(int thread_id, int thread_ct, Project *P, ssc_data_t s
         vname = ssc_data_next(ssc_data);
     }
 
-
+    ssc_data_set_number(_ssc_data, "thread_id", _thread_id);
+    ssc_data_set_number(_ssc_data, "thread_ct", _thread_ct);
+    ssc_data_set_number(_ssc_data, "calc_fluxmaps", 1.);
 };
 
 void FluxSimThread::CancelSimulation()
@@ -152,16 +154,11 @@ void FluxSimThread::StartThread() //Entry()
         
         ssc_module_t mod_solarpilot = ssc_module_create("solarpilot");
 
-        ssc_data_set_number(_ssc_data, "thread_id", _thread_id);
-        ssc_data_set_number(_ssc_data, "thread_ct", _thread_ct);
-        ssc_data_set_number(_ssc_data, "calc_fluxmaps", 1.);
-
         bool is_cancel;
 
         StatusLock.lock();
         is_cancel = this->CancelFlag;
         StatusLock.unlock();
-
 
         // Run simulation 
         ssc_bool_t resok = ssc_module_exec_with_handler(mod_solarpilot, _ssc_data, ssc_fluxthread_handler, (void*)this);
@@ -211,9 +208,9 @@ void FluxSimThread::StartThread() //Entry()
         for (size_t i = 0; i < nrow; i++)
         {
             for (size_t j = 0; j < ncol; j++)
-                _results[i][j] = opteff_table[i*nrow + j];
+                _results[i][j] = opteff_table[i*3 + j];
             for (size_t j = 0; j < nflux; j++)
-                _results[i][j + ncol] = flux_table[i*nrow + j];
+                _results[i][j + ncol] = flux_table[i*nflux + j];
         }
 
         ssc_data_free(_ssc_data);
