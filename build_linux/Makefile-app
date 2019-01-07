@@ -36,6 +36,7 @@ OBJECTS  = \
 	scriptlist.o \
 	vardocument.o \
 	clusterthread.o \
+	fluxsimthread.o \
 	vardialog.o
 
 TARGET = dao-tk

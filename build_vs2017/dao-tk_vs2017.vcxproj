@@ -25,6 +25,7 @@
     <ClCompile Include="..\app\clusterthread.cpp" />
     <ClCompile Include="..\app\daotk_app.cpp" />
     <ClCompile Include="..\app\dataview.cpp" />
+    <ClCompile Include="..\app\fluxsimthread.cpp" />
     <ClCompile Include="..\app\logview.cpp" />
     <ClCompile Include="..\app\project.cpp" />
     <ClCompile Include="..\app\project_init.cpp" />
@@ -39,6 +40,7 @@
     <ClInclude Include="..\app\clusterthread.h" />
     <ClInclude Include="..\app\daotk_app.h" />
     <ClInclude Include="..\app\dataview.h" />
+    <ClInclude Include="..\app\fluxsimthread.h" />
     <ClInclude Include="..\app\logview.h" />
     <ClInclude Include="..\app\project.h" />
     <ClInclude Include="..\app\scripting.h" />

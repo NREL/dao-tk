@@ -1,5 +1,6 @@
 #include "project.h"
 #include "clusterthread.h"
+#include "fluxsimthread.h"
 #include <wx/thread.h>
 #include <limits>
 
@@ -1109,134 +1110,16 @@ void Project::update_calculated_system_values()
 
 void Project::update_calculated_values_post_layout()
 {
-	//#------------solar field (only 'n_hel' and 'A_sf' used as inputs for mspt or system costs compute module)
-	//D['n_hel'] = len(D['helio_positions'])
-	int N_hel;
-	{
-		int nc;
-		ssc_data_get_matrix(m_ssc_data, "helio_positions", &N_hel, &nc);
-		ssc_data_set_number(m_ssc_data, "N_hel", N_hel);
-	}
-	//
-	//D['csp.pt.sf.heliostat_area'] = D['helio_height'] * D['helio_width'] * D['dens_mirror']
-	//
-	//D['csp.pt.sf.total_reflective_area'] = D['n_hel'] * D['csp.pt.sf.heliostat_area']
-	//
-	//D['csp.pt.sf.total_land_area'] = D['csp.pt.sf.fixed_land_area'] + D['land_area_base'] * D['csp.pt.sf.land_overhead_factor']
-	//
-	//D['A_sf'] = D['helio_width'] * D['helio_height'] * D['dens_mirror'] * D['n_hel']
-	//D['helio_area_tot'] = D['A_sf']
-	//
-	//D['field_control'] = 1
-	//
-	//D['V_wind_10'] = 0
-	//
-	//#------------parasitics (informational, not used as a compute module input)
-	//#parasitic BOP
-	//D['csp.pt.par.calc.bop'] = 
-	//D['bop_par'] * D['bop_par_f'] * (D['bop_par_0'] + D['bop_par_1'] + 
-	//	D['bop_par_2'])*D['P_ref']
-	//#Aux parasitic
-	//D['csp.pt.par.calc.aux'] = 
-	//D['aux_par'] * D['aux_par_f'] * (D['aux_par_0'] + D['aux_par_1'] + 
-	//	D['aux_par_2'])*D['P_ref']
-	//
-	//
-	//#------------receiver max mass flow rate (informational, not used as a compute module input)
-	//#Receiver average temperature
-	//D['csp.pt.rec.htf_t_avg'] = (D['T_htf_cold_des'] + D['T_htf_hot_des']) / 2.
-	//
-	//#htf specific heat
-	//D['csp.pt.rec.htf_c_avg'] = htf_cp(D['csp.pt.rec.htf_t_avg'])
-	//
-	//#maximum flow rate to the receiver
-	//D['csp.pt.rec.max_flow_to_rec'] = 
-	//(D['csp.pt.rec.max_oper_frac'] * D['Q_rec_des'] * 1e6) 
-	/// (D['csp.pt.rec.htf_c_avg'] * 1e3*(D['T_htf_hot_des'] - D['T_htf_cold_des']))
-	//
-	//#max flow rate in kg / hr
-	//D['m_dot_htf_max'] = D['csp.pt.rec.max_flow_to_rec'] * 60 * 60
-	//
-	//
-	//#------------piping length and piping loss (informational, not used as a compute module input for mspt)
-	//#Calculate the thermal piping length
-	//D['piping_length'] = D['h_tower'] * D['piping_length_mult'] + D['piping_length_const']
-	//
-	//#total piping length
-	//D['piping_loss_tot'] = D['piping_length'] * D['piping_loss'] / 1000.
-	//
-	//#------------TES (informational, not used as a compute module input)
-	//#update data object with D items
-	//D['W_dot_pb_des'] = D['P_ref']       #[MWe]
-	//D['eta_pb_des'] = D['design_eff']       #[-]
-	//D['tes_hrs'] = D['tshours']       #[hrs]
-	//D['T_HTF_hot'] = D['T_htf_hot_des']       #[C]
-	//D['T_HTF_cold'] = D['T_htf_cold_des']       #[C]
-	//D['TES_HTF_code'] = D['rec_htf']       #[-]
-	//D['TES_HTF_props'] = [[]]
-	//
-	//set_ssc_data_from_dict(ssc_api, ssc_data, D)
-	//#use the built in calculations for sizing TES
-	//tescalcs = ssc_api.module_create("ui_tes_calcs")
-	//ret = ssc_api.module_exec(tescalcs, ssc_data)
-	//#---Collect calculated values
-	//#TES thermal capacity at design
-	//D['q_tes_des'] = ssc_api.data_get_number(ssc_data, 'q_tes_des')
-	//#Available single temp storage volume
-	//D['vol_one_temp_avail'] = ssc_api.data_get_number(ssc_data, 'vol_one_temp_avail')
-	//#Total single temp storage volume
-	//D['vol_one_temp_total'] = ssc_api.data_get_number(ssc_data, 'vol_one_temp_total')
-	//#Single tank diameter
-	//D['d_tank'] = ssc_api.data_get_number(ssc_data, 'd_tank')
-	//#Estimated tank heat loss to env.
-	//D['q_dot_loss'] = ssc_api.data_get_number(ssc_data, 'q_dot_loss')
-	//D['dens'] = ssc_api.data_get_number(ssc_data, 'HTF_dens')
-	//ssc_api.module_free(tescalcs)
-	//
-	//#------------capital costs (informational, not used as a compute module input for mspt)
-	//# Receiver Area
-	//D['csp.pt.cost.receiver.area'] = D['rec_height'] * D['D_rec'] * 3.1415926
-	//
-	//# Storage Capacity
-	//D['csp.pt.cost.storage_mwht'] = D['P_ref'] / D['design_eff'] * D['tshours']
-	//
-	//# Total land area
-	//D['csp.pt.cost.total_land_area'] = D['csp.pt.sf.total_land_area']
-	//
-	//D['H_rec'] = D['rec_height']
-	//D['csp.pt.cost.power_block_per_kwe'] = D['plant_spec_cost']
-	//D['csp.pt.cost.plm.per_acre'] = D['land_spec_cost']
-	//D['csp.pt.cost.fixed_sf'] = D['cost_sf_fixed']
-	//
-	//set_ssc_data_from_dict(ssc_api, ssc_data, D)
-	//#init cost
-	//cost = ssc_api.module_create("cb_mspt_system_costs")
-	//#do cost calcs
-	//ret = ssc_api.module_exec(cost, ssc_data)
-	//if ret == 0:
-	//print "Cost model failed"
-	//
-	//#collect calculated values
-	//D['csp.pt.cost.site_improvements'] = ssc_api.data_get_number(ssc_data, 'csp.pt.cost.site_improvements')
-	//D['csp.pt.cost.heliostats'] = ssc_api.data_get_number(ssc_data, 'csp.pt.cost.heliostats')
-	//D['csp.pt.cost.tower'] = ssc_api.data_get_number(ssc_data, 'csp.pt.cost.tower')
-	//D['csp.pt.cost.receiver'] = ssc_api.data_get_number(ssc_data, 'csp.pt.cost.receiver')
-	//D['csp.pt.cost.storage'] = ssc_api.data_get_number(ssc_data, 'csp.pt.cost.storage')
-	//D['csp.pt.cost.power_block'] = ssc_api.data_get_number(ssc_data, 'csp.pt.cost.power_block')
-	//D['csp.pt.cost.bop'] = ssc_api.data_get_number(ssc_data, 'csp.pt.cost.bop')
-	//D['csp.pt.cost.fossil'] = ssc_api.data_get_number(ssc_data, 'csp.pt.cost.fossil')
-	//D['ui_direct_subtotal'] = ssc_api.data_get_number(ssc_data, 'ui_direct_subtotal')
-	//D['csp.pt.cost.contingency'] = ssc_api.data_get_number(ssc_data, 'csp.pt.cost.contingency')
-	//D['total_direct_cost'] = ssc_api.data_get_number(ssc_data, 'total_direct_cost')
-	//D['csp.pt.cost.epc.total'] = ssc_api.data_get_number(ssc_data, 'csp.pt.cost.epc.total')
-	//D['csp.pt.cost.plm.total'] = ssc_api.data_get_number(ssc_data, 'csp.pt.cost.plm.total')
-	//D['csp.pt.cost.sales_tax.total'] = ssc_api.data_get_number(ssc_data, 'csp.pt.cost.sales_tax.total')
-	//D['total_indirect_cost'] = ssc_api.data_get_number(ssc_data, 'total_indirect_cost')
-	//D['total_installed_cost'] = ssc_api.data_get_number(ssc_data, 'total_installed_cost')
-	//D['csp.pt.cost.installed_per_capacity'] = ssc_api.data_get_number(ssc_data, 'csp.pt.cost.installed_per_capacity')
-	//
-	//ssc_api.module_free(cost)
+	/*
+    only 'n_hel' and 'A_sf' used as inputs for mspt or system costs compute module
+    helio_positions_in needed for flux sim multithreading
+    */
 
+	int N_hel;
+	int nc;
+	ssc_number_t* helio_positions = ssc_data_get_matrix(m_ssc_data, "helio_positions", &N_hel, &nc);
+	ssc_data_set_number(m_ssc_data, "N_hel", N_hel);
+    ssc_data_set_matrix(m_ssc_data, "helio_positions_in", helio_positions, N_hel, nc);
 }
 
 
@@ -1326,7 +1209,10 @@ bool Project::D()
 	ssc_module_exec_set_print(m_parameters.print_messages.as_boolean()); //0 = no, 1 = yes(print progress updates)
 	
 	//change any defaults
-	ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 1.);
+    if (m_parameters.n_sim_threads.as_integer() > 1)        //if multithreading, don't calculate flux maps first pass. handle later
+        ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 0.);
+    else
+        ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 1.);
 	
 	//#Check to make sure the weather file exists
 	FILE *fp = fopen(m_parameters.solar_resource_file.as_string().c_str(), "r");
@@ -1356,8 +1242,6 @@ bool Project::D()
 	//Collect calculated data
     ssc_to_lk_hash(m_ssc_data, m_design_outputs);
 	
-	ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 0.);
-	
 	//update values
 		int nr, nc;
 		ssc_number_t *p_hel = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
@@ -1385,7 +1269,83 @@ bool Project::D()
 	{
 		ann_e.push_back((double)ann[i]);
 	}
-	
+
+    //calculate flux maps and efficiency matrix with multithreading, if specified
+    if (m_parameters.n_sim_threads.as_integer() > 1)
+    {
+
+        ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 1.);
+
+        int nthread = std::min(m_parameters.n_sim_threads.as_integer(), wxThread::GetCPUCount());
+        FluxSimThread *simthread = new FluxSimThread[nthread];
+
+        for (int i = 0; i < nthread; i++)
+            simthread[i].Setup(i, nthread, this, m_ssc_data);
+
+        for (int i = 0; i < nthread; i++)
+            std::thread(&FluxSimThread::StartThread, std::ref(simthread[i])).detach();
+
+        //Wait loop
+        while (true)
+        {
+            int nsim_done = 0, nsim_total = 0, nthread_done = 0;
+            for (int i = 0; i < nthread; i++)
+            {
+                if (simthread[i].IsFinished())
+                    nthread_done++;
+                int ncomp, ntot;
+                simthread[i].GetStatus(&ncomp, &ntot);
+                nsim_done += ncomp;
+                nsim_total += ntot;
+            }
+            sim_progress_handler((double)nsim_done / (double)nsim_total, "Multi-threaded flux characterization");
+            if (nthread_done == nthread) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        }
+
+        for (int i = 0; i < nthread; i++)
+        {
+            if (simthread[i].IsFinishedWithErrors())
+            {
+                ssc_module_free(mod_solarpilot);
+                is_design_valid = false;
+                return false;
+            }
+        }
+        
+        //reconstruct field efficiency and flux matrices from multithreaded data
+        std::vector< std::vector< double > > collect_results;
+
+        for (int k = 0; k < nthread; k++)
+            for (size_t i = 0; i < simthread[k]._results.size(); i++)
+                collect_results.push_back(simthread[k]._results.at(i));
+        
+        int nitem = (int)collect_results.size();
+        ssc_number_t* opteff_table = new ssc_number_t[nitem * 3];
+        int nflux = (collect_results.front().size() - 3);
+        ssc_number_t* flux_table = new ssc_number_t[nitem * nflux];
+
+        //assign to the ssc data module
+        for (int i = 0; i < nitem; i++)
+        {
+            for (int j = 0; j < 3; j++)
+                opteff_table[i * 3 + j] = collect_results[i][j];
+            for (int j = 0; j < nflux; j++)
+                flux_table[i*nflux + j] = collect_results[i][j + 3];
+        }
+        ssc_data_set_matrix(m_ssc_data, "opteff_table", opteff_table, nitem, 3);
+        ssc_data_set_matrix(m_ssc_data, "flux_table", flux_table, nitem, nflux);
+
+        delete[] opteff_table;
+        delete[] flux_table;
+        delete[] simthread;
+    }
+
+    //Collect calculated data
+    ssc_to_lk_hash(m_ssc_data, m_design_outputs);
+
+    ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 0.);
+
 	ssc_module_free(mod_solarpilot);
 
 	//assign outputs and return

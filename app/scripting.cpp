@@ -924,6 +924,7 @@ void _simulate_performance(lk::invoke_t &cxt)
 	Project* P = mw.GetProject();
 	P->S();
 	mw.UpdateDataTable();
+    mw.SetProgress(0., "Simulation complete");
 
 	/*
 	LK_DOC("simulate_performance", "Test creation/simulation of clusters."

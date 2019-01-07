@@ -26,6 +26,7 @@ A class containing the aspects of the current project
 class Project;
 
 extern ssc_bool_t ssc_progress_handler(ssc_module_t, ssc_handler_t, int action, float f0, float f1, const char *s0, const char *, void *);
+extern ssc_bool_t ssc_silent_handler(ssc_module_t, ssc_handler_t, int action, float, float, const char *, const char *, void *);
 extern bool sim_progress_handler(float progress, const char *msg);
 extern void message_handler(const char *msg);
 extern int double_scale(double val, int *scale);
