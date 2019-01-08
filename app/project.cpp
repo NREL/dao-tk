@@ -767,6 +767,7 @@ void Project::Initialize()
 	is_explicit_valid = false;
 	is_financial_valid = false;
 	is_cycle_avail_valid = false;
+    is_stop_flag = false;
 
 	initialize_ssc_project();
 
@@ -887,6 +888,15 @@ std::vector<std::string> Project::GetAllMethodNames()
     return _all_method_names;
 }
 
+void Project::SetStopFlag(bool is_cancel)
+{
+    is_stop_flag = is_cancel;
+}
+
+bool Project::IsStopFlag()
+{
+    return is_stop_flag;
+};
 
 data_base *Project::GetVarPtr(const char *name)
 {
@@ -1298,17 +1308,22 @@ bool Project::D()
                 nsim_done += ncomp;
                 nsim_total += ntot;
             }
-            sim_progress_handler((double)nsim_done / (double)nsim_total, "Multi-threaded flux characterization");
+            if (!sim_progress_handler((double)nsim_done / (double)nsim_total, "Multi-threaded flux characterization"))
+            {
+                for (int i = 0; i < nthread; i++)
+                    simthread[i].CancelSimulation();
+            }
             if (nthread_done == nthread) break;
             std::this_thread::sleep_for(std::chrono::milliseconds(150));
         }
 
         for (int i = 0; i < nthread; i++)
         {
-            if (simthread[i].IsFinishedWithErrors())
+            if (simthread[i].IsFinishedWithErrors() || simthread[i].IsSimulationCancelled())
             {
                 ssc_module_free(mod_solarpilot);
                 is_design_valid = false;
+                delete[] simthread;
                 return false;
             }
         }
@@ -2596,9 +2611,23 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
 
 
             }
-            sim_progress_handler((double)nsim_done / (double)ng, "Multi-threaded performance simulation");
+            if (!sim_progress_handler((double)nsim_done / (double)ng, "Multi-threaded performance simulation"))
+            {
+                for (int i = 0; i < nthread; i++)
+                    simthread[i].CancelSimulation();
+            }
             if (nthread_done == nthread) break;
             std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        }
+
+        for (int i = 0; i < nthread; i++)
+        {
+            if (simthread[i].IsFinishedWithErrors() || simthread[i].IsSimulationCancelled())
+            {
+                delete[] simthread;
+                ssc_module_free(mod_mspt);
+                return false;
+            }
         }
 
         delete [] simthread;
@@ -2607,8 +2636,6 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
 
 	ssc_module_free(mod_mspt);
 	
-	
-
 	//--- Compute full annual array from array containing simulated values at cluster-exemplar time blocks
 	std::unordered_map < std::string, std::vector<double> >::iterator it;
 	for (it = collect_ssc_data.begin(); it != collect_ssc_data.end(); it++)

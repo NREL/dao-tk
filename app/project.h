@@ -755,6 +755,7 @@ class Project
 	bool is_simulation_valid;
 	bool is_explicit_valid;
 	bool is_financial_valid;
+    bool is_stop_flag;
 
 	ssc_data_t m_ssc_data;
 	
@@ -802,10 +803,6 @@ class Project
 		}
 	};
 
-	
-
-
-
     void add_documentation();
 	void lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
     void ssc_to_lk_hash(ssc_data_t &cxt, lk::varhash_t &vars);
@@ -813,7 +810,6 @@ class Project
 	void update_calculated_system_values();
 	void update_calculated_values_post_layout();
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false, bool one_time_exp=false, int num_years=0);
-	
 	
 	bool simulate_clusters(std::unordered_map<std::string, std::vector<double>> &ssc_soln);
 	std::unordered_map<std::string, std::vector<double>> ssc_data_to_map(const ssc_data_t & ssc_data, std::vector<std::string> keys);
@@ -877,6 +873,9 @@ public:
     std::vector< void* > GetDataObjects();
     bool CallMethodByName(const std::string &method);
     std::vector<std::string> GetAllMethodNames();
+    void SetStopFlag(bool is_cancel);
+    bool IsStopFlag();
+
 };
 
 

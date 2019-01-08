@@ -846,5 +846,7 @@ void MainWindow::UpdateDataTable()
 
 bool MainWindow::UpdateIsStopFlagSet()
 {
-	return m_ScriptViewForm->GetEditor()->IsStopFlagSet();
+    bool stop = m_ScriptViewForm->GetEditor()->IsStopFlagSet();
+    m_project.SetStopFlag(stop);
+	return stop;
 }
