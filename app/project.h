@@ -462,7 +462,7 @@ struct parameters : public lk::varhash_t
 	parameter current_standby;
 	parameter is_use_clusters;
 	parameter is_run_continuous;
-	parameter is_cycle_ssc_integration;
+	parameter is_cycle_avail;
 	parameter is_reoptimize_at_repairs;
 	parameter is_reoptimize_at_failures;
 	parameter is_use_target_heuristic;

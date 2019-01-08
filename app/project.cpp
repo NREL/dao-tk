@@ -1512,7 +1512,7 @@ bool Project::C()
 
 	if (is_cycle_avail_valid) // cycle availability results already exist
 	{
-		if (m_parameters.is_cycle_ssc_integration.as_boolean())
+		if (m_parameters.is_cycle_avail.as_boolean())
 		{
 			message_handler("Notice: Cycle availability was already simulated during performance simulation and will not be repeated.\n");
 			return true;
@@ -1867,7 +1867,7 @@ bool Project::S()
 
 	//--- Run ssc simulation.  Cycle availability model will be run separately 
 	unordered_map < std::string, std::vector<double>> ssc_soln;
-	if (!m_parameters.is_cycle_ssc_integration.as_boolean())
+	if (!m_parameters.is_cycle_avail.as_boolean())
 	{
 		if (m_parameters.is_use_clusters.as_boolean())
 			is_simulation_valid = simulate_clusters(ssc_soln);
@@ -1900,7 +1900,7 @@ bool Project::S()
 	WELLFiveTwelve gen3(0);
 	pc.AssignGenerators(&gen1, &gen2, &gen3);
 
-	if (m_parameters.is_cycle_ssc_integration.as_boolean())
+	if (m_parameters.is_cycle_avail.as_boolean())
 	{
 
 		if (!m_parameters.is_dispatch.as_boolean())
@@ -2350,7 +2350,7 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
 
 	unordered_map < std::string, std::vector<double>> collect_ssc_data;
 	std::vector<std::string> ssc_keys = { "gen", "P_cycle", "q_pb", "q_dot_pc_startup", "Q_thermal", "e_ch_tes", "beam", "tdry", "pricing_mult", "disp_qsfprod_expected", "disp_wpb_expected" };
-	if (m_parameters.is_cycle_ssc_integration.as_boolean())
+	if (m_parameters.is_cycle_avail.as_boolean())
 	{
 		std::vector<std::string> more_keys = { "P_out_net", "T_tes_hot","T_tes_cold","q_dot_pc_target","q_dot_pc_max","is_rec_su_allowed","is_pc_su_allowed","is_pc_sb_allowed" };
 		ssc_keys.insert(ssc_keys.end(), more_keys.begin(), more_keys.end());
@@ -2647,7 +2647,7 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
 
 
 	//--- Integrate ssc solution with cycle availability model?
-	if (m_parameters.is_cycle_ssc_integration.as_boolean())
+	if (m_parameters.is_cycle_avail.as_boolean())
 	{
 		std::unordered_map<std::string, std::vector<double>> modified_soln;
 		if (!integrate_cycle_and_clusters(ssc_soln, csim.inputs.skip_first.index[0], csim.inputs.skip_last.index[0], modified_soln))
