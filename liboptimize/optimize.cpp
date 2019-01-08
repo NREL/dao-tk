@@ -117,12 +117,20 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     
     std::string failedmethod;
     {
-        message_handler( "Executing methods: ");
+        std::stringstream message;
+        message << "Executing methods:  ";
+        for (std::vector<std::string>::iterator mit = allmethods.begin(); mit != allmethods.end(); mit++)
+            if (triggered_methods.find(*mit) != triggered_methods.end())
+                message << *mit << "  ";
+        message_handler(message.str().c_str());
+
         for (std::vector<std::string>::iterator mit = allmethods.begin(); mit != allmethods.end(); mit++)
         {
+            if (P->IsStopFlag())
+                throw std::runtime_error("The simulation has been terminated by the user.");
+
             if (triggered_methods.find(*mit) != triggered_methods.end())
             {
-                message_handler( (*mit + " ").c_str() );
                 if (!P->CallMethodByName(*mit))
                 {
                     failedmethod = *mit;
@@ -130,7 +138,6 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
                 }
             }
         }
-        message_handler("\n");
     }
     if(! failedmethod.empty() )
     {
