@@ -1115,7 +1115,6 @@ void Project::update_calculated_values_post_layout()
 	int nc;
 	ssc_number_t* helio_positions = ssc_data_get_matrix(m_ssc_data, "helio_positions", &N_hel, &nc);
 	ssc_data_set_number(m_ssc_data, "N_hel", N_hel);
-    ssc_data_set_matrix(m_ssc_data, "helio_positions_in", helio_positions, N_hel, nc);
 }
 
 
@@ -1269,7 +1268,11 @@ bool Project::D()
     //calculate flux maps and efficiency matrix with multithreading, if specified
     if (m_parameters.n_sim_threads.as_integer() > 1)
     {
-
+        
+        int N_hel, nc;
+        ssc_number_t* helio_positions = ssc_data_get_matrix(m_ssc_data, "helio_positions", &N_hel, &nc);
+        ssc_data_set_matrix(m_ssc_data, "helio_positions_in", helio_positions, N_hel, nc);
+        
         ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 1.);
 
         int nthread = std::min(m_parameters.n_sim_threads.as_integer(), wxThread::GetCPUCount());
@@ -1337,6 +1340,7 @@ bool Project::D()
         ssc_data_set_matrix(m_ssc_data, "opteff_table", opteff_table, nitem, 3);
         ssc_data_set_matrix(m_ssc_data, "flux_table", flux_table, nitem, nflux);
 
+        ssc_data_unassign(m_ssc_data, "helio_positions_in");
         delete[] opteff_table;
         delete[] flux_table;
         delete[] simthread;
