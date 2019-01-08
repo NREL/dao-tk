@@ -1071,47 +1071,33 @@ void Project::update_calculated_system_values()
 
 	//	"""    
 
-	////net power(only used as an input to system costs compute module)
-	//D["nameplate"] = D["P_ref"] * D["gross_net_conversion_factor"]  //MWe
+	//net power(only used as an input to system costs compute module)
 	ssc_number_t gross_net_conversion_factor;
 	ssc_data_get_number(m_ssc_data, "gross_net_conversion_factor", &gross_net_conversion_factor);
 	ssc_number_t nameplate = m_variables.P_ref.as_number() * gross_net_conversion_factor;
 	ssc_data_set_number(m_ssc_data, "nameplate", nameplate);
-	//
-	//D["system_capacity"] = D["nameplate"] * 1000.
 	ssc_data_set_number(m_ssc_data, "system_capacity", nameplate*1000.);
 
-	//// q_pb_design(informational, not used as a compute module input for mspt)
 	ssc_number_t q_pb_design = m_variables.P_ref.as_number() / m_variables.design_eff.as_number();
-	//D["q_pb_design"] = float(D["P_ref"]) / float(D["design_eff"])
 	ssc_data_set_number(m_ssc_data, "q_pb_design", q_pb_design);
 
-	//// Q_rec_des(only used as in input to solarpilot compute module)
-	//D["Q_rec_des"] = D["solarm"] * D["q_pb_design"]
+	// Q_rec_des(only used as in input to solarpilot compute module)
 	ssc_data_set_number(m_ssc_data, "Q_rec_des", m_variables.solarm.as_number() * q_pb_design);
-	//D["q_design"] = D["Q_rec_des"]
 	ssc_data_set_number(m_ssc_data, "q_design", m_variables.solarm.as_number() * q_pb_design);
 	
-	//// tshours_sf(informational, not used as a compute module input)
-	//D["tshours_sf"] = D["tshours"] / D["solarm"]
-
-	////receiver aspect ratio(only used as in input to solarpilot compute module)
-	//D["rec_aspect"] = float(D["rec_height"]) / float(D["D_rec"]);
+	//receiver aspect ratio(only used as in input to solarpilot compute module)
 	ssc_data_set_number(m_ssc_data, "rec_aspect", m_variables.rec_height.as_number() / m_variables.D_rec.as_number());
 
-	////always set to MSPT
-	//D["tower_technology"] = 0
+	//always set to MSPT
 	ssc_data_set_number(m_ssc_data, "tower_technology", 0.);
 
-	////Flux grid resolution limited by number of panels(only used as in input to solarpilot compute module)
-	//D["n_flux_x"] = max(12, D["N_panel_pairs"])
+	//Flux grid resolution limited by number of panels(only used as in input to solarpilot compute module)
 	ssc_data_set_number(m_ssc_data, "n_flux_x", m_variables.N_panel_pairs.as_number()*2 > 12 ? m_variables.N_panel_pairs.as_number()*2 : 12);
 
-	//D["field_model_type"] = 2  // 0 = design field and tower / receiver geometry 1 = design field 2 = user field, calculate performance 3 = user performance maps vs solar position
+	// 0 = design field and tower / receiver geometry 1 = design field 2 = user field, calculate performance 3 = user performance maps vs solar position
 	ssc_data_set_number(m_ssc_data, "field_model_type", 2);
 
 	//D["helio_optical_error"] = D["helio_optical_error_mrad"] / 1000.  // only used as in input to solarpilot compute module
-	//ssc_data_set_number(m_ssc_data, "helio_optical_error", )
 	ssc_number_t helio_optical_error_mrad;
 	ssc_data_get_number(m_ssc_data, "helio_optical_error_mrad", &helio_optical_error_mrad);
 	ssc_data_set_number(m_ssc_data, "helio_optical_error", helio_optical_error_mrad/1000.);
