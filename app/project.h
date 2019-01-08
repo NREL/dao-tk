@@ -871,7 +871,7 @@ public:
     std::vector<std::string> GetAllMethodNames();
     void SetStopFlag(bool is_cancel);
     bool IsStopFlag();
-
+    void PrintCurrentResults();
 };
 
 

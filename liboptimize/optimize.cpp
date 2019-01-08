@@ -147,25 +147,7 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
 
     double ppa = P->m_financial_outputs.ppa.as_number();
 
-    {
-        std::stringstream message;
-        message << "Results\n-------------------------------------------------\n";
-        message << "Objective function value (PPA) [c/kWh]\t" << ppa << "\n";
-        message << "Solar field area [m2]\t" << P->m_design_outputs.area_sf.as_number() << "\n";
-        message << "Average soiling eff. [%]\t" << P->m_optical_outputs.avg_soil.as_number()*100. << "\n";
-        message << "Number of wash crews\t" << P->m_optical_outputs.n_wash_crews.as_number() << "\n";
-        message << "Average mirror degradation [%]\t" << P->m_optical_outputs.avg_degr.as_number()*100. << "\n";
-        message << "Annual generation [GWhe]\t" << P->m_simulation_outputs.annual_generation.as_number() << "\n";
-        message << "Annual cycle starts\t" << P->m_simulation_outputs.annual_cycle_starts.as_number() << "\n";
-        message << "Annual cycle failures\t" << P->m_cycle_outputs.num_failures.as_number() << "\n";
-        message << "Average cycle availability\t" << P->m_cycle_outputs.cycle_efficiency_ave.as_number() << "\n";
-        message << "Average cycle capacity\t" << P->m_cycle_outputs.cycle_capacity_ave.as_number() << "\n";
-        message << "Annual receiver starts\t" << P->m_simulation_outputs.annual_rec_starts.as_number() << "\n";
-        message << "Annual revenue units\t" << P->m_simulation_outputs.annual_revenue_units.as_number() << "\n";
-        message << "Average field availability [%]\t" << P->m_solarfield_outputs.avg_avail.as_number()*100. << "\n";
-        message << "Heliostat repair events per yr\t" << P->m_solarfield_outputs.n_repairs.as_number() << "\n";
-        message_handler(message.str().c_str());
-    }
+    P->PrintCurrentResults();
 
     //update the actual output value to override the NAN that was initialized
     for (size_t i = 0; i < allouts.size(); i++)
