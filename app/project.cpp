@@ -81,6 +81,7 @@ parameters::parameters()
 	/* 
 	Initialize members
 	*/
+	std::string empty_string = "";
 
 	n_sim_threads.set(                       3,                "n_sim_threads",      false,      "Number of threads available for simulation",            "-",                          "Settings" );
     print_messages.set(                   true,               "print_messages",      false,                                "Print full output",           "-",                          "Settings" );
@@ -89,17 +90,23 @@ parameters::parameters()
     is_dispatch.set(                     false,                  "is_dispatch",      false,                                "Optimize dispatch",           "-",                          "Settings" );
     is_ampl_engine.set(                  false,               "is_ampl_engine",      false,                               "Use AMPL optimizer",           "-",                          "Settings" );
     is_stochastic_disp.set(              false,           "is_stochastic_disp",      false,                          "Run stochastic dispatch",           "-",                          "Settings" );
-    current_standby.set(                 false,              "current_standby",      false,                     "Start power cycle in standby",           "-",                  "Cycle|Parameters" );
-
-	std::string empty_string = "";
     ampl_data_dir.set(                      "",                "ampl_data_dir",      false,                                 "AMPL data folder",           "-",                          "Settings" );
     solar_resource_file.set(      empty_string,          "solar_resource_file",      false,                              "Solar resource file",           "-",                          "Settings" );
-
     disp_steps_per_hour.set(                 1,          "disp_steps_per_hour",      false,                     "Dispatch time steps per hour",           "-",                          "Settings" );
-    avail_seed.set(                        123,                   "avail_seed",      false,                     "Random number generator seed",           "-", "Heliostat availability|Parameters" );
-    plant_lifetime.set(                     30,               "plant_lifetime",      false,                                   "Plant lifetime",          "yr",              "Financial|Parameters" );
-    finance_period.set(                     25,               "finance_period",      false,                                   "Finance period",          "yr",              "Financial|Parameters" );
-    ppa_multiplier_model.set(                1,         "ppa_multiplier_model",      false,                             "PPA multiplier model",           "-",              "Financial|Parameters" );
+	// Clustering parameters
+    is_use_clusters.set(                 false,              "is_use_clusters",      false,                                    "Use clusters?",           "-",                          "Settings" );
+    n_clusters.set(                         30,                   "n_clusters",      false,                               "Number of clusters",           "-",                          "Settings" );
+    cluster_ndays.set(                       2,                "cluster_ndays",      false,                       "Number of days per cluster",         "day",                          "Settings" );
+    cluster_nprev.set(                       1,                "cluster_nprev",      false,                   "Number of cluster warm-up days",         "day",                          "Settings" );
+    is_run_continuous.set(                true,            "is_run_continuous",      false,               "Run performance sim. as continuous",           "-",                          "Settings" );
+	std::string ca = "affinity_propagation";
+    cluster_algorithm.set(                  ca,            "cluster_algorithm",      false );
+	std::vector<double> default_feature_wts = { 1.0, 0.5, 0.5, 0.25, 0.75, 0.5, 0.5, 0.5, 0.0 };
+	std::vector<double> default_feature_divs = { 8, 4, 4, 4, 8, 4, 4, 4, 1 };
+    clustering_feature_weights.set(  default_feature_wts,   "clustering_feature_weights",       true );
+    clustering_feature_divisions.set( default_feature_wts,      "clustering_feature_divs",       true );
+
+    current_standby.set(                 false,              "current_standby",      false,                     "Start power cycle in standby",           "-",                  "Cycle|Parameters" );
     num_condenser_trains.set(                2,         "num_condenser_trains",      false,                       "Number of condenser trains",           "-",                  "Cycle|Parameters" );
     fans_per_train.set(                     30,               "fans_per_train",      false,               "Number of fans per condenser train",           "-",                  "Cycle|Parameters" );
     radiators_per_train.set(                 2,          "radiators_per_train",      false,          "Number of radiators per condenser train",           "-",                  "Cycle|Parameters" );
@@ -112,10 +119,19 @@ parameters::parameters()
 	num_boiler_pumps.set(                    2,             "num_boiler_pumps",      false,                           "Number of boiler pumps",           "-",                  "Cycle|Parameters" );
 	num_boiler_pumps_required.set(           1,    "num_boiler_pumps_required",      false,     "Number of boilerpumps to operate at capacity",           "-",                  "Cycle|Parameters" );
 
+    // Cycle availability and simulation integration
 	num_turbines.set(                        1,                 "num_turbines",      false,               "Number of turbine-generator shafts",           "-",                  "Cycle|Parameters" );
     num_scenarios.set(                       1,                "num_scenarios",      false,                              "Number of scenarios",           "-",                  "Cycle|Parameters" );
-	wash_vehicle_life.set(                  10,            "wash_vehicle_life",      false,                           "Wash vehicle lifetime",           "yr",    "Optical degradation|Parameters" );
-
+	is_cycle_avail.set(                  false,               "is_cycle_avail",      false,               "Run integrated cycle failure model",           "-",                  "Cycle|Parameters" );
+	is_reoptimize_at_repairs.set(        false,     "is_reoptimize_at_repairs",      false,              "Re-run dispatch after cycle repairs",           "-",                  "Cycle|Parameters" );
+	is_reoptimize_at_failures.set(       false,    "is_reoptimize_at_failures",      false,             "Re-run dispatch after cycle failures",           "-",                  "Cycle|Parameters" );
+	is_use_target_heuristic.set(          true,      "is_use_target_heuristic",      false,      "Use dispatch heuristic during cycle failure",           "-",                  "Cycle|Parameters" );
+	cycle_nyears.set(                        1,                 "cycle_nyears",      false,     "Number of cycle availability years simulated",           "-",                  "Cycle|Parameters" );
+    
+    //financial
+    plant_lifetime.set(                     30,               "plant_lifetime",      false,                                   "Plant lifetime",          "yr",              "Financial|Parameters" );
+    finance_period.set(                     25,               "finance_period",      false,                                   "Finance period",          "yr",              "Financial|Parameters" );
+    ppa_multiplier_model.set(                1,         "ppa_multiplier_model",      false,                             "PPA multiplier model",           "-",              "Financial|Parameters" );
     rec_ref_cost.set(                1.03e+008,                 "rec_ref_cost",      false,                          "Receiver reference cost",           "$",              "Financial|Parameters" );
     rec_ref_area.set(                    1571.,                 "rec_ref_area",      false,                          "Receiver reference area",          "m2",              "Financial|Parameters" );
     tes_spec_cost.set(                     24.,                "tes_spec_cost",      false,                                "TES specific cost",      "$/kWht",              "Financial|Parameters" );
@@ -128,10 +144,26 @@ parameters::parameters()
     c_cps1.set(                          1440.,                       "c_cps1",      false,                    "Power cycle cost coef - slope",           "-",              "Financial|Parameters" );
     om_staff_cost.set(                      75,                "om_staff_cost",      false,                              "O&M staff cost rate",        "$/hr",              "Financial|Parameters" );
     wash_crew_cost.set(                    50.,               "wash_crew_cost",      false,                              "Wash crew cost rate",        "$/hr",              "Financial|Parameters" );
-    heliostat_refurbish_cost.set(        23.06,     "heliostat_refurbish_cost",      false,                          "Mirror replacement cost",       "$/m^2",    "Optical degradation|Parameters" );
+    adjust_constant.set(                     4,              "adjust:constant",      false,                            "Misc fixed power loss",           "%",              "Financial|Parameters" );
+    
+	std::string rp = "perf_over_mrt";
+	std::vector< double > shape = { 1. };
+	std::vector< double > scale = { 12000. };
+	std::vector< double > mtr = { 2. };
+	std::vector< double > repair_cost = { 300. };
+    avail_seed.set(                        123,                   "avail_seed",      false,                     "Random number generator seed",           "-", "Heliostat availability|Parameters" );
     om_staff_max_hours_week.set(            35,      "om_staff_max_hours_week",      false,                     "Max O&M staff hours per week",          "hr", "Heliostat availability|Parameters" );
     n_heliostats_sim.set(                 1000,             "n_heliostats_sim",      false,                   "Number of simulated heliostats",           "-", "Heliostat availability|Parameters" );
-    wash_rate.set(                       3680.,                    "wash_rate",      false,                              "Heliostat wash rate", "m^2/crew-hr", "Optical degradation|Parameters" );
+    helio_repair_priority.set(              rp,        "helio_repair_priority",      false,                        "Heliostat repair priority",           "-", "Heliostat availability|Parameters" );
+    avail_model_timestep.set(               24,         "avail_model_timestep",      false,                      "Availability model timestep",          "hr", "Heliostat availability|Parameters" );
+    helio_comp_weibull_shape.set(        shape,     "helio_comp_weibull_shape",      false,             "Helio component Weibull shape params",           "-", "Heliostat availability|Parameters" );
+    helio_comp_weibull_scale.set(        scale,     "helio_comp_weibull_scale",      false,             "Helio component Weibull scale params",          "hr", "Heliostat availability|Parameters" );
+    helio_comp_mtr.set(                    mtr,               "helio_comp_mtr",      false,              "Helio component mean time to repair",          "hr", "Heliostat availability|Parameters" );
+    helio_comp_repair_cost.set(    repair_cost,       "helio_comp_repair_cost",      false,                      "Helio component repair cost",           "$", "Heliostat availability|Parameters" );
+
+    heliostat_refurbish_cost.set(        23.06,     "heliostat_refurbish_cost",      false,                          "Mirror replacement cost",       "$/m^2",    "Optical degradation|Parameters" );
+	wash_vehicle_life.set(                  10,            "wash_vehicle_life",      false,                           "Wash vehicle lifetime",           "yr",    "Optical degradation|Parameters" );
+    wash_rate.set(                       3680.,                    "wash_rate",      false,                              "Heliostat wash rate", "m^2/crew-hr",    "Optical degradation|Parameters" );
     wash_crew_max_hours_week.set(          70.,     "wash_crew_max_hours_week",      false,                     "Wash crew max hours per week",          "hr",    "Optical degradation|Parameters" );
 	wash_crew_max_hours_day.set(           10.,      "wash_crew_max_hours_day",      false,                      "Wash crew max hours per day",          "hr",    "Optical degradation|Parameters");
 	wash_crew_capital_cost.set(        100000.,       "wash_crew_capital_cost",      false,                  "Capital cost per wash crew hire",           "$",    "Optical degradation|Parameters" );
@@ -141,8 +173,9 @@ parameters::parameters()
     degr_accel_per_year.set(                0.,          "degr_accel_per_year",      false,                   "Refl. degradation acceleration",        "1/yr",    "Optical degradation|Parameters" );
     degr_seed.set(                         123,                    "degr_seed",      false,                     "Random number generator seed",           "-",    "Optical degradation|Parameters" );
     soil_per_hour.set(                  1.5e-4,                "soil_per_hour",      false,                                "Mean soiling rate",        "1/hr",    "Optical degradation|Parameters" );
-    adjust_constant.set(                     4,              "adjust:constant",      false,                            "Misc fixed power loss",           "%",              "Financial|Parameters" );
     helio_reflectance.set(                0.95,            "helio_reflectance",      false,                       "Initial mirror reflectance",           "-",    "Optical degradation|Parameters" );
+
+	std::vector< double > pvalts(8760, 1.);
     disp_rsu_cost.set(                    950.,                "disp_rsu_cost",      false,                            "Receiver startup cost",           "$",             "Simulation|Parameters" );
     disp_csu_cost.set(                  10000.,                "disp_csu_cost",      false,                         "Power block startup cost",           "$",             "Simulation|Parameters" );
     disp_pen_delta_w.set(                  0.1,             "disp_pen_delta_w",      false,                         "Power block ramp penalty",  "$/delta-kW",             "Simulation|Parameters" );
@@ -153,12 +186,14 @@ parameters::parameters()
     v_wind_max.set(                        15.,                   "v_wind_max",      false,                    "Max operational wind velocity",         "m/s",             "Simulation|Parameters" );
     flux_max.set(                        1000.,                     "flux_max",      false,                            "Maximum receiver flux",       "kW/m2",             "Simulation|Parameters" );
     forecast_gamma.set(                     0.,                      "fc_gamma",     false,                      "Forecast TES hedging factor",           "-",             "Simulation|Parameters" );
+    dispatch_factors_ts.set(            pvalts,          "dispatch_factors_ts",      false,                       "TOD price multiplier array",           "-",             "Simulation|Parameters" );
+
     maintenance_interval.set(             1.e6,         "maintenance_interval",      false,      "Runtime duration between maintenance events",           "h",                  "Cycle|Parameters" );
     maintenance_duration.set(             168.,         "maintenance_duration",      false,                   "Duration of maintenance events",           "h",                  "Cycle|Parameters" );
     downtime_threshold.set(                 24,           "downtime_threshold",      false,                "Downtime threshold for warm start",           "h",                  "Cycle|Parameters" );
     hours_to_maintenance.set(             1.e6,         "hours_to_maintenance",      false,   "Runtime duration before next maintenance event",           "h",                  "Cycle|Parameters" );
     temp_threshold.set(                    20.,               "temp_threshold",      false,     "Ambient temperature threshold for condensers",     "Celsius",                  "Cycle|Parameters" );
-    shutdown_capacity.set(                 0.3,            "shutdown_capacity",      false,            "Threshold capacity to shut plant down",          "-",                  "Cycle|Parameters" );
+    shutdown_capacity.set(                 0.3,            "shutdown_capacity",      false,            "Threshold capacity to shut plant down",           "-",                  "Cycle|Parameters" );
     no_restart_capacity.set(               0.8,          "no_restart_capacity",      false,   "Threshold capacity for maintenance on shutdown",           "-",                  "Cycle|Parameters" );
 	shutdown_efficiency.set(               0.7,          "shutdown_efficiency",      false,          "Threshold efficiency to shut plant down",           "-",                  "Cycle|Parameters" );
 	no_restart_efficiency.set(             0.9,        "no_restart_efficiency",      false, "Threshold efficiency for maintenance on shutdown",           "-",                  "Cycle|Parameters" );
@@ -166,78 +201,52 @@ parameters::parameters()
 
 	std::vector< double > pval = { 0., 7., 200., 12000. };
     c_ces.set(                            pval,                        "c_ces",      false );
-
-	std::vector< double > pvalts(8760, 1.);
-    dispatch_factors_ts.set(            pvalts,          "dispatch_factors_ts",      false,                       "TOD price multiplier array",           "-",             "Simulation|Parameters" );
-
 	std::vector< double > c_eff_cold = { 0., 1., 1. };
     condenser_eff_cold.set(         c_eff_cold,           "condenser_eff_cold",      false );
-
 	std::vector< double > c_eff_hot = { 0., 0.95, 1. };
     condenser_eff_hot.set(           c_eff_hot,            "condenser_eff_hot",      false );
 
-
-	// Availability parameters
-	std::string rp = "perf_over_mrt";
-    helio_repair_priority.set(              rp,        "helio_repair_priority",      false,                        "Heliostat repair priority",           "-", "Heliostat availability|Parameters" );
-    avail_model_timestep.set(               24,         "avail_model_timestep",      false,                      "Availability model timestep",          "hr", "Heliostat availability|Parameters" );
-
-	std::vector< double > shape = { 1. };
-	std::vector< double > scale = { 12000. };
-	std::vector< double > mtr = { 2. };
-	std::vector< double > repair_cost = { 300. };
-    helio_comp_weibull_shape.set(        shape,     "helio_comp_weibull_shape",      false,             "Helio component Weibull shape params",           "-", "Heliostat availability|Parameters" );
-    helio_comp_weibull_scale.set(        scale,     "helio_comp_weibull_scale",      false,             "Helio component Weibull scale params",          "hr", "Heliostat availability|Parameters" );
-    helio_comp_mtr.set(                    mtr,               "helio_comp_mtr",      false,              "Helio component mean time to repair",          "hr", "Heliostat availability|Parameters" );
-    helio_comp_repair_cost.set(    repair_cost,       "helio_comp_repair_cost",      false,                      "Helio component repair cost",           "$", "Heliostat availability|Parameters" );
-
-	// Clustering parameters
-    is_use_clusters.set(                 false,              "is_use_clusters",      false,                                    "Use clusters?",           "-",                          "Settings" );
-    n_clusters.set(                         30,                   "n_clusters",      false,                               "Number of clusters",           "-",                          "Settings" );
-
-    cluster_ndays.set(                       2,                "cluster_ndays",      false,                       "Number of days per cluster",         "day",                          "Settings" );
-    cluster_nprev.set(                       1,                "cluster_nprev",      false,                   "Number of cluster warm-up days",         "day",                          "Settings" );
-    is_run_continuous.set(                true,            "is_run_continuous",      false,               "Run performance sim. as continuous",           "-",                          "Settings" );
-	std::string ca = "affinity_propagation";
-    cluster_algorithm.set(                  ca,            "cluster_algorithm",      false );
-
-	std::vector<double> default_feature_wts = { 1.0, 0.5, 0.5, 0.25, 0.75, 0.5, 0.5, 0.5, 0.0 };
-	std::vector<double> default_feature_divs = { 8, 4, 4, 4, 8, 4, 4, 4, 1 };
-    clustering_feature_weights.set(  default_feature_wts,   "clustering_feature_weights",       true );
-    clustering_feature_divisions.set( default_feature_wts,      "clustering_feature_divs",       true );
-
-	// Cycle availability and simulation integration
-	is_cycle_ssc_integration.set(false, "is_cycle_ssc_integration", false, "Integrate cycle failure and dispatch optimization models?", "-", "Settings");
-	is_reoptimize_at_repairs.set(false, "is_reoptimize_at_repairs", false, "Re-optimize at cycle repairs?", "-", "Settings");
-	is_reoptimize_at_failures.set(false, "is_reoptimize_at_failures", false, "Re-optimize at cycle failures?", "-", "Settings");
-	is_use_target_heuristic.set(true, "is_use_target_heuristic", false, "Use heuristic to adjust dispatch targets during cycle failures?", "-", "Settings");
-	cycle_nyears.set(1, "cycle_nyears", false, "Cycle availability number of years simulated", "-", "Settings");
-
-
-
+    
+    (*this)["n_sim_threads"] = &n_sim_threads;
     (*this)["print_messages"] = &print_messages;
     (*this)["check_max_flux"] = &check_max_flux;
     (*this)["is_optimize"] = &is_optimize;
     (*this)["is_dispatch"] = &is_dispatch;
     (*this)["is_ampl_engine"] = &is_ampl_engine;
     (*this)["is_stochastic_disp"] = &is_stochastic_disp;
-	(*this)["current_standby"] = &current_standby;
-	(*this)["ampl_data_dir"] = &ampl_data_dir;
+    (*this)["ampl_data_dir"] = &ampl_data_dir;
     (*this)["solar_resource_file"] = &solar_resource_file;
     (*this)["disp_steps_per_hour"] = &disp_steps_per_hour;
-    (*this)["avail_seed"] = &avail_seed;
+    (*this)["is_use_clusters"] = &is_use_clusters;
+    (*this)["n_clusters"] = &n_clusters;
+    (*this)["cluster_ndays"] = &cluster_ndays;
+    (*this)["cluster_nprev"] = &cluster_nprev;
+    (*this)["is_run_continuous"] = &is_run_continuous;
+    (*this)["cluster_algorithm"] = &cluster_algorithm;
+    (*this)["clustering_feature_weights"] = &clustering_feature_weights;
+    (*this)["clustering_feature_divisions"] = &clustering_feature_divisions;
+    (*this)["current_standby"] = &current_standby;
+    (*this)["num_condenser_trains"] = &num_condenser_trains;
+    (*this)["fans_per_train"] = &fans_per_train;
+    (*this)["radiators_per_train"] = &radiators_per_train;
+    (*this)["num_salt_steam_trains"] = &num_salt_steam_trains;
+    (*this)["num_fwh"] = &num_fwh;
+    (*this)["num_salt_pumps"] = &num_salt_pumps;
+    (*this)["num_salt_pumps_required"] = &num_salt_pumps_required;
+    (*this)["num_water_pumps"] = &num_water_pumps;
+    (*this)["num_water_pumps_required"] = &num_water_pumps_required;
+    (*this)["num_boiler_pumps"] = &num_boiler_pumps;
+    (*this)["num_boiler_pumps_required"] = &num_boiler_pumps_required;
+    (*this)["num_turbines"] = &num_turbines;
+    (*this)["num_scenarios"] = &num_scenarios;
+    (*this)["is_cycle_avail"] = &is_cycle_avail;
+    (*this)["is_reoptimize_at_repairs"] = &is_reoptimize_at_repairs;
+    (*this)["is_reoptimize_at_failures"] = &is_reoptimize_at_failures;
+    (*this)["is_use_target_heuristic"] = &is_use_target_heuristic;
+    (*this)["cycle_nyears"] = &cycle_nyears;
     (*this)["plant_lifetime"] = &plant_lifetime;
     (*this)["finance_period"] = &finance_period;
     (*this)["ppa_multiplier_model"] = &ppa_multiplier_model;
-	(*this)["num_condenser_trains"] = &num_condenser_trains;
-	(*this)["fans_per_train"] = &fans_per_train;
-	(*this)["radiators_per_train"] = &radiators_per_train;
-	(*this)["num_salt_steam_trains"] = &num_salt_steam_trains;
-	(*this)["num_fwh"] = &num_fwh;
-	(*this)["num_salt_pumps"] = &num_salt_pumps;
-	(*this)["num_water_pumps"] = &num_water_pumps;
-	(*this)["num_turbines"] = &num_turbines;
-	(*this)["num_scenarios"] = &num_scenarios;
     (*this)["rec_ref_cost"] = &rec_ref_cost;
     (*this)["rec_ref_area"] = &rec_ref_area;
     (*this)["tes_spec_cost"] = &tes_spec_cost;
@@ -250,22 +259,28 @@ parameters::parameters()
     (*this)["c_cps1"] = &c_cps1;
     (*this)["om_staff_cost"] = &om_staff_cost;
     (*this)["wash_crew_cost"] = &wash_crew_cost;
-    (*this)["heliostat_refurbish_cost"] = &heliostat_refurbish_cost;
-
+    (*this)["adjust_constant"] = &adjust_constant;
+    (*this)["avail_seed"] = &avail_seed;
     (*this)["om_staff_max_hours_week"] = &om_staff_max_hours_week;
     (*this)["n_heliostats_sim"] = &n_heliostats_sim;
+    (*this)["helio_repair_priority"] = &helio_repair_priority;
+    (*this)["avail_model_timestep"] = &avail_model_timestep;
+    (*this)["helio_comp_weibull_shape"] = &helio_comp_weibull_shape;
+    (*this)["helio_comp_weibull_scale"] = &helio_comp_weibull_scale;
+    (*this)["helio_comp_mtr"] = &helio_comp_mtr;
+    (*this)["helio_comp_repair_cost"] = &helio_comp_repair_cost;
+    (*this)["heliostat_refurbish_cost"] = &heliostat_refurbish_cost;
+    (*this)["wash_vehicle_life"] = &wash_vehicle_life;
     (*this)["wash_rate"] = &wash_rate;
     (*this)["wash_crew_max_hours_week"] = &wash_crew_max_hours_week;
-	(*this)["wash_crew_max_hours_day"] = &wash_crew_max_hours_day;
-	(*this)["wash_crew_capital_cost"] = &wash_crew_capital_cost;
-    (*this)["n_sim_threads"] = &n_sim_threads;
-	(*this)["price_per_kwh"] = &price_per_kwh;
-	(*this)["TES_powercycle_eff"] = &TES_powercycle_eff;
+    (*this)["wash_crew_max_hours_day"] = &wash_crew_max_hours_day;
+    (*this)["wash_crew_capital_cost"] = &wash_crew_capital_cost;
+    (*this)["price_per_kwh"] = &price_per_kwh;
+    (*this)["TES_powercycle_eff"] = &TES_powercycle_eff;
     (*this)["degr_per_hour"] = &degr_per_hour;
     (*this)["degr_accel_per_year"] = &degr_accel_per_year;
     (*this)["degr_seed"] = &degr_seed;
     (*this)["soil_per_hour"] = &soil_per_hour;
-    (*this)["adjust_constant"] = &adjust_constant;
     (*this)["helio_reflectance"] = &helio_reflectance;
     (*this)["disp_rsu_cost"] = &disp_rsu_cost;
     (*this)["disp_csu_cost"] = &disp_csu_cost;
@@ -276,42 +291,21 @@ parameters::parameters()
     (*this)["startup_frac"] = &startup_frac;
     (*this)["v_wind_max"] = &v_wind_max;
     (*this)["flux_max"] = &flux_max;
-	(*this)["maintenance_interval"] = &maintenance_interval;
-	(*this)["maintenance_duration"] = &maintenance_duration;
-	(*this)["downtime_threshold"] = &downtime_threshold;
-	(*this)["hours_to_maintenance"] = &hours_to_maintenance;
-	(*this)["temp_threshold"] = &temp_threshold;
-	(*this)["shutdown_capacity"] = &shutdown_capacity;
-	(*this)["no_restart_capacity"] = &no_restart_capacity;
-	(*this)["no_restart_efficiency"] = &no_restart_efficiency;
-	(*this)["cycle_hourly_labor_cost"] = &cycle_hourly_labor_cost;
-    (*this)["c_ces"] = &c_ces;
-    (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
-	(*this)["condenser_eff_cold"] = &condenser_eff_cold;
-	(*this)["condenser_eff_hot"] = &condenser_eff_hot;
-
-	(*this)["helio_repair_priority"] = &helio_repair_priority;
-	(*this)["avail_model_timestep"] = &avail_model_timestep;
     (*this)["forecast_gamma"] = &forecast_gamma;
-	(*this)["helio_comp_weibull_shape"] = &helio_comp_weibull_shape;
-	(*this)["helio_comp_weibull_scale"] = &helio_comp_weibull_scale;
-	(*this)["helio_comp_mtr"] = &helio_comp_mtr;
-	(*this)["helio_comp_repair_cost"] = &helio_comp_repair_cost;
-
-	(*this)["is_use_clusters"] = &is_use_clusters;
-	(*this)["n_clusters"] = &n_clusters;
-	(*this)["cluster_ndays"] = &cluster_ndays;
-	(*this)["cluster_nprev"] = &cluster_nprev;
-	(*this)["is_run_continuous"] = &is_run_continuous;
-	(*this)["cluster_algorithm"] = &cluster_algorithm;
-	(*this)["clustering_feature_weights"] = &clustering_feature_weights;
-	(*this)["clustering_feature_divisions"] = &clustering_feature_divisions;
-
-	(*this)["is_cycle_ssc_integration"] = &is_cycle_ssc_integration;
-	(*this)["is_reoptimize_at_repairs"] = &is_reoptimize_at_repairs;
-	(*this)["is_reoptimize_at_failures"] = &is_reoptimize_at_failures;
-	(*this)["is_use_target_heuristic"] = &is_use_target_heuristic;
-	(*this)["cycle_nyears"] = &cycle_nyears;
+    (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
+    (*this)["maintenance_interval"] = &maintenance_interval;
+    (*this)["maintenance_duration"] = &maintenance_duration;
+    (*this)["downtime_threshold"] = &downtime_threshold;
+    (*this)["hours_to_maintenance"] = &hours_to_maintenance;
+    (*this)["temp_threshold"] = &temp_threshold;
+    (*this)["shutdown_capacity"] = &shutdown_capacity;
+    (*this)["no_restart_capacity"] = &no_restart_capacity;
+    (*this)["shutdown_efficiency"] = &shutdown_efficiency;
+    (*this)["no_restart_efficiency"] = &no_restart_efficiency;
+    (*this)["cycle_hourly_labor_cost"] = &cycle_hourly_labor_cost;
+    (*this)["c_ces"] = &c_ces;
+    (*this)["condenser_eff_cold"] = &condenser_eff_cold;
+    (*this)["condenser_eff_hot"] = &condenser_eff_hot;
 
 }
 
@@ -459,24 +453,18 @@ simulation_outputs::simulation_outputs()
     tes_charge_state.set(            empty_vec,                     "e_ch_tes",       true,                     "Thermal storage charge state",     "MWht",                "Simulation|Outputs" );
     dni_arr.set(                     empty_vec,                      "dni_arr",       true,                        "Direct normal irradiation",     "W/m2",                "Simulation|Outputs" );
     price_arr.set(                   empty_vec,                    "price_arr",       true,                                     "Price signal",        "-",                "Simulation|Outputs" );
-	
     dni_templates.set(               empty_vec,                "dni_templates",       true,                                     "DNI clusters",     "W/m2",                "Simulation|Outputs" );
     price_templates.set(             empty_vec,              "price_templates",       true,                                   "Price clusters",        "-",                "Simulation|Outputs" );
-
-
     annual_generation.set(                 nan,            "annual_generation",       true,                          "Annual total generation",     "GWhe",                "Simulation|Outputs" );
     annual_revenue_units.set(              nan,         "annual_revenue_units",       true,                             "Annual revenue units",        "-",                "Simulation|Outputs" );
-
     annual_rec_starts.set(                 nan,            "annual_rec_starts",       true,                           "Annual receiver starts",        "-",                "Simulation|Outputs" );
     annual_cycle_starts.set(               nan,          "annual_cycle_starts",       true,                              "Annual cycle starts",        "-",                "Simulation|Outputs" );
     annual_cycle_ramp.set(                 nan,            "annual_cycle_ramp",       true,                             "Annual cycle ramping",      "GWe",                "Simulation|Outputs" );
     cycle_ramp_index.set(                  nan,             "cycle_ramp_index",       true,                                 "Cycle ramp index",        "%",                "Simulation|Outputs" );
-
     annual_rec_starts_disp.set(            nan,       "annual_rec_starts_disp",       true,        "Annual receiver starts from dispatch soln",        "-",                "Simulation|Outputs" );
     annual_cycle_starts_disp.set(          nan,     "annual_cycle_starts_disp",       true,           "Annual cycle starts from dispatch soln",        "-",                "Simulation|Outputs" );
     annual_cycle_ramp_disp.set(            nan,       "annual_cycle_ramp_disp",       true,          "Annual cycle ramping from dispatch soln",      "GWe",                "Simulation|Outputs" );
     cycle_ramp_index_disp.set(             nan,        "cycle_ramp_index_disp",       true,              "Cycle ramp index from dispatch soln",        "%",                "Simulation|Outputs" );
-
 	
 	// outputs needs for cycle availability model
 	gross_gen.set(empty_vec, "gross_gen", true);
@@ -865,7 +853,6 @@ std::vector< void* > Project::GetDataObjects()
     std::vector< void* > rvec = {
         (void*)&m_variables, 
         (void*)&m_parameters, 
-        //(void*)&m_cluster_parameters,
         (void*)&m_design_outputs, 
         (void*)&m_optical_outputs, 
         (void*)&m_solarfield_outputs,

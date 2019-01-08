@@ -827,11 +827,7 @@ class Project
 
 	bool integrate_cycle_and_clusters(const std::unordered_map<std::string, std::vector<double>> &initial_soln, int first_index, int last_index, std::unordered_map<std::string, std::vector<double>> &final_soln);
 
-	
-	
-	
-
-
+    
 public:
 
 	variables m_variables;
