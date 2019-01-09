@@ -261,6 +261,19 @@ void Component::Shutdown(double time)
 	m_status.repair_event_time = time;
 }
 
+void Component::PerformMaintenance(double penalty_reduction)
+{
+	/*
+	Reduces hazard rate according to the expected annual number of starts.  
+	If the result is less than one, reset the hazard rate to one.
+
+	penalty_reduction -- maintenance-based hazard rate reduction.
+	*/
+	m_status.hazard_rate = std::max(1.0,
+		m_status.hazard_rate - penalty_reduction
+	);
+}
+
         
 void Component::RestoreComponent(bool reset_age)
 {

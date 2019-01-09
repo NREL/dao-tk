@@ -2300,8 +2300,15 @@ void PowerCycle::PlantMaintenanceShutdown(int t, bool reset_time, bool record,
 	if (reset_time)
 	{
 		label = "MAINTENANCE";
-		for (size_t i = 0; i<m_components.size(); i++)
+		double penalty_reduction = (
+			m_begin_cycle_state.hot_start_penalty * 
+			m_sim_params.num_annual_starts
+			);
+		for (size_t i = 0; i < m_components.size(); i++)
+		{
 			m_components.at(i).Shutdown(m_current_cycle_state.maintenance_duration);
+			m_components.at(i).PerformMaintenance(penalty_reduction);
+		}
 	}
 	else
 	{

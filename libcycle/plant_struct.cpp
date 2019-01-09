@@ -80,6 +80,7 @@ simulation_params::simulation_params()
 	hourly_labor_cost = 50.;
 	stop_at_first_repair = false;
 	stop_at_first_failure = false;
+	num_annual_starts = 50.;
 }
 
 void simulation_params::print()
@@ -92,7 +93,8 @@ void simulation_params::print()
 		<< "num_scenarios: " << num_scenarios << "\n"
 		<< "hourly_labor_cost: " << hourly_labor_cost << "\n"
 		<< "stop_at_first_repair: " << stop_at_first_repair << "\n"
-		<< "stop_at_first_failure: " << stop_at_first_failure << "\n";
+		<< "stop_at_first_failure: " << stop_at_first_failure << "\n"
+		<< "num_annual_starts: " << num_annual_starts << "\n";
 }
 
 cycle_results::cycle_results()

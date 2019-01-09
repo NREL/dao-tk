@@ -65,6 +65,7 @@ struct simulation_params
 	double hourly_labor_cost;
 	bool stop_at_first_repair;
 	bool stop_at_first_failure;
+	int num_annual_starts; //assumed only hot starts
 	simulation_params();
 	void print();
 };

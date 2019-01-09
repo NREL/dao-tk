@@ -136,6 +136,8 @@ public:
 	void ResetFailureAndRepairFlags();
         
     void Shutdown(double time);
+
+	void PerformMaintenance(double penalty_reduction);
         
     void RestoreComponent(bool reset_age = true);
 
