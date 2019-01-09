@@ -336,7 +336,13 @@ public:
 
 };
 
-struct variables : public lk::varhash_t
+class hash_base : public lk::varhash_t
+{
+public:
+    virtual void initialize() = 0;
+};
+
+struct variables : public hash_base
 {
 	variable h_tower;
 	variable rec_height;
@@ -352,6 +358,7 @@ struct variables : public lk::varhash_t
 	variable N_panel_pairs;
 
 	variables();
+    void initialize();
 };
 
 class parameter : public data_base
@@ -449,7 +456,7 @@ public:
 
 };
 
-struct parameters : public lk::varhash_t
+struct parameters : public hash_base
 {
 	//-----------------------------------------------------------------------
 	//bools
@@ -565,10 +572,10 @@ struct parameters : public lk::varhash_t
 	//-----------------------------------------------------------------------
 
 	parameters();
-
+    void initialize();
 };
 
-struct design_outputs : public lk::varhash_t
+struct design_outputs : public hash_base
 {
 	//-----------------------------------------------------------------------
 	parameter number_heliostats;
@@ -593,10 +600,11 @@ struct design_outputs : public lk::varhash_t
 	//-----------------------------------------------------------------------
 
 	design_outputs();
+    void initialize();
 
 };
 
-struct solarfield_outputs : public lk::varhash_t
+struct solarfield_outputs : public hash_base
 {
 	parameter n_repairs;
 	parameter staff_utilization;
@@ -608,10 +616,11 @@ struct solarfield_outputs : public lk::varhash_t
 	parameter n_repairs_per_component;
 
 	solarfield_outputs();
+    void initialize();
 
 };
 
-struct optical_outputs : public lk::varhash_t
+struct optical_outputs : public hash_base
 {
 	parameter n_wash_crews;
 	parameter n_replacements;
@@ -626,10 +635,11 @@ struct optical_outputs : public lk::varhash_t
 	parameter repl_total;
 
 	optical_outputs();
+    void initialize();
 
 };
 
-struct cycle_outputs : public lk::varhash_t
+struct cycle_outputs : public hash_base
 {
 	parameter cycle_efficiency;
 	parameter cycle_capacity;
@@ -639,9 +649,10 @@ struct cycle_outputs : public lk::varhash_t
     parameter cycle_capacity_ave;
     
 	cycle_outputs();
+    void initialize();
 };
 
-struct simulation_outputs : public lk::varhash_t
+struct simulation_outputs : public hash_base
 {
 	parameter generation_arr;
 	parameter solar_field_power_arr;
@@ -667,9 +678,10 @@ struct simulation_outputs : public lk::varhash_t
 	parameter is_standby;
 
 	simulation_outputs();
+    void initialize();
 };
 
-struct explicit_outputs : public lk::varhash_t
+struct explicit_outputs : public hash_base
 {
 
 	parameter cost_receiver_real;
@@ -684,9 +696,10 @@ struct explicit_outputs : public lk::varhash_t
 	parameter heliostat_wash_capital_cost;
 
 	explicit_outputs();
+    void initialize();
 };
 
-struct financial_outputs : public lk::varhash_t 
+struct financial_outputs : public hash_base 
 {
 	parameter lcoe_nom;
 	parameter lcoe_real;
@@ -696,9 +709,10 @@ struct financial_outputs : public lk::varhash_t
 	parameter total_installed_cost;
 
 	financial_outputs();
+    void initialize();
 };
 
-struct objective_outputs : public lk::varhash_t
+struct objective_outputs : public hash_base
 {
 	parameter cost_receiver_real;
 	parameter cost_tower_real;
@@ -727,9 +741,10 @@ struct objective_outputs : public lk::varhash_t
 	parameter lcoe_real;
 
 	objective_outputs();
+    void initialize();
 };
 
-struct optimization_outputs : public lk::varhash_t
+struct optimization_outputs : public hash_base
 {
     parameter eta_i; //Matrix<double> 
     //Vector<double> 
@@ -743,6 +758,7 @@ struct optimization_outputs : public lk::varhash_t
     parameter best_point;
 
     optimization_outputs();
+    void initialize();
 };
 
 //main class
@@ -872,6 +888,7 @@ public:
     void SetStopFlag(bool is_cancel);
     bool IsStopFlag();
     void PrintCurrentResults();
+    void ClearStoredData();
 };
 
 

@@ -40,7 +40,9 @@
  }
 
 
-variables::variables()
+ variables::variables() { initialize(); }
+
+ void variables::initialize()
 {
 	/* 
 	Initialize members
@@ -76,7 +78,9 @@ variables::variables()
 
 };
 
-parameters::parameters()
+parameters::parameters() { initialize(); }
+
+void parameters::initialize()
 {
 	/* 
 	Initialize members
@@ -309,7 +313,10 @@ parameters::parameters()
 
 }
 
-design_outputs::design_outputs()
+
+design_outputs::design_outputs() { initialize(); }
+
+void design_outputs::initialize()
 {
 	/* 
 	Set up output members
@@ -361,7 +368,9 @@ design_outputs::design_outputs()
 	(*this)["annual_helio_energy"] = &annual_helio_energy;
 }
 
-solarfield_outputs::solarfield_outputs()
+solarfield_outputs::solarfield_outputs() { initialize(); }
+
+void solarfield_outputs::initialize()
 {
 	/* 
 	Set up output members
@@ -389,7 +398,9 @@ solarfield_outputs::solarfield_outputs()
 
 }
 
-optical_outputs::optical_outputs()
+optical_outputs::optical_outputs() { initialize(); }
+
+void optical_outputs::initialize()
 {
 	/* 
 	Set up output members
@@ -423,7 +434,9 @@ optical_outputs::optical_outputs()
 
 }
 
-cycle_outputs::cycle_outputs()
+cycle_outputs::cycle_outputs() { initialize(); }
+
+void cycle_outputs::initialize()
 {
 	std::vector< double > empty_vec;
     double nan = std::numeric_limits<double>::quiet_NaN();
@@ -443,7 +456,9 @@ cycle_outputs::cycle_outputs()
     (*this)["cycle_capacity_ave"] = &cycle_capacity_ave;
 }
 
-simulation_outputs::simulation_outputs()
+simulation_outputs::simulation_outputs() { initialize(); }
+
+void simulation_outputs::initialize()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();
 	std::vector< double > empty_vec;
@@ -498,7 +513,9 @@ simulation_outputs::simulation_outputs()
 
 }
 
-explicit_outputs::explicit_outputs()
+explicit_outputs::explicit_outputs() { initialize(); }
+
+void explicit_outputs::initialize()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();
     cost_receiver_real.set(                nan,           "cost_receiver_real",       true );
@@ -517,7 +534,9 @@ explicit_outputs::explicit_outputs()
 
 }
 
-financial_outputs::financial_outputs()
+financial_outputs::financial_outputs() { initialize(); }
+
+void financial_outputs::initialize()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();
 
@@ -534,7 +553,9 @@ financial_outputs::financial_outputs()
 	(*this)["total_installed_cost"] = &total_installed_cost;
 }
 
-objective_outputs::objective_outputs()
+objective_outputs::objective_outputs() { initialize(); }
+
+void objective_outputs::initialize()
 {
 	double nan = std::numeric_limits<double>::quiet_NaN();
 
@@ -588,7 +609,9 @@ objective_outputs::objective_outputs()
 
 }
 
-optimization_outputs::optimization_outputs()
+optimization_outputs::optimization_outputs() { initialize(); }
+
+void optimization_outputs::initialize()
 {
 	std::vector< double > empty_vec_d;
     std::vector< std::vector<double> > empty_mat;
@@ -757,14 +780,16 @@ void Project::Initialize()
 	is_cycle_avail_valid = false;
     is_stop_flag = false;
 
+    ClearStoredData();
+
 	initialize_ssc_project();
 
-    //ssc_to_lk_hash(m_ssc_data, m_parameters);
+    ssc_to_lk_hash(m_ssc_data, m_parameters);
     ssc_to_lk_hash(m_ssc_data, m_variables);
 
-	parameters default_params;
+	/*parameters default_params;
 	lk_hash_to_ssc(m_ssc_data, default_params);
-	ssc_to_lk_hash(m_ssc_data, m_parameters);
+	ssc_to_lk_hash(m_ssc_data, m_parameters);*/
 
 	cluster_outputs.clear();
 
@@ -781,9 +806,9 @@ Project::Project()
 
 	for (size_t i = 0; i < struct_pointers.size(); i++)
 	{
-        lk::varhash_t *this_varhash = static_cast<lk::varhash_t*>( struct_pointers.at(i) );
+        hash_base *this_varhash = static_cast<hash_base*>( struct_pointers.at(i) );
 
-        for (lk::varhash_t::iterator it = this_varhash->begin(); it != this_varhash->end(); it++)
+        for (hash_base::iterator it = this_varhash->begin(); it != this_varhash->end(); it++)
 		{
             _merged_data[(*it).first] = it->second;
 		}
@@ -3657,4 +3682,11 @@ void Project::PrintCurrentResults()
     message << "Heliostat repair events per yr\t" << m_solarfield_outputs.n_repairs.as_number() << "\n";
     message_handler(message.str().c_str());
     return;
+}
+
+void Project::ClearStoredData()
+{
+    std::vector<void*> ptrs = GetDataObjects();
+    for (size_t i = 0; i < ptrs.size(); i++)
+        static_cast<hash_base*>(ptrs.at(i))->initialize();
 }
