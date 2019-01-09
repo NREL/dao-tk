@@ -62,6 +62,15 @@ These are the general quick steps you need to follow to set up your computer for
 <tr><td>DAO-Tk</td><td>https://github.com/NREL/DAO-Tk</td><td></td></tr>
 </table>
 
+6. After successfully building all repositories, copy the SSC shared or DLL object from the SSC build folder into the platform-specific DAO-Tk deploy folder. For example, on Linux:
+```
+cp ~/projects/ssc/build_linux/ssc.so ~/projects/dao-tk/deploy/linux/ssc.so
+```
+
+Windows distributions require the following DLL's (in addition to ssc.dll):
+``` dbghelp, libcurl, libeay32, libssh2, msvcp120, msvcr120, ssleay32, vcruntime140 ```
+These can be located from system path directories or downloaded from [NREL's FTP server](https://pfs.nrel.gov/main.html?download&weblink=2803bc659530b139621bbacc1b80910f&realfilename=nrelapp-win-dynlibs.zip).
+
 ## Repository Access
 
 Access is currently limited only to project partners. To obtain access, please send a request to [Mike](mailto://mike.wagner@nrel.gov).
