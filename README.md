@@ -58,7 +58,7 @@ These are the general quick steps you need to follow to set up your computer for
 <tr><td>LK</td><td>https://github.com/NREL/lk</td><td>LKDIR</td></tr>
 <tr><td>WEX</td><td>https://github.com/NREL/wex</td><td>WEXDIR</td></tr>
 <tr><td>Google Test</td><td>https://github.com/google/googletest</td><td>GTEST</td></tr>
-<tr><td>SSC</td><td>https://github.com/NREL/ssc<br><i>use the csp_consolidate branch</i></td><td>SSCDIR</td></tr>
+<tr><td>SSC</td><td>https://github.com/mjwagner2/ssc<br><i>use the daotk-develop branch</i></td><td>SSCDIR</td></tr>
 <tr><td>DAO-Tk</td><td>https://github.com/NREL/DAO-Tk</td><td></td></tr>
 </table>
 

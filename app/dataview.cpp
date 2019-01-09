@@ -237,7 +237,9 @@ public:
                     }
                     ret += "\n";
                 }
-
+                /*FILE *f = fopen("C:/Users/mwagner/Documents/NREL/projects/dao-tk/deploy/x64/errlog.txt", "a");
+                fprintf(f, "%s", ret.ToStdString().c_str());
+                fclose(f);*/
                 return ret;
             }
 
@@ -434,26 +436,26 @@ void DataView::SetSelections(const wxArrayString &sel, const wxArrayString &labe
 			wxArrayString cxt_list = wxSplit(parsename[0], wxChar('|'));
 
 			//need to figure out at which level the first difference appears
-			int i_level = 0;
+			int j_level = 0;
 			
 			int ncxt_list = cxt_list.Count();
 			int ncur_context_list = cur_context_list.Count();
 
-			for(int i=0; i<ncxt_list; i++)
+			for(int j=0; j<ncxt_list; j++)
 			{
-				if( i > ncur_context_list-1 )
+				if( j > ncur_context_list-1 )
 				{
-					i_level = i;
+					j_level = j;
 					break;
 				}
-				if( cxt_list[i] != cur_context_list[i] )
+				if( cxt_list[j] != cur_context_list[j] )
 				{
-					i_level = i;
+					j_level = j;
 					break;
 				}
 			}
 
-			int nlevels_up = cur_context_list.Count() - i_level;
+			int nlevels_up = cur_context_list.Count() - j_level;
 			
 			for( int ind=0; ind<nlevels_up; ind++)
 				cur_parent = m_varlist->GetItemParent(cur_parent);
@@ -462,7 +464,7 @@ void DataView::SetSelections(const wxArrayString &sel, const wxArrayString &labe
 				cur_parent = m_root;	//needed on first pass through
 
 			//reconstruct nodes back down
-			for( int ind=i_level; ind<ncxt_list; ind++)
+			for( int ind=j_level; ind<ncxt_list; ind++)
 			{
 				cur_parent = m_varlist->AppendItem(cur_parent, cxt_list[ind], -1, -1, new TreeItemData(cxt.c_str()) );
             	m_varlist->SetItemBold(cur_parent);
@@ -478,12 +480,21 @@ void DataView::SetSelections(const wxArrayString &sel, const wxArrayString &labe
         else
             item_id = m_varlist->AppendItem( m_root, lbl, VarTreeView::ICON_CHECK_FALSE, -1, new TreeItemData(m_names[i].c_str()) );
 
-        if ( m_selections.Index( m_names[i] ) >= 0 )
+        if ( sel.Index( m_names[i] ) >= 0 )
             m_varlist->Check( item_id, true );
     }
 
     m_varlist->Expand(m_root);
-	m_varlist->ExpandAll();
+    
+    wxTreeItemIdValue cookie; //unused
+    wxTreeItemId node = m_varlist->GetFirstChild(m_varlist->GetRootItem(), cookie);
+    while (node.IsOk())
+    {
+        m_varlist->CollapseAllChildren(node);
+        node = m_varlist->GetNextSibling(node);
+    }
+    m_varlist->EnsureVisible(m_varlist->GetRootItem());
+
     m_varlist->UnselectAll();
 
 }
@@ -586,7 +597,7 @@ void DataView::UpdateView()
 					else
                     {
 						if( v->vec()->front().type() == lk::vardata_t::VECTOR)
-							label += wxString::Format("matrix [%d,%d]", (int)v->vec()->size(), (int)v->vec()->front().vec()->size() );
+							label += wxString::Format("matrix [%d,%d]", (int)v->vec()->front().vec()->size(), (int)v->vec()->size());
 						else
 							label += wxString::Format( "array [%d]", (int)v->vec()->size() );
                     }
@@ -828,15 +839,30 @@ void DataView::ShowStats( wxString name )
 	if (m_vt)
 	{
 		lk::vardata_t *v = m_vt->at((const char*) usename.c_str() );
-		if (!v || v->type() != lk::vardata_t::VECTOR)
+		if (!v)
 		{
-			wxMessageBox("variable not found or not of array type.");
+			wxMessageBox("variable not found.");
 			return;
 		}
-
-		StatDialog dlg(this, "Stats for: " + usename);
-		dlg.Compute( *v->vec() );
-		dlg.ShowModal();
+        //if it's a hash vector or table, show the listing in a popup. Otherwise, show stats for an array type.
+        /*if (v->type() == lk::vardata_t::VECTOR)
+        {
+		    StatDialog dlg(this, "Stats for: " + usename);
+		    dlg.Compute( *v->vec() );
+		    dlg.ShowModal();
+        }*/
+        else if (v->type() == lk::vardata_t::HASH || v->type() == lk::vardata_t::VECTOR)
+        {
+            //call the hash popup dialog
+            TableViewDialog dlg(this, static_cast<variable*>(v), "Variable data", wxID_ANY, wxDEFAULT_DIALOG_STYLE|wxMINIMIZE_BOX|wxMAXIMIZE_BOX|wxRESIZE_BORDER);
+            dlg.SetSize(wxSize(this->GetSize().GetWidth()*0.75, this->GetSize().GetHeight()*.75));
+            dlg.ShowModal();
+            dlg.CenterOnParent();
+        }
+        else
+        {
+            wxMessageBox("variable not of array or table type.");
+        }
 	}
 }
 
@@ -947,18 +973,18 @@ StatDialog::StatDialog( wxWindow *parent, const wxString &title )
 	wxBoxSizer *sz_h1 = new wxBoxSizer( wxHORIZONTAL );
 	
 	sz_h1->Add( new wxStaticText( this, wxID_ANY, "Mean:" ), 0, wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
-	sz_h1->Add( numMean = new wxNumericCtrl(this) );
+	sz_h1->Add( numMean = new wxTextCtrl(this, wxID_ANY) );
 	sz_h1->Add( new wxStaticText( this, wxID_ANY, "Min:" ), 0, wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
-	sz_h1->Add( numMin = new wxNumericCtrl(this) );
+	sz_h1->Add( numMin = new wxTextCtrl(this, wxID_ANY) );
 	sz_h1->Add( new wxStaticText( this, wxID_ANY, "Max:" ), 0, wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
-	sz_h1->Add( numMax = new wxNumericCtrl(this) );
+	sz_h1->Add( numMax = new wxTextCtrl(this, wxID_ANY) );
 
 	wxBoxSizer *sz_h2 = new wxBoxSizer( wxHORIZONTAL );
 
 	sz_h2->Add( new wxStaticText( this, wxID_ANY, "Sum:" ), 0, wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
-	sz_h2->Add( numSum = new wxNumericCtrl(this) );
+	sz_h2->Add( numSum = new wxTextCtrl(this, wxID_ANY) );
 	sz_h2->Add( new wxStaticText( this, wxID_ANY, "Sum/1000:" ), 0, wxLEFT|wxALIGN_CENTER_VERTICAL, 5 );
-	sz_h2->Add( numSumOver1000 = new wxNumericCtrl(this) );
+	sz_h2->Add( numSumOver1000 = new wxTextCtrl(this, wxID_ANY) );
 	
 	grdMonthly = new wxExtGridCtrl(this, wxID_ANY);
 	grdMonthly->CreateGrid(12,4);
@@ -1015,11 +1041,11 @@ static int nday[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
 	if( mean != mean )
 		mean = (min+max)/2.;
 
-	numMin->SetValue( min );
-	numMax->SetValue( max );
-	numMean->SetValue( mean );
-	numSum->SetValue( sum );
-	numSumOver1000->SetValue( sum/1000.0 );
+	numMin->SetValue( wxString::Format("%f",min) );
+	numMax->SetValue(wxString::Format("%f", max));
+	numMean->SetValue(wxString::Format("%f", mean));
+	numSum->SetValue(wxString::Format("%f", sum));
+	numSumOver1000->SetValue(wxString::Format("%f", sum/1000.0) );
 
 	size_t multiple = len / 8760;
 	if ( multiple*8760 == len )
@@ -1081,3 +1107,275 @@ static int nday[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
 	grdMonthly->SetColLabelSize( wxGRID_AUTOSIZE );
 }
 
+//--------------------------------------------------------------
+enum
+{
+    ID_TVD_GRID,
+    ID_TVD_COPY,
+    ID_TVD_EXPORT
+};
+
+TableViewDialog::TableViewDialog(wxWindow *parent, variable *vardata, wxString title, int id, long style)
+    : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, style)
+{
+    //_keyboardstate = new wxKeyboardState();
+
+    _vardata = vardata;
+
+    int nrow=0, ncol=0;
+
+    //find the type
+    if (vardata->type() == lk::vardata_t::VECTOR)
+    {
+        if (vardata->vec()->begin()->type() == lk::vardata_t::VECTOR)
+        {
+            _type = TableViewDialog::TVD_ARRAY;
+            nrow = vardata->vec()->size();
+            ncol = vardata->vec()->front().vec()->size();
+        }
+    }
+    else if (vardata->type() == lk::vardata_t::HASH)
+    {
+        if (vardata->hash_vector.item_count() > 0)
+        {
+            _type = TableViewDialog::TVD_VECTHASH;
+            nrow = vardata->hash_vector.iteration_count();
+            ncol = vardata->hash_vector.item_count();
+        }
+        else
+        {
+            _type = TableViewDialog::TVD_TABLE;
+            nrow = vardata->hash()->size();
+            if (nrow > 0)
+                ncol = vardata->hash()->begin()->second->vec()->size();
+        }
+    }
+    else
+    {
+        return;
+    }
+
+    _grid = new wxGrid(this, ID_TVD_GRID);
+    _grid->CreateGrid(nrow, ncol);
+    _grid->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(TableViewDialog::OnCopy), 0, this);
+    _grid->SetSelectionMode(wxGrid::wxGridSelectionModes::wxGridSelectRowsOrColumns);
+
+    //set the grid values
+    switch (_type)
+    {
+    case TableViewDialog::TVD_ARRAY:
+    {
+        for (size_t i = 0; i < nrow; i++)
+        {
+            std::vector<lk::vardata_t>* vrow = vardata->vec()->at(i).vec();
+            for (size_t j = 0; j < vrow->size(); j++)
+            {
+                _grid->SetCellValue(i, j, wxString::Format("%f", vrow->at(j).as_number()));
+            }
+        }
+        break;
+    }
+    case TableViewDialog::TVD_TABLE:
+    {
+        int i = 0;
+        for (lk::varhash_t::iterator vit = vardata->hash()->begin(); vit != vardata->hash()->end(); vit++)
+        {
+            _grid->SetColLabelValue(i, vit->first);
+            std::vector<lk::vardata_t>* vec = vit->second->vec();
+            for (size_t j = 0; j < vit->second->vec()->size(); j++)
+            {
+                _grid->SetCellValue(j, i, wxString::Format("%f", vec->at(j).as_number()));
+            }
+            i++;
+        }
+        break;
+    }
+    case TableViewDialog::TVD_VECTHASH:
+    {
+        for (size_t i = 0; i < ncol; i++)
+        {
+            _grid->SetColLabelValue(i, vardata->hash_vector.at_index(i).first);
+            std::vector<double> *vdat = &vardata->hash_vector.at_index(i).second;
+            
+            for (size_t j = 0; j < nrow; j++)
+                _grid->SetCellValue(j, i, wxString::Format("%f", vdat->at(j)));
+        }
+    }
+    default:
+        break;
+    }
+
+    wxBoxSizer *bsizer = new wxBoxSizer(wxHORIZONTAL);
+    bsizer->Add(new wxButton(this, ID_TVD_COPY, "Copy"), 0, wxALL, 5);
+    bsizer->Add(new wxButton(this, ID_TVD_EXPORT, "Export..."), 0, wxALL, 5);
+
+    wxBoxSizer *mainsizer = new wxBoxSizer(wxVERTICAL);
+    mainsizer->Add(bsizer);
+
+    mainsizer->Add(new wxStaticText(this, wxID_ANY, vardata->nice_name + " [" + vardata->units + "]"), 0, wxALL, 5);
+    mainsizer->Add(_grid, 1, wxEXPAND | wxALL, 5);
+    mainsizer->SetSizeHints(_grid);
+    this->SetSizer(mainsizer);
+}
+
+void TableViewDialog::OnCommand(wxCommandEvent &evt)
+{
+    switch (evt.GetId())
+    {
+    case ID_TVD_COPY:
+    case ID_TVD_EXPORT:
+    {
+        std::stringstream ss;
+        size_t nc = _grid->GetNumberCols();
+        for (int i = -1; i < (int)_grid->GetNumberRows(); i++)
+        {
+            for (size_t j = 0; j < nc; j++)
+            {
+                if (i < 0)
+                    ss << _grid->GetColLabelValue(j);
+                else
+                    ss << _grid->GetCellValue(i, j);
+                
+                if (j < nc - 1)
+                    ss << "\t";
+            }
+            ss << "\n";
+        }
+        if (evt.GetId() == ID_TVD_COPY)
+        {
+            if (wxTheClipboard->Open())
+            {
+                wxTheClipboard->Clear();
+                wxTheClipboard->AddData(new wxTextDataObject( ss.str() ));
+                wxTheClipboard->Close();
+            }
+            else
+            {
+                wxMessageBox("Unable to access the clipboard. Copy failed.");
+            }
+        }
+        else
+        {
+            wxFileDialog dlg(this, "Export grid data", wxEmptyString, _vardata->name+".txt", wxFileSelectorDefaultWildcardStr, wxFD_SAVE|wxFD_OVERWRITE_PROMPT);
+            if (dlg.ShowModal() == wxID_OK)
+            {
+                wxString path = dlg.GetPath();
+                FILE* f = fopen(path.ToStdString().c_str(), "w");
+                if (f)
+                {
+                    fprintf(f, "%s", ss.str().c_str());
+                    fclose(f);
+                }
+                else
+                {
+                    wxMessageBox("Specified path does not exist or file is write-protected. Data not saved.");
+                }
+            }
+        }
+        break;
+    }
+    case ID_TVD_GRID:
+    default:
+        break;
+    }
+    return;
+}
+
+void TableViewDialog::OnCopy(wxKeyEvent& evt)
+{
+    if (! (evt.GetKeyCode() == (int)'c' || evt.GetKeyCode() == (int)'C'))
+    {
+        evt.Skip();
+        return;
+    }
+    if (!evt.ControlDown())
+    {
+        evt.Skip();
+        return;
+    }
+
+    wxArrayInt selcols = _grid->GetSelectedCols();
+    wxArrayInt selrows = _grid->GetSelectedRows();
+    wxGridCellCoordsArray selcells = _grid->GetSelectedCells();
+
+    std::stringstream data;
+    if (selcols.GetCount() > 0)
+    {
+        //a set of columns has been selected
+        for (int i = -1; i < (int)_grid->GetNumberRows(); i++)
+        {
+            for (size_t j = 0; j<selcols.GetCount(); j++)
+            {
+                if (i < 0)
+                    data << _grid->GetColLabelValue(selcols[j]) << "\t";
+                else
+                    data << _grid->GetCellValue(i, selcols[j]) << "\t";
+            }
+            data << "\n";
+        }
+
+    }
+    else if (selrows.GetCount() > 0)
+    {
+        //a set of rows has been selected
+
+        //header first
+        for (size_t j = 0; j < _grid->GetNumberCols(); j++)
+            data << _grid->GetColLabelValue(j) << "\t";
+        data << "\n";
+
+        //data
+        for (size_t i = 0; i < selrows.GetCount(); i++)
+        {
+            for (size_t j = 0; j < _grid->GetNumberCols(); j++)
+                data << _grid->GetCellValue(selrows[i], j) << "\t";
+            data << "\n";
+        }
+    }
+    else if (selcells.GetCount() > 0)
+    {
+        //consolidate a list of all columns and all rows in the selection(s)
+        std::vector<int> cols;
+        std::vector<int> rows;
+        wxGridCellCoordsArray sel_tl = _grid->GetSelectionBlockTopLeft();
+        wxGridCellCoordsArray sel_br = _grid->GetSelectionBlockBottomRight();
+
+        for (size_t s = 0; s < sel_tl.Count(); s++)
+        {
+            for (size_t j = sel_tl[s].GetCol(); j < sel_br[s].GetCol() + 1; j++)
+                cols.push_back(j);
+            for (size_t i = sel_tl[s].GetRow(); i < sel_br[s].GetRow() + 1; i++)
+                rows.push_back(i);
+        }
+
+        for (int i = -1; i < (int)rows.size(); i++)
+        {
+            for (size_t j = 0; j < cols.size(); j++)
+            {
+                if (i < 0)
+                    data << _grid->GetColLabelValue(cols[j]) << "\t";
+                else
+                    data << _grid->GetCellValue(rows[i], cols[j]) << "\t";
+                data << "\n";
+            }
+        }
+    }
+
+    if (wxTheClipboard->Open())
+    {
+        wxTheClipboard->Clear();
+        wxTheClipboard->AddData(new wxTextDataObject(data.str()));
+        wxTheClipboard->Close();
+    }
+    else
+        wxMessageBox("Unable to open the clipboard. Copy failed.");
+
+    return;
+
+}
+
+
+BEGIN_EVENT_TABLE(TableViewDialog, wxDialog)
+EVT_BUTTON(ID_TVD_COPY, TableViewDialog::OnCommand)
+EVT_BUTTON(ID_TVD_EXPORT, TableViewDialog::OnCommand)
+END_EVENT_TABLE()

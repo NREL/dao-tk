@@ -640,13 +640,12 @@ bool MainWindow::Load(const wxString &file)
 				case lk::vardata_t::VECTOR:
 				{
 					//determine whether this is a 1D or 2D array
-					int nr, nc=0;
 					if( jv.HasMember("ms") ) 		//matrix shape
 					{
 						//matrix
 						int ms[2];
-						ms[0] = jv["ms"].GetArray()[0].GetInt();
-						ms[1] = jv["ms"].GetArray()[1].GetInt();
+						int nr = ms[0] = jv["ms"].GetArray()[0].GetInt();
+						int nc = ms[1] = jv["ms"].GetArray()[1].GetInt();
 
 						if( (int)jv["d"].GetArray().Size() != ms[0]*ms[1]*4)
 						{
@@ -847,5 +846,7 @@ void MainWindow::UpdateDataTable()
 
 bool MainWindow::UpdateIsStopFlagSet()
 {
-	return m_ScriptViewForm->GetEditor()->IsStopFlagSet();
+    bool stop = m_ScriptViewForm->GetEditor()->IsStopFlagSet();
+    m_project.SetStopFlag(stop);
+	return stop;
 }

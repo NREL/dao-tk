@@ -26,6 +26,7 @@ A class containing the aspects of the current project
 class Project;
 
 extern ssc_bool_t ssc_progress_handler(ssc_module_t, ssc_handler_t, int action, float f0, float f1, const char *s0, const char *, void *);
+extern ssc_bool_t ssc_silent_handler(ssc_module_t, ssc_handler_t, int action, float, float, const char *, const char *, void *);
 extern bool sim_progress_handler(float progress, const char *msg);
 extern void message_handler(const char *msg);
 extern int double_scale(double val, int *scale);
@@ -63,7 +64,7 @@ public:
     std::vector<double>* has_item(std::string key)
     {
         ptrdiff_t ind = std::find(_keys.begin(), _keys.end(), key) - _keys.begin();
-        if( ind == _keys.size() )
+        if( ind == (ptrdiff_t)_keys.size() )
         {
             return 0;
         }
@@ -132,7 +133,8 @@ protected:
 	bool m_is_invalid_allowed; //allow values to contain invalid data during simulation (values will be assigned/updated by the program)
     std::string BaseFormattedDoc(bool is_calculated, const char* limits = 0)
     {
-        char buf[2000];
+        std::stringstream buf;
+        //char buf[2000];
 
         std::string vartype;
         switch (this->type())
@@ -167,34 +169,25 @@ protected:
         }
         
 
-        sprintf(buf,
-            "<h3 name=\"doc_%s\">%s <font color=\"#C0C0C0\">%s</font></h3>"
-            "<font color=\"#800000\">"
-            "<table style=\"background-color:#DDD\">"
-            "<tr><td>Handle</td><td><b>%s</b></td></tr>"
-            "<tr><td>Group</td><td>%s</td></tr>"
-            "<tr><td>Type</td><td>%s%s</td></tr>"
-            "<tr><td>Default</td><td>%s</td></tr>"
-            "</table>"
-            "</font>"
-            "<p><font size=\"+1\">%s</font></p><br>"
-                "<table style=\"background-color:#EEE;\"><tr><td><a href=\"sid?%s\">Insert SET</a></td><td><a href=\"gid?%s\">Insert GET</a></td></tr></table><hr>",
-            this->name.c_str(),
-            this->nice_name.c_str(),
-            fmt_units.c_str(),
-            this->name.c_str(), 
-            this->group.c_str(),
-            vartype.c_str(),
-            is_calculated ? " (calculated)" : "",
-            valstr.c_str(),
-            this->doc.description.c_str(),
-            this->name.c_str(),
-            this->name.c_str()
-            );
+        //sprintf(buf,
+        buf << "<h3 name=\"doc_" << this->name << "\">" << this->nice_name << " <font color=\"#C0C0C0\">" << fmt_units << "</font></h3>";
+        buf << "<font color=\"#800000\">";
+        buf << "<table style=\"background-color:#DDD\">";
+        buf << "<tr><td>Handle</td><td><b>" << this->name << "</b></td></tr>";
+        buf << "<tr><td>Group</td><td>" << this->group << "</td></tr>";
+        buf << "<tr><td>Type</td><td>" << vartype << (is_calculated ? " (calculated)" : "") << "</td></tr>";
+        buf << "<tr><td>Default</td><td>" << valstr << "</td></tr>";
+        if (limits)
+            buf << "<tr><td>Limits</td><td>" << limits << "</td></tr>";
+        buf << "</table>";
+        buf << "</font>";
+        buf << "<p><font size=\"+1\">" << this->doc.description << "</font></p><br>";
+        buf << "<table style=\"background-color:#EEE;\"><tr><td><a href=\"sid?" << this->name;
+        buf << "\">Insert SET</a></td><td><a href=\"gid?" << this->name << "\">Insert GET</a></td></tr></table><hr>",
         
-        this->doc.formatted_doc = buf;
+        this->doc.formatted_doc = buf.str();
 
-        return std::string(buf);
+        return buf.str();
     };
 
 public:
@@ -209,6 +202,8 @@ public:
 
 	void assign_vector(float *_vec, int nval)
     {
+        if (!_vec)
+            return;
         this->empty_vector();
         this->vec()->resize(nval);
         for (int i = 0; i < nval; i++)
@@ -341,7 +336,13 @@ public:
 
 };
 
-struct variables : public lk::varhash_t
+class hash_base : public lk::varhash_t
+{
+public:
+    virtual void initialize() = 0;
+};
+
+struct variables : public hash_base
 {
 	variable h_tower;
 	variable rec_height;
@@ -357,6 +358,7 @@ struct variables : public lk::varhash_t
 	variable N_panel_pairs;
 
 	variables();
+    void initialize();
 };
 
 class parameter : public data_base
@@ -441,7 +443,7 @@ public:
 
         for (size_t i = 0; i < hv.item_count(); i++)
         {
-            svd_pair* p = &hv.at_index(i);
+            svd_pair* p = &hv.at_index((int)i);
             this->hash_vector[p->first] = p->second;
         }
         _set_base(vname, calculated, _nice_name, _units, _group);
@@ -454,7 +456,7 @@ public:
 
 };
 
-struct parameters : public lk::varhash_t
+struct parameters : public hash_base
 {
 	//-----------------------------------------------------------------------
 	//bools
@@ -467,7 +469,7 @@ struct parameters : public lk::varhash_t
 	parameter current_standby;
 	parameter is_use_clusters;
 	parameter is_run_continuous;
-	parameter is_cycle_ssc_integration;
+	parameter is_cycle_avail;
 	parameter is_reoptimize_at_repairs;
 	parameter is_reoptimize_at_failures;
 	parameter is_use_target_heuristic;
@@ -552,6 +554,7 @@ struct parameters : public lk::varhash_t
 	parameter no_restart_efficiency;
 	parameter cycle_hourly_labor_cost;
 	parameter avail_model_timestep;
+    parameter forecast_gamma;
     //vector-doubles
 	parameter c_ces;
 	parameter dispatch_factors_ts;
@@ -569,10 +572,10 @@ struct parameters : public lk::varhash_t
 	//-----------------------------------------------------------------------
 
 	parameters();
-
+    void initialize();
 };
 
-struct design_outputs : public lk::varhash_t
+struct design_outputs : public hash_base
 {
 	//-----------------------------------------------------------------------
 	parameter number_heliostats;
@@ -597,10 +600,11 @@ struct design_outputs : public lk::varhash_t
 	//-----------------------------------------------------------------------
 
 	design_outputs();
+    void initialize();
 
 };
 
-struct solarfield_outputs : public lk::varhash_t
+struct solarfield_outputs : public hash_base
 {
 	parameter n_repairs;
 	parameter staff_utilization;
@@ -612,10 +616,11 @@ struct solarfield_outputs : public lk::varhash_t
 	parameter n_repairs_per_component;
 
 	solarfield_outputs();
+    void initialize();
 
 };
 
-struct optical_outputs : public lk::varhash_t
+struct optical_outputs : public hash_base
 {
 	parameter n_wash_crews;
 	parameter n_replacements;
@@ -630,10 +635,11 @@ struct optical_outputs : public lk::varhash_t
 	parameter repl_total;
 
 	optical_outputs();
+    void initialize();
 
 };
 
-struct cycle_outputs : public lk::varhash_t
+struct cycle_outputs : public hash_base
 {
 	parameter cycle_efficiency;
 	parameter cycle_capacity;
@@ -643,9 +649,10 @@ struct cycle_outputs : public lk::varhash_t
     parameter cycle_capacity_ave;
     
 	cycle_outputs();
+    void initialize();
 };
 
-struct simulation_outputs : public lk::varhash_t
+struct simulation_outputs : public hash_base
 {
 	parameter generation_arr;
 	parameter solar_field_power_arr;
@@ -671,9 +678,10 @@ struct simulation_outputs : public lk::varhash_t
 	parameter is_standby;
 
 	simulation_outputs();
+    void initialize();
 };
 
-struct explicit_outputs : public lk::varhash_t
+struct explicit_outputs : public hash_base
 {
 
 	parameter cost_receiver_real;
@@ -688,9 +696,10 @@ struct explicit_outputs : public lk::varhash_t
 	parameter heliostat_wash_capital_cost;
 
 	explicit_outputs();
+    void initialize();
 };
 
-struct financial_outputs : public lk::varhash_t 
+struct financial_outputs : public hash_base 
 {
 	parameter lcoe_nom;
 	parameter lcoe_real;
@@ -700,9 +709,10 @@ struct financial_outputs : public lk::varhash_t
 	parameter total_installed_cost;
 
 	financial_outputs();
+    void initialize();
 };
 
-struct objective_outputs : public lk::varhash_t
+struct objective_outputs : public hash_base
 {
 	parameter cost_receiver_real;
 	parameter cost_tower_real;
@@ -731,9 +741,10 @@ struct objective_outputs : public lk::varhash_t
 	parameter lcoe_real;
 
 	objective_outputs();
+    void initialize();
 };
 
-struct optimization_outputs : public lk::varhash_t
+struct optimization_outputs : public hash_base
 {
     parameter eta_i; //Matrix<double> 
     //Vector<double> 
@@ -744,8 +755,10 @@ struct optimization_outputs : public lk::varhash_t
     //Vector<long long> 
     parameter wall_time_i;
     parameter iteration_history;
+    parameter best_point;
 
     optimization_outputs();
+    void initialize();
 };
 
 //main class
@@ -758,6 +771,7 @@ class Project
 	bool is_simulation_valid;
 	bool is_explicit_valid;
 	bool is_financial_valid;
+    bool is_stop_flag;
 
 	ssc_data_t m_ssc_data;
 	
@@ -805,10 +819,6 @@ class Project
 		}
 	};
 
-	
-
-
-
     void add_documentation();
 	void lk_hash_to_ssc(ssc_data_t &cxt, lk::varhash_t &vars);
     void ssc_to_lk_hash(ssc_data_t &cxt, lk::varhash_t &vars);
@@ -816,7 +826,6 @@ class Project
 	void update_calculated_system_values();
 	void update_calculated_values_post_layout();
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false, bool one_time_exp=false, int num_years=0);
-	
 	
 	bool simulate_clusters(std::unordered_map<std::string, std::vector<double>> &ssc_soln);
 	std::unordered_map<std::string, std::vector<double>> ssc_data_to_map(const ssc_data_t & ssc_data, std::vector<std::string> keys);
@@ -834,11 +843,7 @@ class Project
 
 	bool integrate_cycle_and_clusters(const std::unordered_map<std::string, std::vector<double>> &initial_soln, int first_index, int last_index, std::unordered_map<std::string, std::vector<double>> &final_soln);
 
-	
-	
-	
-
-
+    
 public:
 
 	variables m_variables;
@@ -880,6 +885,10 @@ public:
     std::vector< void* > GetDataObjects();
     bool CallMethodByName(const std::string &method);
     std::vector<std::string> GetAllMethodNames();
+    void SetStopFlag(bool is_cancel);
+    bool IsStopFlag();
+    void PrintCurrentResults();
+    void ClearStoredData();
 };
 
 

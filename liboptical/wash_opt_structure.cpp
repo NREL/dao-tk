@@ -18,7 +18,7 @@ SoilingFunction::SoilingFunction(
 	sixmo_degradation = six_month;
 }
 
-double SoilingFunction::Evaluate(double t)
+double SoilingFunction::Evaluate(double)
 {
 	return -1.0;
 }

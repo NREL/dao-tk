@@ -722,7 +722,6 @@ void _power_cycle(lk::invoke_t &cxt)
 
 	mw.SetProgress(0.);
 
-	//mw.Log(wxString::Format(""));
 	mw.Log(wxString::Format("Average cycle repair labor costs: %.2f",cycle.m_results.avg_labor_cost));
 	mw.Log(wxString::Format("Total number of failures: %i", cycle.m_results.failure_event_labels.size()));
 
@@ -800,116 +799,7 @@ void _simulate_solarfield(lk::invoke_t &cxt)
 	MainWindow &mw = MainWindow::Instance();
 	mw.GetProject()->M();
 	mw.UpdateDataTable();
-
-	/*
-	LK_DOC("simulate_solarfield", "Simulate the solar field availability over time due to heliostat failures. "
-		"Table keys include: "
-		"weibull_shape_param, weibull_scale_param, rep_mean_downtime, rep_min_downtime, rep_max_downtime, rep_good_as_new,"
-		"n_helio_simulated, n_om_staff, n_year_sim, rng_seed, staff_productive_hr_week, model_time_step, repair_order."
-		, "(table:inputs):table");
-
-	solarfield_availability SA;
-
-	lk::varhash_t *H = cxt.arg(0).hash();
-	
-	
-	std::string error_msg;
-	MainWindow &mw = MainWindow::Instance();
-
-	if( ! mw.GetProject()->Validate(Project::CALLING_SIM::HELIO_AVAIL, &error_msg) )
-	{
-		mw.Log( error_msg );
-		return;
-	}
-
-	SA.m_settings.n_helio = mw.GetProject()->m_design_outputs.number_heliostats.as_integer();
-	
-	std::string weatherfile = mw.GetProject()->m_parameters.solar_resource_file.as_string();
-	s_location loc(weatherfile);
-	SA.m_settings.location = loc;
-
-	SA.m_settings.n_helio_sim = 8000;
-	if (H->find("n_helio_simulated") != H->end())
-		SA.m_settings.n_helio_sim = H->at("n_helio_simulated")->as_integer();
-
-	SA.m_settings.n_years = 30;
-	if (H->find("n_year_sim") != H->end())
-		SA.m_settings.n_years = H->at("n_year_sim")->as_integer();
-
-	double om_staff = 5;
-	if (H->find("n_om_staff") != H->end())
-		om_staff = H->at("n_om_staff")->as_integer();
-	SA.m_settings.n_om_staff.assign(SA.m_settings.n_years, om_staff);
-
-	SA.m_settings.seed = 123;
-	if (H->find("rng_seed") != H->end())
-		SA.m_settings.seed = H->at("rng_seed")->as_integer();
-
-
-	SA.m_settings.max_hours_per_week = 35;
-	if (H->find("staff_productive_hr_week") != H->end())
-		SA.m_settings.max_hours_per_week = H->at("staff_productive_hr_week")->as_number();
-
-	SA.m_settings.step = 4.;
-	if (H->find("model_time_step") != H->end())
-		SA.m_settings.step = H->at("model_time_step")->as_number();
-
-
-	//-- Heliostat component inputs
-	double beta = 1.0;
-	if (H->find("weibull_shape_param") != H->end())
-		beta = H->at("weibull_shape_param")->as_integer();
-
-	double eta = 12000; //[hr]
-	if (H->find("weibull_scale_param") != H->end())
-		eta = H->at("weibull_scale_param")->as_integer();
-
-	double rep_mean = 2.;
-	if (H->find("rep_mean_downtime") != H->end())
-		rep_mean = H->at("rep_mean_downtime")->as_number();
-
-	double rep_min = 1; //[hr]
-	if (H->find("rep_min_downtime") != H->end())
-		rep_min = H->at("rep_min_downtime")->as_number();
-
-	double rep_max = 100; //[hr]
-	if (H->find("rep_max_downtime") != H->end())
-		rep_max = H->at("rep_max_downtime")->as_number();
-
-	bool good_as_new = true; 
-	if (H->find("rep_good_as_new") != H->end())
-		good_as_new = H->at("rep_good_as_new")->as_boolean();
-
-	helio_component_inputs component(beta, eta, rep_mean, rep_min, rep_max, good_as_new, 0.0);
-	SA.m_settings.helio_components.push_back(component);
-
-	//-- Repair ordering
-	SA.m_settings.repair_order = MEAN_REPAIR_TIME;
-
-	if (H->find("repair_order") != H->end())
-	{
-		std::string ro = H->at("repair_order")->as_string();
-
-		if (ro == "failure_order")
-			SA.m_settings.repair_order = FAILURE_ORDER;
-		else if (ro == "performance")
-			SA.m_settings.repair_order = PERFORMANCE;
-		else if (ro == "repair_time")
-			SA.m_settings.repair_order = REPAIR_TIME;
-		else if (ro == "mean_repair_time")
-			SA.m_settings.repair_order = MEAN_REPAIR_TIME;
-		else if (ro == "random")
-			SA.m_settings.repair_order = RANDOM;
-		else
-			mw.Log("Specified repair order not recognized. Valid inputs are 'failure_order', 'performance', 'repair_time', 'mean_repair_time', 'random'");
-	}
-
-
-	SA.m_settings.helio_performance.assign(SA.m_settings.n_helio, 1.0);
-	SA.simulate();
-
-	mw.SetProgress(0.);
-	*/
+    mw.SetProgress(0.);
 
 	return;
 
@@ -924,159 +814,7 @@ void _simulate_performance(lk::invoke_t &cxt)
 	Project* P = mw.GetProject();
 	P->S();
 	mw.UpdateDataTable();
-
-	/*
-	LK_DOC("simulate_performance", "Test creation/simulation of clusters."
-		"Table keys for clustering include: "
-		"is_clustering_used, n_cluster, n_sim_days, n_prev, weather_file, price_file, "
-		"sfavail_file, algorithm, hard_partitions, is_run_continuous, "
-		"is_run_full"
-		, "(table:cluster_options):table");
-
-
-	lk::varhash_t *H = cxt.arg(0).hash();
-
-	MainWindow &mw = MainWindow::Instance();
-
-	Project* P = mw.GetProject();
-
-	std::string error_msg;
-	if( ! P->Validate(Project::CALLING_SIM::SIMULATION, &error_msg) )
-	{
-		mw.Log( error_msg );
-		return;
-	}
-
-	// P->m_variables.h_tower.assign( 180. );
-	// P->m_variables.rec_height.assign( 17. );
-	// P->m_variables.D_rec.assign( 15. );
-	// P->m_variables.design_eff.assign( .41 );
-	// P->m_variables.dni_des.assign( 950. );
-	// P->m_variables.P_ref.assign( 100. );
-	// P->m_variables.solarm.assign( 2.1 );
-	// P->m_variables.tshours.assign( 10. );
-	// P->m_variables.degr_replace_limit.assign( .7 );
-	// P->m_variables.om_staff.assign( 5 );
-	// P->m_variables.n_wash_crews.assign( 3 );
-	// P->m_variables.N_panel_pairs.assign( 16 );
-
-	// P->m_parameters.is_dispatch.assign( 1. );
-	// P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_weather.csv" );	
-	// std::string price_file = "/home/mike/workspace/dao-tk/deploy/samples/clustering/2015_price.csv";
-
-
-	if (H->find("weather_file") != H->end())
-		P->m_parameters.solar_resource_file.assign( H->at("weather_file")->as_string() );
-
-	std::string price_file = "";
-	if (H->find("price_file") != H->end())
-		price_file = H->at("price_file")->as_string();
-
-	std::string  sfavail_file = "";
-	if (H->find("sfavail_file") != H->end() )
-		sfavail_file = H->at("sfavail_file")->as_string();
-
-	if (H->find("is_run_full") != H->end())
-		P->m_cluster_parameters.is_run_full = H->at("is_run_full")->as_boolean();
-	else 
-		P->m_cluster_parameters.is_run_full = true;
-
-	if( P->m_cluster_parameters.is_run_full )
-	{
-		if (H->find("n_cluster") != H->end())
-			P->m_cluster_parameters.ncluster = H->at("n_cluster")->as_integer();
-		else
-			P->m_cluster_parameters.ncluster = 40;
-
-		if (H->find("n_sim_days") != H->end())
-			P->m_cluster_parameters.nsim = H->at("n_sim_days")->as_integer();
-		else
-			P->m_cluster_parameters.nsim = 2;
-
-		if (H->find("n_prev") != H->end())
-			P->m_cluster_parameters.nprev = H->at("n_prev")->as_integer();
-		else
-			P->m_cluster_parameters.nprev = 1;
-
-		if (H->find("hard_partitions") != H->end())
-			P->m_cluster_parameters.hard_partitions = H->at("hard_partitions")->as_boolean();
-
-		if (H->find("is_run_continuous") != H->end())
-			P->m_cluster_parameters.is_run_continuous = H->at("is_run_continuous")->as_boolean();
-
-		if (H->find("algorithm") != H->end())
-		{
-			std::string algorithm = H->at("algorithm")->as_string();
-
-			if (algorithm == "affinity propagation")
-				P->m_cluster_parameters.alg = AFFINITY_PROPAGATION;
-			else if (algorithm == "kmeans")
-				P->m_cluster_parameters.alg = KMEANS;
-			else if (algorithm == "random")
-				P->m_cluster_parameters.alg = RANDOM_SELECTION;
-			else
-				mw.Log("Specified clustering algorithm not recognized");
-		}
-		else
-			P->m_cluster_parameters.alg = AFFINITY_PROPAGATION;
-	}
-
-	//--- Price array from price file
-	std::vector<double> price_data;
-	if( ! price_file.empty() )
-	{
-		FILE *fp = fopen(price_file.c_str(), "r");
-		if (fp == NULL)
-		{
-			mw.Log(wxString::Format("Failed to open price file"));
-			return;
-		}
-		char *line, *record;
-		char buffer[1024];
-		while ((line = fgets(buffer, sizeof(buffer), fp)) != NULL)
-		{
-			record = strtok(line, ",");
-			price_data.push_back(atof(record));
-		}
-		fclose(fp);
-	}
-	else
-	{
-		//use default vector of 1.
-		mw.Log("No price file specified. Using default unity vector.");
-		price_data.resize(8760, 1.);
-	}
-	
-	P->m_parameters.dispatch_factors_ts.assign_vector( price_data );
-
-
-	//--- solar field availability 
-	std::vector<double> sfavail;
-	if( ! sfavail_file.empty() )
-	{
-		char *line, *record;
-		char buffer[1024];
-		FILE *fp = fopen(sfavail_file.c_str(), "r");
-		while ((line = fgets(buffer, sizeof(buffer), fp)) != NULL)
-		{
-			record = strtok(line, ",");
-			sfavail.push_back(atof(record));
-		}
-		fclose(fp);
-	}
-	else
-	{
-		sfavail.resize(8760, 1.);
-	}
-	P->m_parameters.user_sf_avail.assign_vector( sfavail );
-	
-
-	//--- Run simulation
-	P->S();
-	
-	mw.SetProgress(0.);
-	mw.UpdateDataTable();
-	*/
+    mw.SetProgress(0.);
 	return;
 
 }
@@ -1099,48 +837,12 @@ void _simulate_objective(lk::invoke_t &cxt)
 {
 	LK_DOC("simulate_objective", "Simulates full objective function from current project settings.", "([table:options]):table");
 	MainWindow &mw = MainWindow::Instance();
-	Project* P = mw.GetProject();
+    Project* P = mw.GetProject();
 	P->Z();
-
+    P->PrintCurrentResults();
 	mw.UpdateDataTable();
-
-	/*
-	mw.Log(wxString::Format("Mirror replacements per year: %0.1f ", P->m_optical_outputs.n_replacements.as_number()));
-	mw.Log(wxString::Format("Heliostat repairs per year: %0.1f ", P->m_solarfield_outputs.n_repairs.as_number()));
-	mw.Log(wxString::Format("Average degradation loss: %0.3f ", P->m_optical_outputs.avg_degr.as_number()));
-	mw.Log(wxString::Format("Average soiling loss: %0.3f ", P->m_optical_outputs.avg_soil.as_number()));
-	mw.Log(wxString::Format("Average availability loss: %0.3f ", P->m_solarfield_outputs.avg_avail.as_number()));	
-
-	mw.Log(wxString::Format("Average generation (GWhe): %0.2f ", P->m_simulation_outputs.annual_generation.as_number()));
-	mw.Log(wxString::Format("Receiver starts: %d ", P->m_simulation_outputs.annual_rec_starts.as_integer()));
-	mw.Log(wxString::Format("Cycle starts: %d ", P->m_simulation_outputs.annual_cycle_starts.as_integer()));
-	mw.Log(wxString::Format("Total cycle ramping (GW): %0.2f ", P->m_simulation_outputs.annual_cycle_ramp.as_number()));
-
-	mw.Log(wxString::Format("Heliostat cost ($): %0.0f ", P->m_objective_outputs.cost_sf_real.as_number()));
-	mw.Log(wxString::Format("Land cost ($): %0.0f ", P->m_objective_outputs.cost_land_real.as_number()));
-	mw.Log(wxString::Format("Tower cost ($): %0.0f ", P->m_objective_outputs.cost_tower_real.as_number()));
-	mw.Log(wxString::Format("Receiver cost ($): %0.0f ", P->m_objective_outputs.cost_receiver_real.as_number()));
-	mw.Log(wxString::Format("TES cost ($): %0.0f ", P->m_objective_outputs.cost_tes_real.as_number()));
-	mw.Log(wxString::Format("Plant cost ($): %0.0f ", P->m_objective_outputs.cost_plant_real.as_number()));
-
-	mw.Log(wxString::Format("Cycle ramp cost ($): %0.0f ", P->m_objective_outputs.cycle_ramp_cost_real.as_number()));
-	mw.Log(wxString::Format("Cycle start cost ($): %0.0f ", P->m_objective_outputs.cycle_start_cost_real.as_number()));
-	mw.Log(wxString::Format("Receiver start cost ($): %0.0f ", P->m_objective_outputs.rec_start_cost_real.as_number()));
-
-	mw.Log(wxString::Format("Heliostat O&M labor cost ($): %0.0f ", P->m_objective_outputs.heliostat_om_labor_real.as_number()));
-	mw.Log(wxString::Format("Heliostat repair cost ($): %0.0f ", P->m_objective_outputs.heliostat_repair_cost_real.as_number()));
-	mw.Log(wxString::Format("Heliostat wash labor cost ($): %0.0f ", P->m_objective_outputs.heliostat_wash_cost_real.as_number()));
-	mw.Log(wxString::Format("Heliostat refurbish cost ($): %0.0f ", P->m_objective_outputs.heliostat_refurbish_cost_real.as_number()));
-
-	mw.Log(wxString::Format("Total Capital costs ($): %0.0f ", P->m_objective_outputs.cap_cost_real.as_number()));
-	mw.Log(wxString::Format("Total O&M costs ($): %0.0f ", P->m_objective_outputs.om_cost_real.as_number()));
-	mw.Log(wxString::Format("Sales ($): %0.0f ", P->m_objective_outputs.sales.as_number()));
-
-	mw.Log(wxString::Format("Total cash flow ($): %0.0f ", P->m_objective_outputs.cash_flow.as_number()));
-	mw.Log(wxString::Format("PPA price (c/kWhe): %0.3f ", P->m_objective_outputs.ppa.as_number()));
-	*/
-
-	return;
+    mw.SetProgress(0.);
+    return;
 }
 
 void _setup_clusters(lk::invoke_t &cxt)
@@ -1159,6 +861,7 @@ void _simulate_cycle(lk::invoke_t &cxt)
 	Project* P = mw.GetProject();
 	P->C();
 	mw.UpdateDataTable();
+    mw.SetProgress(0.);
 }
 
 
@@ -1212,8 +915,6 @@ void _optimize(lk::invoke_t &cxt)
 
     Opt.run_optimization();
 
-    //optimization_outputs* oo = &mw.GetProject()->m_optimization_outputs;
-
     mw.UpdateDataTable();
-
+    mw.SetProgress(0.);
 }
