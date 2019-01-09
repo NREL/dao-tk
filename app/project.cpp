@@ -783,16 +783,11 @@ void Project::Initialize()
     ClearStoredData();
 
 	initialize_ssc_project();
-
+    //update ssc based on parameter/variable values
     ssc_to_lk_hash(m_ssc_data, m_parameters);
     ssc_to_lk_hash(m_ssc_data, m_variables);
 
-	/*parameters default_params;
-	lk_hash_to_ssc(m_ssc_data, default_params);
-	ssc_to_lk_hash(m_ssc_data, m_parameters);*/
-
 	cluster_outputs.clear();
-
 }
 
 Project::Project()

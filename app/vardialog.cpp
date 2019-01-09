@@ -17,7 +17,7 @@ VariableDialog::VariableDialog(wxWindow *parent, std::vector< void* > vargroups,
 
     m_variable_data.clear();
     for( std::vector<void*>::iterator vg = vargroups.begin(); vg != vargroups.end(); vg ++)
-        m_variable_data.push_back( static_cast<lk::varhash_t*>( *vg ) );
+        m_variable_data.push_back( static_cast<hash_base*>( *vg ) );
 
     wxPanel* main_panel = new wxPanel(this);
 
@@ -139,12 +139,12 @@ void VariableDialog::UpdateHelp(const char* filter, const char* type)
     m_anchor_list.clear();
     m_anchor_list.push_back("top");
 
-    for (std::vector< lk::varhash_t* >::iterator grit = m_variable_data.begin(); grit != m_variable_data.end(); grit++)
+    for (std::vector< hash_base* >::iterator grit = m_variable_data.begin(); grit != m_variable_data.end(); grit++)
     {
         std::string filtered_group_items;
         std::string group_formatted;
 
-        for (lk::varhash_t::iterator vit = (*grit)->begin(); vit != (*grit)->end(); vit++)
+        for (hash_base::iterator vit = (*grit)->begin(); vit != (*grit)->end(); vit++)
         {
             data_base* v = static_cast<data_base*>(vit->second);
 
@@ -279,7 +279,7 @@ void VariableDialog::OnHtmlEvent(wxHtmlLinkEvent &evt)
             return;
         wxString var = idparse.back();
 
-        for( std::vector< lk::varhash_t* >::iterator vgroup = m_variable_data.begin(); 
+        for( std::vector< hash_base* >::iterator vgroup = m_variable_data.begin(); 
                                                      vgroup!= m_variable_data.end(); 
                                                      vgroup ++ )
         {

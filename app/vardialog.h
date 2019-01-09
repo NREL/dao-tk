@@ -19,7 +19,7 @@ class VariableDialog : public wxFrame
     wxTextCtrl *m_searchtext;
     wxComboBox *m_searchselect;
     wxHtmlWindow *m_html;
-    std::vector< lk::varhash_t* > m_variable_data;
+    std::vector< hash_base* > m_variable_data;
     std::vector< std::string > m_anchor_list;
 
 
