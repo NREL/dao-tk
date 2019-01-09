@@ -48,9 +48,22 @@ float* optical_degradation::get_replacement_totals(int *length)
 }
 
 //------------------------------------------
-
-
 double optical_degradation::get_replacement_threshold(
+	double interval
+)
+{
+	if (m_settings.degr_accel_per_year < DBL_EPSILON)
+	{
+		return 1.0 - interval * m_settings.degr_loss_per_hr;
+	}
+	else
+	{
+		double c = (1 + m_settings.degr_accel_per_year);
+		return 1.0 - m_settings.degr_loss_per_hr * interval * std::pow(c, interval / 8760);
+	}
+}
+
+double optical_degradation::get_replacement_interval(
 	double mirror_output, 
 	int num_mirrors
 )
@@ -183,15 +196,15 @@ double optical_degradation::get_replacement_threshold(
 		//rate to obtain the optimal replacement threshold
 		if (z_lo <= z_med && z_lo <= z_hi)
 		{
-			return 1.0 - m_settings.degr_loss_per_hr * lo * std::pow(c, lo / 8760);
+			return lo;
 		}
 		else if (z_hi <= z_med && z_hi <= z_lo)
 		{
-			return 1.0 - m_settings.degr_loss_per_hr * hi * std::pow(c, hi / 8760);
+			return hi;
 		}
 		else
 		{
-			return 1.0 - m_settings.degr_loss_per_hr * med * std::pow(c, med / 8760);
+			return med;
 		}
 	}
 }
@@ -249,6 +262,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		for (int i = 0; i < n_helio_s; i++)
 		{
 			helios.at(i).replacement_threshold = m_settings.replacement_threshold;
+			helios.at(i).replacement_interval = (1 - m_settings.replacement_threshold) / m_settings.degr_loss_per_hr;
 		}
 	}
 	else if (m_settings.use_mean_replacement_threshold)
@@ -259,13 +273,14 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 			total_mirrors += m_solar_data.num_mirrors_by_group[i];
 			//std::cerr << i << "  " << helios.at(i).replacement_threshold << "  " << m_solar_data.mirror_output[i] <<  "  "   << m_solar_data.num_mirrors_by_group[i] << "\n";
 		}
-		double mean_threshold = get_replacement_threshold(
-			m_solar_data.total_mirror_output / total_mirrors,
-			1
+		double repl_interval = get_replacement_interval(
+			m_solar_data.total_mirror_output / total_mirrors, 1
 		);
+		double mean_threshold = get_replacement_threshold(repl_interval);
 		for (int i = 0; i < n_helio_s; i++)
 		{
 			helios.at(i).replacement_threshold = mean_threshold;
+			helios.at(i).replacement_interval = repl_interval;
 		}
 	}
 	else
@@ -273,11 +288,13 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		//at this point, we optimize the threshold for each heliostat.
 		for (int i = 0; i < n_helio_s; i++)
 		{
-			helios.at(i).replacement_threshold = get_replacement_threshold(
+			helios.at(i).replacement_interval = get_replacement_interval(
 				m_solar_data.mirror_output[i],
 				m_solar_data.num_mirrors_by_group[i]
 			);
-			//std::cerr << i << "  " << helios.at(i).replacement_threshold << "  " << m_solar_data.mirror_output[i] <<  "  "   << m_solar_data.num_mirrors_by_group[i] << "\n";
+			helios.at(i).replacement_threshold = get_replacement_threshold(
+				helios.at(i).replacement_interval
+			);
 		}
 	}
 
@@ -464,6 +481,9 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 				if (
 					helios.at(this_heliostat).refl_base < 
 					helios.at(this_heliostat).replacement_threshold
+					&&
+					m_settings.n_hr_sim - t > 
+					helios.at(this_heliostat).replacement_interval
 					)
 				{
 					crew->replacements_made += m_solar_data.num_mirrors_by_group[this_heliostat];

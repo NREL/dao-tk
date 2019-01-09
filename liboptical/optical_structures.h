@@ -39,6 +39,7 @@ struct opt_heliostat
 	double refl_loss_rate;
 	double soil_loss_rate;
 	double replacement_threshold;
+	double replacement_interval;
 
     int age_hours;
 
