@@ -52,6 +52,10 @@ double optical_degradation::get_replacement_threshold(
 	double interval
 )
 {
+	if (m_settings.degr_loss_per_hr < DBL_EPSILON)
+	{
+		return 0.0;
+	}
 	if (m_settings.degr_accel_per_year < DBL_EPSILON)
 	{
 		return 1.0 - interval * m_settings.degr_loss_per_hr;
@@ -79,7 +83,7 @@ double optical_degradation::get_replacement_interval(
 			(rev_loss_rate * m_settings.degr_loss_per_hr)
 		);
 		//std::cerr << "rev loss " << rev_loss_rate << " time " << time_threshold << " loss " << ((refurb_cost /time_threshold) + (rev_loss_rate * m_settings.degr_loss_per_hr * time_threshold/2.)) << "\n";
-		return 1.0 - time_threshold * m_settings.degr_loss_per_hr;
+		return time_threshold;
 	}
 	else
 	{
