@@ -1682,7 +1682,7 @@ void PowerCycle::AddSaltToSteamTrains(int num_trains)
 	{
 		m_num_salt_steam_trains += 1;
 		component_name = "SST" + std::to_string(m_num_salt_steam_trains);
-		AddComponent(component_name, "Salt-to-steam train", 48., 72., capacity_reduction, 0., 7.777, "A");
+		AddComponent(component_name, "Salt-to-steam train", 96., 72., capacity_reduction, 0., 7.777, "A");
 		AddFailureType(component_name, "Boiler External_Leak_Large_(shell)", "ALL", "inv-gamma", 0.3, 75000000);
 		AddFailureType(component_name, "Boiler External_Leak_Large_(tube)", "ALL", "inv-gamma", 0.3, 10000000);
 		AddFailureType(component_name, "Boiler External_Leak_Small_(shell)", "ALL", "inv-gamma", 0.5, 10000000);
