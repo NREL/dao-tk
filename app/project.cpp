@@ -198,9 +198,9 @@ void parameters::initialize()
     hours_to_maintenance.set(             1.e6,         "hours_to_maintenance",      false,   "Runtime duration before next maintenance event",           "h",                  "Cycle|Parameters" );
     temp_threshold.set(                    20.,               "temp_threshold",      false,     "Ambient temperature threshold for condensers",     "Celsius",                  "Cycle|Parameters" );
     shutdown_capacity.set(                 0.3,            "shutdown_capacity",      false,            "Threshold capacity to shut plant down",           "-",                  "Cycle|Parameters" );
-    no_restart_capacity.set(               0.8,          "no_restart_capacity",      false,   "Threshold capacity for maintenance on shutdown",           "-",                  "Cycle|Parameters" );
-	shutdown_efficiency.set(               0.7,          "shutdown_efficiency",      false,          "Threshold efficiency to shut plant down",           "-",                  "Cycle|Parameters" );
-	no_restart_efficiency.set(             0.9,        "no_restart_efficiency",      false, "Threshold efficiency for maintenance on shutdown",           "-",                  "Cycle|Parameters" );
+    no_restart_capacity.set(               0.3,          "no_restart_capacity",      false,   "Threshold capacity for maintenance on shutdown",           "-",                  "Cycle|Parameters" );
+	shutdown_efficiency.set(               0.8,          "shutdown_efficiency",      false,          "Threshold efficiency to shut plant down",           "-",                  "Cycle|Parameters" );
+	no_restart_efficiency.set(             0.8,        "no_restart_efficiency",      false, "Threshold efficiency for maintenance on shutdown",           "-",                  "Cycle|Parameters" );
 	cycle_hourly_labor_cost.set(           50.,       "cycle_hourly_labor_cost",     false,       "Hourly cost for repair of cycle components",           "h",                  "Cycle|Parameters" );
 
 	std::vector< double > pval = { 0., 7., 200., 12000. };
@@ -3669,7 +3669,7 @@ void Project::PrintCurrentResults()
     message << "Annual generation [GWhe]\t" << m_simulation_outputs.annual_generation.as_number() << "\n";
     message << "Annual cycle starts\t" << m_simulation_outputs.annual_cycle_starts.as_number() << "\n";
     message << "Annual cycle failures\t" << m_cycle_outputs.num_failures.as_number() << "\n";
-    message << "Average cycle availability\t" << m_cycle_outputs.cycle_efficiency_ave.as_number() << "\n";
+    message << "Average cycle efficiency multiple\t" << m_cycle_outputs.cycle_efficiency_ave.as_number() << "\n";
     message << "Average cycle capacity\t" << m_cycle_outputs.cycle_capacity_ave.as_number() << "\n";
     message << "Annual receiver starts\t" << m_simulation_outputs.annual_rec_starts.as_number() << "\n";
     message << "Annual revenue units\t" << m_simulation_outputs.annual_revenue_units.as_number() << "\n";

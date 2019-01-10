@@ -25,6 +25,11 @@ FailureType::FailureType(std::string component, std::string id,
 		Distribution *edist = new ExponentialDist(alpha, beta, dist_type);
 		m_failure_dist = (ExponentialDist *) edist;
 	}
+	else if (dist_type == "inv-gamma")
+	{
+		Distribution *gdist = new InvGammaDist(alpha, 1./beta, dist_type);
+		m_failure_dist = (InvGammaDist *)gdist;
+	}
 	else
 		throw std::runtime_error("invalid distribution type provided as input.");
 	//m_life_remaining = 0.0; 

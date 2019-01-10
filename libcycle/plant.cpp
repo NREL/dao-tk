@@ -1682,23 +1682,23 @@ void PowerCycle::AddSaltToSteamTrains(int num_trains)
 	{
 		m_num_salt_steam_trains += 1;
 		component_name = "SST" + std::to_string(m_num_salt_steam_trains);
-		AddComponent(component_name, "Salt-to-steam train", 192., 72., capacity_reduction, 0., 7.777, "A");
-		AddFailureType(component_name, "Boiler External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
-		AddFailureType(component_name, "Boiler External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
-		AddFailureType(component_name, "Boiler External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
-		AddFailureType(component_name, "Boiler External_Leak_Small_(tube)", "ALL", "gamma", 0.3, 1200000);
-		AddFailureType(component_name, "Economizer External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
-		AddFailureType(component_name, "Economizer External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
-		AddFailureType(component_name, "Economizer External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
-		AddFailureType(component_name, "Economizer External_Leak_Small_(tube)", "ALL", "gamma", 0.3, 1200000);
-		AddFailureType(component_name, "Reheater External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
-		AddFailureType(component_name, "Reheater External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
-		AddFailureType(component_name, "Reheater External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
-		AddFailureType(component_name, "Reheater External_Leak_Small_(tube)", "ALL", "gamma", 0.3, 1200000);
-		AddFailureType(component_name, "Superheater External_Leak_Large_(shell)", "ALL", "gamma", 0.3, 75000000);
-		AddFailureType(component_name, "Superheater External_Leak_Large_(tube)", "ALL", "gamma", 0.3, 10000000);
-		AddFailureType(component_name, "Superheater External_Leak_Small_(shell)", "ALL", "gamma", 0.5, 10000000);
-		AddFailureType(component_name, "Superheater External_Leak_Small_(tube)", "ALL", "gamma", 0.3, 1200000);
+		AddComponent(component_name, "Salt-to-steam train", 48., 72., capacity_reduction, 0., 7.777, "A");
+		AddFailureType(component_name, "Boiler External_Leak_Large_(shell)", "ALL", "inv-gamma", 0.3, 75000000);
+		AddFailureType(component_name, "Boiler External_Leak_Large_(tube)", "ALL", "inv-gamma", 0.3, 10000000);
+		AddFailureType(component_name, "Boiler External_Leak_Small_(shell)", "ALL", "inv-gamma", 0.5, 10000000);
+		AddFailureType(component_name, "Boiler External_Leak_Small_(tube)", "ALL", "inv-gamma", 0.3, 1200000);
+		AddFailureType(component_name, "Economizer External_Leak_Large_(shell)", "ALL", "inv-gamma", 0.3, 75000000);
+		AddFailureType(component_name, "Economizer External_Leak_Large_(tube)", "ALL", "inv-gamma", 0.3, 10000000);
+		AddFailureType(component_name, "Economizer External_Leak_Small_(shell)", "ALL", "inv-gamma", 0.5, 10000000);
+		AddFailureType(component_name, "Economizer External_Leak_Small_(tube)", "ALL", "inv-gamma", 0.3, 1200000);
+		AddFailureType(component_name, "Reheater External_Leak_Large_(shell)", "ALL", "inv-gamma", 0.3, 75000000);
+		AddFailureType(component_name, "Reheater External_Leak_Large_(tube)", "ALL", "inv-gamma", 0.3, 10000000);
+		AddFailureType(component_name, "Reheater External_Leak_Small_(shell)", "ALL", "inv-gamma", 0.5, 10000000);
+		AddFailureType(component_name, "Reheater External_Leak_Small_(tube)", "ALL", "inv-gamma", 0.3, 1200000);
+		AddFailureType(component_name, "Superheater External_Leak_Large_(shell)", "ALL", "inv-gamma", 0.3, 75000000);
+		AddFailureType(component_name, "Superheater External_Leak_Large_(tube)", "ALL", "inv-gamma", 0.3, 10000000);
+		AddFailureType(component_name, "Superheater External_Leak_Small_(shell)", "ALL", "inv-gamma", 0.5, 10000000);
+		AddFailureType(component_name, "Superheater External_Leak_Small_(tube)", "ALL", "inv-gamma", 0.3, 1200000);
 	}
 }
 
@@ -1710,10 +1710,10 @@ void PowerCycle::AddFeedwaterHeaters(int num_fwh)
 		m_num_feedwater_heaters += 1;
 		component_name = "FWH" + std::to_string(m_num_feedwater_heaters);
 		AddComponent(component_name, "Feedwater heater", 2.14, 24., 0., 0.05, 7.777, "A");
-		AddFailureType(component_name, "External_Leak_Large_(shell)", "O", "gamma", 0.3, 75000000);
-		AddFailureType(component_name, "External_Leak_Large_(tube)", "O", "gamma", 0.3, 10000000);
-		AddFailureType(component_name, "External_Leak_Small_(shell)", "O", "gamma", 0.5, 10000000);
-		AddFailureType(component_name, "External_Leak_Small_(tube)", "O", "gamma", 0.3, 1200000);
+		AddFailureType(component_name, "External_Leak_Large_(shell)", "O", "inv-gamma", 0.3, 75000000);
+		AddFailureType(component_name, "External_Leak_Large_(tube)", "O", "inv-gamma", 0.3, 10000000);
+		AddFailureType(component_name, "External_Leak_Small_(shell)", "O", "inv-gamma", 0.5, 10000000);
+		AddFailureType(component_name, "External_Leak_Small_(tube)", "O", "inv-gamma", 0.3, 1200000);
 	}
 }
 
@@ -1726,10 +1726,10 @@ void PowerCycle::AddSaltPumps(int num_pumps, int num_required)
 		m_num_salt_pumps += 1;
 		component_name = "SP" + std::to_string(m_num_salt_pumps);
 		AddComponent(component_name, "Molten salt pump", 7.09, 24., 0., 0., 7.777, "A");
-		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
+		AddFailureType(component_name, "External_Leak_Large", "ALL", "inv-gamma", 0.3, 37500000);
 		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
-		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "gamma", 1.5, 3750);
-		AddFailureType(component_name, "Fail_to_Run_>_1_hour_(standby)", "OO", "gamma", 0.5, 83300);
+		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "inv-gamma", 1.5, 3750);
+		AddFailureType(component_name, "Fail_to_Run_>_1_hour_(standby)", "OO", "inv-gamma", 0.5, 83300);
 		AddFailureType(component_name, "Fail_to_Start_(standby)", "OS", "beta", 0.9, 599);
 		//AddFailureType(component_name, "Fail_to_Start_(running)", "OS", "beta", 0.9, 449);
 		//AddFailureType(component_name, "Fail_to_Run_(running)", "O", "gamma", 1.5, 300000);
@@ -1745,10 +1745,10 @@ void PowerCycle::AddBoilerPumps(int num_pumps, int num_required)
 		m_num_boiler_pumps += 1;
 		component_name = "BP" + std::to_string(m_num_boiler_pumps);
 		AddComponent(component_name, "Boiler pump", 7.09, 5., 0., 0., 7.777, "D");
-		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
+		AddFailureType(component_name, "External_Leak_Large", "ALL", "inv-gamma", 0.3, 37500000);
 		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
-		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "gamma", 1.5, 3750);
-		AddFailureType(component_name, "Fail_to_Run_>_1_hour_(standby)", "OO", "gamma", 0.5, 83300);
+		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "inv-gamma", 1.5, 3750);
+		AddFailureType(component_name, "Fail_to_Run_>_1_hour_(standby)", "OO", "inv-gamma", 0.5, 83300);
 		AddFailureType(component_name, "Fail_to_Start_(standby)", "OS", "beta", 0.9, 599);
 	}
 }
@@ -1762,10 +1762,10 @@ void PowerCycle::AddWaterPumps(int num_pumps, int num_required)
 		m_num_water_pumps += 1;
 		component_name = "WP" + std::to_string(m_num_water_pumps);
 		AddComponent(component_name, "Water pump", 7.09, 1., 0., 0., 7.777, "D");
-		AddFailureType(component_name, "External_Leak_Large", "ALL", "gamma", 0.3, 37500000);
+		AddFailureType(component_name, "External_Leak_Large", "ALL", "inv-gamma", 0.3, 37500000);
 		AddFailureType(component_name, "External_Leak_Small", "ALL", "gamma", 1, 8330000);
-		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "gamma", 1.5, 3750);
-		AddFailureType(component_name, "Fail_to_Run_>_1_hour_(standby)", "OO", "gamma", 0.5, 83300);
+		AddFailureType(component_name, "Fail_to_Run_<=_1_hour_(standby)", "OF", "inv-gamma", 1.5, 3750);
+		AddFailureType(component_name, "Fail_to_Run_>_1_hour_(standby)", "OO", "inv-gamma", 0.5, 83300);
 		AddFailureType(component_name, "Fail_to_Start_(standby)", "OS", "beta", 0.9, 599);
 	}
 }
@@ -2323,7 +2323,8 @@ void PowerCycle::PlantMaintenanceShutdown(int t, bool reset_time, bool record,
 		m_failure_events[
 			"S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + label
 		] = failure_event(t, label, -1, duration, 0., 0., m_current_scenario);
-			m_failure_event_labels.push_back("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + label);
+		m_failure_event_labels.push_back("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + label);
+		//m_all_failures.push_back(failure_event(t, label, -1, duration, 0., 0., m_current_scenario));
 	}
 
 	if (reset_time)
@@ -3002,6 +3003,8 @@ void PowerCycle::PrintComponentStatus()
 
 void PowerCycle::ClearFailureEvents()
 {
+	for (std::string f : m_failure_event_labels)
+		m_all_failures.push_back(m_failure_events[f]);
 	m_failure_events.clear();
 	m_failure_event_labels.clear();
 	m_results.period_of_last_failure[m_current_scenario] = -1;
@@ -3126,5 +3129,37 @@ void PowerCycle::AgePlant(double age)
 	//store states
 	StoreCycleState();
 
+}
+
+
+std::vector<std::string> PowerCycle::GetAllFailureEventLabels()
+{
+	std::vector<std::string> v = {};
+	for (failure_event f : m_all_failures)
+	{
+		v.push_back(f.component + "-T:" + std::to_string(f.time) + "-D:" + std::to_string(f.duration));
+	}
+	return v;
+}
+
+
+std::vector<double> PowerCycle::GetAllFailureEventDowntimes()
+{
+	std::vector<double> v = {};
+	for (failure_event f : m_all_failures)
+	{
+		v.push_back(f.duration);
+	}
+	return v;
+}
+
+std::vector<int> PowerCycle::GetAllFailureEventPeriods()
+{
+	std::vector<int> v = {};
+	for (failure_event f : m_all_failures)
+	{
+		v.push_back(f.time);
+	}
+	return v;
 }
 

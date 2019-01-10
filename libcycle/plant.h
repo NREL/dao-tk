@@ -51,6 +51,7 @@ class PowerCycle
 	//Failure Events
 	std::unordered_map< std::string, failure_event >  m_failure_events;
 	std::vector <std::string>  m_failure_event_labels;
+	std::vector <failure_event> m_all_failures;
 
 	std::unordered_map< std::string, ComponentStatus > m_start_component_status;
 
@@ -309,6 +310,9 @@ public:
 	double GetEstimatedMinimumLifetime(double frac_operational = 1.0);
 	double GetExpectedStartsToNextFailure();
 	void AgePlant(double age);
+	std::vector<std::string> GetAllFailureEventLabels();
+	std::vector<double> GetAllFailureEventDowntimes();
+	std::vector<int> GetAllFailureEventPeriods();
 };
 
 

@@ -463,3 +463,11 @@ double GammaProcessDist::GetVariate(double alpha, WELLFiveTwelve &gen)
 
 	return 0.0;
 }
+
+InvGammaDist::InvGammaDist() {}
+
+double InvGammaDist::GetVariate(WELLFiveTwelve &gen)
+{
+	double var = GammaDist::GetVariate(gen);
+	return 1.0 / var;
+}

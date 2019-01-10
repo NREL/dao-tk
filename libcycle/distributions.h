@@ -111,5 +111,14 @@ public:
 	double GetMean(double t, double delta_t);
 };
 
-#endif
 
+class InvGammaDist : public GammaDist
+{
+public:
+	InvGammaDist();
+	InvGammaDist(double alpha, double beta, std::string type) :
+		GammaDist::GammaDist(alpha, beta, type) {}
+	double GetVariate(WELLFiveTwelve &gen) override;
+};
+
+#endif
