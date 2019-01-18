@@ -21,18 +21,19 @@ class PowerCycle
 
 	//Components
 	std::vector< Component > m_components;
-	std::vector< size_t > m_turbine_idx;  //turbine indices of component vector
- 	std::vector< size_t > m_sst_idx;   //salt-to-steam train indices of component vector
-	std::vector< size_t > m_condenser_idx; //condenser train indices of component vector
-	std::vector< size_t > m_salt_pump_idx; //salt pump indices of component vector
-	std::vector< size_t > m_water_pump_idx; //water pump indices of component vector
-	std::vector< size_t > m_boiler_pump_idx; //boiler pump indices of component vector
+	std::vector< size_t > m_turbine_idx;  //turbine indices 
+ 	std::vector< size_t > m_sst_idx;   //salt-to-steam train indices 
+	std::vector< size_t > m_condenser_idx; //condenser train indices 
+	std::vector< size_t > m_salt_pump_idx; //salt pump indices 
+	std::vector< size_t > m_water_pump_idx; //water pump indices 
+	std::vector< size_t > m_boiler_pump_idx; //boiler pump indices
 	
 	int m_num_condenser_trains = 0;
 	int m_fans_per_condenser_train = 0;
 	int m_radiators_per_condenser_train = 0;
 	double m_eff_loss_per_fan = 0.01;   //currently hard-coded as an assumption
 	double m_condenser_temp_threshold = 20.;
+	double m_pump_switch_mean_time = 0.3; //hours
 	std::vector<double> m_condenser_efficiencies_cold;
 	std::vector<double> m_condenser_efficiencies_hot;
 	int m_num_feedwater_heaters = 0;
@@ -69,10 +70,10 @@ class PowerCycle
 
 	//These thresholds for shutdown represent a policy, and are assumed to be 
 	//decision variables
-	double m_shutdown_capacity = 0.3;      
-	double m_no_restart_capacity = 0.96;   
-	double m_shutdown_efficiency = 0.3;
-	double m_no_restart_efficiency = 0.9;
+	double m_shutdown_capacity = 0.0;      
+	double m_no_restart_capacity = 0.0;   
+	double m_shutdown_efficiency = 0.0;
+	double m_no_restart_efficiency = 0.0;
 
 	//Current status members
 	int m_current_scenario;
@@ -80,7 +81,6 @@ class PowerCycle
 	double m_cycle_capacity;
 	bool m_new_failure_occurred;
 	bool m_new_repair_occurred;
-	
 
 public:
 	PowerCycle();
@@ -246,9 +246,14 @@ public:
 		double no_restart_efficiency = 0.9
 	);
 	void SetRampingThresholds();
-	void SetDispatch(std::unordered_map< std::string, std::vector< double > > &data, bool clear_existing = false);
+	void SetDispatch(
+		std::unordered_map< std::string, 
+		std::vector< double > > &data, 
+		bool clear_existing = false
+	);
 	int NumberOfAirstreamsOnline();
 	double GetCondenserEfficiency(double temp);
+	double GetCondenserCapacity(double temp);
 	double GetTurbineEfficiency(bool age, bool include_failures = false);
 	double GetTurbineCapacity(bool age, bool include_failures = false);
 	double GetSaltSteamTrainCapacity();
@@ -261,7 +266,12 @@ public:
 	void SetCycleCapacityAndEfficiency(double temp, bool age = false);
 	double GetCycleCapacity();
 	double GetCycleEfficiency();
-	void TestForComponentFailures(double ramp_mult, int t, std::string start, std::string mode);
+	void TestForComponentFailures(
+		double ramp_mult, 
+		int t, 
+		std::string start, 
+		std::string mode
+	);
 	bool AllComponentsOperational();
 	double GetMaxComponentDowntime();
 	void PlantMaintenanceShutdown(
@@ -269,6 +279,13 @@ public:
 		bool reset_time, 
 		bool record, 
 		double duration = 0.
+	);
+	void AddPumpSwitchingEvent(
+		int t,
+		std::string component,
+		std::string pump_type,
+		bool record,
+		double switch_time = 0.0
 	);
 	void AdvanceDowntime(std::string mode);
 	double GetRampMult(double power_out);

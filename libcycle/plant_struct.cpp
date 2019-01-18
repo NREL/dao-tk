@@ -46,6 +46,9 @@ cycle_state::cycle_state()
 	hot_start_penalty = 0;
 	warm_start_penalty = 0;
 	cold_start_penalty = 0;
+	salt_pump_switch_time = 0.0;
+	boiler_pump_switch_time = 0.0;
+	water_pump_switch_time = 0.0;
 }
 
 void cycle_state::print()
@@ -80,7 +83,7 @@ simulation_params::simulation_params()
 	hourly_labor_cost = 50.;
 	stop_at_first_repair = false;
 	stop_at_first_failure = false;
-	num_annual_starts = 50.;
+	num_annual_starts = 50;
 }
 
 void simulation_params::print()

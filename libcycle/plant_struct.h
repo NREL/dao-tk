@@ -50,6 +50,9 @@ struct cycle_state
 	double hot_start_penalty;
 	double warm_start_penalty;
 	double cold_start_penalty;
+	double salt_pump_switch_time;
+	double boiler_pump_switch_time;
+	double water_pump_switch_time;
 	cycle_state();
 	void print();
 };

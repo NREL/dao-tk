@@ -407,6 +407,8 @@ void Component::TestForFailure(
 	sufficient life remaining in the component, or the RNG generates a 
 	failure on start.
 	*/
+	if (!IsOperational())
+		std::exception("Testing a non-operational component for failure.");
 	if (mode == "OFF")
 		return;
 	std::string opmode;
@@ -546,7 +548,7 @@ void Component::GenerateFailure(
 	/* in a single special case, superheaters have an additional cooldown 
 	time of 48 hours more than other heat exchangers in the salt-to-steam train.
 	*/
-	if (m_type == "Salt-to-steam train" && fail_idx > 11)
+	if (m_type == "Salt-to-steam train" && fail_idx == 3)
 	{
 		m_status.downtime_remaining += 48.;
 		m_status.repair_event_time += 48.;
@@ -563,7 +565,6 @@ void Component::GenerateFailure(
 		);
 	(*m_parent_failure_event_labels).push_back(label);
 	//std::cerr << "FAILURE EVENT GENERATED. downtime: " << std::to_string(m_status.downtime_remaining) << " life_rem: " << std::to_string(m_failure_types.at(fail_idx).GetLifeOrProb()) << " fail idx: " << std::to_string(fail_idx) << " reset hazard rate: " << std::to_string(true) << "\n";
-
 }
 
 bool Component::CanBeRepaired(std::string mode)

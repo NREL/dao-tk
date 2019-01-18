@@ -306,6 +306,9 @@ void PowerCycle::StorePlantParamsState()
 	m_begin_cycle_state.time_online = m_current_cycle_state.time_online*1.0;
 	m_begin_cycle_state.power_output = m_current_cycle_state.power_output*1.0;
 	m_begin_cycle_state.thermal_output = m_current_cycle_state.thermal_output*1.0;
+	m_begin_cycle_state.salt_pump_switch_time = m_current_cycle_state.salt_pump_switch_time*1.0;
+	m_begin_cycle_state.boiler_pump_switch_time = m_current_cycle_state.boiler_pump_switch_time*1.0;
+	m_begin_cycle_state.water_pump_switch_time = m_current_cycle_state.water_pump_switch_time*1.0;
 }
 
 void PowerCycle::StoreCycleState()
@@ -358,6 +361,9 @@ void PowerCycle::RevertToStartState(bool reset_rng)
 	m_current_cycle_state.time_online = m_begin_cycle_state.time_online*1.0;
 	m_current_cycle_state.power_output = m_begin_cycle_state.power_output*1.0;
 	m_current_cycle_state.thermal_output = m_begin_cycle_state.thermal_output*1.0;
+	m_current_cycle_state.salt_pump_switch_time = m_begin_cycle_state.salt_pump_switch_time*1.0;
+	m_current_cycle_state.boiler_pump_switch_time = m_begin_cycle_state.boiler_pump_switch_time*1.0;
+	m_current_cycle_state.water_pump_switch_time = m_begin_cycle_state.water_pump_switch_time*1.0;
 
 	SetStartComponentStatus();
 	if (reset_rng)
@@ -476,7 +482,8 @@ void PowerCycle::WritePlantStateFile()
 	std::ofstream pfile;
 	pfile.open(plant_filename);
 	pfile << "capacity,cs_penalty,ws_penalty,hs_penalty,downtime,dt_threshold,is_on,is_standby,"
-		<< "mx_dur,mx_int,hrs_to_mx,temp_threshold,time_in_standby,time_online,cycle_output\n";
+		<< "mx_dur,mx_int,hrs_to_mx,temp_threshold,time_in_standby,time_online,cycle_output,"
+		<< "salt_switch_time,boiler_switch_time,water_switch_time\n";
 	pfile << m_current_cycle_state.capacity << "," << m_current_cycle_state.cold_start_penalty << ","
 		<< m_current_cycle_state.warm_start_penalty << "," << m_current_cycle_state.hot_start_penalty << ","
 		<< m_current_cycle_state.downtime << "," << m_current_cycle_state.downtime_threshold << ","
@@ -484,7 +491,9 @@ void PowerCycle::WritePlantStateFile()
 		<< m_current_cycle_state.maintenance_duration << "," << m_current_cycle_state.maintenance_interval << ","
 		<< m_current_cycle_state.hours_to_maintenance << "," << m_current_cycle_state.temp_threshold << ","
 		<< m_current_cycle_state.time_in_standby << "," << m_current_cycle_state.time_online << ","
-		<< m_current_cycle_state.power_output << "," << m_current_cycle_state.thermal_output << "\n";
+		<< m_current_cycle_state.power_output << "," << m_current_cycle_state.thermal_output << ","
+		<< m_current_cycle_state.salt_pump_switch_time << "," << m_current_cycle_state.boiler_pump_switch_time << ","
+		<< m_current_cycle_state.water_pump_switch_time << "\n";
 	pfile.close();
 }
 
@@ -985,6 +994,9 @@ void PowerCycle::ReadPlantFile()
 	m_current_cycle_state.time_online = std::stod(split_line[13]);
 	m_current_cycle_state.power_output = std::stod(split_line[14]);
 	m_current_cycle_state.thermal_output = std::stod(split_line[15]);
+	m_current_cycle_state.salt_pump_switch_time = std::stod(split_line[16]);
+	m_current_cycle_state.boiler_pump_switch_time = std::stod(split_line[17]);
+	m_current_cycle_state.water_pump_switch_time = std::stod(split_line[18]);
 
 	StorePlantParamsState();
 }
@@ -1669,7 +1681,7 @@ void PowerCycle::AddCondenserTrains(int num_trains, int num_fans, int num_radiat
 		}
 		for (int i = 1; i <= num_radiators; i++)
 		{
-			AddFailureType(train_name + "-T", "Radiator " + std::to_string(i) + " Failure", "O", "gamma", 1, 698976);
+			AddFailureType(train_name + "-T", "Radiator " + std::to_string(i) + " Failure", "O", "gamma", 1, 28279.8); //note: Army source = 698976
 		}
 	}
 }
@@ -1677,28 +1689,40 @@ void PowerCycle::AddCondenserTrains(int num_trains, int num_fans, int num_radiat
 void PowerCycle::AddSaltToSteamTrains(int num_trains)
 {
 	std::string component_name;
-	double capacity_reduction = 1.0 / num_trains;
+	double capacity_reduction = 1.0 / (double)num_trains;
 	for (int i = 0; i < num_trains; i++)
 	{
 		m_num_salt_steam_trains += 1;
 		component_name = "SST" + std::to_string(m_num_salt_steam_trains);
-		AddComponent(component_name, "Salt-to-steam train", 96., 72., capacity_reduction, 0., 7.777, "A");
+		AddComponent(component_name, "Salt-to-steam train", 120, 120, capacity_reduction, 0., 7.777, "A");
+		/*
 		AddFailureType(component_name, "Boiler External_Leak_Large_(shell)", "ALL", "inv-gamma", 0.3, 75000000);
 		AddFailureType(component_name, "Boiler External_Leak_Large_(tube)", "ALL", "inv-gamma", 0.3, 10000000);
 		AddFailureType(component_name, "Boiler External_Leak_Small_(shell)", "ALL", "inv-gamma", 0.5, 10000000);
 		AddFailureType(component_name, "Boiler External_Leak_Small_(tube)", "ALL", "inv-gamma", 0.3, 1200000);
+		AddFailureType(component_name, "Boiler Plug/Foul", "ALL", "inv-gamma", 1.5, 2500000);
 		AddFailureType(component_name, "Economizer External_Leak_Large_(shell)", "ALL", "inv-gamma", 0.3, 75000000);
 		AddFailureType(component_name, "Economizer External_Leak_Large_(tube)", "ALL", "inv-gamma", 0.3, 10000000);
 		AddFailureType(component_name, "Economizer External_Leak_Small_(shell)", "ALL", "inv-gamma", 0.5, 10000000);
 		AddFailureType(component_name, "Economizer External_Leak_Small_(tube)", "ALL", "inv-gamma", 0.3, 1200000);
+		AddFailureType(component_name, "Economizer Plug/Foul", "ALL", "inv-gamma", 1.5, 2500000);
 		AddFailureType(component_name, "Reheater External_Leak_Large_(shell)", "ALL", "inv-gamma", 0.3, 75000000);
 		AddFailureType(component_name, "Reheater External_Leak_Large_(tube)", "ALL", "inv-gamma", 0.3, 10000000);
 		AddFailureType(component_name, "Reheater External_Leak_Small_(shell)", "ALL", "inv-gamma", 0.5, 10000000);
 		AddFailureType(component_name, "Reheater External_Leak_Small_(tube)", "ALL", "inv-gamma", 0.3, 1200000);
+		AddFailureType(component_name, "Reheater Plug/Foul", "ALL", "inv-gamma", 1.5, 2500000);
 		AddFailureType(component_name, "Superheater External_Leak_Large_(shell)", "ALL", "inv-gamma", 0.3, 75000000);
 		AddFailureType(component_name, "Superheater External_Leak_Large_(tube)", "ALL", "inv-gamma", 0.3, 10000000);
 		AddFailureType(component_name, "Superheater External_Leak_Small_(shell)", "ALL", "inv-gamma", 0.5, 10000000);
 		AddFailureType(component_name, "Superheater External_Leak_Small_(tube)", "ALL", "inv-gamma", 0.3, 1200000);
+		AddFailureType(component_name, "Superheater Plug/Foul", "ALL", "inv-gamma", 1.5, 2500000);
+		*/
+		AddFailureType(component_name, "Boiler Failure", "ALL", "gamma", 1., 306624);
+		AddFailureType(component_name, "Economizer Failure", "ALL", "gamma", 1., 306624);
+		AddFailureType(component_name, "Reheater Failure", "ALL", "gamma", 1., 306624);
+		AddFailureType(component_name, "Superheater Failure", "ALL", "gamma", 1., 306624);
+		
+		
 	}
 }
 
@@ -1710,10 +1734,14 @@ void PowerCycle::AddFeedwaterHeaters(int num_fwh)
 		m_num_feedwater_heaters += 1;
 		component_name = "FWH" + std::to_string(m_num_feedwater_heaters);
 		AddComponent(component_name, "Feedwater heater", 2.14, 24., 0., 0.05, 7.777, "A");
+		AddFailureType(component_name, "MTBF", "ALL", "gamma", 1., 2259200); //water-to-water heat exchanger, IEEE 2007
+		/*
 		AddFailureType(component_name, "External_Leak_Large_(shell)", "O", "inv-gamma", 0.3, 75000000);
 		AddFailureType(component_name, "External_Leak_Large_(tube)", "O", "inv-gamma", 0.3, 10000000);
 		AddFailureType(component_name, "External_Leak_Small_(shell)", "O", "inv-gamma", 0.5, 10000000);
 		AddFailureType(component_name, "External_Leak_Small_(tube)", "O", "inv-gamma", 0.3, 1200000);
+		AddFailureType(component_name, "Plug/Foul", "O", "inv-gamma", 1.5, 2500000);
+		*/
 	}
 }
 
@@ -1780,7 +1808,7 @@ void PowerCycle::AddTurbines(int num_turbines)
 	source for efficiency reduction: anecdotal (2-5% decrease)
 	*/
 	std::string component_name;
-	double capacity_reduction = 1.0 / num_turbines;
+	double capacity_reduction = 1.0 / (double)num_turbines;
 	for (int i = 0; i < num_turbines; i++)
 	{
 		m_num_turbines += 1;
@@ -1969,6 +1997,11 @@ int PowerCycle::NumberOfAirstreamsOnline()
 
 double PowerCycle::GetCondenserEfficiency(double temp)
 {
+	return 1.0;
+}
+
+double PowerCycle::GetCondenserCapacity(double temp)
+{
 	/*
 	Returns the condener efficiency according to any fans and trains are down,
 	as well as the ambient temperature.
@@ -1976,29 +2009,20 @@ double PowerCycle::GetCondenserEfficiency(double temp)
 	temp -- ambient temperature (Celsius)
 	retval -- efficiency of power cycle condenser (fraction)
 	*/
-	double baseline_efficiency;
 	int num_streams = 0;
-	int num_online_fans_down = 0;
 	for (size_t i : m_condenser_idx)
 	{
 		//std::cerr << i << " " << GetComponents().at(i).GetType() << "\n";
 		if (m_components.at(i).IsOperational())
 		{
 			num_streams++;
-			for (size_t j = 1; j <= m_fans_per_condenser_train; j++)
-			{
-				if (!m_components.at(i + j).IsOperational())
-				{
-					num_online_fans_down++;
-				}
-			}
 		}
 	}
+	if (num_streams == 0)
+		return 0.0;
 	if (temp < m_condenser_temp_threshold)
-		baseline_efficiency = m_condenser_efficiencies_cold[num_streams];
-	else
-		baseline_efficiency = m_condenser_efficiencies_hot[num_streams];
-	return baseline_efficiency - num_online_fans_down * m_eff_loss_per_fan;
+		return 1.0;
+	return double(num_streams) / double(m_num_condenser_trains);
 }
 
 double PowerCycle::GetTurbineEfficiency(bool age, bool include_failures)
@@ -2085,7 +2109,8 @@ double PowerCycle::GetSaltPumpCapacity()
 {
 	/*
 	Returns the relative capacity of all salt pumps that
-	are operational.
+	are operational.  If switching is currently taking place, 
+	remove one operational pump.
 	*/
 	double num_pumps_operational = 0.;
 	for (size_t i : m_salt_pump_idx)
@@ -2095,7 +2120,16 @@ double PowerCycle::GetSaltPumpCapacity()
 			num_pumps_operational += 1;
 		}
 	}
-	return std::min(1.0, num_pumps_operational / m_num_salt_pumps_required);
+	if (m_current_cycle_state.salt_pump_switch_time > DBL_EPSILON)
+	{
+		return std::max(
+			0.0,
+			std::min(
+				1.0, (num_pumps_operational - 1) / (double)m_num_salt_pumps_required
+			)
+		);
+	}
+	return std::min(1.0, num_pumps_operational / (double)m_num_salt_pumps_required);
 }
 
 double PowerCycle::GetWaterPumpCapacity()
@@ -2108,7 +2142,16 @@ double PowerCycle::GetWaterPumpCapacity()
 			num_pumps_operational += 1;
 		}
 	}
-	return std::min(1.0, num_pumps_operational / m_num_water_pumps_required);
+	if (m_current_cycle_state.water_pump_switch_time > DBL_EPSILON)
+	{
+		return std::max(
+			0.0,
+			std::min(
+				1.0, (num_pumps_operational - 1) / (double)m_num_water_pumps_required
+			)
+		);
+	}
+	return std::min(1.0, num_pumps_operational / (double)m_num_water_pumps_required);
 }
 
 double PowerCycle::GetBoilerPumpCapacity()
@@ -2121,7 +2164,18 @@ double PowerCycle::GetBoilerPumpCapacity()
 			num_pumps_operational += 1;
 		}
 	}
-	return std::min(1.0, num_pumps_operational / m_num_boiler_pumps_required);
+
+	if (m_current_cycle_state.boiler_pump_switch_time > DBL_EPSILON)
+	{
+		return std::max(
+			0.0,
+			std::min(
+				1.0, (num_pumps_operational - 1) / (double)m_num_boiler_pumps_required
+			)
+		);
+	}
+
+	return std::min(1.0, num_pumps_operational / (double)m_num_boiler_pumps_required);
 }
 
 double PowerCycle::GetSaltPumpEfficiency()
@@ -2178,6 +2232,7 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
 		return;
 	}
 	double condenser_eff = GetCondenserEfficiency(temp);
+	double condenser_cap = GetCondenserCapacity(temp);
 	double turbine_eff = GetTurbineEfficiency(age, false);
 	double turbine_cap = GetTurbineCapacity(age, false);
 	double sst_cap = GetSaltSteamTrainCapacity();
@@ -2204,7 +2259,9 @@ void PowerCycle::SetCycleCapacityAndEfficiency(double temp, bool age)
 			std::min(water_pump_cap,
 				std::min(boiler_pump_cap,
 					std::min(turbine_cap,
-						std::min(sst_cap, rem_cap)
+						std::min(condenser_cap,
+							std::min(sst_cap, rem_cap)
+						)
 					)
 				)
 			) 
@@ -2245,11 +2302,33 @@ void PowerCycle::TestForComponentFailures(double ramp_mult, int t, std::string s
 	else if (start == "ColdStart")
 		hazard_increase = m_current_cycle_state.cold_start_penalty*hazard_multiplier;
 	for (size_t i = 0; i < m_components.size(); i++)
-		m_components.at(i).TestForFailure(
-			m_sim_params.steplength, ramp_mult, *m_life_gen, 
-			*m_repair_gen, *m_binary_gen, t, 
-			hazard_increase, mode, m_current_scenario
-		);
+	{ 
+		if (m_components.at(i).IsOperational())
+		{
+			m_components.at(i).TestForFailure(
+				m_sim_params.steplength, ramp_mult, *m_life_gen,
+				*m_repair_gen, *m_binary_gen, t,
+				hazard_increase, mode, m_current_scenario
+			);
+			//if a failure occurred, and the component is a pump, 
+			//create a pump switching event as well.
+			if ( (!m_components.at(i).IsOperational()) && (
+				m_components.at(i).GetType() == "Molten salt pump" ||
+				m_components.at(i).GetType() == "Boiler pump" ||
+				m_components.at(i).GetType() == "Water pump" 
+				)
+			)
+			{
+				AddPumpSwitchingEvent(
+					t,
+					m_components.at(i).GetName(),
+					m_components.at(i).GetType(),
+					true,
+					0.0
+				);
+			}
+		}
+	}
 }
 
 bool PowerCycle::AllComponentsOperational()
@@ -2290,7 +2369,6 @@ void PowerCycle::PlantMaintenanceShutdown(int t, bool reset_time, bool record,
     /*
 	creates a maintenance event that lasts for a fixed duration.  No
     power cycle operation take place at this time. 
-    failure_file - output file to record failure
     t -- period index
 	reset_time -- true if the maintenance clock should be reset, false o.w.
     record -- true if outputting failure event to failure dictionary, false o.w.
@@ -2323,13 +2401,79 @@ void PowerCycle::PlantMaintenanceShutdown(int t, bool reset_time, bool record,
 		m_failure_events[
 			"S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + label
 		] = failure_event(t, label, -1, duration, 0., 0., m_current_scenario);
-		m_failure_event_labels.push_back("S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + label);
-		//m_all_failures.push_back(failure_event(t, label, -1, duration, 0., 0., m_current_scenario));
+		m_failure_event_labels.push_back(
+			"S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + label
+		);
 	}
 
 	if (reset_time)
 	    m_current_cycle_state.hours_to_maintenance = m_current_cycle_state.maintenance_interval * 1.0;
 
+}
+
+void PowerCycle::AddPumpSwitchingEvent(
+	int t, 
+	std::string component, 
+	std::string pump_type, 
+	bool record,
+	double switch_time
+)
+{
+	/* 
+	Create a short downtime associated with the switching of pumps, 
+	that changes the pump efficiencies.
+    t -- period index
+	component -- component identifier
+	pump_type -- component type (salt, boiler, or water pump)
+    record -- true if outputting failure event to failure dictionary, false o.w.
+	 */
+	
+	//generate the time it takes to make the pump switch, if this is new.
+	//otherwise, read in the duration as intput.
+	double var, duration;
+	if (record)
+	{
+		var = m_repair_gen->getVariate();
+		duration = -log(1 - var) * m_pump_switch_mean_time;
+	}
+	else
+		duration = switch_time;
+
+	//apply the switch to the appropriate pump type; if there is an existing
+	//switch, override the time remaining if the new time is greater.
+	if (pump_type == "Molten salt pump")
+	{
+		m_current_cycle_state.salt_pump_switch_time = std::max(
+			m_current_cycle_state.salt_pump_switch_time, duration
+		);
+	}
+	else if (pump_type == "Boiler pump")
+	{
+		m_current_cycle_state.boiler_pump_switch_time = std::max(
+			m_current_cycle_state.boiler_pump_switch_time, duration
+		);
+	}
+	else if (pump_type == "Water pump")
+	{
+		m_current_cycle_state.water_pump_switch_time = std::max(
+			m_current_cycle_state.water_pump_switch_time, duration
+		);
+	}
+	else
+	{
+		std::exception("Bad pump type passed to pump switch event.");
+	}
+	
+	if (record)
+	{
+		std::string label = component + "-SWITCH";
+		m_failure_events[
+			"S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + label
+		] = failure_event(t, label, -1, duration, 0., 0., m_current_scenario);
+			m_failure_event_labels.push_back(
+				"S" + std::to_string(m_current_scenario) + "T" + std::to_string(t) + label
+			);
+	}
 }
 
 void PowerCycle::AdvanceDowntime(std::string mode)
@@ -2520,6 +2664,27 @@ void PowerCycle::ReadInComponentFailures(int t)
 						t, m_sim_params.read_periods, 
 						m_failure_events[label].print().c_str())
 					);
+
+				//if the component is a pump, read in the switching event too
+				if (
+					m_components.at(j).GetType() == "Molten salt pump" ||
+					m_components.at(j).GetType() == "Boiler pump" ||
+					m_components.at(j).GetType() == "Water pump"
+					)
+				{
+					label = (
+						"S" + std::to_string(m_current_scenario) +
+						"T" + std::to_string(t) + m_components.at(j).GetName() +
+						"-SWITCH"
+						);
+					AddPumpSwitchingEvent(
+						t,
+						m_components.at(j).GetName(),
+						m_components.at(j).GetType(),
+						false,
+						m_failure_events[label].duration
+					);
+				}
 			}
 		}
 	}
@@ -2645,7 +2810,7 @@ void PowerCycle::RunDispatch()
 				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
 			}
 			SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
-			if (m_cycle_capacity + m_sim_params.epsilon <= 1.0)
+			if (m_cycle_capacity  <= 1.0 - DBL_EPSILON)
 			{
 				power_output = std::min(power_output, m_cycle_capacity*m_current_cycle_state.capacity);
 				thermal_output = std::min(thermal_output, m_cycle_capacity*m_current_cycle_state.thermal_capacity);
@@ -2764,6 +2929,24 @@ void PowerCycle::OperatePlant(double power_out,
 	double ramp_mult = GetRampMult(thermal_out);
 	m_current_cycle_state.thermal_output = thermal_out;
 	m_current_cycle_state.power_output = power_out;
+	m_current_cycle_state.salt_pump_switch_time = (
+		std::max(
+			0.0, m_current_cycle_state.salt_pump_switch_time - 
+			m_sim_params.steplength
+		)
+		);
+	m_current_cycle_state.boiler_pump_switch_time = (
+		std::max(
+			0.0, m_current_cycle_state.boiler_pump_switch_time -
+			m_sim_params.steplength
+		)
+		);
+	m_current_cycle_state.water_pump_switch_time = (
+		std::max(
+			0.0, m_current_cycle_state.water_pump_switch_time -
+			m_sim_params.steplength
+		)
+		);
 	if (mode == "OFF")
 	{
 		m_current_cycle_state.is_online = false;
