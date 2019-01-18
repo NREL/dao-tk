@@ -125,7 +125,7 @@ void parameters::initialize()
 
     // Cycle availability and simulation integration
 	num_turbines.set(                        1,                 "num_turbines",      false,               "Number of turbine-generator shafts",           "-",                  "Cycle|Parameters" );
-    num_scenarios.set(                       1,                "num_scenarios",      false,                              "Number of scenarios",           "-",                  "Cycle|Parameters" );
+    num_cycle_scenarios.set(                 1,          "num_cycle_scenarios",      false,                  "Number of cycle model scenarios",           "-",                  "Cycle|Parameters" );
 	is_cycle_avail.set(                  false,               "is_cycle_avail",      false,               "Run integrated cycle failure model",           "-",                  "Cycle|Parameters" );
 	is_reoptimize_at_repairs.set(        false,     "is_reoptimize_at_repairs",      false,              "Re-run dispatch after cycle repairs",           "-",                  "Cycle|Parameters" );
 	is_reoptimize_at_failures.set(       false,    "is_reoptimize_at_failures",      false,             "Re-run dispatch after cycle failures",           "-",                  "Cycle|Parameters" );
@@ -242,7 +242,7 @@ void parameters::initialize()
     (*this)["num_boiler_pumps"] = &num_boiler_pumps;
     (*this)["num_boiler_pumps_required"] = &num_boiler_pumps_required;
     (*this)["num_turbines"] = &num_turbines;
-    (*this)["num_scenarios"] = &num_scenarios;
+    (*this)["num_cycle_scenarios"] = &num_cycle_scenarios;
     (*this)["is_cycle_avail"] = &is_cycle_avail;
     (*this)["is_reoptimize_at_repairs"] = &is_reoptimize_at_repairs;
     (*this)["is_reoptimize_at_failures"] = &is_reoptimize_at_failures;
@@ -1544,7 +1544,7 @@ bool Project::C()
 
 
 	int ny = m_parameters.cycle_nyears.as_integer();  // number of years to simulated cycle failures (same dispatch profiles will be used in all years)
-	int ns = m_parameters.num_scenarios.as_integer(); // number of scenarios. Final capacity/efficiency arrays will be averaged over scenarios
+	int ns = m_parameters.num_cycle_scenarios.as_integer(); // number of scenarios. Final capacity/efficiency arrays will be averaged over scenarios
 
 	//--- Check that simulation outputs are complete
 	int nrec = (int)m_simulation_outputs.gross_gen.vec()->size();  
@@ -1909,6 +1909,7 @@ bool Project::S()
 			is_simulation_valid = true;
 		}
 		is_simulation_valid = save_simulation_outputs(ssc_soln);
+		is_cycle_avail_valid = C();
 	}
 
 
@@ -1929,9 +1930,9 @@ bool Project::S()
 			return false;
 		}
 
-		if (m_parameters.num_scenarios.as_integer() > 1 || m_parameters.cycle_nyears.as_integer() > 1)
+		if (m_parameters.num_cycle_scenarios.as_integer() > 1 || m_parameters.cycle_nyears.as_integer() > 1)
 		{
-			message_handler(wxString::Format("Integration of cycle availability and plant simulation models is only available for a single scenario and single year. Parameter 'num_scenarios' and 'cycle_nyears' are currently %d and %d, respectively. \n", m_parameters.num_scenarios.as_integer(), m_parameters.cycle_nyears.as_integer()));
+			message_handler(wxString::Format("Integration of cycle availability and plant simulation models is only available for a single scenario and single year. Parameter 'num_cycle_scenarios' and 'cycle_nyears' are currently %d and %d, respectively. \n", m_parameters.num_cycle_scenarios.as_integer(), m_parameters.cycle_nyears.as_integer()));
 			return false;
 		}
 
@@ -2921,7 +2922,7 @@ void Project::initialize_cycle_model(PowerCycle &pc)
 		m_parameters.num_turbines.as_integer(),
 		c_eff_cold, c_eff_hot);
 
-	pc.m_sim_params.num_scenarios = m_parameters.num_scenarios.as_integer();
+	pc.m_sim_params.num_scenarios = m_parameters.num_cycle_scenarios.as_integer();
 	
 	pc.Initialize(0.0);
 	
@@ -3126,7 +3127,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 		int nsteps = (int)ceil(current_horizon / steplength);
 		
 		
-		pc.SetSimulationParameters(0, nsteps, steplength, 1.e-8, false, m_parameters.num_scenarios.as_integer(), m_parameters.cycle_hourly_labor_cost.as_number(), true, true);
+		pc.SetSimulationParameters(0, nsteps, steplength, 1.e-8, false, m_parameters.num_cycle_scenarios.as_integer(), m_parameters.cycle_hourly_labor_cost.as_number(), true, true);
 
 
 		//-- Initialize solutions for this model horizon 

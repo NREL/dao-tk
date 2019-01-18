@@ -497,7 +497,7 @@ struct parameters : public hash_base
 	parameter num_boiler_pumps;
 	parameter num_boiler_pumps_required;
 	parameter num_turbines;
-	parameter num_scenarios;
+	parameter num_cycle_scenarios;
 	parameter n_clusters;
 	parameter cluster_ndays;
 	parameter cluster_nprev;
