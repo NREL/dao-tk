@@ -220,6 +220,17 @@ void Project::add_documentation()
     m_simulation_outputs.annual_generation.doc.set("GWhe", "Total simulated electrical energy production per year.");
     m_simulation_outputs.annual_revenue_units.doc.set("-", "The total normalized revenue achieved by the evaluated system over the course of 1 year.");
 
+    m_parameters.maintenance_interval.doc.set("h","Runtime duration between maintenance events");
+    m_parameters.maintenance_duration.doc.set("h","Duration of maintenance events");
+    m_parameters.downtime_threshold.doc.set("h","Downtime threshold for warm start");
+    m_parameters.hours_to_maintenance.doc.set("h","Runtime duration before next maintenance event");
+    m_parameters.temp_threshold.doc.set("C","Ambient temperature threshold for condensers");
+    m_parameters.shutdown_capacity.doc.set("-","Threshold capacity to shut plant down");
+    m_parameters.no_restart_capacity.doc.set("-","Threshold capacity for maintenance on shutdown");
+    m_parameters.shutdown_efficiency.doc.set("-","Threshold efficiency to shut plant down");
+    m_parameters.no_restart_efficiency.doc.set("-","Threshold efficiency for maintenance on shutdown");
+    m_parameters.cycle_hourly_labor_cost.doc.set("h","Hourly cost for repair of cycle components");
+
     for (lk::varhash_t::iterator vit = _merged_data.begin(); vit != _merged_data.end(); vit++)
         static_cast<data_base*>(vit->second)->CreateDoc();
 }
