@@ -408,7 +408,7 @@ void Component::TestForFailure(
 	failure on start.
 	*/
 	if (!IsOperational())
-		std::exception("Testing a non-operational component for failure.");
+		throw std::runtime_error("Testing a non-operational component for failure.");
 	if (mode == "OFF")
 		return;
 	std::string opmode;

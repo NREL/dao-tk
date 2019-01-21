@@ -2120,7 +2120,7 @@ double PowerCycle::GetSaltPumpCapacity()
 			num_pumps_operational += 1;
 		}
 	}
-	if (m_current_cycle_state.salt_pump_switch_time > DBL_EPSILON)
+	if (m_current_cycle_state.salt_pump_switch_time > m_sim_params.epsilon)
 	{
 		return std::max(
 			0.0,
@@ -2142,7 +2142,7 @@ double PowerCycle::GetWaterPumpCapacity()
 			num_pumps_operational += 1;
 		}
 	}
-	if (m_current_cycle_state.water_pump_switch_time > DBL_EPSILON)
+	if (m_current_cycle_state.water_pump_switch_time > m_sim_params.epsilon)
 	{
 		return std::max(
 			0.0,
@@ -2165,7 +2165,7 @@ double PowerCycle::GetBoilerPumpCapacity()
 		}
 	}
 
-	if (m_current_cycle_state.boiler_pump_switch_time > DBL_EPSILON)
+	if (m_current_cycle_state.boiler_pump_switch_time > m_sim_params.epsilon)
 	{
 		return std::max(
 			0.0,
@@ -2461,7 +2461,7 @@ void PowerCycle::AddPumpSwitchingEvent(
 	}
 	else
 	{
-		std::exception("Bad pump type passed to pump switch event.");
+		throw std::runtime_error("Bad pump type passed to pump switch event.");
 	}
 	
 	if (record)
@@ -2810,7 +2810,7 @@ void PowerCycle::RunDispatch()
 				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
 			}
 			SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
-			if (m_cycle_capacity  <= 1.0 - DBL_EPSILON)
+			if (m_cycle_capacity  <= 1.0 - m_sim_params.epsilon)
 			{
 				power_output = std::min(power_output, m_cycle_capacity*m_current_cycle_state.capacity);
 				thermal_output = std::min(thermal_output, m_cycle_capacity*m_current_cycle_state.thermal_capacity);
