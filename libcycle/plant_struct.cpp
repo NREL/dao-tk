@@ -105,6 +105,7 @@ cycle_results::cycle_results()
 	cycle_capacity = {};
 	cycle_efficiency = {};
 	labor_costs = {};
+	num_failures = {};
 	avg_cycle_capacity = {};
 	avg_cycle_efficiency = {};
 	avg_labor_cost = 0.;
