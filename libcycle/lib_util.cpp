@@ -20,6 +20,8 @@
 #ifdef _MSC_VER
 /* taken from wxMSW-2.9.1/include/wx/defs.h - appropriate for Win32/Win64 */
 #define my_va_copy(d, s) ((d)=(s))
+#else
+#define my_va_copy(d, s) (va_copy(d,s))
 #endif
 
 std::vector< std::string > util::split( const std::string &str, const std::string &delim, bool ret_empty, bool ret_delim )
