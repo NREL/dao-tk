@@ -23,6 +23,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\app\clusterthread.cpp" />
+    <ClCompile Include="..\app\cyclethread.cpp" />
     <ClCompile Include="..\app\daotk_app.cpp" />
     <ClCompile Include="..\app\dataview.cpp" />
     <ClCompile Include="..\app\fluxsimthread.cpp" />
@@ -38,6 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\app\clusterthread.h" />
+    <ClInclude Include="..\app\cyclethread.h" />
     <ClInclude Include="..\app\daotk_app.h" />
     <ClInclude Include="..\app\dataview.h" />
     <ClInclude Include="..\app\fluxsimthread.h" />

@@ -84,6 +84,7 @@ class PowerCycle
 
 public:
 	PowerCycle();
+	//PowerCycle(PowerCycle pc);
 	void Initialize(double age = 0., int scen_idx = 0);
 	cycle_state m_current_cycle_state;
 	cycle_state m_begin_cycle_state;
@@ -308,8 +309,11 @@ public:
 	void RunDispatch();
 	void OperatePlant(double power_out, double thermal_out, int t, 
 		std::string start, std::string mode);
-	void SingleScen(bool reset_plant, bool read_state_from_file = false,
-		bool init = false);
+	void SingleScen(bool read_state_from_file, 
+		bool read_from_memory = false,
+		bool init = false, 
+		bool reset_plant = false
+	);
 	void GetSummaryResults();
 	double GetLaborCosts(size_t start_fail_idx);
 	void StoreScenarioResults(std::vector <double> cycle_efficiencies,
