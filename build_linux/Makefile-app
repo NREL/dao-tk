@@ -37,6 +37,7 @@ OBJECTS  = \
 	vardocument.o \
 	clusterthread.o \
 	fluxsimthread.o \
+	cyclethread.o \
 	vardialog.o
 
 TARGET = dao-tk
