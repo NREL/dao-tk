@@ -7,10 +7,130 @@
 
 PowerCycle::PowerCycle()
 {
+	/*
+	Powercycle constructor; this provides enough to run a simulation after
+	this object is assigned a collection of 3 random number generator objects 
+	and initialized.
+	*/
 	SetSimulationParameters();
 	SetPlantAttributes();
 	GeneratePlantComponents();
 }
+
+
+PowerCycle::PowerCycle(const PowerCycle &pc)
+	:
+	m_life_gen(pc.m_life_gen),
+	m_repair_gen(pc.m_repair_gen),
+	m_binary_gen(pc.m_binary_gen),
+	m_components(pc.m_components),
+	m_turbine_idx(pc.m_turbine_idx),
+	m_sst_idx(pc.m_sst_idx),
+	m_condenser_idx(pc.m_condenser_idx),
+	m_salt_pump_idx(pc.m_salt_pump_idx),
+	m_water_pump_idx(pc.m_water_pump_idx),
+	m_boiler_pump_idx(pc.m_boiler_pump_idx),
+	m_num_condenser_trains(pc.m_num_condenser_trains),
+	m_fans_per_condenser_train(pc.m_fans_per_condenser_train),
+	m_radiators_per_condenser_train(pc.m_radiators_per_condenser_train),
+	m_eff_loss_per_fan(pc.m_eff_loss_per_fan),
+	m_condenser_temp_threshold(pc.m_condenser_temp_threshold),
+	m_pump_switch_mean_time(pc.m_pump_switch_mean_time),
+	m_condenser_efficiencies_cold(pc.m_condenser_efficiencies_cold),
+	m_condenser_efficiencies_hot(pc.m_condenser_efficiencies_hot),
+	m_num_feedwater_heaters(pc.m_num_feedwater_heaters),
+	m_num_salt_steam_trains(pc.m_num_salt_steam_trains),
+	m_num_salt_pumps(pc.m_num_salt_pumps),
+	m_num_salt_pumps_required(pc.m_num_salt_pumps_required),
+	m_num_water_pumps(pc.m_num_water_pumps),
+	m_num_water_pumps_required(pc.m_num_water_pumps_required),
+	m_num_boiler_pumps(pc.m_num_boiler_pumps),
+	m_num_boiler_pumps_required(pc.m_num_boiler_pumps_required),
+	m_num_turbines(pc.m_num_turbines),
+	m_failure_event_labels(pc.m_failure_event_labels),
+	m_all_failures(pc.m_all_failures),
+	m_ramp_threshold(pc.m_ramp_threshold),
+	m_ramp_threshold_min(pc.m_ramp_threshold_min),
+	m_ramp_threshold_max(pc.m_ramp_threshold_max),
+	m_ramping_penalty_min(pc.m_ramping_penalty_min),
+	m_ramping_penalty_max(pc.m_ramping_penalty_max),
+	m_hs_dist(pc.m_hs_dist),
+	m_ws_dist(pc.m_ws_dist),
+	m_cs_dist(pc.m_cs_dist),
+	m_shutdown_capacity(pc.m_shutdown_capacity),
+	m_no_restart_capacity(pc.m_no_restart_capacity),
+	m_shutdown_efficiency(pc.m_shutdown_efficiency),
+	m_no_restart_efficiency(pc.m_no_restart_efficiency),
+	m_current_scenario(pc.m_current_scenario),
+	m_cycle_efficiency(pc.m_cycle_efficiency),
+	m_cycle_capacity(pc.m_cycle_capacity),
+	m_new_failure_occurred(pc.m_new_failure_occurred),
+	m_new_repair_occurred(pc.m_new_repair_occurred),
+	m_current_cycle_state(pc.m_current_cycle_state),
+	m_begin_cycle_state(pc.m_begin_cycle_state),
+	m_file_settings(pc.m_file_settings),
+	//m_results(pc.m_results),
+	m_sim_params(pc.m_sim_params),
+	output_log(pc.output_log)
+{
+	//set up dictionaries
+	//m_dispatch
+	std::vector<double> cycle_power(0., pc.m_sim_params.sim_length);
+	std::vector<double> thermal_power(0., pc.m_sim_params.sim_length);
+	std::vector<double> ambient_temperature(0., pc.m_sim_params.sim_length);
+	std::vector<double> standby(0., pc.m_sim_params.sim_length);
+
+	for (size_t i = 0; i < pc.m_sim_params.sim_length; i++)
+	{
+		cycle_power.at(i) = pc.m_dispatch.at("cycle_power").at(i);
+		thermal_power.at(i) = pc.m_dispatch.at("thermal_power").at(i);
+		ambient_temperature.at(i) = pc.m_dispatch.at("ambient_temperature").at(i);
+		standby.at(i) = pc.m_dispatch.at("standby").at(i);
+	}
+
+	m_dispatch["cycle_power"] = cycle_power;
+	m_dispatch["thermal_power"] = thermal_power;
+	m_dispatch["ambient_temperature"] = ambient_temperature;
+	m_dispatch["standby"] = standby;
+
+	//populate failure events
+	m_failure_events.clear();
+	for (std::string label : m_failure_event_labels)
+	{
+		m_failure_events[label] = failure_event(
+			pc.m_failure_events.at(label).time,
+			pc.m_failure_events.at(label).component,
+			pc.m_failure_events.at(label).fail_idx,
+			pc.m_failure_events.at(label).duration,
+			pc.m_failure_events.at(label).labor,
+			pc.m_failure_events.at(label).new_life,
+			pc.m_failure_events.at(label).scen_index
+		);
+	}
+
+	//populate starting component status
+	std::string component_name;
+	m_start_component_status.clear();
+	for (size_t i=0; i<m_components.size(); i++)
+	{
+		component_name = m_components.at(i).GetName();
+		std::vector<double> lifes = {};
+		for (size_t j=0; j < m_components.at(i).GetFailureTypes().size(); j++)
+		{ 
+			lifes.push_back(pc.m_start_component_status.at(component_name).lifetimes.at(j));
+		}
+		m_start_component_status[component_name] = ComponentStatus(
+			lifes,
+			pc.m_start_component_status.at(component_name).hazard_rate,
+			pc.m_start_component_status.at(component_name).downtime_remaining,
+			pc.m_start_component_status.at(component_name).repair_event_time,
+			pc.m_start_component_status.at(component_name).age
+		);
+	}
+
+	//outputs are not required
+}
+
 
 void PowerCycle::Initialize(double age, int scen_idx)
 {
@@ -1422,6 +1542,17 @@ void PowerCycle::ResetCycleEventFlags()
 	}
 }
 
+void PowerCycle::TrackNewFailures()
+{
+	for (size_t i = 0; i < m_components.size(); i++)
+	{
+		if (m_components.at(i).IsNewFailure())
+		{
+			m_num_failures++;
+		}
+	}
+}
+
 double PowerCycle::GetTimeInStandby()
 {
 	/* 
@@ -1978,6 +2109,8 @@ void PowerCycle::SetDispatch(std::unordered_map< std::string, std::vector< doubl
         m_dispatch[ it->first ] = it->second;
     }
 
+	//set simulation length to length of cycle power vector 
+	m_sim_params.sim_length = m_dispatch["cycle_power"].size();
     
 }
 
@@ -2744,6 +2877,7 @@ void PowerCycle::RunDispatch()
         progress), and 0 otherwise.  This includes the read-in period.
     
 	*/
+	m_num_failures = 0;
 	m_new_failure_occurred = false;
 	m_new_repair_occurred = false;
     std::vector< double > cycle_capacities( m_sim_params.sim_length, 0 );
@@ -2782,12 +2916,13 @@ void PowerCycle::RunDispatch()
 			power_output = 0.0;
 			mode = "OFF";
 		}
-		//ajz: This was formerly for only periods after read-in
+		//Periods after read-in
 		if (t > m_results.period_of_last_repair[m_current_scenario]  && 
 			t > m_results.period_of_last_failure[m_current_scenario])
 		{
 			double ramp_mult = GetRampMult(thermal_output);
 			TestForComponentFailures(ramp_mult, t, start, mode);
+			TrackNewFailures();
 			SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
 			//if the cycle Capacity is set to zero, this means the plant is in maintenace
 			//or a critical failure has occurred, so shut the plant down.
@@ -3025,6 +3160,16 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory,
 	}
 	m_start_component_status = GetComponentStates();
 	RunDispatch();
+	//record number of new failures
+	if (m_results.num_failures.find(m_current_scenario) !=
+		m_results.num_failures.end())
+	{
+		m_results.num_failures[m_current_scenario] += m_num_failures;
+	}
+	else
+	{
+		m_results.num_failures[m_current_scenario] = m_num_failures;
+	}
 	if ((m_new_repair_occurred && m_sim_params.stop_at_first_repair) 
 		|| (m_new_failure_occurred && m_sim_params.stop_at_first_failure) )
 	{
@@ -3166,6 +3311,7 @@ void PowerCycle::ResetPlant()
 	m_current_cycle_state.time_in_standby = 0.;
 	m_current_cycle_state.power_output = 0.;
 	m_current_cycle_state.hours_to_maintenance = m_current_cycle_state.maintenance_interval;
+	m_num_failures = 0;
 	for (size_t c = 0; c < GetComponents().size(); c++)
 	{
 		GetComponents().at(c).Reset(*m_life_gen);

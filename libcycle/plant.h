@@ -81,17 +81,22 @@ class PowerCycle
 	double m_cycle_capacity;
 	bool m_new_failure_occurred;
 	bool m_new_repair_occurred;
+	int m_num_failures;
 
 public:
-	PowerCycle();
-	//PowerCycle(PowerCycle pc);
-	void Initialize(double age = 0., int scen_idx = 0);
+	//public members
 	cycle_state m_current_cycle_state;
 	cycle_state m_begin_cycle_state;
 	cycle_file_settings m_file_settings;
 	cycle_results m_results;
 	simulation_params m_sim_params;
 	std::vector< std::string > output_log;
+
+	//constructors
+	PowerCycle();
+	PowerCycle(const PowerCycle &pc);
+
+	void Initialize(double age = 0., int scen_idx = 0);
 	void InitializeCyclingDists();
 	void AssignGenerators(
 		WELLFiveTwelve *gen1,
@@ -162,6 +167,7 @@ public:
 	bool NewRepairOccurred();
 	bool NewFailureOccurred();
 	void ResetCycleEventFlags();
+	void TrackNewFailures();
 
 	double GetTimeInStandby();
 	double GetTimeOnline();

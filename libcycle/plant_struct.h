@@ -78,6 +78,7 @@ struct cycle_results
 	std::unordered_map < int, std::vector < double > > cycle_capacity;
 	std::unordered_map < int, std::vector < double > > cycle_efficiency;
 	std::unordered_map < int, double  > labor_costs;
+	std::unordered_map < int, int > num_failures;
 	std::vector < double > avg_cycle_capacity;
 	std::vector < double > avg_cycle_efficiency;
 	double avg_labor_cost;
