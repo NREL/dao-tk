@@ -1,6 +1,7 @@
 #include "project.h"
 #include "clusterthread.h"
 #include "fluxsimthread.h"
+#include "cyclethread.h"
 #include <wx/thread.h>
 #include <limits>
 
@@ -1590,12 +1591,21 @@ bool Project::C()
 			dispatch["standby"].at(y*nrec + i) = standby;
 		}
 	}
-
-	
 	pc.SetDispatch(dispatch);
 
-	pc.Simulate(false,false,false);
-
+	// If there are multiple scenarios and multiple threads available, simulate
+	// using multithreading.
+	if (
+		m_parameters.n_sim_threads.as_integer() > 1 &&
+		m_parameters.num_cycle_scenarios.as_integer() > 1
+		)
+	{
+		pc.Simulate(false, false, false);  //placeholder
+	}
+	else
+	{
+		pc.Simulate(false, false, false);
+	}
 
 	//--- Average number of failure events over all scenarios
 	double nf = 0.0;

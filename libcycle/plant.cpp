@@ -2998,7 +2998,7 @@ void PowerCycle::OperatePlant(double power_out,
 }
 
 void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory,
-	bool init)
+	bool init, bool reset_plant)
 {
     /*failure_file = open(
         os.path.join(m_sim_params.print_output_dir,"component_failures.csv"),'w'
@@ -3011,6 +3011,17 @@ void PowerCycle::SingleScen(bool read_state_from_file, bool read_from_memory,
 	{
 		ReadCycleStateFromResults();
 		ReadComponentStatus(m_results.component_status[m_current_scenario]);
+	}
+	else
+	{
+		//if both quantities are false, set the RNG states.
+		m_life_gen->assignStates(3 * m_current_scenario);
+		m_repair_gen->assignStates(3 * m_current_scenario + 1);
+		m_binary_gen->assignStates(3 * m_current_scenario + 2);
+		if (reset_plant)
+		{
+			ResetPlant();
+		}
 	}
 	m_start_component_status = GetComponentStates();
 	RunDispatch();
