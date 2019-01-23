@@ -338,9 +338,9 @@ void _test(lk::invoke_t &cxt)
 	P->m_variables.D_rec.assign( 17. );
 	P->m_variables.design_eff.assign( .41 );
 	P->m_variables.dni_des.assign( 950. );
-	P->m_variables.P_ref.assign( 115. );
-	P->m_variables.solarm.assign( 2.4 );
-	P->m_variables.tshours.assign( 10. );
+	P->m_variables.P_ref.assign( 45. );
+	P->m_variables.solarm.assign( 1 );
+	P->m_variables.tshours.assign( 6. );
 	P->m_variables.degr_replace_limit.assign( .7 );
 	P->m_variables.om_staff.assign( 5 );
 	//P->m_variables.n_wash_crews.assign( 3 );
@@ -348,6 +348,11 @@ void _test(lk::invoke_t &cxt)
 	P->m_variables.N_panel_pairs.assign( 8 );
     P->m_parameters.degr_per_hour.assign(0.);
     P->m_parameters.degr_accel_per_year.assign(0.);
+	P->m_parameters.n_sim_threads.assign(3);
+	P->m_parameters.num_cycle_scenarios.assign(5);
+	P->m_parameters.is_dispatch.assign(0.);
+	P->m_parameters.is_cycle_avail.assign(0.);
+	P->m_parameters.cycle_nyears.assign(1);
 
     //P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
     //P->m_parameters.solar_resource_file.assign( "C:/Users/mwagner/Documents/NREL/projects/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );

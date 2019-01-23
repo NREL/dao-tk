@@ -5,7 +5,7 @@ void CycleThread::Setup(
 	std::string &tname,
 	Project *P,
 	PowerCycle *C,
-	ssc_data_t ssc_data,
+	//ssc_data_t ssc_data,
 	std::vector<double> *t_amb,
 	std::vector<double> *thermal_gen,
 	std::vector<double> *elec_gen,
@@ -21,7 +21,7 @@ void CycleThread::Setup(
 	_thread_id = tname;
 	_P = P;
 	_C = C;
-	_ssc_data = ssc_data;
+	//_ssc_data = ssc_data;
 	_result = results;
 	_keys = keys;
 	Finished = false;
@@ -33,9 +33,10 @@ void CycleThread::Setup(
 	_thermal_gen = thermal_gen;
 	_elec_gen = elec_gen;
 
+	/*
 	//copy over all of the data in the ssc_data object into a new object to avoid memory conflicts
 	_ssc_data = ssc_data_create();
-
+	
 	const char* vname = ssc_data_first(ssc_data);
 	while (vname != '\0')
 	{
@@ -68,7 +69,7 @@ void CycleThread::Setup(
 		}
 		vname = ssc_data_next(ssc_data);
 	}
-
+	*/
 
 };
 
@@ -195,6 +196,20 @@ void CycleThread::StartThread() //Entry()
 			}
 		}
 
+		//collect results
+		keylist keys = { "avg_cycle_capacity", "avg_cycle_efficiency" };
+
+		result_map results;
+		for (int i = _sim_g_start; i <= _sim_g_end; i++)
+		{
+			results["cycle_capacity"+std::to_string(i)] = _C->m_results.cycle_capacity.at(i);
+			results["avg_cycle_efficiency"+std::to_string(i)] = _C->m_results.cycle_efficiency.at(i);
+			results["num_failures" + std::to_string(i)] = { (double)_C->m_results.num_failures.at(i) };
+			results["labor_costs" + std::to_string(i)] = { (double)_C->m_results.labor_costs.at(i) };
+		}
+
+		_result = &results;
+
 		FinishedLock.lock();
 		Finished = true;
 		FinishedLock.unlock();
@@ -235,8 +250,14 @@ void CycleThread::StartThread() //Entry()
 		_sim_messages.push_back("Thread " + this->_thread_id + ": " + "Caught unspecified error in a simulation thread. Simulation was not successful.");
 	}
 
+
 	return;
 
-};
+}
+result_map *CycleThread::GetResults()
+{
+	return _result;
+}
+;
 
 

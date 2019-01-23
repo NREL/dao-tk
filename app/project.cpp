@@ -1246,9 +1246,9 @@ bool Project::D()
     ssc_to_lk_hash(m_ssc_data, m_design_outputs);
 	
 	//update values
-		int nr, nc;
-		ssc_number_t *p_hel = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
-		ssc_data_set_matrix(m_ssc_data, "helio_positions", p_hel, nr, nc);
+	int nr, nc;
+	ssc_number_t *p_hel = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
+	ssc_data_set_matrix(m_ssc_data, "helio_positions", p_hel, nr, nc);
 
 	ssc_number_t val;
 	ssc_data_get_number(m_ssc_data, "area_sf", &val);
@@ -1598,39 +1598,105 @@ bool Project::C()
 		m_parameters.num_cycle_scenarios.as_integer() > 1
 		)
 	{
-		pc.Simulate(false, false, false);  //placeholder
+		int nthread = std::min(
+			m_parameters.n_sim_threads.as_integer(), std::min(
+				m_parameters.num_cycle_scenarios.as_integer(),
+				wxThread::GetCPUCount()
+			)
+		);
+		CycleThread *cyclesimthreads = new CycleThread[nthread];
+		const PowerCycle cycle_to_copy = pc;
+		PowerCycle *pcs = new PowerCycle[nthread];
+		int sim_g_start, sim_g_end;
+		for (int i = 0; i < nthread; i++)
+		{
+			pcs[i] = PowerCycle(cycle_to_copy);
+			sim_g_start = i * (m_parameters.num_cycle_scenarios.as_integer() / nthread);
+			sim_g_end = std::min(
+				nthread-1,
+				(i + 1) * (m_parameters.num_cycle_scenarios.as_integer() / nthread) - 1
+				);
+			cyclesimthreads[i].Setup(
+				std::to_string(i),
+				this,
+				&pcs[i],
+				{},
+				{},
+				{},
+				{},
+				{},
+				sim_g_start,
+				sim_g_end
+			);
+		}
+
+		for (int i = 0; i < nthread; i++)
+			std::thread(&CycleThread::StartThread, std::ref(cyclesimthreads[i])).detach();
+
+		//Wait loop
+		while (true)
+		{
+			int nsim_done = 0, nsim_total = 0, nthread_done = 0;
+			for (int i = 0; i < nthread; i++)
+			{
+				if (cyclesimthreads[i].IsFinished())
+					nthread_done++;
+				int ncomp, ntot;
+				cyclesimthreads[i].GetStatus(&ncomp, &ntot);
+				nsim_done += ncomp;
+				nsim_total += ntot;
+			}
+			if (!sim_progress_handler((double)nsim_done / (double)nsim_total, "Multi-threaded flux characterization"))
+			{
+				for (int i = 0; i < nthread; i++)
+					cyclesimthreads[i].CancelSimulation();
+			}
+			if (nthread_done == nthread) break;
+			std::this_thread::sleep_for(std::chrono::milliseconds(150));
+		}
+
+		for (int i = 0; i < nthread; i++)
+		{
+			if (cyclesimthreads[i].IsFinishedWithErrors() || cyclesimthreads[i].IsSimulationCancelled())
+			{
+				//ssc_module_free(mod_solarpilot);
+				is_cycle_avail_valid = false;
+				delete[] cyclesimthreads;
+				return false;
+			}
+		}
+
+		//aggregate results
+		for (int i = 0; i < nthread; i++)
+		{
+			sim_g_start = i * (m_parameters.num_cycle_scenarios.as_integer() / nthread);
+			sim_g_end = std::min(
+				nthread - 1,
+				(i + 1) * (m_parameters.num_cycle_scenarios.as_integer() / nthread) - 1
+			);
+			for (int s = sim_g_start; s <= sim_g_end; s++)
+			{
+				pc.m_results.cycle_capacity[s] = pcs[i].m_results.cycle_capacity[s];
+				pc.m_results.cycle_efficiency[s] = pcs[i].m_results.cycle_efficiency[s];
+				pc.m_results.num_failures[s] = pcs[i].m_results.num_failures[s];
+				pc.m_results.labor_costs[s] = pcs[i].m_results.labor_costs[s];
+				pc.m_results.turbine_capacity[s] = pcs[i].m_results.turbine_capacity[s];
+				pc.m_results.turbine_efficiency[s] = pcs[i].m_results.turbine_efficiency[s];
+			}
+		}
+		pc.GetSummaryResults();
 	}
 	else
 	{
 		pc.Simulate(false, false, false);
 	}
 
+	//--- Calculate yearly-average hourly cycle capacity/efficiency and annual
 	//--- Average number of failure events over all scenarios
-	double nf = 0.0;
-	/*
-	std::unordered_map < int, std::vector < std::string > > failure_event_labels;
-	for (int s = 0; s < ns; s++)
-		nf += pc.m_results.failure_event_labels[s].size() / (double)ns;
-	*/
-
-	// for now count failures from capacity/efficiency results
-	for (int s = 0; s < ns; s++)
-	{
-		for (int i = 1; i < nrec*ny; i++)
-		{
-			if (pc.m_results.cycle_capacity[s][i] < pc.m_results.cycle_capacity[s][i - 1] || pc.m_results.cycle_efficiency[s][i] < pc.m_results.cycle_efficiency[s][i - 1])
-				nf += 1;
-		}
-	}
-	nf /= (double)ns;
-
-	
-
-
-
-	//--- Calculate yearly-average hourly cycle capacity/efficiency (averaged over all scenarios)
 	std::vector<double> avg_cycle_capacity(nrec, 0.0);
 	std::vector<double> avg_cycle_efficiency(nrec, 0.0);
+	double nf = 0.0;
+
 	for (int i = 0; i < nrec; i++)
 	{
 		for (int y = 0; y < ny; y++)
@@ -1639,13 +1705,16 @@ bool Project::C()
 			avg_cycle_efficiency.at(i) += pc.m_results.avg_cycle_efficiency.at(y*nrec + i) / (double)ny;
 		}
 	}
+	for (int s = 0; s < m_parameters.num_cycle_scenarios.as_integer(); s++)
+	{
+		nf += pc.m_results.num_failures.at(s);
+	}
 
-	double nfailures_per_year = nf / (double)ny;
+	double nfailures_per_year = nf / (double)(ny*m_parameters.num_cycle_scenarios.as_integer());
 	double avg_labor_cost_per_year = pc.m_results.avg_labor_cost / (double)ny;
 
 	//--- Assign results to structure
 	save_cycle_outputs(avg_cycle_capacity, avg_cycle_efficiency, nfailures_per_year, avg_labor_cost_per_year);
-
 
 	//--- De-rate generation/revenue in simulation outputs based on average cycle availability and efficiency
 	double qdes = m_variables.P_ref.as_number() / m_variables.design_eff.as_number();
