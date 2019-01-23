@@ -23,7 +23,7 @@ class CycleThread
 	int _nsim_total;
 
 	std::string _thread_id;
-	ssc_data_t _ssc_data;
+	//ssc_data_t _ssc_data;
 
 	Project *_P;
 	PowerCycle *_C;
@@ -48,7 +48,7 @@ public:
 		std::string &tname,
 		Project *P,
 		PowerCycle *C,
-		ssc_data_t ssc_data,
+		//ssc_data_t ssc_data,
 		std::vector<double> *t_amb,
 		std::vector<double> *thermal_gen,
 		std::vector<double> *elec_gen,
@@ -73,6 +73,8 @@ public:
 	std::vector<std::string> *GetSimMessages();    //can be called only after simulation is terminated
 
 	void StartThread();
+
+	result_map *GetResults();
 
 };
 
