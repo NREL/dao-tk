@@ -32,13 +32,18 @@ ComponentStatus::ComponentStatus(std::vector<double> _lifes, double _hazard,
 Component::Component()
 {}
 
-Component::Component(std::string name, std::string type,
-		//std::string dist_type, double failure_alpha, double failure_beta, 
-		double mean_repair_time, double repair_cooldown_time,
-		std::unordered_map< std::string, failure_event > *failure_events,
-		double capacity_reduction, double efficiency_reduction, double repair_cost, std::string repair_mode,
-		std::vector<std::string> *failure_event_labels,
-		bool reset_hazard_rate)
+Component::Component(
+	std::string name, 
+	std::string type,
+	double mean_repair_time, 
+	double repair_cooldown_time,	
+	std::unordered_map< std::string, failure_event > *failure_events,
+	double capacity_reduction, 
+	double efficiency_reduction, 
+	double repair_cost, 
+	std::string repair_mode,
+	std::vector<std::string> *failure_event_labels,
+	bool reset_hazard_rate)
 {
     /*
     Description of attributes:
@@ -234,6 +239,11 @@ bool Component::IsNewFailure()
 bool Component::IsNewRepair()
 {
 	return m_new_repair;
+}
+
+bool Component::GetResetHazardRatePolicy()
+{
+	return m_reset_hazard_rate;
 }
 
 void Component::SetResetHazardRatePolicy(bool reset_hazard)
@@ -674,5 +684,51 @@ life_prob -- value to assign to given lifetime / probability of failure
 */
 {
 	m_status.lifetimes.at(fail_idx) = life_prob;
+}
+
+Component Component::Copy(
+	std::unordered_map< std::string, failure_event> *failure_events,
+	std::vector< std::string > *failure_event_labels
+)
+{
+	/*
+	Returns a deep copy of the Component object c.  
+	Requires access to the locations of the new
+	failure_events dictionary and the failure event labels
+	vector.
+	*/
+	
+	//build a component, using the parent failure events.
+	Component c = Component(
+		m_name,
+		m_type,
+		m_repair_dist->GetAlpha(),
+		m_repair_dist->GetBeta(),
+		failure_events,
+		m_capacity_reduction,
+		m_efficiency_reduction,
+		m_repair_cost,
+		m_repair_mode,
+		failure_event_labels,
+		m_reset_hazard_rate
+	);
+
+	//Add deep copies of the failure modes.
+	for (size_t i = 0; m_status.lifetimes.size(); i++)
+	{
+		c.AddFailureMode(
+			m_name,
+			m_failure_types.at(i).GetFailureID(),
+			m_failure_types.at(i).GetFailureMode(),
+			m_failure_types.at(i).GetFailureDist()->GetType(),
+			m_failure_types.at(i).GetFailureDist()->GetAlpha(),
+			m_failure_types.at(i).GetFailureDist()->GetBeta()
+		);
+	}
+
+	//Read the status to obtain lifetimes.
+	c.ReadStatus(m_status);
+
+	return c;
 }
 

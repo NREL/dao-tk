@@ -131,6 +131,8 @@ public:
 
 	bool IsNewRepair();
 
+	bool GetResetHazardRatePolicy();
+
 	void SetResetHazardRatePolicy(bool reset_hazard);
 
 	void ResetFailureAndRepairFlags();
@@ -205,6 +207,11 @@ public:
 	void Reset(WELLFiveTwelve &gen);
 
 	void SetFailLifeOrProb(int fail_idx, double life_prob);
+
+	Component Copy(
+		std::unordered_map< std::string, failure_event> *failure_events,
+		std::vector< std::string > *failure_event_labels
+	);
 
 };
 

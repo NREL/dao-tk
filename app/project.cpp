@@ -165,6 +165,7 @@ void parameters::initialize()
     helio_comp_weibull_scale.set(        scale,     "helio_comp_weibull_scale",      false,             "Helio component Weibull scale params",          "hr", "Heliostat availability|Parameters" );
     helio_comp_mtr.set(                    mtr,               "helio_comp_mtr",      false,              "Helio component mean time to repair",          "hr", "Heliostat availability|Parameters" );
     helio_comp_repair_cost.set(    repair_cost,       "helio_comp_repair_cost",      false,                      "Helio component repair cost",           "$", "Heliostat availability|Parameters" );
+	avail_good_as_new.set(                true,            "avail_good_as_new",      false,         "Components good-as-new on repair if true",            "", "Heliostat availability|Parameters" );
 
     heliostat_refurbish_cost.set(        23.06,     "heliostat_refurbish_cost",      false,                          "Mirror replacement cost",       "$/m^2",    "Optical degradation|Parameters" );
 	wash_vehicle_life.set(                  10,            "wash_vehicle_life",      false,                           "Wash vehicle lifetime",           "yr",    "Optical degradation|Parameters" );
@@ -1449,7 +1450,7 @@ bool Project::M()
 
 
 	//-- Heliostat components
-	bool good_as_new = true;
+	bool good_as_new = m_parameters.avail_good_as_new.as_boolean();
 	double min_rep = 0.;
 	double max_rep = 1000.;
 	sfa.m_settings.helio_components.clear();
@@ -1607,30 +1608,57 @@ bool Project::C()
 			)
 		);
 		CycleThread *cyclesimthreads = new CycleThread[nthread];
-		const PowerCycle cycle_to_copy = pc;
-		PowerCycle *pcs = new PowerCycle[nthread];
+		std::vector<PowerCycle> pcs = {};
+		std::vector<WELLFiveTwelve> gens = {}; 
+		for (int i = 0; i < m_parameters.num_cycle_scenarios.as_integer(); i++)
+		{
+			pcs.push_back(pc.Copy());
+			for (int j = 0; j < 3; j++)
+			{
+				gens.push_back(WELLFiveTwelve(0));
+			}
+			pcs[i].AssignGenerators(
+				&gens[i * 3], 
+				&gens[i * 3 + 1], 
+				&gens[i * 3 + 2]
+			);
+		}
+
+		//serial
+		for (int i = 0; i < m_parameters.num_cycle_scenarios.as_integer(); i++)
+		{
+			pcs[i].SingleScen(false, false, false, false, i);
+		}
+		for (int i = 0; i < m_parameters.num_cycle_scenarios.as_integer(); i++)
+		{
+			pc.m_results.cycle_capacity[i] = pcs[i].m_results.cycle_capacity[i];
+			pc.m_results.cycle_efficiency[i] = pcs[i].m_results.cycle_efficiency[i];
+			pc.m_results.num_failures[i] = pcs[i].m_results.num_failures[i];
+			pc.m_results.labor_costs[i] = pcs[i].m_results.labor_costs[i];
+			pc.m_results.turbine_capacity[i] = pcs[i].m_results.turbine_capacity[i];
+			pc.m_results.turbine_efficiency[i] = pcs[i].m_results.turbine_efficiency[i];
+		}
+		
+		
+		/*
 		int sim_g_start, sim_g_end;
 		for (int i = 0; i < nthread; i++)
 		{
-			pcs[i] = PowerCycle(cycle_to_copy);
 			sim_g_start = i * (m_parameters.num_cycle_scenarios.as_integer() / nthread);
 			sim_g_end = std::min(
 				nthread-1,
 				(i + 1) * (m_parameters.num_cycle_scenarios.as_integer() / nthread) - 1
 				);
 			cyclesimthreads[i].Setup(
-				std::to_string(i),
+				i,
+				nthread,
 				this,
 				&pcs[i],
-				{},
-				{},
-				{},
-				{},
-				{},
 				sim_g_start,
 				sim_g_end
 			);
 		}
+
 
 		for (int i = 0; i < nthread; i++)
 			std::thread(&CycleThread::StartThread, std::ref(cyclesimthreads[i])).detach();
@@ -1668,6 +1696,8 @@ bool Project::C()
 			}
 		}
 
+		
+		
 		//aggregate results
 		for (int i = 0; i < nthread; i++)
 		{
@@ -1686,6 +1716,7 @@ bool Project::C()
 				pc.m_results.turbine_efficiency[s] = pcs[i].m_results.turbine_efficiency[s];
 			}
 		}
+		*/
 		pc.GetSummaryResults();
 	}
 	else
