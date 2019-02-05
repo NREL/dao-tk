@@ -473,6 +473,7 @@ struct parameters : public hash_base
 	parameter is_reoptimize_at_repairs;
 	parameter is_reoptimize_at_failures;
 	parameter is_use_target_heuristic;
+	parameter avail_good_as_new;
 
     //strings
 	parameter ampl_data_dir;
@@ -566,6 +567,7 @@ struct parameters : public hash_base
 	parameter helio_comp_weibull_scale;
 	parameter helio_comp_mtr;
 	parameter helio_comp_repair_cost;
+
 	parameter clustering_feature_weights;
 	parameter clustering_feature_divisions;
 
