@@ -622,7 +622,8 @@ void optimization_outputs::initialize()
     //for (std::vector<std::string>::iterator k = keys.begin(); k != keys.end(); k++)
     //    for (int i = 0; i < 20; i++)
     //        ohv[*k].push_back(ii++);
-    	
+    
+	obj_ub_i.set(empty_vec_d, "obj_function_upper_b", true); //, "Upper bound on objective at evaluation points", "-", "Optimization|Outputs");	
     eta_i.set(empty_mat, "obj_function_lower_b", true); //, "Lower bound on objective at evaluation points", "-", "Optimization|Outputs");
     secants_i.set(empty_vec_d, "obj_function_secants", true); //, "Objective function secants", "-", "Optimization|Outputs");
     feas_secants_i.set(empty_vec_d, "obj_function_secants_f", true); //, "Feasible objective function secants", "-", "Optimization|Outputs");
@@ -630,7 +631,8 @@ void optimization_outputs::initialize()
     wall_time_i.set(empty_vec_d, "obj_wall_time", true); //, "Clock time for objective function evaluation", "-", "Optimization|Outputs");
     iteration_history.set(ohv, "iteration_history", true, "Optimization iteration data", "", "Optimization|Outputs");
     best_point.set(ohv, "best_point", true, "Best point found during optimization", "", "Optimization|Outputs");
-
+	
+	(*this)["obj_function_upper_b"] = &obj_ub_i;
     (*this)["obj_function_lower_b"] = &eta_i;
     (*this)["obj_function_secants"] = &secants_i;
     (*this)["obj_function_secants_f"] = &feas_secants_i;
@@ -836,7 +838,7 @@ Project::Project()
         m_variables.design_eff.triggers =
         m_variables.dni_des.triggers =
         m_variables.solarm.triggers = { "D", "M", "O", "S", "E", "F" }; //{ &Project::D, &Project::M, &Project::O, &Project::S, &Project::E, &Project::F };
-    m_variables.P_ref.triggers = {"D", "M", "C", "O", "S", "E", "F"};  //{ &Project::D, &Project::M, &Project::C, &Project::O, &Project::S, &Project::E, &Project::F };
+    m_variables.P_ref.triggers = {"D", "M", "O", "S", "C", "E", "F"};  //{ &Project::D, &Project::M, &Project::C, &Project::O, &Project::S, &Project::E, &Project::F };
     m_variables.tshours.triggers = { "S", "E", "F"}; // { &Project::S, &Project::E, &Project::F };
     m_variables.degr_replace_limit.triggers = { "O", "S", "E", "F"}; // { &Project::O, &Project::S, &Project::E, &Project::F };
     m_variables.om_staff.triggers = { "M", "S", "E", "F" }; // { &Project::M, &Project::S, &Project::E, &Project::F };
@@ -852,7 +854,7 @@ Project::Project()
     _all_method_pointers["F"] = pf;
 
     _all_method_names.clear();
-    _all_method_names = { "D", "M", "C", "O", "S", "E", "F" };
+    _all_method_names = { "D", "M", "O", "S", "C", "E", "F" };
 
     add_documentation();
 }
