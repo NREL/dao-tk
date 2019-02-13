@@ -215,6 +215,22 @@ void _varinfo(lk::invoke_t &cxt)
 
 }
 
+void _sscvar(lk::invoke_t &cxt)
+{
+    LK_DOC("set_ssc_par", "Set secondary project settings directly in SSC context (advanced user).", "(string:name, variant:value):none");
+
+    if (cxt.arg_count() != 2)
+    {
+        MainWindow::Instance().Log("The function set_ssc_par() requires two arguments.");
+        return;
+    }
+
+    std::string name = cxt.arg(0).as_string();
+    lk::vardata_t arg = cxt.arg(1);
+
+    MainWindow::Instance().GetProject()->AddToSSCContext(name, arg);
+}
+
 void _var(lk::invoke_t &cxt)
 {
     LK_DOC2("var", "Interact with variables or parameters.",

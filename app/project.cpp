@@ -3687,3 +3687,11 @@ void Project::ClearStoredData()
     for (size_t i = 0; i < ptrs.size(); i++)
         static_cast<hash_base*>(ptrs.at(i))->initialize();
 }
+
+void Project::AddToSSCContext(std::string varname, lk::vardata_t& dat)
+{
+    //update the local ssc context with a new parameter
+    lk::varhash_t temp;
+    temp[varname] = &dat;
+    lk_hash_to_ssc(m_ssc_data, temp);
+}

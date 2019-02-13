@@ -890,6 +890,7 @@ public:
     bool IsStopFlag();
     void PrintCurrentResults();
     void ClearStoredData();
+    void AddToSSCContext(std::string varname, lk::vardata_t& dat);
 };
 
 
