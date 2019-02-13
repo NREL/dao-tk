@@ -173,7 +173,7 @@ void Project::initialize_ssc_project()
 	ssc_data_set_number( m_ssc_data, "disp_csu_cost",  10000 );
 	ssc_data_set_number( m_ssc_data, "disp_pen_delta_w", (ssc_number_t)0.1 );
     ssc_data_set_number( m_ssc_data, "fc_gamma", (ssc_number_t)0.0 );
-	ssc_data_set_number( m_ssc_data, "is_wlim_series",  0 );
+	ssc_data_set_number( m_ssc_data, "is_wlim_series",  1 );
 	ssc_data_set_number( m_ssc_data, "dispatch_factor1", (ssc_number_t)2.064 );
 	ssc_data_set_number( m_ssc_data, "dispatch_factor2", (ssc_number_t)1.2 );
 	ssc_data_set_number( m_ssc_data, "dispatch_factor3",  1 );

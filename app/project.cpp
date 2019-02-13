@@ -191,6 +191,8 @@ void parameters::initialize()
     flux_max.set(                        1000.,                     "flux_max",      false,                            "Maximum receiver flux",       "kW/m2",             "Simulation|Parameters" );
     forecast_gamma.set(                     0.,                      "fc_gamma",     false,                      "Forecast TES hedging factor",           "-",             "Simulation|Parameters" );
     dispatch_factors_ts.set(            pvalts,          "dispatch_factors_ts",      false,                       "TOD price multiplier array",           "-",             "Simulation|Parameters" );
+    std::vector< double > bigv(8760, std::numeric_limits<double>::infinity());
+    wlim_series.set(                      bigv,                  "wlim_series",      false,              "Maximum power output from the cycle",         "kWe",             "Simulation|Parameters" );
 
     maintenance_interval.set(             1.e6,         "maintenance_interval",      false,      "Runtime duration between maintenance events",           "h",                  "Cycle|Parameters" );
     maintenance_duration.set(             168.,         "maintenance_duration",      false,                   "Duration of maintenance events",           "h",                  "Cycle|Parameters" );
@@ -297,6 +299,7 @@ void parameters::initialize()
     (*this)["flux_max"] = &flux_max;
     (*this)["forecast_gamma"] = &forecast_gamma;
     (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
+    (*this)["wlim_series"] = &wlim_series;
     (*this)["maintenance_interval"] = &maintenance_interval;
     (*this)["maintenance_duration"] = &maintenance_duration;
     (*this)["downtime_threshold"] = &downtime_threshold;
@@ -1843,7 +1846,6 @@ bool Project::S()
 	ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sf, nrec);
 	delete p_sf;
 
-
 	//--- Set ssc parameters
     lk_hash_to_ssc(m_ssc_data, m_parameters);
     lk_hash_to_ssc(m_ssc_data, m_variables);
@@ -1883,9 +1885,6 @@ bool Project::S()
 	ssc_data_set_matrix(m_ssc_data, "flux_positions", p_fluxpos, nr, 2);
 
 	ssc_data_set_number(m_ssc_data, "allow_controller_exceptions", 0);
-
-    
-
 
 	//--- Run ssc simulation.  Cycle availability model will be run separately 
 	unordered_map < std::string, std::vector<double>> ssc_soln;

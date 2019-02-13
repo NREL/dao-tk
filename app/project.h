@@ -558,6 +558,7 @@ struct parameters : public hash_base
     //vector-doubles
 	parameter c_ces;
 	parameter dispatch_factors_ts;
+    parameter wlim_series;
 	parameter user_sf_avail;
 	parameter condenser_eff_cold;
 	parameter condenser_eff_hot;

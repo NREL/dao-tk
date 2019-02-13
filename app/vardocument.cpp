@@ -161,6 +161,9 @@ void Project::add_documentation()
         "The dispatch optimization objective function is formulated such that:<br>"
         "max Z = (1-gamma) * (Revenue days 1 and 2) + gamma * (TES charge end day 1)"
     );
+    m_parameters.wlim_series.doc.set("kWe",
+        "Time series representing the maximum allowable net power output from the power cycle."
+    );
 
     //calculated
     m_design_outputs.number_heliostats.doc.set("-", "Calculated number of heliostats in the solar field layout.");
