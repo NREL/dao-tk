@@ -3,6 +3,7 @@
 #define __iterplot_h 1
 
 #include <wx/wx.h>
+#include <vector>
 #include "plot_base.h"
 #include "project.h"
 
@@ -10,7 +11,7 @@ class IterationPlot : public wxScrolledWindow
 {
 protected:
     
-    PlotBase _plotobj;
+    std::vector<PlotBase> _plotobjs;
     wxBitmap _pbit; //bitmap containing the current plot
     
     ordered_hash_vector* _data;

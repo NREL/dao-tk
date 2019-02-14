@@ -98,6 +98,7 @@ void PlotBase::Create()
     _units = "";
     _wrap_values = false;
     _x_reversed = false;
+    _left_buffer = _right_buffer = _top_buffer = _bottom_buffer = 0;
 }
 
 void PlotBase::ColorGradientHotCold(wxColour &col, double index)
@@ -483,6 +484,13 @@ void PlotBase::SetXAxisReversed(bool do_reversed)
     _x_reversed = do_reversed;
 }
 
+void PlotBase::SetImagePositionOffset(std::vector<double> left_top)
+{
+    if (left_top.size() != 2)
+        return;
+    _position_offset = left_top;
+}
+
 wxBitmap *PlotBase::GetBitmap()
 {
     return &_bitmap;
@@ -493,7 +501,8 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     //Draw the bounding box
     dc.SetPen( *wxWHITE_PEN );
     dc.SetBrush( *wxWHITE_BRUSH );
-    wxRect windowRect(wxPoint(0,0), _plotsize);
+    
+    wxRect windowRect(wxPoint(_position_offset.left, _position_offset.top), _plotsize);
     dc.DrawRectangle( windowRect );
     
     //The pixel size of the drawing canvas
@@ -541,13 +550,13 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     _ppy = _drawsize[1]/yaxspan*plot_scale;
 
     //Origin location - relative to the canvas
-    _origin[0] = _left_buffer + _drawsize[0]/2. - (xaxspan/2. + _xaxmin)*_ppx;
-    _origin[1] = _top_buffer + _drawsize[1]/2. + (yaxspan/2. + _yaxmin)*_ppy;
+    _origin[0] = _position_offset.left + _left_buffer + _drawsize[0]/2. - (xaxspan/2. + _xaxmin)*_ppx;
+    _origin[1] = _position_offset.top + _top_buffer + _drawsize[1]/2. + (yaxspan/2. + _yaxmin)*_ppy;
 
     //Draw the plot boundary
     dc.SetPen( *wxBLACK_PEN );
     dc.SetBrush( *wxBLACK_BRUSH );
-    dc.DrawRectangle( _left_buffer, _top_buffer, _drawsize[0], _drawsize[1]);
+    dc.DrawRectangle( _position_offset.left + _left_buffer, _position_offset.top + _top_buffer, _drawsize[0], _drawsize[1]);
     
     dc.SetBrush( *wxWHITE_BRUSH);
     //Draw the x axis
@@ -561,7 +570,9 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     ets = (std::string)_xlab;
     
     etss = dc.GetTextExtent( ets );
-    dc.DrawText(ets, _left_buffer+_drawsize[0]/2-etss.GetWidth()/2, _drawsize[1]+(15+etss.GetHeight()));
+    dc.DrawText(ets, _position_offset.left + _left_buffer + _drawsize[0]/2-etss.GetWidth()/2, 
+                     _position_offset.top + _drawsize[1]+(15+etss.GetHeight())
+                );
     //estimate the number of divisions
     ets = wxString::Format(xfmt, -xaxspan/2.);    //approximation of the xaxis text size
     etss = dc.GetTextExtent( ets );
@@ -596,10 +607,10 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     }
     
     //Draw the y axis
-    dc.DrawLine(_left_buffer-10, _origin[1], _left_buffer, _origin[1]);
+    dc.DrawLine(_position_offset.left + _left_buffer-10, _origin[1], _position_offset.left + _left_buffer, _origin[1]);
     std::string etsy = "0"; 
     wxSize etssy = dc.GetTextExtent( etsy );
-    dc.DrawText(etsy, _left_buffer-(etssy.GetWidth()+8), _origin[1]-etssy.GetHeight()/2);
+    dc.DrawText(etsy, _position_offset.left + _left_buffer-(etssy.GetWidth()+8), _origin[1]-etssy.GetHeight()/2);
     //Label
     etsy = (std::string)_ylab;
     etssy = dc.GetTextExtent(etsy);
@@ -619,18 +630,18 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
         //To the top
         if(ytickloc < fabs(_yaxmax))
         {
-            dc.DrawLine(_left_buffer-7, _origin[1]-ytickloc_ppm, _left_buffer, _origin[1]-ytickloc_ppm);
+            dc.DrawLine(_position_offset.left + _left_buffer-7, _origin[1]-ytickloc_ppm, _position_offset.left + _left_buffer, _origin[1]-ytickloc_ppm);
             yts.Printf(yfmt, ytickloc);
             wxSize yte = dc.GetTextExtent(yts);
-            dc.DrawText( yts , _left_buffer-10-yte.GetWidth(), _origin[1]-ytickloc_ppm-yte.GetHeight()/2);
+            dc.DrawText( yts , _position_offset.left + _left_buffer-10-yte.GetWidth(), _origin[1]-ytickloc_ppm-yte.GetHeight()/2);
         }
         //To the bottom
         if(ytickloc < fabs(_yaxmin))
         {
-            dc.DrawLine(_left_buffer-7, _origin[1]+ytickloc_ppm, _left_buffer, _origin[1]+ytickloc_ppm);
+            dc.DrawLine(_position_offset.left + _left_buffer-7, _origin[1]+ytickloc_ppm, _left_buffer, _origin[1]+ytickloc_ppm);
             yts.Printf(yfmt, -ytickloc);
             wxSize yte = dc.GetTextExtent(yts);
-            dc.DrawText( yts , _left_buffer-10-yte.GetWidth(), _origin[1]+ytickloc_ppm-yte.GetHeight()/2);
+            dc.DrawText( yts , _position_offset.left + _left_buffer-10-yte.GetWidth(), _origin[1]+ytickloc_ppm-yte.GetHeight()/2);
         }
         
         ytickloc += yscale;

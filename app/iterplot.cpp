@@ -16,7 +16,12 @@ IterationPlot::IterationPlot(wxPanel *parent, ordered_hash_vector* data, const w
     : wxScrolledWindow(parent, id, pos, size, style)
 {
     _data = data;
-    _plotobj.Create();
+
+    //_plotobjs.resize(_data->item_count(), PlotBase());
+    _plotobjs.resize(2, PlotBase());
+
+    for (size_t i = 0; i < _plotobjs.size(); i++)
+        _plotobjs.at(i).Create();
 
 }
 
@@ -33,8 +38,8 @@ void IterationPlot::DoPaint(wxDC &_pdc)
 {
 
     //set up the canvas
-    wxMemoryDC _dc;
-    
+    wxMemoryDC memdc;
+
     int ssize_w = (int)this->GetSize().GetWidth();
     int ssize_h = (int)this->GetSize().GetHeight();
 
@@ -44,18 +49,40 @@ void IterationPlot::DoPaint(wxDC &_pdc)
 
     //assign a bitmap to the DC
     _pbit.Create(ssize_w, ssize_h);
-    _dc.SelectObject(_pbit);
+    memdc.SelectObject(_pbit);
 
-    wxGCDC gdc(_dc);
-
-    _dc.SelectObject(wxNullBitmap);
-    _pdc.DrawBitmap(_pbit, 0, 0);
+    int nitem = (int)_plotobjs.size();
 
     wxSize parsize = this->GetClientSize();
     parsize.x = parsize.x < 100 ? 1024 : parsize.x;
     parsize.y = parsize.y < 100 ? 711 : parsize.y;
+    parsize.y /= (int)(nitem > 8 ? 8 : (nitem == 0 ? 1 : nitem));
+    
+    for (size_t i = 0; i < nitem; i++)
+    {
 
-    _plotobj.SetPlotSize(parsize);
+        _plotobjs.at(i).SetPlotSize(parsize);
+        
+        _plotobjs.at(i).SetXAxisRange(0, _data->iteration_count() + 1);
+        _plotobjs.at(i).SetImagePositionOffset({ 0., (double)((parsize.y + 5)*i)});
+        //max and min, use the objective
+        std::vector<double>* ppa = _data->has_item("ppa");
+        if (ppa)
+        {
+            //std::pair<const std::vector<double>::iterator, const std::vector<double>::iterator> mm = std::minmax(ppa->begin(), ppa->end());
+            auto mm = std::minmax(ppa->begin(), ppa->end());
+            _plotobjs.at(i).AxesSetup(memdc, *mm.first, *mm.second);
+        }   
+        else
+            _plotobjs.at(i).AxesSetup(memdc, 0., 1.);
+
+        //wxColour gray("#d4d4d4");
+    }
+
+        
+   //do this last
+    memdc.SelectObject(wxNullBitmap);
+    _pdc.DrawBitmap(_pbit, 0, 0);
 }
 
 void IterationPlot::OnEraseBackground(wxEraseEvent &) {}

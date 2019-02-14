@@ -85,6 +85,20 @@ public:
         _top_buffer,    //Buffer between the top side of chart area and device boundary
         _bottom_buffer,    //Buffer between the bottom side of chart area and device boundary
         _color_map;    //int member of enum COLORMAP
+
+    struct position_offset
+    {
+        double left, top;
+        position_offset() { left = top = 0; }
+        position_offset& operator=(std::vector<double>& rhs)
+        {
+            if (rhs.size() != 2)
+                throw std::exception("Dimension mismatch in right hand side assignment of iteration plot position offset vector.");
+            left = rhs[0];
+            top = rhs[1];
+            return *this;
+        };
+    } _position_offset;
     
     wxString 
         _xlab,
@@ -122,6 +136,7 @@ public:
     void SetResolutionMultiplier(int resmult);
     void SetDataWrapping(bool do_wrap);
     void SetXAxisReversed(bool do_reverse);
+    void SetImagePositionOffset(std::vector<double> left_top);
 
     void AxesSetup(wxMemoryDC &dc, double minval=0., double maxval=0.);
     void DrawColorbar(wxMemoryDC &dc, double minval, double maxval, double aveval);

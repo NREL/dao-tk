@@ -157,7 +157,7 @@ static MainWindow *g_mainWindow = 0;
 
 MainWindow::MainWindow()
 	: wxFrame(0, wxID_ANY, "DAOToolkit",
-		wxDefaultPosition, wxSize(1100, 700))
+		wxDefaultPosition, wxSize(1700, 800))
 {
 #ifdef __WXMSW__
 	SetIcon(wxICON(appicon));
@@ -234,10 +234,10 @@ MainWindow::MainWindow()
     splitlog->SplitVertically(m_LogViewForm, m_IterPlotForm, 400);
     splitlog->SetSashGravity(0.5);
 
-    m_notebook->AddPage(splitwin, "Script");
+	splitwin->SplitVertically(splitscript, splitlog, 650);
+    splitwin->SetSashGravity(0.9);
 
-	splitwin->SplitVertically(splitscript, splitlog, -650);
-    splitwin->SetSashGravity(0.4);
+    m_notebook->AddPage(splitwin, "Script");
     
 	m_tabList->Append("Data");
 	m_DataViewForm = new DataView(m_notebook, m_image_dir.GetFullPath().c_str() );
@@ -248,6 +248,9 @@ MainWindow::MainWindow()
     main_sizer->Add(main_panel, 1, wxEXPAND, 0);
     main_panel->SetSizerAndFit(sizer);
     SetSizer(main_sizer);
+
+    splitwin->SetSashPosition(1500, true);
+    splitlog->SetSashPosition(400, true);
 
     std::vector<wxAcceleratorEntry> entries;
     entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'o', wxID_OPEN));
