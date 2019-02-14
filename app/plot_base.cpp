@@ -93,9 +93,6 @@ void PlotBase::Create()
     _hfont = 9;
     _resmult = 5;
     _color_map = COLORMAP::PARULA;
-    _xlab = "";
-    _ylab = "";
-    _units = "";
     _wrap_values = false;
     _x_reversed = false;
     _left_buffer = _right_buffer = _top_buffer = _bottom_buffer = 0;
@@ -429,36 +426,6 @@ void PlotBase::SetZRange(double zmin, double zmax, bool is_autoscale)
     _zaxmax = zmax;
 }
 
-void PlotBase::SetXLabel(wxString &xlab)
-{
-    _xlab = xlab;
-}
-
-void PlotBase::SetXLabel(const char *xlab)
-{
-    _xlab = (wxString)xlab;
-}
-
-void PlotBase::SetYLabel(wxString &ylab)
-{
-    _ylab = ylab;
-}
-
-void PlotBase::SetYLabel(const char *ylab)
-{
-    _ylab = (wxString)ylab;
-}
-
-void PlotBase::SetUnits(wxString &units)
-{
-    _units = units;
-}
-
-void PlotBase::SetUnits(const char *units)
-{
-    _units = (wxString)units;
-}
-
 void PlotBase::SetPlotSize(wxSize &psize)
 {
     _plotsize = psize;
@@ -510,7 +477,7 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     canvsize[0] = _plotsize.GetWidth();
     canvsize[1] = _plotsize.GetHeight();
     
-    double plot_scale = 0.95;
+    double plot_scale = 1.;
         
     //The total span of each axis in their respective units
     double
@@ -521,9 +488,8 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     dc.SetFont( wxFont(_hfont, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL) );
     
     //determine the best number formatting for the x axis labels
-    wxString xfmt;
-    int nxdec = CalcBestSigFigs( std::max(fabs(_xaxmax),fabs(_xaxmin)) );
-    xfmt.sprintf("%s%df", "%.", std::max(nxdec,0));
+    wxString xfmt = "%d";
+
     
     //determine the best number formatting for the y axis labels
     wxString yfmt;
@@ -536,9 +502,6 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     _top_buffer = 2;
     _bottom_buffer = etss.GetHeight()+10;
     int nzdec = CalcBestSigFigs(std::max(fabs(maxval),fabs(minval)) );
-    _zfmt.sprintf("%s%df %s", "%.", nzdec, _units.c_str());
-    ets = wxString::Format(_zfmt, std::max(fabs(maxval),fabs(minval)));
-    etss = dc.GetTextExtent( ets);
     //_right_buffer = 40 + etss.GetWidth();
     _right_buffer = etss.GetWidth();
 
@@ -568,16 +531,19 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     etss = dc.GetTextExtent( ets );
     dc.DrawText(ets, _origin[0]-etss.GetWidth()/2, _drawsize[1]+9);
     
-    ets = (std::string)_xlab;
-    
-    etss = dc.GetTextExtent( ets );
-    dc.DrawText(ets, _position_offset.left + _left_buffer + _drawsize[0]/2-etss.GetWidth()/2, 
-                     _position_offset.top + _drawsize[1]+(15+etss.GetHeight())
-                );
+    //ets = (std::string)_xlab;
+    //
+    //etss = dc.GetTextExtent( ets );
+    //dc.DrawText(ets, _position_offset.left + _left_buffer + _drawsize[0]/2-etss.GetWidth()/2, 
+    //                 _position_offset.top + _drawsize[1]+(15+etss.GetHeight())
+    //            );
     //estimate the number of divisions
-    ets = wxString::Format(xfmt, -xaxspan/2.);    //approximation of the xaxis text size
+    ets = wxString::Format(xfmt, (int)(-xaxspan/2.));    //approximation of the xaxis text size
     etss = dc.GetTextExtent( ets );
-    int ndiv = std::min(int(_drawsize[0]/ (etss.GetWidth()*1.35 )), 3);
+    int ndiv = (int)(_drawsize[0]/ (etss.GetWidth()*1.35) );
+    //1./std::ceil((int)(xaxspan / ndiv))
+    //<<TODO needs to match up with the integer nature of the x index
+
     double xscale = calcScale(xaxspan, ndiv);
     double 
         xtickloc = xscale,
@@ -591,7 +557,7 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
         if(xtickloc <= _xaxmax)
         {
             dc.DrawLine(_origin[0]+xtickloc_ppm, _position_offset.top + _drawsize[1], _origin[0]+xtickloc_ppm, _position_offset.top + _drawsize[1]+7);
-            xts.Printf(xfmt, (_x_reversed ? -1. : 1)*(xtickloc+1.e-6));
+            xts.Printf(xfmt, (int)((_x_reversed ? -1. : 1)*(xtickloc+1.e-6)));
             xte = dc.GetTextExtent(xts);
             dc.DrawText( xts , _origin[0]+xtickloc_ppm-xte.GetWidth()/2, _position_offset.top + _drawsize[1]+9);
         }
@@ -599,7 +565,7 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
         if(-xtickloc >= _xaxmin)
         {
             dc.DrawLine(_origin[0]-xtickloc_ppm, _position_offset.top + _drawsize[1], _origin[0]-xtickloc_ppm, _position_offset.top + _drawsize[1]+7);
-            xts.Printf(xfmt, (_x_reversed ? 1. : -1)*(xtickloc+1.e-6));
+            xts.Printf(xfmt, (int)((_x_reversed ? 1. : -1)*(xtickloc+1.e-6)));
             xte = dc.GetTextExtent( xts );
             dc.DrawText( xts , _origin[0]-xtickloc_ppm-xte.GetWidth()/2, _position_offset.top + _drawsize[1]+9);
         }
@@ -613,13 +579,13 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     wxSize etssy = dc.GetTextExtent( etsy );
     dc.DrawText(etsy, _position_offset.left + _left_buffer-(etssy.GetWidth()+8), _origin[1]-etssy.GetHeight()/2);
     //Label
-    etsy = (std::string)_ylab;
-    etssy = dc.GetTextExtent(etsy);
-    dc.DrawRotatedText(etsy, 2, (_drawsize[1]-etssy.GetWidth())/2., 270.);
+    //etsy = (std::string)_ylab;
+    //etssy = dc.GetTextExtent(etsy);
+    //dc.DrawRotatedText(etsy, 2, (_drawsize[1]-etssy.GetWidth())/2., 270.);
     //estimate the number of divisions
     etsy = std::to_string( int(-yaxspan/2.));
     etssy = dc.GetTextExtent( etsy );
-    int ndivy = std::min(int(_drawsize[0]/ (etssy.GetHeight() )), 2);
+    int ndivy = std::min(int(_drawsize[1]/ (etssy.GetHeight() )), 20);
     double yscale = calcScale(yaxspan, ndivy);
         
     double
@@ -668,6 +634,26 @@ void PlotBase::DrawText(wxMemoryDC &dc, std::string message, double x, double y)
     dc.SetPen(oldpen);
 
 }
+
+void PlotBase::DrawSeries(wxMemoryDC &dc, std::vector<double> &points, std::string label)
+{
+    if (points.size() == 0)
+        return;
+
+    dc.SetPen(*wxRED_PEN);
+    dc.SetBrush(*wxBLUE_BRUSH);
+    
+
+    //draw the rest
+    for (size_t i = 0; i < points.size(); i++)
+    {
+        //draw first point
+        double ypt = _origin[1] -_ppy * points[i];
+        double xpt = _origin[0] + _ppx * (i+1);
+        dc.DrawCircle(xpt, ypt, 5);
+    }
+}
+
 
 void PlotBase::DrawColorbar(wxMemoryDC &dc, double minval, double maxval, double aveval)
 {
@@ -734,9 +720,9 @@ void PlotBase::DrawColorbar(wxMemoryDC &dc, double minval, double maxval, double
     dc.DrawLine(canvsize[0]-_right_buffer+5, lineave, canvsize[0]-_right_buffer+25, lineave);
     //Label the gradient bar
     wxString tlab, blab, alab;
-    tlab.sprintf(_zfmt, maxval);
-    blab.sprintf(_zfmt, minval);
-    alab.sprintf(_zfmt, aveval);
+    //tlab.sprintf(_zfmt, maxval);
+    //blab.sprintf(_zfmt, minval);
+    //alab.sprintf(_zfmt, aveval);
         
     dc.DrawText( tlab , canvsize[0]-_right_buffer+5, gtop - dc.GetTextExtent( tlab).GetHeight()-2);
     dc.DrawText( blab , canvsize[0]-_right_buffer+5, gbot + 2);

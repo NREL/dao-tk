@@ -100,11 +100,6 @@ public:
         };
     } _position_offset;
     
-    wxString 
-        _xlab,
-        _ylab,
-        _units,
-        _zfmt;  //Format for number being plotted
     wxSize _plotsize;
     bool _wrap_values, _x_reversed, _z_autoscale;
 
@@ -125,12 +120,6 @@ public:
     void SetXAxisRange(double xmin, double xmax);
     void SetYAxisRange(double ymin, double ymax);
     void SetZRange(double zmin, double zmax, bool is_autoscale);
-    void SetXLabel(wxString &xlab);
-    void SetYLabel(wxString &ylab);
-    void SetUnits(wxString &units);
-    void SetXLabel(const char *xlab);
-    void SetYLabel(const char *ylab);
-    void SetUnits(const char *units);
     void SetPlotSize(wxSize &psize);
     void SetColormap(int cmap);    
     void SetResolutionMultiplier(int resmult);
@@ -141,6 +130,7 @@ public:
     void AxesSetup(wxMemoryDC &dc, double minval=0., double maxval=0.);
     void DrawColorbar(wxMemoryDC &dc, double minval, double maxval, double aveval);
     void DrawText(wxMemoryDC &dc, std::string message, double x, double y);
+    void DrawSeries(wxMemoryDC &dc, std::vector<double> &points, std::string label);
 
     int GetFontSize();
     int GetResolutionMultiplier();

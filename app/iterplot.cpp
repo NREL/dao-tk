@@ -63,7 +63,22 @@ void IterationPlot::DoPaint(wxDC &_pdc)
 
         _plotobjs.at(i).SetPlotSize(parsize);
         
-        _plotobjs.at(i).SetXAxisRange(0, _data->iteration_count() + 1);
+        std::vector<double> testvec;
+        double minval=999, maxval=-999;
+        for (size_t j = 0; j < 15; j++)
+        {
+            double v = sin((double)(i + j)) * 20. - 10.;
+            testvec.push_back(v);
+            minval = v < minval ? v : minval;
+            maxval = v > maxval ? v : maxval;
+        }
+
+        minval = minval - (maxval - minval)*.05;
+        maxval = maxval + (maxval - minval)*.05;
+
+        //_plotobjs.at(i).SetXAxisRange(0, _data->iteration_count() + 1);
+        _plotobjs.at(i).SetXAxisRange(0, testvec.size() + 1);
+        _plotobjs.at(i).SetYAxisRange(minval, maxval);
         _plotobjs.at(i).SetImagePositionOffset({ 0., (double)(parsize.y*i)});
         //max and min, use the objective
         std::vector<double>* ppa = _data->has_item("ppa");
@@ -75,6 +90,9 @@ void IterationPlot::DoPaint(wxDC &_pdc)
         }   
         else
             _plotobjs.at(i).AxesSetup(memdc, 0., 1.);
+
+
+        _plotobjs.at(i).DrawSeries(memdc, testvec, "Series label" );
 
         //wxColour gray("#d4d4d4");
     }
