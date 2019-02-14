@@ -230,7 +230,7 @@ MainWindow::MainWindow()
     wxSplitterWindow *splitlog = new wxSplitterWindow(splitwin, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE | wxSP_PERMIT_UNSPLIT);
     
 	m_LogViewForm = new LogView(splitlog);
-    m_IterPlotForm = new IterPlotView(splitlog);
+    m_IterPlotForm = new IterPlotView(splitlog, &m_project);
     splitlog->SplitVertically(m_LogViewForm, m_IterPlotForm, 400);
     splitlog->SetSashGravity(0.5);
 

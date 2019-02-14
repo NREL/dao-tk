@@ -3,6 +3,7 @@
 
 #include "iterplotview.h"
 #include "iterplot.h"
+#include "project.h"
 
 enum A {
     ID_REFRESH = wxID_HIGHEST + 222,
@@ -20,9 +21,10 @@ EVT_CHECKBOX(ID_NORMALIZE, IterPlotView::OnCommand)
 END_EVENT_TABLE()
 
 
-IterPlotView::IterPlotView(wxWindow *parent)
+IterPlotView::IterPlotView(wxWindow *parent, Project* project)
     : wxPanel(parent)
 {
+    m_project_ptr = project;
 
     wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -33,9 +35,11 @@ IterPlotView::IterPlotView(wxWindow *parent)
     top_sizer->Add(new wxButton(this, ID_UNCHECK_ALL, "Uncheck all", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
     top_sizer->Add(new wxCheckBox(this, ID_NORMALIZE, "Normalize plots"), 0, wxALL | wxEXPAND, 2);
 
-
+    m_iterplot = new IterationPlot(this, &m_project_ptr->m_optimization_outputs.iteration_history.hash_vector);
 
     sizer->Add(top_sizer);
+    sizer->Add(m_iterplot, 1, wxEXPAND | wxALL, 5);
+
     SetSizer(sizer);
 }
 

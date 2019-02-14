@@ -1,6 +1,6 @@
 
 #ifndef __iterplot_h
-#define __iterplot_h
+#define __iterplot_h 1
 
 #include <wx/wx.h>
 #include "plot_base.h"
@@ -9,15 +9,20 @@
 class IterationPlot : public wxScrolledWindow
 {
 protected:
-
-	void OnCommand(wxCommandEvent &);
-
-	//DECLARE_EVENT_TABLE();
-    void OnPaint(wxPaintEvent &event);
+    
     PlotBase _plotobj;
     wxBitmap _pbit; //bitmap containing the current plot
+    
+    ordered_hash_vector* _data;
+
+	void OnCommand(wxCommandEvent &);
+    void OnPaint(wxPaintEvent &event);
+    void OnEraseBackground(wxEraseEvent &evt);
+
+	DECLARE_EVENT_TABLE()
 
 public:
+
     IterationPlot(wxPanel *parent,
         ordered_hash_vector* data,
         const wxWindowID id = wxID_ANY,

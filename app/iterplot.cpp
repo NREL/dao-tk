@@ -5,9 +5,20 @@
 
 #include "iterplot.h"
 #include "plot_base.h"
-//
-//DECLARE_EVENT_TABLE(IterationPlot, wxScrolledWindow)
-//END_EVENT_TABLE()
+
+BEGIN_EVENT_TABLE(IterationPlot, wxScrolledWindow)
+    EVT_PAINT(IterationPlot::OnPaint)
+    EVT_ERASE_BACKGROUND(IterationPlot::OnEraseBackground)
+END_EVENT_TABLE()
+
+IterationPlot::IterationPlot(wxPanel *parent, ordered_hash_vector* data, const wxWindowID id,
+    const wxPoint pos, const wxSize size, long style)
+    : wxScrolledWindow(parent, id, pos, size, style)
+{
+    _data = data;
+    _plotobj.Create();
+
+}
 
 void IterationPlot::OnPaint(wxPaintEvent &event)
 {
@@ -45,4 +56,18 @@ void IterationPlot::DoPaint(wxDC &_pdc)
     parsize.y = parsize.y < 100 ? 711 : parsize.y;
 
     _plotobj.SetPlotSize(parsize);
+}
+
+void IterationPlot::OnEraseBackground(wxEraseEvent &) {}
+
+void IterationPlot::OnCommand(wxCommandEvent &evt)
+{
+    switch (evt.GetId())
+    {
+
+    default:
+        break;
+    }
+
+    return;
 }
