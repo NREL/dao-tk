@@ -532,14 +532,15 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     
     std::string ets = wxString::Format(yfmt, -yaxspan, yfmt.c_str());    //create a string that is approximately the largest extent on the plot
     wxSize etss = dc.GetTextExtent( ets );
-    _left_buffer = 15+etss.GetWidth()+etss.GetHeight();
-    _top_buffer = 0;
-    _bottom_buffer = etss.GetHeight()*2+15;
+    _left_buffer = 7 + etss.GetWidth(); //15+etss.GetWidth()+etss.GetHeight();
+    _top_buffer = 2;
+    _bottom_buffer = etss.GetHeight()+10;
     int nzdec = CalcBestSigFigs(std::max(fabs(maxval),fabs(minval)) );
     _zfmt.sprintf("%s%df %s", "%.", nzdec, _units.c_str());
     ets = wxString::Format(_zfmt, std::max(fabs(maxval),fabs(minval)));
     etss = dc.GetTextExtent( ets);
-    _right_buffer = 40+etss.GetWidth();
+    //_right_buffer = 40 + etss.GetWidth();
+    _right_buffer = etss.GetWidth();
 
     //Plot area (excluding area for axes) in pixels
     _drawsize[0] = canvsize[0] - (_left_buffer+_right_buffer);
@@ -576,7 +577,7 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     //estimate the number of divisions
     ets = wxString::Format(xfmt, -xaxspan/2.);    //approximation of the xaxis text size
     etss = dc.GetTextExtent( ets );
-    int ndiv = std::min(int(_drawsize[0]/ (etss.GetWidth()*1.35 )), 20);
+    int ndiv = std::min(int(_drawsize[0]/ (etss.GetWidth()*1.35 )), 3);
     double xscale = calcScale(xaxspan, ndiv);
     double 
         xtickloc = xscale,
@@ -589,18 +590,18 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
         wxSize xte;
         if(xtickloc <= _xaxmax)
         {
-            dc.DrawLine(_origin[0]+xtickloc_ppm, _drawsize[1], _origin[0]+xtickloc_ppm, _drawsize[1]+7);
+            dc.DrawLine(_origin[0]+xtickloc_ppm, _position_offset.top + _drawsize[1], _origin[0]+xtickloc_ppm, _position_offset.top + _drawsize[1]+7);
             xts.Printf(xfmt, (_x_reversed ? -1. : 1)*(xtickloc+1.e-6));
             xte = dc.GetTextExtent(xts);
-            dc.DrawText( xts , _origin[0]+xtickloc_ppm-xte.GetWidth()/2, _drawsize[1]+9);
+            dc.DrawText( xts , _origin[0]+xtickloc_ppm-xte.GetWidth()/2, _position_offset.top + _drawsize[1]+9);
         }
         //To the left
         if(-xtickloc >= _xaxmin)
         {
-            dc.DrawLine(_origin[0]-xtickloc_ppm, _drawsize[1], _origin[0]-xtickloc_ppm, _drawsize[1]+7);
+            dc.DrawLine(_origin[0]-xtickloc_ppm, _position_offset.top + _drawsize[1], _origin[0]-xtickloc_ppm, _position_offset.top + _drawsize[1]+7);
             xts.Printf(xfmt, (_x_reversed ? 1. : -1)*(xtickloc+1.e-6));
             xte = dc.GetTextExtent( xts );
-            dc.DrawText( xts , _origin[0]-xtickloc_ppm-xte.GetWidth()/2, _drawsize[1]+9);
+            dc.DrawText( xts , _origin[0]-xtickloc_ppm-xte.GetWidth()/2, _position_offset.top + _drawsize[1]+9);
         }
         xtickloc += xscale;
         xtickloc_ppm += xscale*_ppx;
@@ -618,17 +619,18 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     //estimate the number of divisions
     etsy = std::to_string( int(-yaxspan/2.));
     etssy = dc.GetTextExtent( etsy );
-    int ndivy = std::min(int(_drawsize[0]/ (etssy.GetHeight() )), 20);
+    int ndivy = std::min(int(_drawsize[0]/ (etssy.GetHeight() )), 2);
     double yscale = calcScale(yaxspan, ndivy);
         
     double
         ytickloc = yscale,
         ytickloc_ppm = yscale*_ppy;
     wxString yts;
-    while(ytickloc < fmax(fabs(_yaxmax), fabs(_yaxmin)) )
+    double eps = 1.e-6;
+    while(ytickloc < fmax(fabs(_yaxmax), fabs(_yaxmin))+eps )
     {
         //To the top
-        if(ytickloc < fabs(_yaxmax))
+        if(ytickloc < fabs(_yaxmax)+eps)
         {
             dc.DrawLine(_position_offset.left + _left_buffer-7, _origin[1]-ytickloc_ppm, _position_offset.left + _left_buffer, _origin[1]-ytickloc_ppm);
             yts.Printf(yfmt, ytickloc);
@@ -636,7 +638,7 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
             dc.DrawText( yts , _position_offset.left + _left_buffer-10-yte.GetWidth(), _origin[1]-ytickloc_ppm-yte.GetHeight()/2);
         }
         //To the bottom
-        if(ytickloc < fabs(_yaxmin))
+        if(ytickloc < fabs(_yaxmin) + eps)
         {
             dc.DrawLine(_position_offset.left + _left_buffer-7, _origin[1]+ytickloc_ppm, _left_buffer, _origin[1]+ytickloc_ppm);
             yts.Printf(yfmt, -ytickloc);

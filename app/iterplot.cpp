@@ -18,7 +18,7 @@ IterationPlot::IterationPlot(wxPanel *parent, ordered_hash_vector* data, const w
     _data = data;
 
     //_plotobjs.resize(_data->item_count(), PlotBase());
-    _plotobjs.resize(2, PlotBase());
+    _plotobjs.resize(4, PlotBase());
 
     for (size_t i = 0; i < _plotobjs.size(); i++)
         _plotobjs.at(i).Create();
@@ -64,7 +64,7 @@ void IterationPlot::DoPaint(wxDC &_pdc)
         _plotobjs.at(i).SetPlotSize(parsize);
         
         _plotobjs.at(i).SetXAxisRange(0, _data->iteration_count() + 1);
-        _plotobjs.at(i).SetImagePositionOffset({ 0., (double)((parsize.y + 5)*i)});
+        _plotobjs.at(i).SetImagePositionOffset({ 0., (double)(parsize.y*i)});
         //max and min, use the objective
         std::vector<double>* ppa = _data->has_item("ppa");
         if (ppa)
