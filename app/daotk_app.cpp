@@ -38,6 +38,7 @@
 #include "scriptview.h"
 #include "scriptlist.h"
 #include "logview.h"
+#include "iterplotview.h"
 #include "daotk_app.h"
 
 int version_major = 0;
@@ -226,11 +227,16 @@ MainWindow::MainWindow()
 	m_ScriptList = new ScriptList(splitscript, &m_image_dir);
 	splitscript->SplitVertically(m_ScriptList, m_ScriptViewForm, 180);
 
-	m_LogViewForm = new LogView(splitwin);
+    wxSplitterWindow *splitlog = new wxSplitterWindow(splitwin, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE | wxSP_PERMIT_UNSPLIT);
+    
+	m_LogViewForm = new LogView(splitlog);
+    m_IterPlotForm = new IterPlotView(splitlog);
+    splitlog->SplitVertically(m_LogViewForm, m_IterPlotForm, 400);
+    splitlog->SetSashGravity(0.5);
 
-	m_notebook->AddPage(splitwin, "Script");
+    m_notebook->AddPage(splitwin, "Script");
 
-	splitwin->SplitVertically(splitscript, m_LogViewForm, 400);
+	splitwin->SplitVertically(splitscript, splitlog, -650);
     splitwin->SetSashGravity(0.4);
     
 	m_tabList->Append("Data");

@@ -3,6 +3,7 @@
 #include <wex/numeric.h>
 
 #include "logview.h"
+#include "iterplot.h"
 
 enum A {
 	ID_ELEMENT_LIST = wxID_HIGHEST + 198,

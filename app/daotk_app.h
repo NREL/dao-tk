@@ -16,6 +16,7 @@ class ScriptView;
 class ScriptList;
 class DataView;
 class LogView;
+class IterPlotView;
 
 
 class MyApp : public wxApp
@@ -50,6 +51,7 @@ private:
 	ScriptList *m_ScriptList;
 	DataView *m_DataViewForm;
 	LogView *m_LogViewForm;
+    IterPlotView *m_IterPlotForm;
 
 	wxStaticText *m_statusLabel;
 	wxGauge *m_progressBar;
