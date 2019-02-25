@@ -10,6 +10,12 @@
 #include <stdio.h>
 #include <algorithm>
 
+#define TEST_OBJECTIVE
+#ifdef TEST_OBJECTIVE
+#include <chrono>
+#include <thread>
+#endif
+
 //------------------------------------------
 template <typename T>
 static inline bool assign_filter_nan(T c, void*)
@@ -45,7 +51,7 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     the necessary methods to update the objective function
     */
 
-    optimization* O = static_cast<optimization* const>(data);
+    optimization* O = static_cast<optimization*>(data);
     Project *P = O->get_project();
 
     //list of all output variables
@@ -112,6 +118,18 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     if (ncheck != (int)n)
         throw std::runtime_error("Error in continuous objective function evaluation. Variable count has changed. See user support for help.");
 
+#ifdef TEST_OBJECTIVE
+    double ppa = 0.;
+    for (unsigned i = 0; i < n; i++)
+        ppa += x[i] * x[i];
+    for (size_t i = 0; i < allouts.size(); i++)
+        allouts.at(i)->assign(ppa + (double)i);
+    
+    if (P->IsStopFlag())
+        throw std::runtime_error("The simulation has been terminated by the user.");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+#else
     //run all of the methods in order
     std::vector<std::string> allmethods = P->GetAllMethodNames();
     
@@ -146,6 +164,7 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     }
 
     double ppa = P->m_financial_outputs.ppa.as_number();
+#endif
 
     P->PrintCurrentResults();
 
@@ -202,7 +221,7 @@ double optimization::run_continuous_subproblem()
     nlopt_opt opt = nlopt_create(nlopt_algorithm::NLOPT_LN_BOBYQA, n);
     nlopt_set_lower_bounds(opt, lb);
     nlopt_set_upper_bounds(opt, ub);
-    nlopt_set_min_objective(opt, continuous_objective_eval, (void*)this);
+    nlopt_set_min_objective(opt, continuous_objective_eval, this);
 
     nlopt_set_ftol_rel(opt, .01);
     nlopt_set_xtol_rel(opt, .001);
