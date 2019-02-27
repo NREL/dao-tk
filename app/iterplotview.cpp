@@ -60,3 +60,13 @@ void IterPlotView::OnCommand(wxCommandEvent &evt)
         break;
     }
 }
+
+void IterPlotView::UpdateDataFromProject()
+{
+    /* 
+    Update the plot display based on the referenced project 
+    */
+    
+    m_iterplot->SetData(&m_project_ptr->m_optimization_outputs.iteration_history.hash_vector);
+
+}

@@ -641,7 +641,7 @@ void PlotBase::DrawSeries(wxMemoryDC &dc, std::vector<double> &points, std::stri
         return;
 
     dc.SetPen(*wxRED_PEN);
-    dc.SetBrush(*wxBLUE_BRUSH);
+    dc.SetBrush(*wxWHITE_BRUSH);
     
 
     //draw the rest

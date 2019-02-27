@@ -29,6 +29,7 @@ extern ssc_bool_t ssc_progress_handler(ssc_module_t, ssc_handler_t, int action, 
 extern ssc_bool_t ssc_silent_handler(ssc_module_t, ssc_handler_t, int action, float, float, const char *, const char *, void *);
 extern bool sim_progress_handler(float progress, const char *msg);
 extern void message_handler(const char *msg);
+extern void iterplot_update_handler();
 extern int double_scale(double val, int *scale);
 extern double double_unscale(int val, int power);
 

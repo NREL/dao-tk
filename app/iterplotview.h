@@ -17,6 +17,7 @@ class IterPlotView : public wxPanel
 	DECLARE_EVENT_TABLE();
 public:
     IterPlotView(wxWindow *parent, Project* project);
+    void UpdateDataFromProject();
 
 };
 

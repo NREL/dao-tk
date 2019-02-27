@@ -172,6 +172,9 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     for (size_t i = 0; i < allouts.size(); i++)
         P->m_optimization_outputs.iteration_history.hash_vector[allouts.at(i)->name].back() = allouts.at(i)->as_number();
 
+    //update the iteration plot
+    iterplot_update_handler();
+
     return ppa;
 };
 

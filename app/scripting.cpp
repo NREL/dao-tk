@@ -129,6 +129,11 @@ void message_handler(const char *msg)
 	    MainWindow::Instance().Log(msg);
 }
 
+void iterplot_update_handler()
+{
+    MainWindow::Instance().UpdateIterPlot();
+}
+
 bool sim_progress_handler(float progress, const char *msg)
 {
 	MainWindow::Instance().SetProgress((int)(progress*100.), msg);

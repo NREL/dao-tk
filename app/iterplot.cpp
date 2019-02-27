@@ -15,14 +15,22 @@ IterationPlot::IterationPlot(wxPanel *parent, ordered_hash_vector* data, const w
     const wxPoint pos, const wxSize size, long style)
     : wxScrolledWindow(parent, id, pos, size, style)
 {
-    _data = data;
+    SetData(data);
+}
 
-    //_plotobjs.resize(_data->item_count(), PlotBase());
-    _plotobjs.resize(4, PlotBase());
+void IterationPlot::SetData(ordered_hash_vector* data)
+{
+    _data = data;
+    if (_data->item_count() == 0)
+        return;
+
+    _plotobjs.resize(_data->item_count(), PlotBase());
+    //_plotobjs.resize(4, PlotBase());
 
     for (size_t i = 0; i < _plotobjs.size(); i++)
         _plotobjs.at(i).Create();
-
+    Update();
+    Refresh();
 }
 
 void IterationPlot::OnPaint(wxPaintEvent &event)
@@ -31,6 +39,7 @@ void IterationPlot::OnPaint(wxPaintEvent &event)
 
     wxPaintDC _pdc(this);
     DoPaint(_pdc);
+    wxYieldIfNeeded();
     event.Skip();
 }
 
@@ -63,36 +72,28 @@ void IterationPlot::DoPaint(wxDC &_pdc)
 
         _plotobjs.at(i).SetPlotSize(parsize);
         
-        std::vector<double> testvec;
-        double minval=999, maxval=-999;
-        for (size_t j = 0; j < 15; j++)
+
+        //std::vector<double>* ppa = _data->has_item("ppa");
+        svd_pair datpair = _data->at_index(i);
+        double datmin = 9e9;
+        double datmax = -9e9;
+        for (size_t j = 0; j < datpair.second.size(); j++)
         {
-            double v = sin((double)(i + j)) * 20. - 10.;
-            testvec.push_back(v);
-            minval = v < minval ? v : minval;
-            maxval = v > maxval ? v : maxval;
+            datmin = datpair.second.at(j) < datmin ? datpair.second.at(j) : datmin;
+            datmax = datpair.second.at(j) > datmax ? datpair.second.at(j) : datmax;
         }
-
-        minval = minval - (maxval - minval)*.05;
-        maxval = maxval + (maxval - minval)*.05;
-
-        //_plotobjs.at(i).SetXAxisRange(0, _data->iteration_count() + 1);
-        _plotobjs.at(i).SetXAxisRange(0, testvec.size() + 1);
-        _plotobjs.at(i).SetYAxisRange(minval, maxval);
+        //max and min
+        datmin = datmin - (datmax - datmin)*.05;
+        datmax = datmax + (datmax - datmin)*.05;
+        //axes limits
+        _plotobjs.at(i).SetXAxisRange(0, _data->iteration_count() + 1);
+        _plotobjs.at(i).SetXAxisRange(0, datpair.second.size() + 1);
+        _plotobjs.at(i).SetYAxisRange(datmin, datmax);
+        //plot positioning
         _plotobjs.at(i).SetImagePositionOffset({ 0., (double)(parsize.y*i)});
-        //max and min, use the objective
-        std::vector<double>* ppa = _data->has_item("ppa");
-        if (ppa)
-        {
-            //std::pair<const std::vector<double>::iterator, const std::vector<double>::iterator> mm = std::minmax(ppa->begin(), ppa->end());
-            auto mm = std::minmax(ppa->begin(), ppa->end());
-            _plotobjs.at(i).AxesSetup(memdc, *mm.first, *mm.second);
-        }   
-        else
-            _plotobjs.at(i).AxesSetup(memdc, 0., 1.);
-
-
-        _plotobjs.at(i).DrawSeries(memdc, testvec, "Series label" );
+        _plotobjs.at(i).AxesSetup(memdc, datmin, datmax);
+        //draw the data
+        _plotobjs.at(i).DrawSeries(memdc, datpair.second, datpair.first );
 
         //wxColour gray("#d4d4d4");
     }

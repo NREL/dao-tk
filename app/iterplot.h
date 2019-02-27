@@ -30,7 +30,10 @@ public:
         const wxPoint pos = wxDefaultPosition,
         const wxSize size = wxDefaultSize,
         long style = wxHSCROLL | wxVSCROLL | wxFULL_REPAINT_ON_RESIZE | wxBG_STYLE_CUSTOM);
+
     void DoPaint(wxDC &_pdc);
+
+    void SetData(ordered_hash_vector* data);
 };
 
 

@@ -853,6 +853,11 @@ void MainWindow::UpdateDataTable()
 	m_DataViewForm->UpdateView();
 }
 
+void MainWindow::UpdateIterPlot()
+{
+    m_IterPlotForm->UpdateDataFromProject();
+}
+
 bool MainWindow::UpdateIsStopFlagSet()
 {
     bool stop = m_ScriptViewForm->GetEditor()->IsStopFlagSet();
