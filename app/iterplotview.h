@@ -13,6 +13,9 @@ class IterPlotView : public wxPanel
 
     IterationPlot* m_iterplot;
     Project* m_project_ptr;
+    int m_firstplot;
+    int m_nplotview;
+    int m_nplotview_max;
 
 	DECLARE_EVENT_TABLE();
 public:

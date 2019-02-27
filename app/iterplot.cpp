@@ -24,6 +24,7 @@ void IterationPlot::SetData(ordered_hash_vector* data)
     if (_data->item_count() == 0)
         return;
 
+
     _plotobjs.resize(_data->item_count(), PlotBase());
     //_plotobjs.resize(4, PlotBase());
 

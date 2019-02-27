@@ -503,7 +503,7 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     _bottom_buffer = etss.GetHeight()+10;
     int nzdec = CalcBestSigFigs(std::max(fabs(maxval),fabs(minval)) );
     //_right_buffer = 40 + etss.GetWidth();
-    _right_buffer = etss.GetWidth();
+    _right_buffer = 5; // etss.GetWidth();
 
     //Plot area (excluding area for axes) in pixels
     _drawsize[0] = canvsize[0] - (_left_buffer+_right_buffer);
@@ -640,18 +640,46 @@ void PlotBase::DrawSeries(wxMemoryDC &dc, std::vector<double> &points, std::stri
     if (points.size() == 0)
         return;
 
-    dc.SetPen(*wxRED_PEN);
-    dc.SetBrush(*wxWHITE_BRUSH);
     
 
     //draw the rest
+    double xpt0, ypt0;
     for (size_t i = 0; i < points.size(); i++)
     {
-        //draw first point
         double ypt = _origin[1] -_ppy * points[i];
         double xpt = _origin[0] + _ppx * (i+1);
-        dc.DrawCircle(xpt, ypt, 5);
+
+        //draw first or last point with a circle
+        if (i == 0 || i == (int)points.size()-1)
+        {
+            dc.SetPen(*wxGREEN_PEN);
+            dc.SetBrush(*wxGREEN_BRUSH);
+            dc.DrawCircle(xpt, ypt, 3);
+            if (i > 0)
+            {
+                dc.SetPen(*wxWHITE_PEN);
+                dc.SetBrush(*wxWHITE_BRUSH);
+                dc.DrawLine(xpt0, ypt0, xpt, ypt);
+            }
+        }
+        else
+        {
+            dc.SetPen(*wxWHITE_PEN);
+            dc.SetBrush(*wxWHITE_BRUSH);
+            dc.DrawLine(xpt0, ypt0, xpt, ypt);
+
+        }
+
+        xpt0 = xpt;
+        ypt0 = ypt;
     }
+
+    //draw the title
+    wxColour oldtextcolor = dc.GetTextForeground();
+    dc.SetTextForeground(wxColour("#FFFFFF"));
+    wxSize labsize = dc.GetTextExtent(label);
+    dc.DrawText(label, _origin[0] + _xaxmax*_ppx - labsize.GetWidth() - 5, _origin[1] - _ppy*_yaxmax + 2);
+    dc.SetTextForeground(oldtextcolor);
 }
 
 

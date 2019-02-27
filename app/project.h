@@ -126,6 +126,22 @@ public:
         _keys.clear();
         _items.clear();
     };
+
+    ordered_hash_vector slice(int left, int right)
+    {
+        /*
+        Return a subset of the current ordered_hash_vector between indices [left, right).
+        */
+        ordered_hash_vector res;
+        int ruse = right > (int)item_count() - 1 ? (int)item_count() : right;
+        int luse = left < 0 ? 0 : left;
+        for (int i = luse; i < ruse; i++)
+        {
+            svd_pair respr = at_index(i);
+            res[respr.first] = respr.second;
+        }
+        return res;
+    }
 };
 
 class data_base : public lk::vardata_t
