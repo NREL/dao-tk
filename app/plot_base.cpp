@@ -492,9 +492,16 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
 
     
     //determine the best number formatting for the y axis labels
+    //double absmaxy = std::max(fabs(_yaxmax), fabs(_yaxmin));
     wxString yfmt;
-    int nydec = CalcBestSigFigs(std::max(fabs(_yaxmax),fabs(_yaxmin)) );
-    yfmt.sprintf("%s%df", "%.", nydec);
+    //if (abs(log(absmaxy)) > 2)
+    yfmt = "%.1e";
+    //else
+    //{
+    //    int nydec = CalcBestSigFigs( absmaxy );
+    //    yfmt.sprintf("%s%df", "%.", nydec);
+    //}
+
     
     std::string ets = wxString::Format(yfmt, -yaxspan, yfmt.c_str());    //create a string that is approximately the largest extent on the plot
     wxSize etss = dc.GetTextExtent( ets );
@@ -502,7 +509,6 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     _top_buffer = 2;
     _bottom_buffer = etss.GetHeight()+10;
     int nzdec = CalcBestSigFigs(std::max(fabs(maxval),fabs(minval)) );
-    //_right_buffer = 40 + etss.GetWidth();
     _right_buffer = 5; // etss.GetWidth();
 
     //Plot area (excluding area for axes) in pixels
@@ -531,12 +537,6 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     etss = dc.GetTextExtent( ets );
     dc.DrawText(ets, _origin[0]-etss.GetWidth()/2, _drawsize[1]+9);
     
-    //ets = (std::string)_xlab;
-    //
-    //etss = dc.GetTextExtent( ets );
-    //dc.DrawText(ets, _position_offset.left + _left_buffer + _drawsize[0]/2-etss.GetWidth()/2, 
-    //                 _position_offset.top + _drawsize[1]+(15+etss.GetHeight())
-    //            );
     //estimate the number of divisions
     ets = wxString::Format(xfmt, (int)(-xaxspan/2.));    //approximation of the xaxis text size
     etss = dc.GetTextExtent( ets );
