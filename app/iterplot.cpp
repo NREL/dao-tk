@@ -65,7 +65,7 @@ void IterationPlot::DoPaint(wxDC &_pdc)
     wxSize parsize = this->GetClientSize();
     parsize.x = parsize.x < 100 ? 1024 : parsize.x;
     parsize.y = parsize.y < 100 ? 711 : parsize.y;
-    parsize.y /= (int)(nitem > 8 ? 8 : (nitem == 0 ? 1 : nitem));
+    parsize.y /= (double)nitem;
     
     for (size_t i = 0; i < nitem; i++)
     {
@@ -98,10 +98,7 @@ void IterationPlot::DoPaint(wxDC &_pdc)
         _plotobjs.at(i).AxesSetup(memdc, datmin, datmax);
         //draw the data
         _plotobjs.at(i).DrawSeries(memdc, datpair.second, datpair.first );
-
-        //wxColour gray("#d4d4d4");
     }
-
         
    //do this last
     memdc.SelectObject(wxNullBitmap);

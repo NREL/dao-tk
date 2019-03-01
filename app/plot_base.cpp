@@ -541,8 +541,8 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     ets = wxString::Format(xfmt, (int)(-xaxspan/2.));    //approximation of the xaxis text size
     etss = dc.GetTextExtent( ets );
     int ndiv = (int)(_drawsize[0]/ (etss.GetWidth()*1.35) );
-    //1./std::ceil((int)(xaxspan / ndiv))
-    //<<TODO needs to match up with the integer nature of the x index
+    //needs to match up with the integer nature of the x index
+    ndiv = (int)(xaxspan / std::ceil(xaxspan / ndiv));
 
     double xscale = calcScale(xaxspan, ndiv);
     double 
