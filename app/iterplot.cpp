@@ -11,21 +11,21 @@ BEGIN_EVENT_TABLE(IterationPlot, wxScrolledWindow)
     EVT_ERASE_BACKGROUND(IterationPlot::OnEraseBackground)
 END_EVENT_TABLE()
 
-IterationPlot::IterationPlot(wxPanel *parent, ordered_hash_vector* data, const wxWindowID id,
+IterationPlot::IterationPlot(wxPanel *parent, ordered_hash_vector& data, const wxWindowID id,
     const wxPoint pos, const wxSize size, long style)
     : wxScrolledWindow(parent, id, pos, size, style)
 {
     SetData(data);
 }
 
-void IterationPlot::SetData(ordered_hash_vector* data)
+void IterationPlot::SetData(ordered_hash_vector& data)
 {
     _data = data;
-    if (_data->item_count() == 0)
+    if (_data.item_count() == 0)
         return;
 
 
-    _plotobjs.resize(_data->item_count(), PlotBase());
+    _plotobjs.resize(_data.item_count(), PlotBase());
 
     for (size_t i = 0; i < _plotobjs.size(); i++)
         _plotobjs.at(i).Create();
@@ -73,8 +73,8 @@ void IterationPlot::DoPaint(wxDC &_pdc)
         _plotobjs.at(i).SetPlotSize(parsize);
         
 
-        //std::vector<double>* ppa = _data->has_item("ppa");
-        svd_pair datpair = _data->at_index(i);
+        //std::vector<double>* ppa = _data.has_item("ppa");
+        svd_pair datpair = _data.at_index(i);
         double datmin = 9e9;
         double datmax = -9e9;
         for (size_t j = 0; j < datpair.second.size(); j++)
@@ -90,7 +90,7 @@ void IterationPlot::DoPaint(wxDC &_pdc)
             datmax = datmin + 1.;
         }
         //axes limits
-        _plotobjs.at(i).SetXAxisRange(0, _data->iteration_count() + 1);
+        _plotobjs.at(i).SetXAxisRange(0, _data.iteration_count() + 1);
         _plotobjs.at(i).SetXAxisRange(0, datpair.second.size() + 1);
         _plotobjs.at(i).SetYAxisRange(datmin, datmax);
         //plot positioning
@@ -109,12 +109,12 @@ void IterationPlot::OnEraseBackground(wxEraseEvent &) {}
 
 void IterationPlot::OnCommand(wxCommandEvent &evt)
 {
-    switch (evt.GetId())
+    /*switch (evt.GetId())
     {
 
     default:
         break;
-    }
+    }*/
 
     return;
 }

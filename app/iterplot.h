@@ -14,7 +14,7 @@ protected:
     std::vector<PlotBase> _plotobjs;
     wxBitmap _pbit; //bitmap containing the current plot
     
-    ordered_hash_vector* _data;
+    ordered_hash_vector _data;
 
 	void OnCommand(wxCommandEvent &);
     void OnPaint(wxPaintEvent &event);
@@ -25,7 +25,7 @@ protected:
 public:
 
     IterationPlot(wxPanel *parent,
-        ordered_hash_vector* data,
+        ordered_hash_vector& data,
         const wxWindowID id = wxID_ANY,
         const wxPoint pos = wxDefaultPosition,
         const wxSize size = wxDefaultSize,
@@ -33,7 +33,7 @@ public:
 
     void DoPaint(wxDC &_pdc);
 
-    void SetData(ordered_hash_vector* data);
+    void SetData(ordered_hash_vector& data);
 };
 
 

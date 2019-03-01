@@ -74,6 +74,7 @@ void LogView::Log(const wxString &text, bool wnl)
 {
 	if (wnl) m_TextLog->AppendText(text + "\n");
 	else m_TextLog->AppendText(text);
+    wxYieldIfNeeded();
 }
 
 void LogView::ClearLog()

@@ -35,16 +35,16 @@ IterPlotView::IterPlotView(wxWindow *parent, Project* project, wxString imagedir
     wxBoxSizer *top_sizer = new wxBoxSizer(wxHORIZONTAL);
     
     wxBitmapButton *bmtmp;
-    top_sizer->Add(bmtmp = new wxBitmapButton(this, ID_SCROLL_UP, wxIcon(imagedir + "/arrow-up.png", wxBITMAP_TYPE_PNG)), 0, wxBU_EXACTFIT | wxALL, 2);
+    top_sizer->Add(bmtmp = new wxBitmapButton(this, ID_SCROLL_UP, wxIcon(imagedir + "/arrow-up-22.png", wxBITMAP_TYPE_PNG)), 0, wxBU_EXACTFIT | wxALL, 2);
     bmtmp->SetToolTip("Scroll plots up");
-    top_sizer->Add(bmtmp = new wxBitmapButton(this, ID_SCROLL_DOWN, wxIcon(imagedir + "/arrow-down.png", wxBITMAP_TYPE_PNG)), 0, wxBU_EXACTFIT | wxALL, 2);
+    top_sizer->Add(bmtmp = new wxBitmapButton(this, ID_SCROLL_DOWN, wxIcon(imagedir + "/arrow-down-22.png", wxBITMAP_TYPE_PNG)), 0, wxBU_EXACTFIT | wxALL, 2);
     bmtmp->SetToolTip("Scroll plots down");
     top_sizer->Add(bmtmp = new wxBitmapButton(this, ID_NPLOT_UP, wxIcon(imagedir + "/zoom-out.png", wxBITMAP_TYPE_PNG)), 0, wxBU_EXACTFIT | wxALL, 2);
     bmtmp->SetToolTip("View more plots");
     top_sizer->Add(bmtmp = new wxBitmapButton(this, ID_NPLOT_DOWN, wxIcon(imagedir + "/zoom-in.png", wxBITMAP_TYPE_PNG)), 0, wxBU_EXACTFIT | wxALL, 2);
     bmtmp->SetToolTip("View fewer plots");
 
-    m_iterplot = new IterationPlot(this, &m_project_ptr->m_optimization_outputs.iteration_history.hash_vector);
+    m_iterplot = new IterationPlot(this, m_project_ptr->m_optimization_outputs.iteration_history.hash_vector);
 
     sizer->Add(top_sizer);
     sizer->Add(m_iterplot, 1, wxEXPAND | wxALL, 5);
@@ -88,5 +88,5 @@ void IterPlotView::UpdateDataFromProject()
     */
     ordered_hash_vector somedat = m_project_ptr->m_optimization_outputs.iteration_history.hash_vector.slice(m_firstplot, m_firstplot + m_nplotview + 1);
        
-    m_iterplot->SetData(&somedat);
+    m_iterplot->SetData(somedat);
 }
