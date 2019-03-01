@@ -640,17 +640,17 @@ void PlotBase::DrawSeries(wxMemoryDC &dc, std::vector<double> &points, std::stri
     if (points.size() == 0)
         return;
 
-    
+
 
     //draw the rest
     double xpt0, ypt0;
     for (size_t i = 0; i < points.size(); i++)
     {
-        double ypt = _origin[1] -_ppy * points[i];
-        double xpt = _origin[0] + _ppx * (i+1);
+        double ypt = _origin[1] - _ppy * points[i];
+        double xpt = _origin[0] + _ppx * (i + 1);
 
         //draw first or last point with a circle
-        if (i == 0 || i == (int)points.size()-1)
+        if (i == 0 || i == (int)points.size() - 1)
         {
             dc.SetPen(*wxGREEN_PEN);
             dc.SetBrush(*wxGREEN_BRUSH);
@@ -678,7 +678,45 @@ void PlotBase::DrawSeries(wxMemoryDC &dc, std::vector<double> &points, std::stri
     wxColour oldtextcolor = dc.GetTextForeground();
     dc.SetTextForeground(wxColour("#FFFFFF"));
     wxSize labsize = dc.GetTextExtent(label);
-    dc.DrawText(label, _origin[0] + _xaxmax*_ppx - labsize.GetWidth() - 5, _origin[1] - _ppy*_yaxmax + 2);
+    double ycoord = _origin[1] - _ppy * _yaxmax + 2;
+    double xcoord = _origin[0] + _xaxmax * _ppx - labsize.GetWidth() - 5;
+    dc.DrawText(label, xcoord, ycoord);
+
+    //calculate change pct
+    double diff = (points.back() - points.front()) / points.front();
+    if (diff != diff)
+        diff = 0.;
+    bool isneg = diff < 0.;
+    if (isneg)
+        diff = -diff;
+    wxString difflab = wxString::Format("%.1f%%", diff*100.);
+    wxSize difflabsize = dc.GetTextExtent(difflab);
+    xcoord -= difflabsize.GetWidth() + 6;
+    dc.DrawText(difflab, xcoord, ycoord);
+    
+
+    xcoord -= 10;
+    wxBrush oldbrush = dc.GetBrush();
+    wxPen oldpen = dc.GetPen();
+    if (isneg)
+    {
+        dc.SetBrush(*wxRED_BRUSH);
+        dc.SetPen(*wxRED_PEN);
+        wxPoint pl[3] = { wxPoint(0, 0), wxPoint(3, 6), wxPoint(6, 0) };
+        dc.DrawPolygon(3, pl, xcoord+2, ycoord + 4);
+    }
+    else
+    {
+        dc.SetBrush(*wxGREEN_BRUSH);
+        dc.SetPen(*wxGREEN_PEN);
+        wxPoint pl[3] = {wxPoint(0, 6), wxPoint(6, 6), wxPoint(3, 0) };
+        dc.DrawPolygon(3, pl, xcoord+2, ycoord + 4);
+    }
+    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    dc.SetPen(wxPen(wxColour("#888888")));
+    dc.DrawRectangle(xcoord - 1, ycoord - 1, difflabsize.GetWidth() + 14, difflabsize.GetHeight() + 2);
+
+    dc.SetPen(oldpen);
     dc.SetTextForeground(oldtextcolor);
 }
 
