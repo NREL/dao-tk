@@ -691,11 +691,12 @@ void PlotBase::DrawSeries(wxMemoryDC &dc, std::vector<double> &points, std::stri
         diff = -diff;
     wxString difflab = wxString::Format("%.1f%%", diff*100.);
     wxSize difflabsize = dc.GetTextExtent(difflab);
-    xcoord -= difflabsize.GetWidth() + 6;
+    int boxwidth = difflabsize.GetWidth() + 6;
+    xcoord -= boxwidth;
     dc.DrawText(difflab, xcoord, ycoord);
     
 
-    xcoord -= 10;
+    xcoord -= 10; boxwidth += 10;
     wxBrush oldbrush = dc.GetBrush();
     wxPen oldpen = dc.GetPen();
     if (isneg)
@@ -712,9 +713,22 @@ void PlotBase::DrawSeries(wxMemoryDC &dc, std::vector<double> &points, std::stri
         wxPoint pl[3] = {wxPoint(0, 6), wxPoint(6, 6), wxPoint(3, 0) };
         dc.DrawPolygon(3, pl, xcoord+2, ycoord + 4);
     }
+    
+    int nsf = CalcBestSigFigs(points.back());
+    wxString numlab;
+    if (nsf > 4)
+        numlab = wxString::Format("%.2e", points.back());
+    else
+        numlab = wxString::Format(wxString::Format("%%.%df", nsf), points.back());
+
+    wxSize numlabsize = dc.GetTextExtent(numlab);
+    xcoord -= numlabsize.GetWidth() + 4;
+    boxwidth += numlabsize.GetWidth() + 4;
+    dc.DrawText(numlab, xcoord, ycoord);
+
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
     dc.SetPen(wxPen(wxColour("#888888")));
-    dc.DrawRectangle(xcoord - 1, ycoord - 1, difflabsize.GetWidth() + 14, difflabsize.GetHeight() + 2);
+    dc.DrawRectangle(xcoord - 2, ycoord - 1, boxwidth, difflabsize.GetHeight() + 2);
 
     dc.SetPen(oldpen);
     dc.SetTextForeground(oldtextcolor);

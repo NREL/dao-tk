@@ -906,9 +906,9 @@ void _optimize(lk::invoke_t &cxt)
     optimization Opt(P);
 
     //defaults
-    Opt.m_settings.convex_flag = false;
-    Opt.m_settings.max_delta = 1;
-    Opt.m_settings.trust = false;
+    Opt.m_settings.convex_flag = true;
+    Opt.m_settings.max_delta = 10;
+    Opt.m_settings.trust = true;
     //override if needed
     if (cxt.arg_count() > 0)
     {
@@ -946,7 +946,7 @@ void _optimize(lk::invoke_t &cxt)
     
     while (true)
     {
-        if (res.wait_for(std::chrono::milliseconds(250)) == std::future_status::ready)
+        if (res.wait_for(std::chrono::milliseconds(20)) == std::future_status::ready)
             break;
 
         wxYieldIfNeeded();
