@@ -12,6 +12,8 @@ class wxSimplebook;
 class wxPanel;
 class wxMetroButton;
 class wxMetroTabList;
+class wxToggleButton;
+class wxSplitterWindow;
 class ScriptView;
 class ScriptList;
 class DataView;
@@ -46,6 +48,13 @@ private:
 	wxMetroButton * m_scriptMenuButton;
 	wxMetroTabList *m_tabList;
 	wxSimplebook *m_notebook;
+    wxSplitterWindow *m_splitmainwin;
+    wxSplitterWindow *m_splitscriptwin;
+    wxSplitterWindow *m_splitlogwin;
+    wxToggleButton *m_toggleScriptList;
+    wxToggleButton *m_toggleScript;
+    wxToggleButton *m_toggleLog;
+    wxToggleButton *m_toggleIterPlot;
 
 	ScriptView *m_ScriptViewForm;
 	ScriptList *m_ScriptList;

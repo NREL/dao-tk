@@ -7,11 +7,7 @@
 #include "project.h"
 
 enum A {
-    ID_REFRESH = wxID_HIGHEST + 222,
-    ID_CHECK_ALL,
-    ID_UNCHECK_ALL,
-    ID_NORMALIZE,
-    ID_SCROLL_UP,
+    ID_SCROLL_UP = wxID_HIGHEST + 222,
     ID_SCROLL_DOWN,
     ID_NPLOT_UP,
     ID_NPLOT_DOWN,
@@ -19,18 +15,14 @@ enum A {
 };
 
 BEGIN_EVENT_TABLE(IterPlotView, wxPanel)
-EVT_BUTTON(ID_REFRESH, IterPlotView::OnCommand)
-EVT_BUTTON(ID_CHECK_ALL, IterPlotView::OnCommand)
-EVT_BUTTON(ID_UNCHECK_ALL, IterPlotView::OnCommand)
 EVT_BUTTON(ID_SCROLL_UP, IterPlotView::OnCommand)
 EVT_BUTTON(ID_SCROLL_DOWN, IterPlotView::OnCommand)
 EVT_BUTTON(ID_NPLOT_UP, IterPlotView::OnCommand)
 EVT_BUTTON(ID_NPLOT_DOWN, IterPlotView::OnCommand)
-EVT_CHECKBOX(ID_NORMALIZE, IterPlotView::OnCommand)
 END_EVENT_TABLE()
 
 
-IterPlotView::IterPlotView(wxWindow *parent, Project* project)
+IterPlotView::IterPlotView(wxWindow *parent, Project* project, wxString imagedir)
     : wxPanel(parent)
 {
     m_project_ptr = project;
@@ -41,15 +33,16 @@ IterPlotView::IterPlotView(wxWindow *parent, Project* project)
     wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
 
     wxBoxSizer *top_sizer = new wxBoxSizer(wxHORIZONTAL);
-
-    top_sizer->Add(new wxButton(this, ID_REFRESH, "Refresh data", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
-    top_sizer->Add(new wxButton(this, ID_CHECK_ALL, "Check all", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
-    top_sizer->Add(new wxButton(this, ID_UNCHECK_ALL, "Uncheck all", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
-    top_sizer->Add(new wxCheckBox(this, ID_NORMALIZE, "Normalize plots"), 0, wxALL | wxEXPAND, 2);
-    top_sizer->Add(new wxButton(this, ID_SCROLL_UP, "^", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
-    top_sizer->Add(new wxButton(this, ID_SCROLL_DOWN, "v", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
-    top_sizer->Add(new wxButton(this, ID_NPLOT_UP, "+", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
-    top_sizer->Add(new wxButton(this, ID_NPLOT_DOWN, "-", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 0, wxALL | wxEXPAND, 2);
+    
+    wxBitmapButton *bmtmp;
+    top_sizer->Add(bmtmp = new wxBitmapButton(this, ID_SCROLL_UP, wxIcon(imagedir + "/arrow-up.png", wxBITMAP_TYPE_PNG)), 0, wxBU_EXACTFIT | wxALL, 2);
+    bmtmp->SetToolTip("Scroll plots up");
+    top_sizer->Add(bmtmp = new wxBitmapButton(this, ID_SCROLL_DOWN, wxIcon(imagedir + "/arrow-down.png", wxBITMAP_TYPE_PNG)), 0, wxBU_EXACTFIT | wxALL, 2);
+    bmtmp->SetToolTip("Scroll plots down");
+    top_sizer->Add(bmtmp = new wxBitmapButton(this, ID_NPLOT_UP, wxIcon(imagedir + "/zoom-out.png", wxBITMAP_TYPE_PNG)), 0, wxBU_EXACTFIT | wxALL, 2);
+    bmtmp->SetToolTip("View more plots");
+    top_sizer->Add(bmtmp = new wxBitmapButton(this, ID_NPLOT_DOWN, wxIcon(imagedir + "/zoom-in.png", wxBITMAP_TYPE_PNG)), 0, wxBU_EXACTFIT | wxALL, 2);
+    bmtmp->SetToolTip("View fewer plots");
 
     m_iterplot = new IterationPlot(this, &m_project_ptr->m_optimization_outputs.iteration_history.hash_vector);
 
@@ -63,13 +56,6 @@ void IterPlotView::OnCommand(wxCommandEvent &evt)
 {
     switch (evt.GetId())
     {
-    case ID_REFRESH:
-        break;
-    case ID_CHECK_ALL:
-        break;
-    case ID_UNCHECK_ALL:
-        break;
-    case ID_NORMALIZE:
     case ID_NONE:
         break;
     case ID_SCROLL_UP:
