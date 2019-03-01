@@ -1,4 +1,7 @@
 #include <set>
+#include <future>
+//#include <chrono>
+//#include <thread>
 
 #include <lk/env.h>
 #include <ssc/sscapi.h>
@@ -886,6 +889,11 @@ void _simulate_cycle(lk::invoke_t &cxt)
 }
 
 
+bool __opt_thread_helper(optimization* O)
+{
+    return O->run_optimization();
+}
+
 void _optimize(lk::invoke_t &cxt)
 {
     LK_DOC("optimize_system", 
@@ -933,8 +941,16 @@ void _optimize(lk::invoke_t &cxt)
 
     }
 
+    //Opt.run_optimization();
+    std::future<bool> res = std::async(__opt_thread_helper, &Opt);
+    
+    while (true)
+    {
+        if (res.wait_for(std::chrono::milliseconds(250)) == std::future_status::ready)
+            break;
 
-    Opt.run_optimization();
+        wxYieldIfNeeded();
+    }
 
     mw.UpdateDataTable();
     mw.SetProgress(0.);

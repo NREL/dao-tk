@@ -87,7 +87,8 @@ void IterationPlot::DoPaint(wxDC &_pdc)
         datmax = datmax + (datmax - datmin)*.05;
         if (datmin == datmax)
         {
-            datmax = datmin + 1.;
+            datmax = 2*datmin;
+            datmin = 0;
         }
         //axes limits
         _plotobjs.at(i).SetXAxisRange(0, _data.iteration_count() + 1);

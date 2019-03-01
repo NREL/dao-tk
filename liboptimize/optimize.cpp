@@ -128,7 +128,7 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     if (P->IsStopFlag())
         throw std::runtime_error("The simulation has been terminated by the user.");
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 #else
     //run all of the methods in order
     std::vector<std::string> allmethods = P->GetAllMethodNames();

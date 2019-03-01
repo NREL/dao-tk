@@ -54,31 +54,33 @@ IterPlotView::IterPlotView(wxWindow *parent, Project* project, wxString imagedir
 
 void IterPlotView::OnCommand(wxCommandEvent &evt)
 {
+    int nitem = m_project_ptr->m_optimization_outputs.iteration_history.hash_vector.item_count();
+    
     switch (evt.GetId())
     {
     case ID_NONE:
         break;
     case ID_SCROLL_UP:
-        m_firstplot--;
-        m_firstplot < 0 ? 0 : m_firstplot;
+        m_firstplot = m_firstplot < 1 ? 0 : m_firstplot-1;
         break;
     case ID_SCROLL_DOWN:
     {
-        m_firstplot++;
-        int nitem = m_project_ptr->m_optimization_outputs.iteration_history.hash_vector.item_count();
-        m_firstplot > nitem - m_nplotview - 1 ? nitem - m_nplotview - 1 : m_firstplot;
+        m_firstplot = m_firstplot > nitem - m_nplotview - 2 ? nitem - m_nplotview - 1 : m_firstplot+1;
         break;
     }
     case ID_NPLOT_UP:
-        m_nplotview++;
-        m_nplotview > m_nplotview_max - 2 ? m_nplotview_max - 1 : m_nplotview;
+        m_nplotview = m_nplotview > m_nplotview_max - 1 ? m_nplotview_max : m_nplotview+1;
+        if (nitem - m_firstplot < m_nplotview)
+        {
+            m_firstplot = m_firstplot > 0 ? m_firstplot - 1 : 0;
+        }
         break;
     case ID_NPLOT_DOWN:
-        m_nplotview--;
-        m_nplotview < 1 ? 1 : m_nplotview;
+        m_nplotview = m_nplotview < 2 ? 1 : m_nplotview-1;
     default:
         break;
     }
+    UpdateDataFromProject();
 }
 
 void IterPlotView::UpdateDataFromProject()
