@@ -93,6 +93,7 @@ struct solar_field_data
 	double total_mirror_output;
 	int *num_mirrors_by_group;
 	int num_mirror_groups;
+	int num_mirrors;
 	int scale;
 	//double mirror_size;
 	//double annual_dni;
@@ -106,6 +107,7 @@ struct solar_field_data
 struct wash_crew_opt_results
 {
 	std::unordered_map<int,std::vector<int>> assignments_by_crews;
+	std::unordered_map<int, std::vector<int>> solution_assignments;
 	std::vector<int> num_crews_by_period;
 	int num_ft_crews;
 	int num_vehicles;

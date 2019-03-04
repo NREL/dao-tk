@@ -125,6 +125,7 @@ solar_field_data::solar_field_data()
 	scale = 1;
 
 	num_mirror_groups = NULL;
+	num_mirrors = NULL;
 	dni_by_period = {};
 	labor_by_period = {};
 	groupings = {};
@@ -147,6 +148,7 @@ solar_field_data::~solar_field_data()
 wash_crew_opt_results::wash_crew_opt_results()
 {
 	assignments_by_crews = {};
+	solution_assignments = {};
 	num_crews_by_period = {};
 	objective_values = 0;
 	parents = 0;

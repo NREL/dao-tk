@@ -48,26 +48,9 @@ float* optical_degradation::get_replacement_totals(int *length)
 }
 
 //------------------------------------------
-double optical_degradation::get_replacement_threshold(
-	double interval
-)
-{
-	if (m_settings.degr_loss_per_hr < DBL_EPSILON)
-	{
-		return 0.0;
-	}
-	if (m_settings.degr_accel_per_year < DBL_EPSILON)
-	{
-		return 1.0 - interval * m_settings.degr_loss_per_hr;
-	}
-	else
-	{
-		double c = (1 + m_settings.degr_accel_per_year);
-		return 1.0 - m_settings.degr_loss_per_hr * interval * std::pow(c, interval / 8760);
-	}
-}
 
-double optical_degradation::get_replacement_interval(
+
+double optical_degradation::get_replacement_threshold(
 	double mirror_output, 
 	int num_mirrors
 )
@@ -83,13 +66,13 @@ double optical_degradation::get_replacement_interval(
 			(rev_loss_rate * m_settings.degr_loss_per_hr)
 		);
 		//std::cerr << "rev loss " << rev_loss_rate << " time " << time_threshold << " loss " << ((refurb_cost /time_threshold) + (rev_loss_rate * m_settings.degr_loss_per_hr * time_threshold/2.)) << "\n";
-		return time_threshold;
+		return 1.0 - time_threshold * m_settings.degr_loss_per_hr;
 	}
 	else
 	{
 	
 		//use bisection to obtain the optimal time interval.
-		double b, c, logc, z_lo, z_med, z_hi, lo, med, hi, interval, min_t, max_t;
+		double b, c, logc, r, z_lo, z_med, z_hi, lo, med, hi, interval, min_t, max_t;
 		
 		b = rev_loss_rate * m_settings.degr_loss_per_hr;
 		c = (1 + m_settings.degr_accel_per_year);
@@ -200,15 +183,15 @@ double optical_degradation::get_replacement_interval(
 		//rate to obtain the optimal replacement threshold
 		if (z_lo <= z_med && z_lo <= z_hi)
 		{
-			return lo;
+			return 1.0 - m_settings.degr_loss_per_hr * lo * std::pow(c, lo / 8760);
 		}
 		else if (z_hi <= z_med && z_hi <= z_lo)
 		{
-			return hi;
+			return 1.0 - m_settings.degr_loss_per_hr * hi * std::pow(c, hi / 8760);
 		}
 		else
 		{
-			return med;
+			return 1.0 - m_settings.degr_loss_per_hr * med * std::pow(c, med / 8760);
 		}
 	}
 }
@@ -255,8 +238,8 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	for (int i = 0; i < m_settings.n_wash_crews; i++)
 	{
 		c = opt_crew();
-		c.start_heliostat = m_wc_results.assignments.at(i);
-		c.end_heliostat = m_wc_results.assignments.at(i+1);
+		c.start_heliostat = m_wc_results.assignments_by_crews.at(i).at(0);
+		c.end_heliostat = m_wc_results.assignments_by_crews.at(i+1).at(0);
 		crews.push_back(c);
 	}
 		
@@ -277,14 +260,14 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 			total_mirrors += m_solar_data.num_mirrors_by_group[i];
 			//std::cerr << i << "  " << helios.at(i).replacement_threshold << "  " << m_solar_data.mirror_output[i] <<  "  "   << m_solar_data.num_mirrors_by_group[i] << "\n";
 		}
-		double repl_interval = get_replacement_interval(
-			m_solar_data.total_mirror_output / total_mirrors, 1
+		double mean_threshold = get_replacement_threshold(
+			m_solar_data.total_mirror_output / total_mirrors,
+			1
 		);
-		double mean_threshold = get_replacement_threshold(repl_interval);
 		for (int i = 0; i < n_helio_s; i++)
 		{
 			helios.at(i).replacement_threshold = mean_threshold;
-			helios.at(i).replacement_interval = repl_interval;
+			helios.at(i).replacement_interval = mean_threshold / m_settings.degr_loss_per_hr;
 		}
 	}
 	else
@@ -292,13 +275,12 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		//at this point, we optimize the threshold for each heliostat.
 		for (int i = 0; i < n_helio_s; i++)
 		{
-			helios.at(i).replacement_interval = get_replacement_interval(
+			helios.at(i).replacement_threshold = get_replacement_threshold(
 				m_solar_data.mirror_output[i],
 				m_solar_data.num_mirrors_by_group[i]
 			);
-			helios.at(i).replacement_threshold = get_replacement_threshold(
-				helios.at(i).replacement_interval
-			);
+			helios.at(i).replacement_interval = helios.at(i).replacement_threshold / m_settings.degr_loss_per_hr;
+			//std::cerr << i << "  " << helios.at(i).replacement_threshold << "  " << m_solar_data.mirror_output[i] <<  "  "   << m_solar_data.num_mirrors_by_group[i] << "\n";
 		}
 	}
 
@@ -533,7 +515,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		replacements_made += crews.at(s).replacements_made;
 	}
 
-	m_results.n_replacements = (float)replacements_made;
+	m_results.n_replacements = replacements_made;
 
 	m_results.soil_schedule = new float[m_settings.n_hr_sim];
 	m_results.degr_schedule = new float[m_settings.n_hr_sim];
@@ -545,13 +527,13 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 
 	for (int i = 0; i<m_settings.n_hr_sim; i++)
 	{
-		float s = (float)soil.at(i);
-		float d = (float)degr.at(i);
+		float s = soil.at(i);
+		float d = degr.at(i);
 
 		m_results.soil_schedule[i] = s;
 		m_results.degr_schedule[i] = d;
-		m_results.repl_schedule[i] = (float)repr.at(i);
-		m_results.repl_total[i] = (float)repr_cum.at(i);
+		m_results.repl_schedule[i] = repr.at(i);
+		m_results.repl_total[i] = repr_cum.at(i);
 
 		m_results.avg_degr += d;
 		m_results.avg_soil += s;

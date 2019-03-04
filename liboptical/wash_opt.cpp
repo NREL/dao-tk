@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <set>
 #include "wash_opt.h"
 
 WashCrewOptimizer::WashCrewOptimizer()
@@ -439,79 +440,95 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 	m_solution_data = solar_field_data();
 	m_solution_data.scale = hours * (m_settings.wash_rate / m_settings.heliostat_size);
 	m_solution_data.groupings.clear();
-
-	std::vector<double> mirror_output = {};
-	std::vector<int> num_mirrors_by_group = {};
-	std::vector<int> new_assignments = { 0 };
+	for (int t = 0; t < m_results.num_crews_by_period.size(); t++)
+		m_results.solution_assignments[t] = {0};
 	
 
-	//determine the number of mirror groups;
-	int mirror_idx = 0;
-	double output = 0;
-	int group_idx = 0;
-	m_solution_data.groupings[group_idx] = {};
-	int num_assigned_mirrors;
-	for (int i = 0; i < m_results.num_vehicles; i++)
-	{   //i = wash crew index
-		num_assigned_mirrors = 0;
-		for (  //j = condensed data mirror group index
-			int j = 0;//m_results.assignments.at(i);
-			j < 0;//m_results.assignments.at(i + 1);
-			j++
-			)
+	//detremine the breakpoints that may be the end of a crew's assignment.
+	std::set<int> assignment_breaks = {};
+	if (m_settings.use_uniform_assignment)
+		for (int t = 0; t < m_results.num_crews_by_period.size(); t++)
+			for (int c = 0; c < m_results.num_crews_by_period.at(t); c++)
+				assignment_breaks.insert((int)(
+					m_solar_data.num_mirrors
+					* c / m_results.num_crews_by_period.at(t)
+					+ 0.5
+					));
+	else
+		for (int t = 0; t < m_results.num_crews_by_period.size(); t++)
+			for (int c = 0; c < m_results.num_crews_by_period.at(t); c++)
+				assignment_breaks.insert((int)(
+					GetNumberOfMirrors(
+						m_results.assignments_by_crews[m_results.num_crews_by_period.at(t)].at(c),
+						m_results.assignments_by_crews[m_results.num_crews_by_period.at(t)].at(c+1)
+					)));
+
+	//Add the hourly breaks.
+	for (int c = 0; c <= m_solar_data.num_mirrors; c += m_solution_data.scale)
+		assignment_breaks.insert(c);
+
+	//Create a vector consisting of all the elemnents of the set 
+	//(which are unique and ordered).
+	m_solution_data.num_mirror_groups = assignment_breaks.size();
+	m_solution_data.num_mirrors_by_group = new int[assignment_breaks.size() - 1];
+	m_solution_data.mirror_output = new double[assignment_breaks.size() - 1];
+	//std::vector<int> breakpoints = {};
+	//for (int c : assignment_breaks)
+	//	breakpoints.push_back(c);
+	int idx = 0;
+	int m;
+	for (int c : assignment_breaks)
+	{
+		if (c != 0)
 		{
-			for (int k = 0; k < m_condensed_data.num_mirrors_by_group[j]; k++)
-			{  //k = mirror index within condensed data
-				output += m_solar_data.mirror_output[mirror_idx];
-				m_solution_data.groupings[group_idx].push_back(m_solar_data.names[mirror_idx]);
-				num_assigned_mirrors++;
-				mirror_idx++;
-				if (num_assigned_mirrors == m_solution_data.scale)
-				{
-					mirror_output.push_back(output);
-					num_mirrors_by_group.push_back(num_assigned_mirrors);
-					num_assigned_mirrors = 0;
-					output = 0.;
-					group_idx++;
-					m_solution_data.groupings[group_idx] = {};
-				}
+			m_solution_data.num_mirrors_by_group[idx] = c - m;
+		}
+		m = c;
+		idx++;
+	}
+		
+	//assign mirrors to the groups, and update assignments as breakpoints are hit.
+	int cumulative_mirrors = 0;
+	int solar_data_idx = 0;
+	int solar_mirrors = m_solar_data.num_mirrors_by_group[0];
+	int solution_mirrors;
+	double sol_group_output;
+	for (int solution_idx = 0; solution_idx < assignment_breaks.size() - 1; solution_idx++)
+	{
+		solution_mirrors = m_solution_data.num_mirrors_by_group[solution_idx]*1;
+		sol_group_output = 0.;
+		while (solution_mirrors > 0)
+		{
+			if (solution_mirrors < solar_mirrors)
+			{
+				sol_group_output += m_solar_data.mirror_output[solar_data_idx] * (double)solution_mirrors / m_solar_data.num_mirrors_by_group[solar_data_idx];
+				cumulative_mirrors += solution_mirrors;
+				solar_mirrors -= solution_mirrors;
+				solution_mirrors = 0;
+			}
+			else
+			{
+				sol_group_output += m_solar_data.mirror_output[solar_data_idx] * (double)solar_mirrors / m_solar_data.num_mirrors_by_group[solar_data_idx];
+				cumulative_mirrors += solar_mirrors;
+				solution_mirrors -= solar_mirrors;
+				solar_data_idx++;
+				solar_mirrors = m_solar_data.num_mirrors_by_group[solar_data_idx];
 			}
 		}
-		if (num_assigned_mirrors > 0)
+		m_solution_data.mirror_output[solution_idx] = sol_group_output;
+		for (int t = 0; t < m_results.num_crews_by_period.size(); t++)
 		{
-			mirror_output.push_back(output);
-			num_mirrors_by_group.push_back(num_assigned_mirrors);
-			num_assigned_mirrors = 0;
-			output = 0.;
-			group_idx++;
-			m_solution_data.groupings[group_idx] = {};
+			if (
+				std::find(
+					m_results.assignments_by_crews.at(m_results.num_crews_by_period.at(t)).begin(),
+					m_results.assignments_by_crews.at(m_results.num_crews_by_period.at(t)).end(),
+					cumulative_mirrors
+				)
+				!= m_results.assignments_by_crews.at(m_results.num_crews_by_period.at(t)).end()
+				)
+				m_results.solution_assignments[t].push_back(solution_idx);
 		}
-		new_assignments.push_back(group_idx);
 	}
-	/*
-	std::cerr << "Path: ";
-	for (int j = 0; j < m_results.assignments.size(); j++)
-	{
-		std::cerr << m_results.assignments.at(j) << ",";
-	}
-	std::cerr << "\n";
-	for (int i = 0; i < group_idx; i++)
-	{
-		std::cerr << "Group " << i << " num mirrors: "
-			<< num_mirrors_by_group[i]
-			<< " power: " << mirror_output[i] << "\n";
-	}
-	*/
-	m_solution_data.num_mirrors_by_group = new int[num_mirrors_by_group.size()]; &num_mirrors_by_group[0];
-	m_solution_data.mirror_output = new double[mirror_output.size()];
-	for (size_t i = 0; i < mirror_output.size(); i++)
-	{
-		m_solution_data.mirror_output[i] = mirror_output.at(i);
-		m_solution_data.num_mirrors_by_group[i] = num_mirrors_by_group.at(i);
-	}
-	m_solution_data.total_mirror_output = m_condensed_data.total_mirror_output*1.0;
-	m_solution_data.num_mirror_groups = mirror_output.size();
-	//m_results.assignments = new_assignments;
 }
 
 void WashCrewOptimizer::CalculateRevenueAndCosts()
@@ -959,6 +976,7 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 		double cost, cost_eq;
 		double field_eff, field_eff_eq;
 		double min_cost = INFINITY;
+		int cum_mirrors;
 		for (int i = 1; i <= m_settings.max_num_crews; i++)
 		{
 			path = RetracePath(
@@ -978,10 +996,18 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 			std::cerr << "\nAverage field efficiency: " << field_eff << "\n";
 			*/
 			//use the equal-assignment path if specified; otherwise, use DP output.
+			
+			m_results.assignments_by_crews[i] = {0};
+			for (int c = 0; c < path.size()-1; c++)
+				m_results.assignments_by_crews[i].push_back(
+					GetNumberOfMirrors(path[c], path[c + 1])
+				);
 			m_results.assignments_by_crews[i] = path;
 			for (int t = 0; t < 12; t++)
 			{
-				rev_losses[int_pair_to_string(i, t+1)] = cost * m_solar_data.dni_by_period.at(t);
+				rev_losses[int_pair_to_string(i, t+1)] = (
+					cost * m_solar_data.dni_by_period.at(t)
+					);
 			}
 		}
 	}

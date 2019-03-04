@@ -1721,7 +1721,9 @@ bool Project::O()
 	wc.m_settings.capital_cost_per_crew = m_parameters.wash_crew_capital_cost.as_number();
 	wc.m_settings.heliostat_size = (double)(helio_width * helio_height);
 	wc.m_settings.crew_hours_per_week = m_parameters.wash_crew_max_hours_week.as_number();
-	wc.m_settings.discount_rate = term_int_rate * 0.01;
+	wc.m_settings.discount_rate_rev = term_int_rate * 0.01;
+	wc.m_settings.discount_rate_capital = term_int_rate * 0.01;
+	wc.m_settings.discount_rate_labor = term_int_rate * 0.01;
 	wc.m_settings.hourly_cost_per_crew = m_parameters.wash_crew_cost.as_number();
 	wc.m_settings.num_years = m_parameters.plant_lifetime.as_number();
 	wc.m_settings.price_per_kwh = m_parameters.price_per_kwh.as_number();
@@ -1731,7 +1733,7 @@ bool Project::O()
 	wc.m_settings.use_uniform_assignment = true;
 	wc.m_settings.max_num_crews = 10;
 	wc.OptimizeWashCrews();
-	while (wc.m_settings.max_num_crews == wc.m_results.num_wash_crews)
+	while (wc.m_settings.max_num_crews == wc.m_results.num_vehicles)
 	{
 		wc.m_settings.max_num_crews *= 2;
 		wc.OptimizeWashCrews();
@@ -1747,7 +1749,7 @@ bool Project::O()
 		);
 
 	od.m_settings.n_hr_sim = m_parameters.finance_period.as_integer() * 8760;
-	od.m_settings.n_wash_crews = wc.m_results.num_wash_crews;
+	od.m_settings.n_wash_crews = wc.m_results.num_crews_by_period[0];
 	od.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
 	od.m_settings.degr_loss_per_hr = m_parameters.degr_per_hour.as_number();
 	od.m_settings.degr_accel_per_year = m_parameters.degr_accel_per_year.as_number();
@@ -1777,7 +1779,7 @@ bool Project::O()
 	od.m_results.heliostat_refurbish_cost = calc_real_dollars( od.m_results.heliostat_refurbish_cost_y1 ) * ann_fact;
 
     //assign results to structure
-	m_optical_outputs.n_wash_crews.assign(wc.m_results.num_wash_crews);
+	m_optical_outputs.n_wash_crews.assign(wc.m_results.num_crews_by_period[0]);
     m_optical_outputs.n_replacements.assign(od.m_results.n_replacements);
     m_optical_outputs.heliostat_refurbish_cost.assign(od.m_results.heliostat_refurbish_cost);
     m_optical_outputs.heliostat_refurbish_cost_y1.assign(od.m_results.heliostat_refurbish_cost_y1);
