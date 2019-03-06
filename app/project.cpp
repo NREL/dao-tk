@@ -181,7 +181,7 @@ void parameters::initialize()
     degr_seed.set(                         123,                    "degr_seed",      false,                     "Random number generator seed",           "-",    "Optical degradation|Parameters" );
     soil_per_hour.set(                  1.5e-4,                "soil_per_hour",      false,                                "Mean soiling rate",        "1/hr",    "Optical degradation|Parameters" );
     helio_reflectance.set(                0.95,            "helio_reflectance",      false,                       "Initial mirror reflectance",           "-",    "Optical degradation|Parameters" );
-	is_uniform_helio_assign.set(         false,      "is_uniform_helio_assign",      false,              "Assign equal wash time to each crew",           "-",    "Optical degradation|Parameters" );
+	is_uniform_helio_assign.set(          true,      "is_uniform_helio_assign",      false,              "Assign equal wash time to each crew",           "-",    "Optical degradation|Parameters" );
 
 	std::vector< double > pvalts(8760, 1.);
     disp_rsu_cost.set(                    950.,                "disp_rsu_cost",      false,                            "Receiver startup cost",           "$",             "Simulation|Parameters" );
@@ -1726,6 +1726,11 @@ bool Project::O()
 		wc.m_solar_data.names[i] = helio_ids[i];
 		wc.m_solar_data.num_mirrors_by_group[i] = 1;
 	}
+
+	//use weather data file to obtain DNI by period
+	wc.m_file_settings.weather_file = m_parameters.solar_resource_file.as_string();
+	wc.ReadWeatherData();
+
 	//additional settings information from parameters
 	wc.m_settings.capital_cost_per_crew = m_parameters.wash_crew_vehicle_cost.as_number();
 	wc.m_settings.heliostat_size = (double)(helio_width * helio_height);
@@ -1742,7 +1747,7 @@ bool Project::O()
 	wc.m_settings.vehicle_life = m_parameters.wash_vehicle_life.as_integer();
 	wc.m_settings.use_uniform_assignment = m_parameters.is_uniform_helio_assign.as_boolean();
 	wc.m_settings.max_num_crews = 10;
-	wc.m_file_settings.weather_file = m_parameters.solar_resource_file.as_string();
+	
 	wc.OptimizeWashCrews();
 	while (wc.m_settings.max_num_crews == wc.m_results.num_vehicles)
 	{
