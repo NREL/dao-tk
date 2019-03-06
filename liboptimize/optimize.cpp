@@ -50,7 +50,7 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
 
     //list of all output variables
     std::vector<parameter*> allouts = { &P->m_financial_outputs.ppa, &P->m_financial_outputs.lcoe_real, &P->m_financial_outputs.total_installed_cost,
-                                   &P->m_design_outputs.area_sf, &P->m_optical_outputs.avg_soil, &P->m_optical_outputs.n_wash_crews,
+                                   &P->m_design_outputs.area_sf, &P->m_optical_outputs.avg_soil, &P->m_optical_outputs.n_wash_vehicles,
                                    &P->m_optical_outputs.avg_degr, &P->m_simulation_outputs.annual_generation, &P->m_simulation_outputs.annual_cycle_starts,
                                    &P->m_simulation_outputs.annual_rec_starts, &P->m_simulation_outputs.annual_revenue_units,
                                    &P->m_solarfield_outputs.avg_avail, &P->m_solarfield_outputs.n_repairs };

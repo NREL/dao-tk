@@ -473,6 +473,7 @@ struct parameters : public hash_base
 	parameter is_reoptimize_at_repairs;
 	parameter is_reoptimize_at_failures;
 	parameter is_use_target_heuristic;
+	parameter is_uniform_helio_assign;
 
     //strings
 	parameter ampl_data_dir;
@@ -525,9 +526,10 @@ struct parameters : public hash_base
 	parameter wash_rate;
 	parameter wash_crew_max_hours_day;
 	parameter wash_crew_max_hours_week;
-	parameter wash_crew_capital_cost;
+	parameter wash_crew_vehicle_cost;
 	parameter price_per_kwh;
 	parameter TES_powercycle_eff;
+	parameter wash_crew_seasonal_multiple;
 	parameter degr_per_hour;
 	parameter degr_accel_per_year;
 	parameter degr_seed;
@@ -622,8 +624,11 @@ struct solarfield_outputs : public hash_base
 
 struct optical_outputs : public hash_base
 {
-	parameter n_wash_crews;
+	parameter n_wash_vehicles;
+	parameter wash_crew_schedule;
 	parameter n_replacements;
+	parameter heliostat_wash_labor_cost;
+	parameter heliostat_wash_labor_cost_y1;
 	parameter heliostat_refurbish_cost;
 	parameter heliostat_refurbish_cost_y1;
 	parameter avg_soil;

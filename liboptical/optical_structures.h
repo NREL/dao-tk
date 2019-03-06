@@ -30,6 +30,8 @@ struct opt_settings
 	int refl_sim_interval;
 
 	int seed;
+
+	std::vector<int> periods;
 }; 
 
 struct opt_heliostat

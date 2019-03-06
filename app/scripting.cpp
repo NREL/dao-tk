@@ -402,7 +402,7 @@ void _test(lk::invoke_t &cxt)
 	mw.Log(wxString::Format("Average degradation: %.2f", P->m_optical_outputs.avg_degr.as_number()));
 	mw.Log(wxString::Format("Average cycle repair labor costs: %.2f", P->m_cycle_outputs.cycle_labor_cost.as_number()));
 	mw.Log(wxString::Format("Number of failed components: %d", P->m_cycle_outputs.num_failures.as_integer()));
-	mw.Log(wxString::Format("Number of wash crews: %d", P->m_optical_outputs.n_wash_crews.as_integer()));
+	mw.Log(wxString::Format("Number of wash vehicles: %d", P->m_optical_outputs.n_wash_vehicles.as_integer()));
 	mw.Log(wxString::Format("Total sales: %.2f", P->m_financial_outputs.ppa.as_number()));
 	mw.Log(wxString::Format("Total Cash flow: %.2f", P->m_objective_outputs.cash_flow.as_number()));
 	mw.Log(wxString::Format("Real LCOE: %.2f", P->m_financial_outputs.lcoe_real.as_number()));
@@ -754,7 +754,7 @@ void _simulate_optical(lk::invoke_t &cxt)
             P->m_design_outputs.number_heliostats.assign( h->at("n_helio")->as_integer() );
 
 	    if ( h->find("n_wash_crews") != h->end() )
-            P->m_optical_outputs.n_wash_crews.assign( h->at("n_wash_crews")->as_integer() );
+            P->m_optical_outputs.n_wash_vehicles.assign( h->at("n_wash_vehicles")->as_integer() );
 
 	    if ( h->find("wash_units_per_hour") != h->end() )
             P->m_parameters.wash_rate.assign( h->at("wash_units_per_hour")->as_number() );

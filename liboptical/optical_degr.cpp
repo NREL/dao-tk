@@ -17,6 +17,7 @@ optical_degradation::optical_degradation()
 {
 	//initialize
 	m_sim_available = false;
+	m_settings.periods = { 0,744,1416,2160,2880,3624,4344,5088,5832,6552,7296,8016,8760 };
 }
 
 float* optical_degradation::get_soiling_schedule(int *length)

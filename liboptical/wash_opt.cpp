@@ -144,8 +144,7 @@ void WashCrewOptimizer::ReadWeatherData()
 	std::string pline;
 	std::string token;
 	std::vector<std::string> split_line = {};
-
-	std::vector<int> cum_hours = { 0,744,1416,2160,2880,3624,4344,5088,5832,6552,7296,8016,8760 };
+	
 	std::vector<double> month_dni(12, 0.);
 	std::vector<double> weather_file_dni = {};
 	std::vector<double> month_labor(12, 0.);
@@ -180,7 +179,7 @@ void WashCrewOptimizer::ReadWeatherData()
 	//aggregate total dni and dni by month
 	for (int i = 0; i < 12; i++)
 	{
-		for (int j = cum_hours.at(i); j < cum_hours.at(i + 1); j++)
+		for (int j = m_settings.periods.at(i); j < m_settings.periods.at(i + 1); j++)
 		{
 			sum_dni += weather_file_dni.at(j);
 			month_dni.at(i) += weather_file_dni.at(j);
@@ -200,8 +199,8 @@ void WashCrewOptimizer::ReadWeatherData()
 	{
 		m_solar_data.dni_by_period.push_back(month_dni.at(i)*1.);
 		m_solar_data.labor_by_period.push_back(
-			(double)(cum_hours.at(i + 1) - cum_hours.at(i)) 
-			/ cum_hours.at(cum_hours.size()-1)
+			(double)(m_settings.periods.at(i + 1) - m_settings.periods.at(i))
+			/ m_settings.periods.at(m_settings.periods.size()-1)
 		);
 	}
 }
@@ -440,28 +439,46 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 	m_solution_data = solar_field_data();
 	m_solution_data.scale = hours * (m_settings.wash_rate / m_settings.heliostat_size);
 	m_solution_data.groupings.clear();
-	for (int t = 0; t < m_results.num_crews_by_period.size(); t++)
-		m_results.solution_assignments[t] = {0};
+	for (int t = 0; t < m_settings.periods.size(); t++)
+		m_results.solution_assignments[t] = {};
 	
 
 	//detremine the breakpoints that may be the end of a crew's assignment.
-	std::set<int> assignment_breaks = {};
+	std::set<int> assignment_breaks = {0};
+	int b;
 	if (m_settings.use_uniform_assignment)
-		for (int t = 0; t < m_results.num_crews_by_period.size(); t++)
-			for (int c = 0; c < m_results.num_crews_by_period.at(t); c++)
-				assignment_breaks.insert((int)(
+		for (size_t t = 0; t < m_settings.periods.size()-1; t++)
+		{
+			m_results.assignments_by_crews[m_results.num_crews_by_period[t]] = { 0 };
+			for (int c = 0; c < m_results.num_crews_by_period[t]; c++)
+			{
+				b = (int)(
 					m_solar_data.num_mirrors
-					* c / m_results.num_crews_by_period.at(t)
+					* (c+1) / m_results.num_crews_by_period[t]
 					+ 0.5
-					));
+					);
+				assignment_breaks.insert(b);
+				m_results.assignments_by_crews[m_results.num_crews_by_period[t]].push_back(b);
+			}
+		}
 	else
-		for (int t = 0; t < m_results.num_crews_by_period.size(); t++)
-			for (int c = 0; c < m_results.num_crews_by_period.at(t); c++)
+		for (int t = 0; t < m_settings.periods.size(); t++)
+			for (int c = 0; c < m_results.num_crews_by_period[t]; c++)
 				assignment_breaks.insert((int)(
 					GetNumberOfMirrors(
-						m_results.assignments_by_crews[m_results.num_crews_by_period.at(t)].at(c),
-						m_results.assignments_by_crews[m_results.num_crews_by_period.at(t)].at(c+1)
+						m_results.assignments_by_crews[m_results.num_crews_by_period[t]].at(c),
+						m_results.assignments_by_crews[m_results.num_crews_by_period[t]].at(c+1)
 					)));
+
+	for (size_t t = 0; t < m_settings.periods.size()-1; t++)
+	{
+		std::cerr << "Period " << t << " mirrors: ";
+		for (int c = 0; c <= m_results.num_crews_by_period[t]; c++)
+		{
+			std::cerr << m_results.assignments_by_crews[m_results.num_crews_by_period[t]].at(c) << ",";
+		}
+		std::cerr << "\n";
+	}
 
 	//Add the hourly breaks.
 	for (int c = 0; c <= m_solar_data.num_mirrors; c += m_solution_data.scale)
@@ -493,7 +510,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 	int solar_mirrors = m_solar_data.num_mirrors_by_group[0];
 	int solution_mirrors;
 	double sol_group_output;
-	for (int solution_idx = 0; solution_idx < assignment_breaks.size() - 1; solution_idx++)
+	for (int solution_idx = 0; solution_idx < assignment_breaks.size(); solution_idx++)
 	{
 		solution_mirrors = m_solution_data.num_mirrors_by_group[solution_idx]*1;
 		sol_group_output = 0.;
@@ -516,17 +533,20 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 			}
 		}
 		m_solution_data.mirror_output[solution_idx] = sol_group_output;
-		for (int t = 0; t < m_results.num_crews_by_period.size(); t++)
+		for (size_t t = 0; t < m_settings.periods.size()-1; t++)
 		{
 			if (
 				std::find(
-					m_results.assignments_by_crews.at(m_results.num_crews_by_period.at(t)).begin(),
-					m_results.assignments_by_crews.at(m_results.num_crews_by_period.at(t)).end(),
+					m_results.assignments_by_crews.at(m_results.num_crews_by_period[t]).begin(),
+					m_results.assignments_by_crews.at(m_results.num_crews_by_period[t]).end(),
 					cumulative_mirrors
 				)
-				!= m_results.assignments_by_crews.at(m_results.num_crews_by_period.at(t)).end()
+				!= m_results.assignments_by_crews.at(m_results.num_crews_by_period[t]).end()
 				)
-				m_results.solution_assignments[t].push_back(solution_idx);
+			{
+				m_results.solution_assignments[t].push_back(solution_idx == 0 ? 0 : solution_idx+1);
+				//std::cerr << "per " << t << " sol idx " << solution_idx << " mirrors " << cumulative_mirrors << "\n";
+			}
 		}
 	}
 }
@@ -591,13 +611,17 @@ void WashCrewOptimizer::GetTotalFieldOutput()
 	Returns the sum output of the entire solar field.
 	(sums the mirror_output of each group of mirrors).
 	*/
+	int num_mirrors = 0;
 	double sum_clean_output = 0.;
 	for (size_t i = 0; i < m_solar_data.num_mirror_groups; i++)
 	{
 		sum_clean_output += m_solar_data.mirror_output[i];
+		num_mirrors += m_solar_data.num_mirrors_by_group[i];
 	}
 	m_solar_data.total_mirror_output = sum_clean_output;
 	m_condensed_data.total_mirror_output = sum_clean_output;
+	m_solar_data.num_mirrors = num_mirrors;
+	m_condensed_data.num_mirrors = num_mirrors;
 	//std::cerr << "gettotalfield: num mirrors " << m_solar_data.num_mirror_groups << " output " << m_solar_data.total_mirror_output << "\n";
 }
 
@@ -868,13 +892,13 @@ void WashCrewOptimizer::CalculateSolutionObjective(std::unordered_map<std::strin
 {
 	double cost = 0.;
 	int crews;
-	int ft_crews = m_results.num_crews_by_period.at(0);
-	int vehicles = m_results.num_crews_by_period.at(0);
+	int ft_crews = m_results.num_crews_by_period[0];
+	int vehicles = m_results.num_crews_by_period[0];
 
 	//add revenue losses, and update number of full-time crews and vehicles
-	for (size_t t = 0; t < m_results.num_crews_by_period.size(); t++)
+	for (size_t t = 0; t < m_settings.periods.size()-1; t++)
 	{
-		crews = m_results.num_crews_by_period.at(t);
+		crews = m_results.num_crews_by_period[t];
 		cost += rev_losses[int_pair_to_string(crews, t+1)];
 		ft_crews = std::min(crews, ft_crews);
 		vehicles = std::max(crews, vehicles);
@@ -888,31 +912,37 @@ void WashCrewOptimizer::CalculateSolutionObjective(std::unordered_map<std::strin
 		* m_settings.profit_per_kwh
 		)
 	);
-	std::cerr << "lost rev: " << cost << "\n";
+	//std::cerr << "lost rev: " << cost << "\n";
 
+	double ft_cost = m_settings.hourly_cost_per_crew * m_settings.crew_hours_per_week * (365. / 7);
+	double ann_labor_cost = ft_crews * ft_cost;
 	//add the vehicle and full-time crew costs
 	cost += vehicles * m_settings.capital_cost_per_crew;
 	cost += ft_crews * m_settings.labor_cost_per_ft_crew;
 
-	std::cerr << "Full-time labor cost: " << ft_crews * m_settings.labor_cost_per_ft_crew << "\n";
-	std::cerr << "Vehicle cost: " << vehicles * m_settings.capital_cost_per_crew << "\n";
+	//std::cerr << "Full-time labor cost: " << ft_crews * m_settings.labor_cost_per_ft_crew << "\n";
+	//std::cerr << "Vehicle cost: " << vehicles * m_settings.capital_cost_per_crew << "\n";
 
 	//add seasonal labor costs 
 	double st_labor = 0.;
-	for (size_t t = 0; t < m_results.num_crews_by_period.size(); t++)
+	for (size_t t = 0; t < m_settings.periods.size()-1; t++)
 	{
 		cost += m_solar_data.labor_by_period.at(t) * m_settings.labor_cost_per_seas_crew * (
-			m_results.num_crews_by_period.at(t) - ft_crews
+			m_results.num_crews_by_period[t] - ft_crews
 			);
 		st_labor += m_solar_data.labor_by_period.at(t) * m_settings.labor_cost_per_seas_crew * (
-			m_results.num_crews_by_period.at(t) - ft_crews
+			m_results.num_crews_by_period[t] - ft_crews
 			);
+		ann_labor_cost += (
+			m_solar_data.labor_by_period.at(t) * ft_cost * m_settings.seasonal_cost_multiple
+			) * (m_results.num_crews_by_period[t] - ft_crews);
 	}
-	std::cerr << "Short-term labor cost: " << st_labor << "\n";
+	//std::cerr << "Short-term labor cost: " << st_labor << "\n";
 
 	m_results.wash_crew_obj = cost;
 	m_results.num_ft_crews = ft_crews;
 	m_results.num_vehicles = vehicles;
+	m_results.annual_labor_cost = ann_labor_cost;
 }
 
 void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
@@ -1061,16 +1091,16 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 			{
 				change_crews.at(t - 1) = false;
 			}
-			std::cerr << "month " << t << "," << month_delta << "," <<
-				(m_settings.labor_cost_per_seas_crew
-					* m_solar_data.labor_by_period.at(t - 1)) << "," <<
-				delta_rev_loss[int_pair_to_string(c, t)] << "\n";
+			//std::cerr << "month " << t << "," << month_delta << "," <<
+			//	(m_settings.labor_cost_per_seas_crew
+			//		* m_solar_data.labor_by_period.at(t - 1)) << "," <<
+			//	delta_rev_loss[int_pair_to_string(c, t)] << "\n";
 		}
 
 		// if neither full-time nor seasonal hires reduce losses, terminate.
 		if (ft_delta >= 0. && seas_delta >= 0.)
 		{
-			std::cerr << "END" << "," << ft_delta << "," << seas_delta << "\n";
+			//std::cerr << "END" << "," << ft_delta << "," << seas_delta << "\n";
 			break;
 		}
 		// if a full-time crew provides a bigger benefit than a seasonal crew, 
@@ -1084,20 +1114,20 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 			for (int t = 0; t < 12; t++)
 				if (change_crews.at(t))
 					crews_by_period.at(t)++;
-		std::cerr << crews_by_period.at(6) << "," << ft_delta << "," << seas_delta << "\n";
+		//std::cerr << crews_by_period.at(6) << "," << ft_delta << "," << seas_delta << "\n";
 	}
 
 	//assign the solution to the results object and output results if desired
-	m_results.num_crews_by_period.clear();
+	m_results.num_crews_by_period = new float[m_settings.periods.size()-1];
 	for (size_t t = 0; t < crews_by_period.size(); t++)
-		m_results.num_crews_by_period.push_back(crews_by_period.at(t));
+		m_results.num_crews_by_period[t] = crews_by_period.at(t);
 
 	if (output)
 		OutputResults();
 
 	CalculateSolutionObjective(rev_losses);
 
-	//GroupSolutionMirrors();
+	GroupSolutionMirrors();
 
 
 }

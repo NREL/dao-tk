@@ -52,7 +52,7 @@ public:
 
 struct wash_crew_settings
 {
-	
+	std::vector<int> periods;
 	int max_num_crews;
 	int vehicle_life;  //years
 
@@ -108,7 +108,7 @@ struct wash_crew_opt_results
 {
 	std::unordered_map<int,std::vector<int>> assignments_by_crews;
 	std::unordered_map<int, std::vector<int>> solution_assignments;
-	std::vector<int> num_crews_by_period;
+	float* num_crews_by_period;
 	int num_ft_crews;
 	int num_vehicles;
 	double *objective_values;
@@ -116,6 +116,7 @@ struct wash_crew_opt_results
 	double *distances;
 	double wash_crew_obj;
 	double field_eff;
+	double annual_labor_cost;
 	//int num_wash_crews;
 	solar_field_data solution_data;
 	wash_crew_opt_results();

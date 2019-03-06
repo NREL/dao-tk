@@ -48,6 +48,7 @@ std::string LinearSoilingFunc::GetType()
 
 wash_crew_settings::wash_crew_settings()
 {
+	periods = { 0,744,1416,2160,2880,3624,4344,5088,5832,6552,7296,8016,8760 };
 	max_num_crews = 20;
 	capital_cost_per_crew = 0.;
 	labor_cost_per_ft_crew = 0.;
@@ -157,6 +158,7 @@ wash_crew_opt_results::wash_crew_opt_results()
 	num_ft_crews = 0;
 	wash_crew_obj = 0.;
 	field_eff = 0.;
+	annual_labor_cost = 0.;
 }
 /*
 wash_crew_opt_results::~wash_crew_opt_results()
