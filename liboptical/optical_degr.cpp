@@ -211,11 +211,14 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	}
 
 	//scale the problem
-	int n_helio_s;
+	int n_helio_s, t_cycle, sim_hr;
+	size_t period_idx;
 	double wash_units_per_hour_s;
 	//double problem_scale = 1.;
 	//double hscale = 250.;
 	bool do_trace = trace_file_name != 0;
+	int cycle_hours = m_settings.periods.at(m_settings.periods.size() - 1);
+	int n_active_crews = 0;
 	//always scale the problem, ensures sampling repeatability
 	//problem_scale = (float)m_settings.n_helio / hscale;
 
@@ -239,8 +242,6 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	for (int i = 0; i < m_settings.n_wash_crews; i++)
 	{
 		c = opt_crew();
-		c.start_heliostat = m_wc_results.assignments_by_crews.at(i).at(0);
-		c.end_heliostat = m_wc_results.assignments_by_crews.at(i+1).at(0);
 		crews.push_back(c);
 	}
 		
@@ -285,10 +286,10 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		}
 	}
 
-	std::vector< double > soil(m_settings.n_hr_sim);
-	std::vector< double > degr(m_settings.n_hr_sim);
-	std::vector< int > repr(m_settings.n_hr_sim);
-	std::vector< double > repr_cum(m_settings.n_hr_sim);
+	std::vector< double > soil(m_settings.n_hr_sim + m_settings.n_hr_warmup);
+	std::vector< double > degr(m_settings.n_hr_sim + m_settings.n_hr_warmup);
+	std::vector< int > repr(m_settings.n_hr_sim + m_settings.n_hr_warmup);
+	std::vector< double > repr_cum(m_settings.n_hr_sim + m_settings.n_hr_warmup);
 
 	//random generators
 	unsigned seed1 = m_settings.seed; 
@@ -314,7 +315,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 
 	//create the degradation rate by age
 	double degr_accel = std::pow((1. + m_settings.degr_accel_per_year), 1./8760);
-	int num_accel_entries = m_settings.n_hr_sim + std::max(m_settings.soil_sim_interval, m_settings.refl_sim_interval) + 1;
+	int num_accel_entries = m_settings.n_hr_warmup + m_settings.n_hr_sim + std::max(m_settings.soil_sim_interval, m_settings.refl_sim_interval) + 1;
 	std::vector< double > alpha_t_by_age(num_accel_entries);
 	if (m_settings.degr_accel_per_year > DBL_EPSILON)
 	{
@@ -330,14 +331,43 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 			alpha_t_by_age[t] = t * refl_c;
 	}
 
-	for (int t = 0; t<m_settings.n_hr_sim; t++)
+	for (int t = 0; t < m_settings.n_hr_sim + m_settings.n_hr_warmup; t++)
 	{
-
+		
 		if (t % (int)(m_settings.n_hr_sim / 50.) == 0 && callback != 0)
 		{
 			if (!callback((float)t / (float)m_settings.n_hr_sim, "Simulating heliostat field reflectivity"))
 				return;
 		}
+
+		//if the month has ended, reset which crews are idle, and reassign start and end heliostats.
+		t_cycle = t % cycle_hours;
+		if (std::find(m_settings.periods.begin(), m_settings.periods.end(), t_cycle) != m_settings.periods.end())
+		{
+			if (t_cycle == 0)
+				period_idx = 0;
+			else
+				period_idx++;
+
+			//update the crew schedule only if the number of crews changes
+			if (n_active_crews != (size_t)m_wc_results.num_crews_by_period[period_idx])
+			for (size_t c = 0; c < m_settings.n_wash_crews; c++)
+			{
+				if (c < n_active_crews)
+				{
+					crews.at(c).is_active = true;
+					crews.at(c).start_heliostat = m_wc_results.solution_assignments[period_idx].at(c);
+					crews.at(c).end_heliostat = m_wc_results.solution_assignments[period_idx].at(c+1);
+				}
+				else
+				{
+					crews.at(c).is_active = false;
+					crews.at(c).hours_today = 0.;
+					crews.at(c).hours_this_week = 0.;
+				}
+			}
+		}
+
 
 		//at each day, update crew hours worked today
 		if (t % 24 == 0)
@@ -405,7 +435,8 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 
 			//check crew availability
 			if (crew->hours_this_week >= m_settings.hours_per_week ||
-				crew->hours_today >= m_settings.hours_per_day)
+				crew->hours_today >= m_settings.hours_per_day ||
+				!(crew->is_active))
 				continue;
 
 			//double crew_time = 0.;
@@ -413,7 +444,8 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 			while (true)
 			{
 				//if the current heliostat is out of range, reset to starting heliostat
-				if (crew->current_heliostat >= crew->end_heliostat)
+				if (crew->current_heliostat >= crew->end_heliostat || 
+					crew->current_heliostat < crew->start_heliostat)
 				{
 					crew->current_heliostat = crew->start_heliostat;
 				}
@@ -473,9 +505,13 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 					helios.at(this_heliostat).replacement_interval
 					)
 				{
-					crew->replacements_made += m_solar_data.num_mirrors_by_group[this_heliostat];
-					n_replacements_t += m_solar_data.num_mirrors_by_group[this_heliostat];
-					n_replacements_cumu += m_solar_data.num_mirrors_by_group[this_heliostat];
+					if (t >= m_settings.n_hr_warmup)
+					{
+						//only record replacements after the warmup period.
+						crew->replacements_made += m_solar_data.num_mirrors_by_group[this_heliostat];
+						n_replacements_t += m_solar_data.num_mirrors_by_group[this_heliostat];
+						n_replacements_cumu += m_solar_data.num_mirrors_by_group[this_heliostat];
+					}
 					helios.at(this_heliostat).age_hours = 0;
 					helios.at(this_heliostat).refl_base = 1.;
 					helios.at(this_heliostat).soil_loss = 1.; // repair restores soiling losses
@@ -500,11 +536,14 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 			refl_ave += helios.at(i).refl_base * mirror_energy;
 			soil_ave += helios.at(i).soil_loss * mirror_energy;
 		}
-
- 		soil.at(t) = soil_ave / m_solar_data.total_mirror_output;
-		degr.at(t) = refl_ave / m_solar_data.total_mirror_output;
-		repr.at(t) = n_replacements_t;
-		repr_cum.at(t) = n_replacements_cumu;
+		if (t >= m_settings.n_hr_warmup)
+		{
+			sim_hr = t - m_settings.n_hr_warmup;
+			soil.at(sim_hr) = soil_ave / m_solar_data.total_mirror_output;
+			degr.at(sim_hr) = refl_ave / m_solar_data.total_mirror_output;
+			repr.at(sim_hr) = n_replacements_t;
+			repr_cum.at(sim_hr) = n_replacements_cumu;
+		}
 	}
 
 

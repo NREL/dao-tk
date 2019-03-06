@@ -25,5 +25,6 @@ opt_crew::opt_crew()
     replacements_made = 0;
     hours_this_week = 0.;
     hours_today = 0.;
+	is_active = false;
 }
 
