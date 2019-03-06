@@ -1717,12 +1717,14 @@ bool Project::O()
 	wc.m_solar_data.y_pos = new double[num_heliostats];
 	wc.m_solar_data.mirror_output = new double[num_heliostats];
 	wc.m_solar_data.names = new int[num_heliostats];
+	wc.m_solar_data.num_mirrors_by_group = new int[num_heliostats];
 	for (int i = 0; i < num_heliostats; i++)
 	{
 		wc.m_solar_data.x_pos[i] = helio_positions[2*i];
 		wc.m_solar_data.y_pos[i] = helio_positions[2*i+1];
 		wc.m_solar_data.mirror_output[i] = m_design_outputs.annual_helio_energy.vec()->at(i).as_number() / 1000;  //convert from Wh to kWh
 		wc.m_solar_data.names[i] = helio_ids[i];
+		wc.m_solar_data.num_mirrors_by_group[i] = 1;
 	}
 	//additional settings information from parameters
 	wc.m_settings.capital_cost_per_crew = m_parameters.wash_crew_vehicle_cost.as_number();
@@ -1738,8 +1740,9 @@ bool Project::O()
 	wc.m_settings.system_efficiency = m_parameters.TES_powercycle_eff.as_number();
 	wc.m_settings.wash_rate = m_parameters.wash_rate.as_number();
 	wc.m_settings.vehicle_life = m_parameters.wash_vehicle_life.as_integer();
-	wc.m_settings.use_uniform_assignment = true;
+	wc.m_settings.use_uniform_assignment = m_parameters.is_uniform_helio_assign.as_boolean();
 	wc.m_settings.max_num_crews = 10;
+	wc.m_file_settings.weather_file = m_parameters.solar_resource_file.as_string();
 	wc.OptimizeWashCrews();
 	while (wc.m_settings.max_num_crews == wc.m_results.num_vehicles)
 	{
@@ -1755,9 +1758,18 @@ bool Project::O()
 	od.m_settings.annual_profit_per_kwh = (
 		wc.m_settings.profit_per_kwh / wc.m_settings.annual_multiplier
 		);
-
-	od.m_settings.n_hr_sim = m_parameters.finance_period.as_integer() * 8760;
-	//od.m_settings.n_wash_crews = wc.m_results.num_crews_by_period[0];
+	//use a one-year warmup period, or half a year if the sim length is one year. 
+	if (m_parameters.finance_period.as_integer() > 1)
+	{
+		od.m_settings.n_hr_warmup = 8760;
+		od.m_settings.n_hr_sim = (m_parameters.finance_period.as_integer() - 1) * 8760;
+	}
+	else
+	{
+		od.m_settings.n_hr_warmup = 4380;
+		od.m_settings.n_hr_sim = 8760;
+	}
+	od.m_settings.n_wash_crews = wc.m_results.num_vehicles;
 	od.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
 	od.m_settings.degr_loss_per_hr = m_parameters.degr_per_hour.as_number();
 	od.m_settings.degr_accel_per_year = m_parameters.degr_accel_per_year.as_number();
@@ -1791,6 +1803,8 @@ bool Project::O()
     m_optical_outputs.n_replacements.assign(od.m_results.n_replacements);
     m_optical_outputs.heliostat_refurbish_cost.assign(od.m_results.heliostat_refurbish_cost);
     m_optical_outputs.heliostat_refurbish_cost_y1.assign(od.m_results.heliostat_refurbish_cost_y1);
+	//m_optical_outputs.heliostat_wash_labor_cost.assign(wc.m_results.);
+	m_optical_outputs.heliostat_wash_labor_cost_y1.assign(wc.m_results.annual_labor_cost);
     m_optical_outputs.avg_soil.assign(od.m_results.avg_soil);
     m_optical_outputs.avg_degr.assign(od.m_results.avg_degr);
 
