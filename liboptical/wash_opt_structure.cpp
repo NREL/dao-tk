@@ -123,6 +123,7 @@ solar_field_data::solar_field_data()
 	x_pos = 0;
 	y_pos = 0;
 	mirror_output = 0;
+
 	scale = 1;
 
 	num_mirror_groups = NULL;
@@ -131,48 +132,60 @@ solar_field_data::solar_field_data()
 	labor_by_period = {};
 	groupings = {};
 }
-/*
+
 solar_field_data::~solar_field_data()
 {
+	/*
+	try { delete[] names; }
+	catch (std::exception &e) {}
+	try { delete[] x_pos; }
+	catch (std::exception &e) {}
+	try { delete[] y_pos; }
+	catch (std::exception &e) {}
+	try { delete[] mirror_output; }
+	catch (std::exception &e) {}
+	*/
 	if (names != 0)
-		delete[] names;
+		delete [] names;
 	if (x_pos != 0)
-		delete[] x_pos;
+		delete [] x_pos;
 	if (y_pos != 0)
-		delete[] y_pos;
+		delete [] y_pos;
 	if (mirror_output != 0)
-		delete[] mirror_output;
-	mirror_size = NULL;
-	annual_dni = NULL;
+		delete [] mirror_output;
+	
+	dni_by_period.clear();
+	labor_by_period.clear();
+	groupings.clear();
 }
-*/
+
 wash_crew_opt_results::wash_crew_opt_results()
 {
 	assignments_by_crews = {};
 	solution_assignments = {};
 	num_crews_by_period = {};
-	objective_values = 0;
-	parents = 0;
-	distances = 0;
+	//objective_values = 0;
+	//parents = 0;
+	//distances = 0;
 	num_vehicles = 0;
 	num_ft_crews = 0;
 	wash_crew_obj = 0.;
 	field_eff = 0.;
 	annual_labor_cost = 0.;
 }
-/*
+
 wash_crew_opt_results::~wash_crew_opt_results()
 {
-	if (assignments != 0)
-		delete[] assignments;
-	if (objective_values != 0)
-		delete[] objective_values;
-	if (parents != 0)
-		delete[] parents;
-	if (distances != 0)
-		delete[] distances;
+	num_crews_by_period.clear();
+	assignments_by_crews.clear();
+	solution_assignments.clear();
+	num_vehicles = NULL;
+	num_ft_crews = NULL;
+	wash_crew_obj = NULL;
+	field_eff = NULL;
+	annual_labor_cost = NULL;
 }
-*/
+
 wash_crew_file_settings::wash_crew_file_settings()
 {
 	distance_file = "wc_dist.csv";

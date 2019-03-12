@@ -1746,7 +1746,7 @@ bool Project::O()
 	wc.m_settings.wash_rate = m_parameters.wash_rate.as_number();
 	wc.m_settings.vehicle_life = m_parameters.wash_vehicle_life.as_integer();
 	wc.m_settings.use_uniform_assignment = m_parameters.is_uniform_helio_assign.as_boolean();
-	wc.m_settings.max_num_crews = 10;
+	wc.m_settings.max_num_crews = 20;
 	
 	wc.OptimizeWashCrews();
 	while (wc.m_settings.max_num_crews == wc.m_results.num_vehicles)
@@ -1813,7 +1813,10 @@ bool Project::O()
     m_optical_outputs.avg_soil.assign(od.m_results.avg_soil);
     m_optical_outputs.avg_degr.assign(od.m_results.avg_degr);
 
-	m_optical_outputs.wash_crew_schedule.assign_vector(wc.m_results.num_crews_by_period, (int)(wc.m_settings.periods.size()-1));
+	float* crews = new float[wc.m_results.num_crews_by_period.size()];
+	for (size_t i = 0; i < wc.m_results.num_crews_by_period.size(); i++)
+		crews[i] = (float)wc.m_results.num_crews_by_period.at(i);
+	m_optical_outputs.wash_crew_schedule.assign_vector(crews, (int)(wc.m_results.num_crews_by_period.size()));
     m_optical_outputs.soil_schedule.assign_vector( od.m_results.soil_schedule, od.m_results.n_schedule );
 	m_optical_outputs.repl_schedule.assign_vector(od.m_results.repl_schedule, od.m_results.n_schedule);
 	m_optical_outputs.degr_schedule.assign_vector(od.m_results.degr_schedule, od.m_results.n_schedule);

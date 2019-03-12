@@ -65,7 +65,7 @@ public:
 
 	double EvaluateFieldEfficiency(std::vector<int> path);
 
-	double* ObtainOBJs();
+	void ObtainOBJs();
 
 	int FindMinDistaceNode(
 		double *distances, 

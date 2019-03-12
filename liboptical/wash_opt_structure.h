@@ -101,14 +101,14 @@ struct solar_field_data
 	std::vector<double> dni_by_period;  //period = month
 	std::vector<double> labor_by_period;  //period = month
 	solar_field_data();
-	//~solar_field_data();
+	~solar_field_data();
 };
 
 struct wash_crew_opt_results
 {
 	std::unordered_map<int,std::vector<int>> assignments_by_crews;
 	std::unordered_map<int, std::vector<int>> solution_assignments;
-	float* num_crews_by_period;
+	std::vector<int> num_crews_by_period;
 	int num_ft_crews;
 	int num_vehicles;
 	double *objective_values;
@@ -120,7 +120,7 @@ struct wash_crew_opt_results
 	//int num_wash_crews;
 	solar_field_data solution_data;
 	wash_crew_opt_results();
-	//~wash_crew_opt_results();
+	~wash_crew_opt_results();
 };
 
 struct wash_crew_file_settings
