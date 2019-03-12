@@ -86,12 +86,12 @@ struct wash_crew_settings
 
 struct solar_field_data
 {
-	int *names;
-	double *x_pos;
-	double *y_pos;
-	double *mirror_output;
+	std::vector<int> names;
+	std::vector<double> x_pos;
+	std::vector<double> y_pos;
+	std::vector<double> mirror_output;
 	double total_mirror_output;
-	int *num_mirrors_by_group;
+	std::vector<int> num_mirrors_by_group;
 	int num_mirror_groups;
 	int num_mirrors;
 	int scale;
@@ -111,9 +111,9 @@ struct wash_crew_opt_results
 	std::vector<int> num_crews_by_period;
 	int num_ft_crews;
 	int num_vehicles;
-	double *objective_values;
-	int *parents;
-	double *distances;
+	std::vector<double> objective_values;
+	std::vector<int> parents;
+	std::vector<double> distances;
 	double wash_crew_obj;
 	double field_eff;
 	double annual_labor_cost;

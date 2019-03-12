@@ -14,9 +14,9 @@ WashCrewOptimizer::WashCrewOptimizer()
 }
 
 WashCrewOptimizer::WashCrewOptimizer(
-	double *x_pos,
-	double *y_pos,
-	double *mirror_output,
+	std::vector<double> x_pos,
+	std::vector<double> y_pos,
+	std::vector<double> mirror_output,
 	int max_wash_crews,
 	int num_mirrors,
 	int scale
@@ -110,23 +110,12 @@ void WashCrewOptimizer::ReadSolarDataFromFiles()
 		split_line.clear();
 		line++;
 	}
-	double *x_arr = new double[x.size()];
-	double *y_arr = new double[y.size()];
-	double *output_arr = new double[output.size()];
-	int *id_arr = new int[hel_id.size()];
-	int *mirror_arr = new int[mirrors_by_group.size()];
-	std::copy(x.begin(), x.end(), x_arr);
-	std::copy(y.begin(), y.end(), y_arr);
-	std::copy(output.begin(), output.end(), output_arr);
-	std::copy(hel_id.begin(), hel_id.end(), id_arr);
-	std::copy(mirrors_by_group.begin(), mirrors_by_group.end(), mirror_arr);
-	m_solar_data.names = id_arr;
-	m_solar_data.x_pos = x_arr;
-	m_solar_data.y_pos = y_arr;
-	m_solar_data.mirror_output = output_arr;
-	m_solar_data.num_mirrors_by_group = mirror_arr;
+	m_solar_data.names = hel_id;
+	m_solar_data.x_pos = x;
+	m_solar_data.y_pos = y;
+	m_solar_data.mirror_output = output;
+	m_solar_data.num_mirrors_by_group = mirrors_by_group;
 	m_solar_data.num_mirror_groups = mirrors_by_group.size();
-	
 }
 
 void WashCrewOptimizer::ReadWeatherData()
@@ -262,36 +251,15 @@ void WashCrewOptimizer::ReadAllFiles()
 
 void WashCrewOptimizer::AddNewHeliostats(int num_heliostats)
 {
-	double *x_arr = new double[m_solar_data.num_mirror_groups+num_heliostats];
-	double *y_arr = new double[m_solar_data.num_mirror_groups + num_heliostats];
-	double *output_arr = new double[m_solar_data.num_mirror_groups + num_heliostats];
-	int *id_arr = new int[m_solar_data.num_mirror_groups + num_heliostats];
-
-	for (int i = 0; i < m_solar_data.num_mirror_groups; i++)
-	{
-		x_arr[i] = m_solar_data.x_pos[i];
-		y_arr[i] = m_solar_data.y_pos[i];
-		output_arr[i] = m_solar_data.mirror_output[i];
-		id_arr[i] = m_solar_data.names[i];
-	}
-
 	for (int i = 0; i < num_heliostats; i++)
 	{
-		id_arr[m_solar_data.num_mirror_groups + i] = 100000 + i;
-		x_arr[m_solar_data.num_mirror_groups + i] = 100000 + i;
-		y_arr[m_solar_data.num_mirror_groups + i] = 100000 + i;
+		m_solar_data.names.push_back(100000 + i);
+		m_solar_data.x_pos.push_back(100000 + i);
+		m_solar_data.y_pos.push_back(100000 + i);
 		//output_arr[i] = m_solar_data.mirror_output[m_solar_data.num_mirror_groups - 1];
-		output_arr[i] = m_solar_data.total_mirror_output / m_solar_data.num_mirror_groups;
+		m_solar_data.mirror_output.push_back(m_solar_data.total_mirror_output / m_solar_data.num_mirror_groups);
+		m_solar_data.num_mirrors_by_group.push_back(1);
 	}
-
-	m_solar_data.names = id_arr;
-	m_solar_data.x_pos = x_arr;
-	m_solar_data.y_pos = y_arr;
-	m_solar_data.mirror_output = output_arr;
-
-	m_solar_data.num_mirrors_by_group = new int[m_solar_data.num_mirror_groups + num_heliostats];
-	for (int i = 0; i < m_solar_data.num_mirror_groups + num_heliostats; i++)
-		m_solar_data.num_mirrors_by_group[i] = 1;
 	
 	//update number of total heliostats, total mirror output
 	//m_solar_data.total_mirror_output += num_heliostats * m_solar_data.mirror_output[m_solar_data.num_mirror_groups - 1];
@@ -401,8 +369,10 @@ void WashCrewOptimizer::GroupMirrors(int scale)
 	{
 		num_groups = (m_solar_data.num_mirror_groups / scale) + 1;
 	}
-	m_condensed_data.mirror_output = new double[num_groups];
-	m_condensed_data.num_mirrors_by_group = new int[num_groups];
+	std::vector<double> output(num_groups, 0);
+	std::vector<int> mirrors(num_groups, 0);
+	m_condensed_data.mirror_output = output;
+	m_condensed_data.num_mirrors_by_group = mirrors;
 	m_condensed_data.num_mirror_groups = num_groups;
 	for (int i = 0; i < num_groups; i++)
 	{
@@ -487,14 +457,13 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 	//Create a vector consisting of all the elemnents of the set 
 	//(which are unique and ordered).
 	m_solution_data.num_mirror_groups = assignment_breaks.size() - 1;
-	m_solution_data.num_mirrors_by_group = new int[assignment_breaks.size() - 1];
-	m_solution_data.mirror_output = new double[assignment_breaks.size() - 1];
-	m_solution_data.names = new int[assignment_breaks.size() - 1];
-	m_solution_data.x_pos = new double[assignment_breaks.size() - 1];
-	m_solution_data.y_pos = new double[assignment_breaks.size() - 1];
-	//std::vector<int> breakpoints = {};
-	//for (int c : assignment_breaks)
-	//	breakpoints.push_back(c);
+	std::vector<double> x(m_solution_data.num_mirror_groups, 0);
+	std::vector<int> y(m_solution_data.num_mirror_groups, 0);
+	m_solution_data.num_mirrors_by_group.assign(y.begin(), y.end());
+	m_solution_data.mirror_output.assign(x.begin(), x.end());
+	m_solution_data.names.assign(y.begin(), y.end());
+	m_solution_data.x_pos.assign(x.begin(), x.end());
+	m_solution_data.y_pos.assign(x.begin(), x.end());
 	int idx = 0;
 	int m;
 	for (int c : assignment_breaks)
@@ -728,9 +697,8 @@ void WashCrewOptimizer::ObtainOBJs()
 {
 	/* Obtain the objective values that comes from allocating a collection of
 	mirrors to a wash crew. */
-	m_results.objective_values = new double[
-		(m_condensed_data.num_mirror_groups + 1)*(m_condensed_data.num_mirror_groups + 1)
-	];
+	std::vector<double> objs((m_condensed_data.num_mirror_groups + 1)*(m_condensed_data.num_mirror_groups + 1), 0.);
+	m_results.objective_values.assign(objs.begin(), objs.end());
 	for (int i = 0; i < m_condensed_data.num_mirror_groups + 1; i++)
 	{
 		for (int j = 0; j < i; j++)
@@ -741,8 +709,8 @@ void WashCrewOptimizer::ObtainOBJs()
 }
 
 int WashCrewOptimizer::FindMinDistaceNode(
-	double *distances, 
-	bool *available,
+	std::vector<double> distances, 
+	std::vector<bool> available,
 	int array_size
 )
 {
@@ -798,9 +766,12 @@ void WashCrewOptimizer::RunDynamicProgram()
 	int num_nodes = row_length * num_rows;
 	ObtainOBJs();
 	
-	m_results.distances = new double[num_nodes];
-	bool *available = new bool[num_nodes];
-	m_results.parents = new int[num_nodes];
+	std::vector<double> node_d(num_nodes, 0.);
+	std::vector<int> node_i(num_nodes, 0);
+	
+	std::vector<bool> available(num_nodes, true);
+	m_results.distances.assign(node_d.begin(),node_d.end());
+	m_results.parents.assign(node_i.begin(),node_i.end());
 
 	//initialize distance and available arrays.
 	for (int i = 0; i < num_nodes; i++)
@@ -866,7 +837,7 @@ void WashCrewOptimizer::RunDynamicProgram()
 }
 
 std::vector<int> WashCrewOptimizer::RetracePath(
-	int* parents, 
+	std::vector<int> parents, 
 	int num_rows, 
 	int row_length
 )
@@ -1142,7 +1113,7 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 
 void WashCrewOptimizer::Output2DArrayToFile(
 	std::string filename, 
-	double* arr,
+	std::vector<double> arr,
 	int num_rows,
 	int row_length
 )
@@ -1161,7 +1132,7 @@ void WashCrewOptimizer::Output2DArrayToFile(
 
 void WashCrewOptimizer::Output2DIntArrayToFile(
 	std::string filename,
-	int* arr,
+	std::vector<int> arr,
 	int num_rows,
 	int row_length
 )

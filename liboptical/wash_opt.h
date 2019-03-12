@@ -12,9 +12,9 @@ class WashCrewOptimizer
 public:
 	WashCrewOptimizer();
 	WashCrewOptimizer(
-		double *x_pos,
-		double *y_pos,
-		double *mirror_output,
+		std::vector<double> x_pos,
+		std::vector<double> y_pos,
+		std::vector<double> mirror_output,
 		int max_wash_crews,
 		int num_mirrors,
 		int scale
@@ -68,8 +68,8 @@ public:
 	void ObtainOBJs();
 
 	int FindMinDistaceNode(
-		double *distances, 
-		bool *available, 
+		std::vector<double> distances,
+		std::vector<bool> available,
 		int array_size
 	);
 
@@ -77,7 +77,7 @@ public:
 
 	void RunDynamicProgram();
 
-	std::vector<int> RetracePath(int *parents, int num_rows, int row_length);
+	std::vector<int> RetracePath(std::vector<int> parents, int num_rows, int row_length);
 
 	void CalculateSolutionObjective(std::unordered_map<std::string, double> rev_losses);
 
@@ -86,14 +86,14 @@ public:
 
 	void Output2DArrayToFile(
 		std::string filename, 
-		double* arr,
+		std::vector<double> arr,
 		int num_rows, 
 		int row_length
 	);
 
 	void Output2DIntArrayToFile(
 		std::string filename,
-		int* arr,
+		std::vector<int> arr,
 		int num_rows,
 		int row_length
 	);

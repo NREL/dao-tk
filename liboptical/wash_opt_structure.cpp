@@ -118,11 +118,10 @@ int max_num_crews;
 
 solar_field_data::solar_field_data()
 {
-	//null pointers for arrays
-	names = 0;
-	x_pos = 0;
-	y_pos = 0;
-	mirror_output = 0;
+	names = {};
+	x_pos = {};
+	y_pos = {};
+	mirror_output = {};
 
 	scale = 1;
 
@@ -135,25 +134,10 @@ solar_field_data::solar_field_data()
 
 solar_field_data::~solar_field_data()
 {
-	/*
-	try { delete[] names; }
-	catch (std::exception &e) {}
-	try { delete[] x_pos; }
-	catch (std::exception &e) {}
-	try { delete[] y_pos; }
-	catch (std::exception &e) {}
-	try { delete[] mirror_output; }
-	catch (std::exception &e) {}
-	*/
-	if (names != 0)
-		delete [] names;
-	if (x_pos != 0)
-		delete [] x_pos;
-	if (y_pos != 0)
-		delete [] y_pos;
-	if (mirror_output != 0)
-		delete [] mirror_output;
-	
+	names.clear();
+	x_pos.clear();
+	y_pos.clear();
+	mirror_output.clear();
 	dni_by_period.clear();
 	labor_by_period.clear();
 	groupings.clear();
@@ -164,9 +148,6 @@ wash_crew_opt_results::wash_crew_opt_results()
 	assignments_by_crews = {};
 	solution_assignments = {};
 	num_crews_by_period = {};
-	//objective_values = 0;
-	//parents = 0;
-	//distances = 0;
 	num_vehicles = 0;
 	num_ft_crews = 0;
 	wash_crew_obj = 0.;

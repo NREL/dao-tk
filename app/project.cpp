@@ -1713,11 +1713,13 @@ bool Project::O()
 
 	//load ssc data into settings, solar field info	
 	wc.m_solar_data.num_mirror_groups = num_heliostats;
-	wc.m_solar_data.x_pos = new double[num_heliostats];
-	wc.m_solar_data.y_pos = new double[num_heliostats];
-	wc.m_solar_data.mirror_output = new double[num_heliostats];
-	wc.m_solar_data.names = new int[num_heliostats];
-	wc.m_solar_data.num_mirrors_by_group = new int[num_heliostats];
+	std::vector<int> hel_vec_i(num_heliostats, 0);
+	std::vector<double> hel_vec_d(num_heliostats, 0);
+	wc.m_solar_data.x_pos.assign(hel_vec_d.begin(), hel_vec_d.end()); 
+	wc.m_solar_data.y_pos.assign(hel_vec_d.begin(), hel_vec_d.end());
+	wc.m_solar_data.mirror_output.assign(hel_vec_d.begin(), hel_vec_d.end());
+	wc.m_solar_data.names.assign(hel_vec_i.begin(), hel_vec_i.end());
+	wc.m_solar_data.num_mirrors_by_group.assign(hel_vec_i.begin(), hel_vec_i.end());
 	for (int i = 0; i < num_heliostats; i++)
 	{
 		wc.m_solar_data.x_pos[i] = helio_positions[2*i];
