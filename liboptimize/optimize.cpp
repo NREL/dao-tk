@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <algorithm>
 
-#define TEST_OBJECTIVE
+//#define TEST_OBJECTIVE
 #ifdef TEST_OBJECTIVE
 #include <chrono>
 #include <thread>
@@ -675,7 +675,7 @@ bool optimization::run_optimization()
                         for (int i = 0; i < integer_variables.size(); i++)
                         {
                             int vv = grid(new_ind, i + 1);
-                            m_settings.variables.at(i).assign(vv);
+							integer_variables.at(i)->assign(vv);
                             x_star_maybe.push_back(vv);
                         }
 
