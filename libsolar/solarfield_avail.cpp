@@ -17,18 +17,14 @@ solarfield_availability::solarfield_availability()
 }
 
 
-double solarfield_availability::operating_hours(double sunrise, double sunset, double day_start, double day_end, double hod_start, double hod_end)
+double solarfield_availability::operating_hours(std::vector<double> operating_hours, double t_start, double t_end)
 {
-	// Operating hours between start/end points designated by day_start/hod_start and day_end/hod_end
-	double op_time;
-	if (day_start == day_end)
-		op_time = fmax(0.0, fmin(sunset, hod_end) - fmax(sunrise, hod_start));
-	else
-	{
-		op_time = fmax(0.0, day_end - day_start - 1) * (sunset - sunrise);  // Days completely contained in timestep
-		op_time += fmax(0.0, sunset - fmax(sunrise, hod_start));
-		op_time += fmax(0.0, fmin(sunset, hod_end) - sunrise);
-	}
+	// Operating hours between start/end points provided as input
+	double op_time = operating_hours[(int)t_start] * ((int)t_start - t_start + 1.);
+	if ((size_t)t_end != operating_hours.size())
+		op_time += operating_hours[(int)t_end] * ((int)t_start - t_start + 1.);
+	for (int t = (int)t_start + 1; t < (int)t_end; t++)
+		op_time += operating_hours[t];
 	return op_time;
 }
 
@@ -74,6 +70,41 @@ void solarfield_availability::initialize_results()
 
 }
 
+std::vector<double> solarfield_availability::get_operating_hours()
+{
+	/* returns vectors of hours in which  */
+	std::vector<double> daily_sunrise, daily_sunset, op_hours;
+	if (m_settings.is_fix_hours)
+	{
+		daily_sunrise.assign(365, m_settings.sunrise);
+		daily_sunset.assign(365, m_settings.sunset);
+	}
+	else
+	{
+		clearsky csky(m_settings.location);
+		csky.calculate_sunrise_sunset();
+		daily_sunrise = csky.m_sunrise;
+		daily_sunset = csky.m_sunset;
+	}
+	op_hours.reserve(8760 * m_settings.n_years);
+	for (int d = 0; d < 365; d++)
+		for (int h = 0; h < 24; h++)
+		{
+			if ((double)h < daily_sunrise[d] - 1 || (double)h > daily_sunset[d])
+				op_hours[24*d+h] = 0.;
+			else if ((double)h >= daily_sunrise[d] || (double)h <= daily_sunset[d]-1)
+				op_hours[24*d+h] = 1.;
+			else if ((double)h <= daily_sunrise[d])
+				op_hours[24*d+h] = (double)h + 1 - daily_sunrise[d];
+			else if ((double)h >= daily_sunset[d] - 1)
+				op_hours[24*d+h] = daily_sunset[d] - (double)h;
+			else
+				throw std::exception("Logic broken!");
+		}
+	for (int y = 1; y < m_settings.n_years; y++)
+		std::copy(op_hours.begin(), op_hours.begin() + 8761, op_hours.begin() + (8760 * y));
+	return op_hours;
+}
 
 void solarfield_availability::simulate(bool(*callback)(float prg, const char *msg), std::string *results_file_name)
 {
@@ -111,6 +142,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 
 
 	//--- Randomly sample heliostats if number simulated != number in field
+	/*
 	std::vector<int> select;
 	select.reserve(m_settings.n_helio);
 	if (n_helio_s != m_settings.n_helio)
@@ -119,25 +151,25 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 			select.push_back(h);
 		std::random_shuffle(select.begin(), select.end());
 	}
-
+	*/
 
 	//--- Initialize heliostats
 	heliostat_field field;
 	field.m_helios.reserve(n_helio_s);
+	field.m_components.reserve(n_components);
 	double sum_performance = 0.0;
-	for (int h = 0; h < n_helio_s; h++)
+
+	for (int c = 0; c < n_components; c++)
+	{
+		field.add_component(m_settings.helio_components.at(c));
+	}
+	for (int i = 0; i < n_helio_s; i++)
 	{
 		solarfield_heliostat *hel = new solarfield_heliostat;
 
-		int i = h;
-		if (n_helio_s < m_settings.n_helio)
-			i = select[h];
-		else if (n_helio_s > m_settings.n_helio)
-			i = select[h % m_settings.n_helio];
-
 		sum_performance += m_settings.helio_performance[i];
 
-		hel->initialize(m_settings.helio_components, rand, problem_scale, m_settings.helio_performance[i]);
+		hel->initialize(field.m_components, rand, problem_scale, m_settings.helio_performance[i]);
 		field.m_helios.push_back(hel);
 
 		if (m_settings.is_tracking)
@@ -147,27 +179,14 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	//--- Initialize repair staff 
 	std::vector<double> staff_fraction(n_staff_max, 1.0);
 	solarfield_repair_staff staff(n_staff_max, m_settings.max_hours_per_day, m_settings.max_hours_per_week, staff_fraction);
-	staff.m_queue.reserve(n_helio_s);
+	//staff.m_queue.reserve(n_helio_s);
 	staff.m_repair_order = m_settings.repair_order;
 	staff.m_is_prioritize_partial_repairs = m_settings.is_prioritize_partial_repairs;
 
 
-	//--- Set daily operating hours
-	std::vector<double> daily_sunrise, daily_sunset;
-	if (m_settings.is_fix_hours)
-	{
-		daily_sunrise.assign(365, m_settings.sunrise);
-		daily_sunset.assign(365, m_settings.sunset);
-	}
-	else
-	{
-		clearsky csky(m_settings.location);
-		csky.calculate_sunrise_sunset();
-		daily_sunrise = csky.m_sunrise;
-		daily_sunset = csky.m_sunset;
-	}
+	std::vector<double> op_schedule = get_operating_hours();
 
-
+	
 
 
 	//----------------------------------------------------------
@@ -179,6 +198,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 
 	int update_per = (int)(nsteps / 50.);
 
+	/*
 	for (int t = 0; t < nsteps; t++)
 	{
 
@@ -222,8 +242,8 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 		}
 
 		//--- Calculate operating time during this timestep
-		double sunrise = daily_sunrise[doy];
-		double sunset = daily_sunset[doy];
+		double sunrise = 1;//daily_sunrise[doy];
+		double sunset = 2;//daily_sunset[doy];
 		double operating_time = operating_hours(sunrise, sunset, day_start, day_end, hod_start, hod_end);
 
 
@@ -454,7 +474,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 		if (hoy_start + ts > 8759.99 || t == nsteps - 1)
 			m_results.yearly_avg_avail.push_back(yearly_avail / n_this_year);
 	}
-
+	*/
 
 
 	//fill in the return data
@@ -484,7 +504,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 		}
 	}
 
-
+	/*
 	// Time per staff member and queue size
 	if (m_settings.is_tracking)
 	{
@@ -497,7 +517,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 			m_results.queue_time_vs_time.push_back(staff.m_queue_time[i]);
 		}
 	}
-
+	*/
 
 
 	//if a file name is provided, write to that file

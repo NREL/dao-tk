@@ -14,9 +14,11 @@ public:
 	solarfield_settings m_settings;
 	solarfield_results m_results;
 
+	std::vector<double> get_operating_hours();
+
 	void simulate(bool (*callback)(float prg, const char *msg)=0, std::string *results_file_name = 0);
 
-	double operating_hours(double sunrise, double sunset, double day_start, double day_end, double hod_start, double hod_end);
+	double operating_hours(std::vector<double> operating_hours, double t_start, double t_end);
 	
 	void initialize_results();
 
