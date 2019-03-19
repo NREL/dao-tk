@@ -106,8 +106,8 @@ public:
 	int get_n_components();
 	unsigned int get_operational_state();
 	double get_performance();
-	double get_time_to_next_failure();
-	void update_next_failure();
+	double get_op_time_to_next_failure();
+	void update_failure_time();
 	unsigned int get_next_component_to_fail();
 	std::vector<solarfield_helio_component*> get_components();
 

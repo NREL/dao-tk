@@ -38,10 +38,10 @@ struct solarfield_settings
 	unsigned int repair_order;	// Order that repairs are prioritized: FAILURE_ORDER, PERFORMANCE, REPAIR_TIME, MEAN_REPAIR_TIME, RANDOM
 	bool is_tracking;			// Enable detailed tracking of outputs?
 
-	bool is_allow_multiple_per_helio;		// Allow multiple staff to work on repairs of a given heliostat in any timestep
+	//bool is_allow_multiple_per_helio;		// Allow multiple staff to work on repairs of a given heliostat in any timestep
 	bool is_trade_repairs;					// One one staff member at a time may work on a given heliostat, but allow staff member to take over partially repaired heliostat if original staff member is limited by max hours per day or per week
-	bool is_prioritize_partial_repairs;		// Always prioritize partially-repaired heliostats?
-	bool is_split_operation;				// Allow heliostats to be put back in operation during timestep repairs are completed
+	//bool is_prioritize_partial_repairs;		// Always prioritize partially-repaired heliostats?
+	//bool is_split_operation;				// Allow heliostats to be put back in operation during timestep repairs are completed
 
 	solarfield_settings();
 
@@ -89,12 +89,10 @@ struct solarfield_event
 
 	solarfield_event(
 		int _helio_id,
-		int _component_idx,
 		bool _is_repair,
 		double _time,
 		double _priority
 	) : helio_id(_helio_id),
-		component_idx(_component_idx),
 		is_repair(_is_repair),
 		time(_time),
 		priority(_priority)
@@ -102,6 +100,7 @@ struct solarfield_event
 
 };
 
+bool operator<(const solarfield_event& e1, const solarfield_event& e2);
 
 
 #endif

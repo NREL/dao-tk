@@ -6,6 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <queue>
 
 #include <iostream>
 #include <fstream>
@@ -16,7 +17,7 @@ solarfield_availability::solarfield_availability()
 	m_sim_available = false;
 }
 
-
+/*
 double solarfield_availability::operating_hours(std::vector<double> operating_hours, double t_start, double t_end)
 {
 	// Operating hours between start/end points provided as input
@@ -27,6 +28,7 @@ double solarfield_availability::operating_hours(std::vector<double> operating_ho
 		op_time += operating_hours[t];
 	return op_time;
 }
+*/
 
 
 void solarfield_availability::initialize_results()
@@ -70,6 +72,31 @@ void solarfield_availability::initialize_results()
 
 }
 
+heliostat_field solarfield_availability::create_helio_field(int n_components, int n_heliostats, double scale, WELLFiveTwelve gen)
+{
+	heliostat_field field;
+	field.m_helios.reserve(n_heliostats);
+	field.m_components.reserve(n_components);
+	double sum_performance = 0.0;
+	for (int c = 0; c < n_components; c++)
+	{
+		field.add_component(m_settings.helio_components.at(c));
+	}
+
+	for (int i = 0; i < n_heliostats; i++)
+	{
+		solarfield_heliostat *hel = new solarfield_heliostat;
+
+		sum_performance += m_settings.helio_performance[i];
+
+		hel->initialize(field.m_components, gen, scale, m_settings.helio_performance[i]);
+		field.m_helios.push_back(hel);
+
+		if (m_settings.is_tracking)
+			hel->initialize_repair_time_tracking();
+	}
+}
+
 std::vector<double> solarfield_availability::get_operating_hours()
 {
 	/* returns vectors of hours in which  */
@@ -106,6 +133,131 @@ std::vector<double> solarfield_availability::get_operating_hours()
 	return op_hours;
 }
 
+
+
+double solarfield_availability::get_time_of_failure(std::vector<double> operating_hours, double t_start, double op_life)
+{
+	/*
+	Determines the time of failure, given operating hours (i.e., daily sunrise and sunset) and operating life.
+	sunrise -- daily sunrise (hour, 0-24)
+	sunset -- daily sunset (hour, 0-24)
+	t_start -- time period of start of operating life
+	op_life -- operating lifetime (hours)
+	retval -- time period of end of life
+	*/
+	
+	double life_remaining = op_life;
+	int idx = int(t_start);
+	//check for end of op_life durign the current hour
+	if (operating_hours[idx] * (t_start + 1 - idx) > op_life)
+		return t_start + op_life / (operating_hours[idx] * (t_start + 1 - idx));
+	life_remaining -= (idx+1-t_start)*operating_hours[idx];
+	while (idx < (int)operating_hours.size() && life_remaining > DBL_EPSILON)
+	{
+		idx++;
+		life_remaining -= operating_hours[idx];
+		if (life_remaining < -DBL_EPSILON)  //if op_life expired, subtract overage
+			return (double)idx + life_remaining / operating_hours[idx] + 1;
+	}
+	//if finishing at the end of an hour, return that value.
+	return (double)idx + 1;
+}
+
+double solarfield_availability::get_time_of_failure(double sunrise, double sunset, double t_start, double op_life)
+{
+	/*
+	Determines the time of failure, given operating hours (i.e., daily sunrise and sunset) and operating life.
+	sunrise -- daily sunrise (hour, 0-24)
+	sunset -- daily sunset (hour, 0-24)
+	t_start -- time period of start of operating life
+	op_life -- operating lifetime (hours)
+	retval -- time period of end of life
+	*/
+	
+	double t_end = t_start*1.0;
+
+	//add full operating days
+	int num_full_days = (int)(op_life / (sunset - sunrise));
+	t_end += 24 * num_full_days;
+	
+	//add remaining hours
+	double part_day = (op_life / (sunset - sunrise)) - num_full_days;
+	double hour_start = remainder(t_start, 24);
+	if (hour_start > sunset)  //advance to next day, finish part day
+		t_end += 24 - hour_start + sunrise + part_day;
+	else if (hour_start < sunrise) // advance to sunrise, finish part day
+		t_end += sunrise - hour_start + part_day;
+	else if (hour_start + part_day < sunset) // add part day
+		t_end += part_day;
+	else // finish rest of current day, move to next sunrise for rest
+		t_end += 24 - sunset + sunrise + part_day;
+
+	return t_end;
+}
+
+std::priority_queue<solarfield_event> solarfield_availability::create_initial_queue(heliostat_field field, std::vector<double> operating_hours)
+{
+	/*int _helio_id,
+		bool _is_repair,
+		double _time,
+		double _priority*/
+	int idx = 0;
+	double end_time;
+	std::priority_queue<solarfield_event> queue = {};
+	for (solarfield_heliostat * h : field.m_helios)
+	{
+		if (m_settings.is_fix_hours)
+			end_time = get_time_of_failure(
+				m_settings.sunrise,
+				m_settings.sunset,
+				0.,
+				h->get_op_time_to_next_failure()
+			);
+		else
+			end_time = get_time_of_failure(
+				m_settings.sunrise,
+				m_settings.sunset,
+				0.,
+				h->get_op_time_to_next_failure()
+			);
+		queue.push(solarfield_event(
+			idx,
+			false,
+			end_time,
+			1. / end_time
+		));
+		idx++;
+	}
+	return queue;
+}
+
+void solarfield_availability::process_failure()
+{
+}
+
+void solarfield_availability::process_repair()
+{
+}
+
+void solarfield_availability::run_current_event()
+{
+}
+
+void solarfield_availability::update_availability(double t_start, double t_end)
+{
+	int idx = (int)t_start;
+	m_results.avail_schedule[idx] += (idx + 1 - t_start)*m_current_availability;
+	while (idx < (int)(t_end))
+	{
+		idx++;
+		m_results.avail_schedule[idx] += m_current_availability;
+	}
+	m_results.avail_schedule[int(t_end)] += (t_end - (int)t_end)*m_current_availability;
+
+}
+
+
+
 void solarfield_availability::simulate(bool(*callback)(float prg, const char *msg), std::string *results_file_name)
 {
 
@@ -118,14 +270,10 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	double ts = m_settings.step;
 
 	int nhours = m_settings.n_years * 8760;
-	int nsteps = (int)(nhours / ts);
 
 	int n_components = (int)m_settings.helio_components.size();
 
 	WELLFiveTwelve rand(m_settings.seed % 100);
-
-	if (m_settings.is_allow_multiple_per_helio)
-		m_settings.is_trade_repairs = false;	
 
 	
 	//--- Set integer # staff per year
@@ -154,34 +302,16 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	*/
 
 	//--- Initialize heliostats
-	heliostat_field field;
-	field.m_helios.reserve(n_helio_s);
-	field.m_components.reserve(n_components);
-	double sum_performance = 0.0;
-
-	for (int c = 0; c < n_components; c++)
-	{
-		field.add_component(m_settings.helio_components.at(c));
-	}
-	for (int i = 0; i < n_helio_s; i++)
-	{
-		solarfield_heliostat *hel = new solarfield_heliostat;
-
-		sum_performance += m_settings.helio_performance[i];
-
-		hel->initialize(field.m_components, rand, problem_scale, m_settings.helio_performance[i]);
-		field.m_helios.push_back(hel);
-
-		if (m_settings.is_tracking)
-			hel->initialize_repair_time_tracking();
-	}
+	heliostat_field field = create_helio_field(n_components, n_helio_s, problem_scale, rand);
+	
+	
+	std::priority_queue<solarfield_event> event_queue = create_initial_queue(field);
 
 	//--- Initialize repair staff 
 	std::vector<double> staff_fraction(n_staff_max, 1.0);
 	solarfield_repair_staff staff(n_staff_max, m_settings.max_hours_per_day, m_settings.max_hours_per_week, staff_fraction);
 	//staff.m_queue.reserve(n_helio_s);
 	staff.m_repair_order = m_settings.repair_order;
-	staff.m_is_prioritize_partial_repairs = m_settings.is_prioritize_partial_repairs;
 
 
 	std::vector<double> op_schedule = get_operating_hours();
@@ -196,7 +326,6 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	double yearly_avail = 0.0;
 	double total_time_this_year = 0.0;
 
-	int update_per = (int)(nsteps / 50.);
 
 	/*
 	for (int t = 0; t < nsteps; t++)
@@ -594,7 +723,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 		ofs << "\n";
 
 		//hourly data
-		for (int t = 0; t<nsteps; t++)
+		for (int t = 0; t<nhours; t++)
 		{
 			ofs << t*ts << "," << m_results.avail_schedule.at(t);
 			if (m_settings.is_tracking)
@@ -607,3 +736,4 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 
 	m_sim_available = true;
 }
+

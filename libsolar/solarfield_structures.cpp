@@ -22,9 +22,11 @@ solarfield_settings::solarfield_settings()
 	repair_order = PERF_OVER_MRT;
 	is_tracking = false;
 
-	is_allow_multiple_per_helio = false;
 	is_trade_repairs = true;
-	is_prioritize_partial_repairs = true;
-	is_split_operation = true;
 
+}
+
+bool operator<(const solarfield_event & e1, const solarfield_event & e2)
+{
+	return e1.priority < e2.priority;
 }

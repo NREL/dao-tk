@@ -130,6 +130,8 @@ void solarfield_heliostat::initialize(std::vector<solarfield_helio_component*> c
 		m_lifetimes[c] = m_components.at(c)->gen_lifetime(gen, 0);
 	}
 
+	update_failure_time();
+	
 	return;
 }
 
@@ -156,12 +158,12 @@ double solarfield_heliostat::get_performance()
 	return m_performance;
 }
 
-double solarfield_heliostat::get_time_to_next_failure()
+double solarfield_heliostat::get_op_time_to_next_failure()
 {
 	return m_time_to_next_failure;
 }
 
-void solarfield_heliostat::update_next_failure()
+void solarfield_heliostat::update_failure_time()
 {
 	m_next_component_to_fail = 0;
 	m_time_to_next_failure = std::numeric_limits<double>::quiet_NaN();
@@ -195,7 +197,7 @@ void solarfield_heliostat::fail(double time, WELLFiveTwelve &gen)
 	m_time_of_last_event = time;
 	m_lifetimes[m_next_component_to_fail] = m_components.at(m_next_component_to_fail)->gen_lifetime(gen, m_time_operating);
 	m_repair_time = m_components.at(m_next_component_to_fail)->gen_repair_time(gen);
-	update_next_failure();
+	update_failure_time();
 }
 
 void solarfield_heliostat::start_repair(double time)
