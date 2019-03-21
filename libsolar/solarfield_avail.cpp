@@ -72,7 +72,7 @@ void solarfield_availability::initialize_results()
 
 }
 
-heliostat_field solarfield_availability::create_helio_field(int n_components, int n_heliostats, double scale, WELLFiveTwelve gen)
+heliostat_field solarfield_availability::create_helio_field(int n_components, int n_heliostats, double scale, WELLFiveTwelve &gen)
 {
 	heliostat_field field;
 	field.m_helios.reserve(n_heliostats);

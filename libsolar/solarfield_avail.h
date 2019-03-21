@@ -16,7 +16,7 @@ public:
 	solarfield_results m_results;
 	solarfield_event current_event;
 
-	heliostat_field create_helio_field(int n_components, int n_heliostats, double scale, WELLFiveTwelve gen);
+	heliostat_field create_helio_field(int n_components, int n_heliostats, double scale, WELLFiveTwelve &gen);
 
 	std::vector<double> get_operating_hours();
 
