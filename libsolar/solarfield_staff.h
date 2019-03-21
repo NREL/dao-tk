@@ -20,20 +20,22 @@ class solarfield_staff_member
 {
 
 public:
+	bool busy;
 	double m_fraction;				// Time fraction (i.e. full-time = 1, half-time = 0.5)
 	int m_n_repairs_completed;		// Total number of repairs completed
 	int m_n_repairs_started;		// Total number of repairs started
 	double m_hours_worked;			// Total number of hours worked
 	double m_hours_this_week;		// Hours worked this week
 	double m_hours_today;			// Hours worked today
-
+	double m_max_hours_per_day;		// Maximum hours per day 
+	double m_max_hours_per_week;	// Maximum hours per week
 
 	solarfield_staff_member();
-	solarfield_staff_member(double fraction);
+	solarfield_staff_member(double max_hours_per_day, double max_hours_per_week);
 	~solarfield_staff_member() {};
 
-	double get_time_available(double max_per_day, double max_per_week);
-	double get_time_available_week(double max_per_week);
+	double get_time_available();
+	double get_time_available_week();
 	void add_time_worked(double time);
 
 };
@@ -51,9 +53,9 @@ public:
 
 	int m_n_staff;							// Total number of repair staff
 	int m_total_repair_length;				// Number of heliostats either in queue or undergoing repairs
+	double m_max_hours_per_day;		// Maximum hours per day for full-time staff 
+	double m_max_hours_per_week;	// Maximum hours per week for full-time staff
 
-	double m_max_hours_per_day;				// Maximum hours per day for any staff member
-	double m_max_hours_per_week;			// Maximum hours per week for any staff member
 	double m_total_repair_time;				// Repair time for heliostats either in repair queue or undergoing repairs
 
 	std::vector<solarfield_staff_member*>m_members;	    // Staff members
@@ -67,10 +69,11 @@ public:
 	};
 
 
-	solarfield_repair_staff(int nstaff, double max_per_day, double max_per_week, const std::vector<double> &time_fraction);
-	void add_member(double fraction);
+	solarfield_repair_staff(int nstaff, double max_per_day, double max_per_week);
+	void add_member(double max_per_day, double max_per_week);
+	solarfield_staff_member* get_available_staff();
 
-	void reset_time_fractions(std::vector<double> & time_fraction);
+	//void reset_time_fractions(std::vector<double> & time_fraction);
 
 };
 

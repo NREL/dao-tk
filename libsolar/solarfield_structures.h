@@ -16,7 +16,7 @@ struct solarfield_settings
 
 
 	//-- Staff 
-	std::vector<double> n_om_staff;	// Total number of staff per year
+	std::vector<int> n_om_staff;	// Total number of staff per year
 	double max_hours_per_day;		// Maximum time per day for full-time staff [hr]
 	double max_hours_per_week;		// Maximum time per week for full-time staff [hr]
 
