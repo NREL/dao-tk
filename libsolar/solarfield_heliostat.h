@@ -53,8 +53,8 @@ public:
 	~solarfield_helio_component() {};
 
 
-	double gen_lifetime(WELLFiveTwelve &gen, double age);
-	double gen_repair_time(WELLFiveTwelve &gen);
+	double gen_lifetime(WELLFiveTwelve* gen, double age);
+	double gen_repair_time(WELLFiveTwelve* gen);
 
 	double get_mean_repair_time();
 };
@@ -101,7 +101,7 @@ public:
 	solarfield_heliostat();
 	~solarfield_heliostat(){};
 
-	void initialize(std::vector<solarfield_helio_component*> components, WELLFiveTwelve &gen, double scale = 1.0, double performance = 1.0);
+	void initialize(std::vector<solarfield_helio_component*> components, WELLFiveTwelve* gen, double scale = 1.0, double performance = 1.0);
 
 	int get_n_components();
 	unsigned int get_operational_state();
@@ -110,8 +110,9 @@ public:
 	void update_failure_time();
 	unsigned int get_next_component_to_fail();
 	std::vector<solarfield_helio_component*> get_components();
+	double get_repair_time();
 
-	void fail(double time, WELLFiveTwelve &gen);
+	void fail(double time, WELLFiveTwelve* gen);
 	void start_repair(double time);
 	void end_repair(double time, int idx);
 

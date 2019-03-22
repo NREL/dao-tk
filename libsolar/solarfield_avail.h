@@ -12,11 +12,23 @@ class solarfield_availability
 public:
 	solarfield_availability();
 
+	void initialize();
+
+	void initialize_results();
+
+
 	solarfield_settings m_settings;
 	solarfield_results m_results;
-	solarfield_event current_event;
+	std::priority_queue<solarfield_event> m_event_queue;
+	std::priority_queue<solarfield_event> m_repair_queue;
+	solarfield_event m_current_event;
+	solarfield_repair_staff m_staff;
+	heliostat_field m_field;
+	WELLFiveTwelve* m_gen;
 
-	heliostat_field create_helio_field(int n_components, int n_heliostats, double scale, WELLFiveTwelve &gen);
+	double m_current_availability;
+
+	void create_helio_field(int n_components, int n_heliostats, double scale);
 
 	std::vector<double> get_operating_hours();
 
@@ -26,19 +38,20 @@ public:
 
 	double get_time_of_repair(double t_start, double repair_time, solarfield_staff_member* staff);
 
-	std::priority_queue<solarfield_event> create_initial_queue(heliostat_field field, std::vector<double> operating_hours = {});
+	std::priority_queue<solarfield_event> create_initial_queue(std::vector<double> operating_hours = {});
 
-	void process_failure();
+	void process_failure(double t_last);
 
-	void process_repair();
+	void process_repair(double t_last);
 
-	void run_current_event();
+	void run_current_event(double t_last);
 
-	void update_availability(double t_start, double t_end, double availability);
+	void update_availability(double t_start, double t_end);
 
 	void simulate(bool (*callback)(float prg, const char *msg)=0, std::string *results_file_name = 0);
 	
-	void initialize_results();
+
+	
 
 };
 

@@ -38,10 +38,19 @@ double solarfield_staff_member::get_time_available_week()
 
 void solarfield_staff_member::add_time_worked(double time)
 {
-	m_hours_today += time;
-	m_hours_this_week += time;
+	//m_hours_today += time;
+	//m_hours_this_week += time;
 	m_hours_worked += time;
 	return;
+}
+
+void solarfield_staff_member::assign_heliostat(int helio_id)
+{
+}
+
+void solarfield_staff_member::free()
+{
+	m_busy = false;
 }
 
 
@@ -80,6 +89,19 @@ void solarfield_repair_staff::add_member(double max_per_day, double max_per_week
 	return;
 }
 
+bool solarfield_repair_staff::is_staff_available()
+{
+	for (solarfield_staff_member* m : m_members)
+		if (!m->m_busy)
+			return true;
+	return false;
+}
+
+int solarfield_repair_staff::get_assigned_member()
+{
+	return 0;
+}
+
 /*
 void solarfield_repair_staff::reset_time_fractions(std::vector<double> & time_fraction)
 {
@@ -97,6 +119,8 @@ void solarfield_repair_staff::reset_time_fractions(std::vector<double> & time_fr
 solarfield_staff_member* solarfield_repair_staff::get_available_staff()
 {
 	for (solarfield_staff_member* m : m_members)
-		if (!m->busy)
+		if (!m->m_busy)
 			return m;
+	throw std::exception("no members available");
+	return NULL;
 }

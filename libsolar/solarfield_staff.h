@@ -20,10 +20,11 @@ class solarfield_staff_member
 {
 
 public:
-	bool busy;
+	bool m_busy;
 	double m_fraction;				// Time fraction (i.e. full-time = 1, half-time = 0.5)
 	int m_n_repairs_completed;		// Total number of repairs completed
 	int m_n_repairs_started;		// Total number of repairs started
+	int helio_assigned;				// Current Assignment
 	double m_hours_worked;			// Total number of hours worked
 	double m_hours_this_week;		// Hours worked this week
 	double m_hours_today;			// Hours worked today
@@ -37,7 +38,9 @@ public:
 	double get_time_available();
 	double get_time_available_week();
 	void add_time_worked(double time);
-
+	void assign_heliostat(int helio_id);
+	void free();
+	int get_assigned_heliostat();
 };
 
 
@@ -71,6 +74,8 @@ public:
 
 	solarfield_repair_staff(int nstaff, double max_per_day, double max_per_week);
 	void add_member(double max_per_day, double max_per_week);
+	bool is_staff_available();
+	int get_assigned_member();
 	solarfield_staff_member* get_available_staff();
 
 	//void reset_time_fractions(std::vector<double> & time_fraction);

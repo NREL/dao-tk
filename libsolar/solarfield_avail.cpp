@@ -30,6 +30,19 @@ double solarfield_availability::operating_hours(std::vector<double> operating_ho
 }
 */
 
+void solarfield_availability::initialize()
+{
+	double hscale = (double)m_settings.n_helio_sim;
+	double problem_scale = (double)m_settings.n_helio / hscale;
+	int n_helio_s = (int)hscale;
+	int nhours = m_settings.n_years * 8760;
+	int n_components = (int)m_settings.helio_components.size();
+	WELLFiveTwelve gen(m_settings.seed % 100);
+	m_gen = &gen;
+	m_staff = solarfield_repair_staff(m_settings.n_om_staff[0], m_settings.max_hours_per_day, m_settings.max_hours_per_week);
+	create_helio_field(n_components, n_helio_s, problem_scale);
+	initialize_results();
+}
 
 void solarfield_availability::initialize_results()
 {
@@ -72,15 +85,14 @@ void solarfield_availability::initialize_results()
 
 }
 
-heliostat_field solarfield_availability::create_helio_field(int n_components, int n_heliostats, double scale, WELLFiveTwelve &gen)
+void solarfield_availability::create_helio_field(int n_components, int n_heliostats, double scale)
 {
-	heliostat_field field;
-	field.m_helios.reserve(n_heliostats);
-	field.m_components.reserve(n_components);
+	m_field.m_helios.reserve(n_heliostats);
+	m_field.m_components.reserve(n_components);
 	double sum_performance = 0.0;
 	for (int c = 0; c < n_components; c++)
 	{
-		field.add_component(m_settings.helio_components.at(c));
+		m_field.add_component(m_settings.helio_components.at(c));
 	}
 
 	for (int i = 0; i < n_heliostats; i++)
@@ -89,8 +101,8 @@ heliostat_field solarfield_availability::create_helio_field(int n_components, in
 
 		sum_performance += m_settings.helio_performance[i];
 
-		hel->initialize(field.m_components, gen, scale, m_settings.helio_performance[i]);
-		field.m_helios.push_back(hel);
+		hel->initialize(m_field.m_components, m_gen, scale, m_settings.helio_performance[i]);
+		m_field.m_helios.push_back(hel);
 
 		if (m_settings.is_tracking)
 			hel->initialize_repair_time_tracking();
@@ -241,9 +253,10 @@ staff -- staff member (include labor stats)
 		days_left = 7;
 		week_labor = staff->m_max_hours_per_week;
 	}
+	staff->add_time_worked(repair_time);
 }
 
-std::priority_queue<solarfield_event> solarfield_availability::create_initial_queue(heliostat_field field, std::vector<double> operating_hours)
+std::priority_queue<solarfield_event> solarfield_availability::create_initial_queue(std::vector<double> operating_hours)
 {
 	/*int _helio_id,
 		bool _is_repair,
@@ -252,7 +265,7 @@ std::priority_queue<solarfield_event> solarfield_availability::create_initial_qu
 	int idx = 0;
 	double end_time;
 	std::priority_queue<solarfield_event> queue = {};
-	for (solarfield_heliostat * h : field.m_helios)
+	for (solarfield_heliostat * h : m_field.m_helios)
 	{
 		if (m_settings.is_fix_hours)
 			end_time = get_time_of_failure(
@@ -279,28 +292,77 @@ std::priority_queue<solarfield_event> solarfield_availability::create_initial_qu
 	return queue;
 }
 
-void solarfield_availability::process_failure()
+void solarfield_availability::process_failure(double t_last)
 {
+	/* 
+	Processes a failure by changing the current field availability
+	and send generating a repair event if a staff member is availabile,
+	or sending an event to the repair queue otherwise.
+	
+	t_last -- time of last event [h]
+	*/
+	m_current_availability -= m_settings.helio_performance[m_current_event.helio_id];
+	m_field.m_helios.at(m_current_event.helio_id)->fail(m_current_event.time, m_gen);
+	if (m_staff.is_staff_available())
+	{
+		solarfield_staff_member* staff = m_staff.get_available_staff();
+		double end_time = get_time_of_repair(
+			t_last, 
+			m_field.m_helios.at(m_current_event.helio_id)->get_repair_time(),
+			staff
+		);
+		m_event_queue.push(
+			solarfield_event(
+				m_current_event.helio_id,
+				true,
+				end_time,
+				1. / end_time
+			)
+		);
+	}
 }
 
-void solarfield_availability::process_repair()
+void solarfield_availability::process_repair(double t_last)
 {
+	/*
+	Processes a repair by changing the current field availability
+	and assigning a staff member to a new repair, if the repair
+	queue is not empty.
+
+	t_last -- time of last event [h]
+	*/
+	m_current_availability += m_settings.helio_performance[m_current_event.helio_id];
+
+
 }
 
-void solarfield_availability::run_current_event()
+void solarfield_availability::run_current_event(double t_last)
 {
+	/* 
+	Processes the current event in the event queue, by 
+	updating the field availability from the last event time
+	to the current event time, then processing either a failure
+	or repair.
+	
+	t_last -- time of last event [h]
+	*/
+	update_availability(t_last, m_current_event.time);
+	if (m_current_event.is_repair)
+		process_repair(t_last);
+	else
+		process_failure(t_last);
 }
 
-void solarfield_availability::update_availability(double t_start, double t_end, double availability)
+void solarfield_availability::update_availability(double t_start, double t_end)
 {
 	int idx = (int)t_start;
-	m_results.avail_schedule[idx] += (idx + 1 - t_start)*availability;
+	m_results.avail_schedule[idx] += (idx + 1 - t_start)*m_current_availability;
 	while (idx < (int)(t_end))
 	{
 		idx++;
-		m_results.avail_schedule[idx] += availability;
+		m_results.avail_schedule[idx] += m_current_availability;
 	}
-	m_results.avail_schedule[int(t_end)] += (t_end - (int)t_end)*availability;
+	m_results.avail_schedule[int(t_end)] += (t_end - (int)t_end)*m_current_availability;
 
 }
 
@@ -308,42 +370,22 @@ void solarfield_availability::update_availability(double t_start, double t_end, 
 
 void solarfield_availability::simulate(bool(*callback)(float prg, const char *msg), std::string *results_file_name)
 {
-
-	//set up problem scaling
-	//always scale the problem, ensures sampling repeatability
 	double hscale = (double)m_settings.n_helio_sim;
 	double problem_scale = (double)m_settings.n_helio / hscale;
 	int n_helio_s = (int)hscale;
 	int nhours = m_settings.n_years * 8760;
 	int n_components = (int)m_settings.helio_components.size();
-	WELLFiveTwelve rand(m_settings.seed % 100);
 
-	
 	//--- Initialize results
-	initialize_results();
+	initialize();
 
-
-	//--- Randomly sample heliostats if number simulated != number in field
-	/*
-	std::vector<int> select;
-	select.reserve(m_settings.n_helio);
-	if (n_helio_s != m_settings.n_helio)
-	{
-		for (int h = 0; h < m_settings.n_helio; h++)
-			select.push_back(h);
-		std::random_shuffle(select.begin(), select.end());
-	}
-	*/
 
 	//--- Initialize heliostats
-	heliostat_field field = create_helio_field(n_components, n_helio_s, problem_scale, rand);
 	
 	
-	std::priority_queue<solarfield_event> event_queue = create_initial_queue(field);
-	std::priority_queue<solarfield_event> repair_queue = {};
+	m_event_queue = create_initial_queue();
+	m_repair_queue = {};
 
-	//--- Initialize repair staff 
-	solarfield_repair_staff staff(m_settings.n_om_staff[0], m_settings.max_hours_per_day, m_settings.max_hours_per_week);
 
 	std::vector<double> op_schedule = get_operating_hours();
 
@@ -643,16 +685,16 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	}
 	*/
 
-
+	/*
 	//fill in the return data
 	double hours_worked = 0.;
 	double repairs_made = 0;
 	double max_hours = 0.;
-	for (size_t s = 0; s < staff.m_members.size(); s++)
+	for (size_t s = 0; s < m_staff.m_members.size(); s++)
 	{
-		hours_worked += staff.m_members[s]->m_hours_worked;
-		repairs_made += staff.m_members[s]->m_n_repairs_completed*problem_scale;
-		max_hours += staff.m_members[s]->m_fraction * m_settings.n_years * m_settings.max_hours_per_week * (8760. / 168.);
+		hours_worked += m_staff.m_members[s]->m_hours_worked;
+		repairs_made += m_staff.m_members[s]->m_n_repairs_completed*problem_scale;
+		max_hours += m_staff.m_members[s]->m_fraction * m_settings.n_years * m_settings.max_hours_per_week * (8760. / 168.);
 	}
 
 	m_results.n_repairs = repairs_made;
@@ -662,7 +704,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	//--- Total failures and repairs per component
 	for (int h = 0; h < n_helio_s; h++)
 	{
-		hel = field.m_helios[h];
+		hel = m_field.m_helios[h];
 
 		for (int c = 0; c < n_components; c++)
 		{
@@ -670,6 +712,8 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 			m_results.n_failures_per_component[c] += hel->get_failures_per_component()[c] * problem_scale;
 		}
 	}
+
+	*/
 
 	/*
 	// Time per staff member and queue size
@@ -699,17 +743,17 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 		//-- staff summary
 		//header
 		ofs << " ";
-		for (size_t s = 0; s<staff.m_members.size(); s++)
+		for (size_t s = 0; s< m_staff.m_members.size(); s++)
 			ofs << ",staff_" << s;
 		ofs << "\n";
 
 		//summary
 		ofs << "hrs_worked";
-		for (size_t s = 0; s<staff.m_members.size(); s++)
-			ofs << "," << staff.m_members.at(s)->m_hours_worked;
+		for (size_t s = 0; s< m_staff.m_members.size(); s++)
+			ofs << "," << m_staff.m_members.at(s)->m_hours_worked;
 		ofs << "\nrepairs";
-		for (size_t s = 0; s<staff.m_members.size(); s++)
-			ofs << "," << staff.m_members.at(s)->m_n_repairs_completed*problem_scale;
+		for (size_t s = 0; s< m_staff.m_members.size(); s++)
+			ofs << "," << m_staff.m_members.at(s)->m_n_repairs_completed*problem_scale;
 		ofs << "\n";
 		ofs << "\n";
 

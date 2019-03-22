@@ -48,11 +48,11 @@ solarfield_helio_component::solarfield_helio_component(const helio_component_inp
 }
 
 
-double solarfield_helio_component::gen_lifetime(WELLFiveTwelve &gen, double age)
+double solarfield_helio_component::gen_lifetime(WELLFiveTwelve* gen, double age)
 {
 	double tf = std::numeric_limits<double>::quiet_NaN();  
 
-	double r = gen.getVariate();
+	double r = gen->getVariate();
 
 	if (m_properties.m_beta == 1.0)
 		tf = -m_properties.m_eta * log(1.0 - r);
@@ -67,9 +67,9 @@ double solarfield_helio_component::gen_lifetime(WELLFiveTwelve &gen, double age)
 	return tf;
 }
 
-double solarfield_helio_component::gen_repair_time(WELLFiveTwelve &gen)
+double solarfield_helio_component::gen_repair_time(WELLFiveTwelve* gen)
 {
-	double r = gen.getVariate();
+	double r = gen->getVariate();
 	double time = -m_properties.m_mean_repair_time * log(1.0 - r);  // Exponential distribution of repair times
 
 	time = fmax(time, m_properties.m_min_repair_time);
@@ -109,7 +109,7 @@ solarfield_heliostat::solarfield_heliostat()
 }
 
 
-void solarfield_heliostat::initialize(std::vector<solarfield_helio_component*> components, WELLFiveTwelve &gen, double scale, double performance)
+void solarfield_heliostat::initialize(std::vector<solarfield_helio_component*> components, WELLFiveTwelve* gen, double scale, double performance)
 {
 	m_n_components = (int)components.size();
 	m_status = OPERATIONAL;
@@ -185,7 +185,12 @@ std::vector<solarfield_helio_component*>  solarfield_heliostat::get_components()
 	return m_components;
 }
 
-void solarfield_heliostat::fail(double time, WELLFiveTwelve &gen)
+double solarfield_heliostat::get_repair_time()
+{
+	return m_repair_time;
+}
+
+void solarfield_heliostat::fail(double time, WELLFiveTwelve* gen)
 {
 	m_status = FAILED;
 	m_time_operating += m_time_to_next_failure;
