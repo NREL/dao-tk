@@ -51,7 +51,6 @@ class solarfield_repair_staff
 
 public:
 
-	unsigned int m_repair_order;			// Order that repairs are prioritized: FAILURE_ORDER, EFFICIENCY, REPAIR_TIME, MEAN_REPAIR_TIME, RANDOM
 	bool m_is_prioritize_partial_repairs;   // Always prioritize partially-repaired heliostats?
 
 	int m_n_staff;							// Total number of repair staff

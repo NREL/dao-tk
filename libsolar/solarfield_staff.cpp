@@ -58,7 +58,6 @@ void solarfield_staff_member::free()
 solarfield_repair_staff::solarfield_repair_staff()
 {
 	m_members.clear();
-	m_repair_order = PERF_OVER_MRT;
 	m_is_prioritize_partial_repairs = true;
 	m_n_staff = 0;
 	m_max_hours_per_day = std::numeric_limits<double>::quiet_NaN();
@@ -70,7 +69,6 @@ solarfield_repair_staff::solarfield_repair_staff()
 
 solarfield_repair_staff::solarfield_repair_staff(int nstaff, double max_per_day, double max_per_week)
 {
-	m_repair_order = FAILURE_ORDER;
 	m_n_staff = nstaff;
 	m_max_hours_per_day = max_per_day;
 	m_max_hours_per_week = fmin(7 * max_per_day, max_per_week);

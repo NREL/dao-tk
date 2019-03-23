@@ -46,6 +46,8 @@ public:
 
 	void run_current_event(double t_last);
 
+	void add_repair_to_queue();
+
 	void update_availability(double t_start, double t_end);
 
 	void simulate(bool (*callback)(float prg, const char *msg)=0, std::string *results_file_name = 0);

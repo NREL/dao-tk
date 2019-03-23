@@ -89,10 +89,12 @@ struct solarfield_event
 
 	solarfield_event(
 		int _helio_id,
+		int _component_idx,
 		bool _is_repair,
 		double _time,
 		double _priority
 	) : helio_id(_helio_id),
+		component_idx(_component_idx),
 		is_repair(_is_repair),
 		time(_time),
 		priority(_priority)

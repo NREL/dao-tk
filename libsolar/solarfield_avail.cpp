@@ -35,7 +35,6 @@ void solarfield_availability::initialize()
 	double hscale = (double)m_settings.n_helio_sim;
 	double problem_scale = (double)m_settings.n_helio / hscale;
 	int n_helio_s = (int)hscale;
-	int nhours = m_settings.n_years * 8760;
 	int n_components = (int)m_settings.helio_components.size();
 	WELLFiveTwelve gen(m_settings.seed % 100);
 	m_gen = &gen;
@@ -283,6 +282,7 @@ std::priority_queue<solarfield_event> solarfield_availability::create_initial_qu
 			);
 		queue.push(solarfield_event(
 			idx,
+			m_field.m_helios.at(idx)->get_next_component_to_fail(),
 			false,
 			end_time,
 			1. / end_time
@@ -307,19 +307,22 @@ void solarfield_availability::process_failure(double t_last)
 	{
 		solarfield_staff_member* staff = m_staff.get_available_staff();
 		double end_time = get_time_of_repair(
-			t_last, 
+			t_last,
 			m_field.m_helios.at(m_current_event.helio_id)->get_repair_time(),
 			staff
 		);
 		m_event_queue.push(
 			solarfield_event(
 				m_current_event.helio_id,
+				m_current_event.component_idx,
 				true,
 				end_time,
 				1. / end_time
 			)
 		);
 	}
+	else
+		add_repair_to_queue();
 }
 
 void solarfield_availability::process_repair(double t_last)
@@ -353,6 +356,38 @@ void solarfield_availability::run_current_event(double t_last)
 		process_failure(t_last);
 }
 
+void solarfield_availability::add_repair_to_queue()
+{
+	/*
+	Adds the failure in the current event to the repair queue.  
+	*/
+	double repair_priority;
+	if (m_settings.repair_order == FAILURE_ORDER)
+		repair_priority = 1. / m_current_event.time;
+	else if (m_settings.repair_order == RANDOM)
+		repair_priority = m_gen->getVariate();
+	else if (m_settings.repair_order == PERFORMANCE)
+		repair_priority = m_field.m_helios.at(m_current_event.helio_id)->get_performance();
+	else if (m_settings.repair_order == REPAIR_TIME)
+		repair_priority = 1. / m_field.m_helios.at(m_current_event.helio_id)->get_repair_time();
+	else if (m_settings.repair_order == MEAN_REPAIR_TIME)
+		repair_priority = 1. / m_field.m_components.at(m_current_event.component_idx)->get_mean_repair_time();
+	else if (m_settings.repair_order == PERF_OVER_MRT)
+		repair_priority = (
+			m_field.m_helios.at(m_current_event.helio_id)->get_performance() /
+			m_field.m_components.at(m_current_event.component_idx)->get_mean_repair_time()
+			);
+	else
+		throw std::exception("invalid repair order");
+	m_repair_queue.push( solarfield_event(
+		m_current_event.helio_id,
+		m_current_event.component_idx,
+		true,
+		m_current_event.time,
+		repair_priority
+	));
+}
+
 void solarfield_availability::update_availability(double t_start, double t_end)
 {
 	int idx = (int)t_start;
@@ -378,30 +413,22 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 
 	//--- Initialize results
 	initialize();
-
-
-	//--- Initialize heliostats
-	
-	
 	m_event_queue = create_initial_queue();
 	m_repair_queue = {};
-
-
-	std::vector<double> op_schedule = get_operating_hours();
-
 	
-
+	std::vector<double> op_schedule = get_operating_hours();
+	
+	double t = 0;
+	while (t < (double)nhours)
+	{
+		m_current_event = m_event_queue.top();
+		run_current_event(t);
+		t = m_current_event.time;
+		m_event_queue.pop();
+	}
 
 	//----------------------------------------------------------
-	std::vector<int> staff_avail, staff_not_avail, failed_components;
-	solarfield_heliostat *hel;
-	
-	
-	
-	
-	
-	
-	
+		
 	//double n_this_year = 0.0;
 	//double yearly_avail = 0.0;
 	//double total_time_this_year = 0.0;
