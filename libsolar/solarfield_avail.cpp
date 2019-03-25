@@ -304,6 +304,8 @@ void solarfield_availability::process_failure()
 	t_last -- time of last event [h]
 	*/
 	m_current_availability -= m_settings.helio_performance[m_current_event.helio_id];
+	if (m_results.min_avail > m_current_availability)
+		m_results.min_avail = m_current_availability;
 	m_results.n_failures_per_component[m_current_event.component_idx] += 1;
 	m_field.m_helios.at(m_current_event.helio_id)->fail(m_current_event.time, m_gen);
 	if (m_staff.is_staff_available())
@@ -475,23 +477,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	//double yearly_avail = 0.0;
 	//double total_time_this_year = 0.0;
 
-
-	/*
-			//--- Track availability in this time step
-		double current_avail = op_performance / sum_performance;  // Performance-weighted average availability
-		m_results.avg_avail += current_avail / (double)nsteps;
-		if (current_avail < m_results.min_avail)
-			m_results.min_avail = current_avail;
-		m_results.avail_schedule.push_back(current_avail);
-		n_this_year += 1.0;
-		yearly_avail += m_results.avail_schedule.back();
-
-
-		//--- Save yearly-average results
-		if (hoy_start + ts > 8759.99 || t == nsteps - 1)
-			m_results.yearly_avg_avail.push_back(yearly_avail / n_this_year);
-	}
-	*/
+	//availability stats
 	m_results.yearly_avg_avail.reserve(m_settings.n_years);
 	m_results.avg_avail = 0.;
 	for (int y = 0; y < m_settings.n_years; y++)
@@ -505,9 +491,6 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 		m_results.yearly_avg_avail[y] /= 8760;
 	}
 	m_results.avg_avail /= (8760 * m_settings.n_years);
-		
-
-
 	
 	//fill in the return data
 	double hours_worked = 0.;
