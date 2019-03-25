@@ -72,7 +72,6 @@ struct solarfield_results
 	std::vector<std::vector<double>> repair_time_per_year;	// Repair time per component per year
 
 	std::vector<double> queue_size_vs_time;			// Fraction of heliostats in queue vs time
-	std::vector<double> queue_time_vs_time;			// Total repair time in queue vs time
 
 };
 
@@ -99,6 +98,10 @@ struct solarfield_event
 		time(_time),
 		priority(_priority)
 	{};
+
+	void print_line();
+	void print();
+
 
 };
 

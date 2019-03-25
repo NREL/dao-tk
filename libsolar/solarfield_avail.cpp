@@ -41,6 +41,8 @@ void solarfield_availability::initialize()
 	m_staff = solarfield_repair_staff(m_settings.n_om_staff[0], m_settings.max_hours_per_day, m_settings.max_hours_per_week);
 	create_helio_field(n_components, n_helio_s, problem_scale);
 	initialize_results();
+	m_repair_queue_length = 0;
+	m_current_availability = 1.0;
 }
 
 void solarfield_availability::initialize_results()
@@ -67,7 +69,7 @@ void solarfield_availability::initialize_results()
 	m_results.failures_per_year.clear();
 	m_results.repair_time_per_year.clear();
 	m_results.queue_size_vs_time.clear();
-	m_results.queue_time_vs_time.clear();
+	//m_results.queue_time_vs_time.clear();
 
 	if (m_settings.is_tracking)
 	{
@@ -79,7 +81,7 @@ void solarfield_availability::initialize_results()
 		}
 
 		m_results.queue_size_vs_time.reserve(nsteps);
-		m_results.queue_time_vs_time.reserve(nsteps);
+		//m_results.queue_time_vs_time.reserve(nsteps);
 	}
 
 }
@@ -243,6 +245,7 @@ staff -- staff member (include labor stats)
 			{
 				staff->m_hours_this_week = staff->m_max_hours_per_week - week_labor + repair_remaining;
 				staff->m_hours_today = repair_remaining;
+				staff->add_time_worked(repair_time);
 				return t_end + repair_remaining;
 			}
 			week_labor -= day_labor;
@@ -252,7 +255,6 @@ staff -- staff member (include labor stats)
 		days_left = 7;
 		week_labor = staff->m_max_hours_per_week;
 	}
-	staff->add_time_worked(repair_time);
 }
 
 std::priority_queue<solarfield_event> solarfield_availability::create_initial_queue(std::vector<double> operating_hours)
@@ -292,7 +294,7 @@ std::priority_queue<solarfield_event> solarfield_availability::create_initial_qu
 	return queue;
 }
 
-void solarfield_availability::process_failure(double t_last)
+void solarfield_availability::process_failure()
 {
 	/* 
 	Processes a failure by changing the current field availability
@@ -302,12 +304,13 @@ void solarfield_availability::process_failure(double t_last)
 	t_last -- time of last event [h]
 	*/
 	m_current_availability -= m_settings.helio_performance[m_current_event.helio_id];
+	m_results.n_failures_per_component[m_current_event.component_idx] += 1;
 	m_field.m_helios.at(m_current_event.helio_id)->fail(m_current_event.time, m_gen);
 	if (m_staff.is_staff_available())
 	{
 		solarfield_staff_member* staff = m_staff.get_available_staff();
 		double end_time = get_time_of_repair(
-			t_last,
+			m_current_event.time,
 			m_field.m_helios.at(m_current_event.helio_id)->get_repair_time(),
 			staff
 		);
@@ -320,12 +323,15 @@ void solarfield_availability::process_failure(double t_last)
 				1. / end_time
 			)
 		);
+		m_field.m_helios.at(m_current_event.helio_id)->start_repair(m_current_event.time);
 	}
 	else
+	{
 		add_repair_to_queue();
+	}
 }
 
-void solarfield_availability::process_repair(double t_last)
+void solarfield_availability::process_repair()
 {
 	/*
 	Processes a repair by changing the current field availability
@@ -335,8 +341,37 @@ void solarfield_availability::process_repair(double t_last)
 	t_last -- time of last event [h]
 	*/
 	m_current_availability += m_settings.helio_performance[m_current_event.helio_id];
+	m_results.n_repairs_per_component[m_current_event.component_idx] += 1;
+	m_field.m_helios.at(m_current_event.helio_id)->end_repair(
+		m_current_event.time,
+		m_current_event.component_idx
+	);
+	solarfield_staff_member* staff = m_staff.get_assigned_member(m_current_event.helio_id);
 
-
+	if (m_repair_queue_length > 0)
+	{
+		//new repair assignment
+		solarfield_event e = m_repair_queue.top();
+		double end_time = get_time_of_repair(
+			m_current_event.time,
+			m_field.m_helios.at(e.helio_id)->get_repair_time(),
+			staff
+		);
+		m_event_queue.push(
+			solarfield_event(
+				e.helio_id,
+				e.component_idx,
+				true,
+				end_time,
+				1. / end_time
+			)
+		);
+		m_field.m_helios.at(e.helio_id)->start_repair(m_current_event.time);
+		m_repair_queue_length -= 1;
+		m_repair_queue.pop();
+	}
+	else
+		staff->free();
 }
 
 void solarfield_availability::run_current_event(double t_last)
@@ -349,11 +384,11 @@ void solarfield_availability::run_current_event(double t_last)
 	
 	t_last -- time of last event [h]
 	*/
-	update_availability(t_last, m_current_event.time);
+	update_statistics(t_last, m_current_event.time);
 	if (m_current_event.is_repair)
-		process_repair(t_last);
+		process_repair();
 	else
-		process_failure(t_last);
+		process_failure();
 }
 
 void solarfield_availability::add_repair_to_queue()
@@ -386,19 +421,25 @@ void solarfield_availability::add_repair_to_queue()
 		m_current_event.time,
 		repair_priority
 	));
+	m_repair_queue_length += 1;
 }
 
-void solarfield_availability::update_availability(double t_start, double t_end)
+void solarfield_availability::update_statistics(double t_start, double t_end)
 {
+	/* 
+	Updates time-series summary statistics between t_start and t_end. 
+	*/
 	int idx = (int)t_start;
 	m_results.avail_schedule[idx] += (idx + 1 - t_start)*m_current_availability;
+	m_results.queue_size_vs_time[idx] += (idx + 1 - t_start)*m_repair_queue_length;
 	while (idx < (int)(t_end))
 	{
 		idx++;
 		m_results.avail_schedule[idx] += m_current_availability;
+		m_results.queue_size_vs_time[idx] += m_repair_queue_length;
 	}
 	m_results.avail_schedule[int(t_end)] += (t_end - (int)t_end)*m_current_availability;
-
+	m_results.queue_size_vs_time[int(t_end)] += (t_end - (int)t_end)*m_repair_queue_length;
 }
 
 
@@ -422,6 +463,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	while (t < (double)nhours)
 	{
 		m_current_event = m_event_queue.top();
+		m_current_event.print();
 		run_current_event(t);
 		t = m_current_event.time;
 		m_event_queue.pop();
@@ -435,268 +477,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 
 
 	/*
-	for (int t = 0; t < nsteps; t++)
-	{
-
-		if (t / float(update_per) == t / update_per && callback != 0)
-		{
-			if (!callback((float)t / (float)nsteps, "Simulating solarfield availability"))
-				return;
-		}
-
-
-		double start_time = t * ts;
-		double end_time = (t + 1) * ts;
-
-		int y = (int)floor(start_time / 8760.);				// year		
-
-		double day_start = floor(start_time / 24.);			// day at start of time step
-		double day_end = floor((end_time - 0.001) / 24.);	// day at end of time step
-		int doy = (int)day_start - y * 365;					// day of year at start of time step
-
-		double hod_start = start_time - day_start * 24;		// hour of day at start of time step
-		double hod_end = end_time - day_end * 24;			// hour of day at end of time step
-
-		double wk_start = floor(start_time / (24.*7.));		// week at start of time step
-
-		double how_start = start_time - wk_start * 24 * 7;	// hour of week at start of time step
-		double hoy_start = start_time - y * 8760;			// hour of year at start of time step
-
-
-		//--- Reset yearly tracking and update staff for this year
-		if (hoy_start < ts)
-		{
-			n_this_year = 0.0;
-			yearly_avail = 0.0;
-			total_time_this_year = 0.0;
-
-			std::vector<double> time_fraction(n_staff[y], 1.0);
-			if ((double)n_staff[y] != m_settings.n_om_staff[y])
-				time_fraction[n_staff[y] - 1] = m_settings.n_om_staff[y] - floor(m_settings.n_om_staff[y]);
-			staff.reset_time_fractions(time_fraction);
-
-		}
-
-		//--- Calculate operating time during this timestep
-		double sunrise = 1;//daily_sunrise[doy];
-		double sunset = 2;//daily_sunset[doy];
-		double operating_time = operating_hours(sunrise, sunset, day_start, day_end, hod_start, hod_end);
-
-
-		//--- Reset hours per day and hours per week for staff
-		if (hod_start < ts && ts <= 24.0) // First timestep today, note staff hours per day not used for timesteps > 24 hours
-		{
-			for (int s = 0; s < n_staff[y]; s++)
-				staff.m_members[s]->m_hours_today = 0.0;
-		}
-		if (how_start < ts && ts <= 168.0) // First timestep this week, note staff hours per week not used for timesteps > 168 hours
-		{
-			for (int s = 0; s < n_staff[y]; s++)
-				staff.m_members[s]->m_hours_this_week = 0.0;
-		}
-
-
-		//--- Try to operate all currently operational heliostats
-		double nop = 0;
-		double op_performance = 0.0;
-
-		for (int h = 0; h < n_helio_s; h++)
-		{
-			hel = field.m_helios[h];
-			unsigned int state = hel->get_operational_state();
-
-			if (state == OPERATIONAL)
-			{
-				bool is_operational = true;
-
-				if (operating_time > 0.0)
-				{
-
-					if (hel->get_time_to_next_failure() > operating_time) // No failures
-						hel->operate(operating_time);
-
-					else   // At least one component fails during this time step
-					{
-						is_operational = false;
-						hel->fail(operating_time, rand);
-						staff.add_to_queue(hel, rand);
-
-						if (m_settings.is_tracking)
-						{
-							failed_components = hel->get_failed_components();
-							for (size_t c = 0; c < failed_components.size(); c++)
-								m_results.failures_per_year[failed_components[c]][y] += 1 * problem_scale;
-						}
-					}
-
-				}
-
-				if (is_operational)
-				{
-					nop += 1;
-					op_performance += hel->get_performance();
-				}
-
-			}
-		}
-
-
-
-		//--- Find staff available for repairs in this time step
-		std::vector<double> staff_time_avail(n_staff[y]);
-		staff_avail.clear();
-		staff_not_avail.clear();
-		for (int s = 0; s < n_staff[y]; s++)
-		{
-			if (ts <= 24.)
-				staff_time_avail[s] = fmin(ts, staff.m_members[s]->get_time_available(staff.m_max_hours_per_day, staff.m_max_hours_per_week));  // daily and weekly limits
-
-			else if (ts <= 168.)
-			{
-				double time_avail = fmin(ts, (ts / 24.)*staff.m_max_hours_per_day); // daily limits
-				staff_time_avail[s] = fmin(time_avail, staff.m_members[s]->get_time_available_week(staff.m_max_hours_per_week));  // weekly limits
-			}
-
-			else
-			{
-				double f = staff.m_members[s]->m_fraction;
-				staff_time_avail[s] = fmin(ts, fmin((ts / 24.)*staff.m_max_hours_per_day, (ts / 168.)*f*staff.m_max_hours_per_week));
-			}
-
-			if (staff_time_avail[s] > 0.0)
-				staff_avail.push_back(s);
-			else
-				staff_not_avail.push_back(s);
-		}
-
-
-
-		//--- Is trading allowed? 
-		bool is_trading_allowed = false;
-		if (m_settings.is_trade_repairs && (int)staff_not_avail.size() > 0)
-		{
-			int si = 0;
-			while (si < (int)staff_avail.size() && !is_trading_allowed)
-			{
-				double extra_time = staff_time_avail[staff_avail[si]] - staff.m_members[staff_avail[si]]->get_time_assigned();
-				if (extra_time > 0.0)
-					is_trading_allowed = true;
-				si++;
-			}
-		}
-
-		//--- Account for unavailable staff
-		if (is_trading_allowed)
-		{
-			for (size_t si = 0; si < staff_not_avail.size(); si++)
-				staff.assign_to_queue(staff_not_avail[si], rand);  // return partially repaired heliostats to queue
-		}
-
-
-		//--- Track queue length before repairs
-		if (m_settings.is_tracking)
-			staff.queue_tracking();
-
-
-		//--- Carry out repairs
-		for (size_t si = 0; si < staff_avail.size(); si++)
-		{
-			int s = staff_avail[si];
-			solarfield_staff_member *st = staff.m_members[s];
-
-			double timestep_remain = ts;
-			double time_remain = staff_time_avail[s];
-			double time_worked = 0.0;
-			bool stop = false;
-
-			while (time_remain > 0.0 && !stop)
-			{
-
-				// Try to get an assigned heliostat
-				hel = st->m_helio_assigned;
-				if (hel == NULL) // No current assignment 
-				{
-					if (staff.m_queue.size() == 0)  // Nothing in queue
-						stop = true;
-					else  // Take next heliostat
-					{
-						staff.assign_from_queue(s, 0);
-						hel = st->m_helio_assigned;
-					}
-				}
-
-
-				// Repair assigned hleiostat
-				if (hel != NULL)
-				{
-					// Identify failed components
-					if (m_settings.is_tracking)
-						failed_components = hel->get_failed_components();
-
-					// Do repairs
-					double repair_time = fmin(time_remain, hel->get_total_repair_time());
-					staff.repair(s, repair_time);
-
-					total_time_this_year += repair_time;
-					time_worked += repair_time;
-
-					time_remain -= repair_time;
-					timestep_remain -= repair_time;
-
-					// Track component repair time per month
-					if (m_settings.is_tracking)
-					{
-						if (failed_components.size() == 1)   // All repair time went to one component
-							m_results.repair_time_per_year[failed_components[0]][y] += repair_time;
-						else  // Multiple components were repaired
-						{
-							std::vector<double> *rt = hel->get_repair_time_tracking();
-							for (size_t ci = 0; ci < failed_components.size(); ci++)
-							{
-								int c = failed_components[ci];
-								m_results.repair_time_per_year[c][y] += (*rt)[c];
-							}
-						}
-					}
-
-
-
-					// Put fully repaired heliostat back in operation (approximate) -> Note components can only fail once per timestep... second failures that "should" happen will occur during the next timestep
-					if (m_settings.is_split_operation && hel->get_operational_state() == OPERATIONAL)
-					{
-						double now = end_time - timestep_remain;  // Current time 
-
-						if (operating_time > 0)
-						{
-							double op_time_remain = 0.0;
-							if (operating_time == ts)
-								op_time_remain = timestep_remain;
-							else
-							{
-								double day_now = floor(now / 24.);
-								double hod_now = now - day_now * 24.;
-								op_time_remain = operating_hours(sunrise, sunset, day_now, day_end, hod_now, hod_end);
-							}
-
-							hel->operate(op_time_remain);
-						}
-
-						nop += (end_time - now) / ts;
-						op_performance += hel->get_performance() * (end_time - now) / ts;
-					}
-
-				}
-			}
-
-
-			// Put assigned heliostat back in queue if multiple staff are allowed to work on single helio
-			if (m_settings.is_allow_multiple_per_helio)
-				staff.assign_to_queue(s, rand);
-
-		}
-
-
-		//--- Track availability in this time step
+			//--- Track availability in this time step
 		double current_avail = op_performance / sum_performance;  // Performance-weighted average availability
 		m_results.avg_avail += current_avail / (double)nsteps;
 		if (current_avail < m_results.min_avail)
@@ -711,8 +492,23 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 			m_results.yearly_avg_avail.push_back(yearly_avail / n_this_year);
 	}
 	*/
+	m_results.yearly_avg_avail.reserve(m_settings.n_years);
+	m_results.avg_avail = 0.;
+	for (int y = 0; y < m_settings.n_years; y++)
+	{
+		m_results.yearly_avg_avail[y] = 0.;
+		for (int h = 0; h < 8760; h++)
+		{
+			m_results.yearly_avg_avail[y] += m_results.avail_schedule[y * 8760 + h];
+			m_results.avg_avail += m_results.avail_schedule[y * 8760 + h];
+		}
+		m_results.yearly_avg_avail[y] /= 8760;
+	}
+	m_results.avg_avail /= (8760 * m_settings.n_years);
+		
 
-	/*
+
+	
 	//fill in the return data
 	double hours_worked = 0.;
 	double repairs_made = 0;
@@ -727,6 +523,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	m_results.n_repairs = repairs_made;
 	m_results.staff_utilization = hours_worked / max_hours;
 
+	solarfield_heliostat* hel;
 
 	//--- Total failures and repairs per component
 	for (int h = 0; h < n_helio_s; h++)
@@ -740,22 +537,13 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 		}
 	}
 
-	*/
-
-	/*
-	// Time per staff member and queue size
+	// Time per staff member
 	if (m_settings.is_tracking)
 	{
-		for (size_t s = 0; s < staff.m_members.size(); s++)
-			m_results.staff_time.push_back(staff.m_members[s]->m_hours_worked);
-		
-		for (size_t i = 0; i < staff.m_queue_length.size(); i++)
-		{
-			m_results.queue_size_vs_time.push_back((double)staff.m_queue_length[i] / (double)n_helio_s);
-			m_results.queue_time_vs_time.push_back(staff.m_queue_time[i]);
-		}
+		for (size_t s = 0; s < m_staff.m_members.size(); s++)
+			m_results.staff_time.push_back(m_staff.m_members[s]->m_hours_worked);
 	}
-	*/
+	
 
 
 	//if a file name is provided, write to that file
@@ -828,7 +616,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 		// header
 		ofs << "hour,avail";
 		if (m_settings.is_tracking)
-			ofs << ",queue_fraction,queue_time";
+			ofs << ",queue_fraction";
 		ofs << "\n";
 
 		//hourly data
@@ -836,7 +624,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 		{
 			ofs << t << "," << m_results.avail_schedule.at(t);
 			if (m_settings.is_tracking)
-				ofs << "," << m_results.queue_size_vs_time[t] << "," << m_results.queue_time_vs_time[t];
+				ofs << "," << m_results.queue_size_vs_time[t]; //<< "," << m_results.queue_time_vs_time[t];
 			ofs << "\n";
 		}
 		ofs.close();

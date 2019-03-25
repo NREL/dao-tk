@@ -27,6 +27,7 @@ public:
 	WELLFiveTwelve* m_gen;
 
 	double m_current_availability;
+	int m_repair_queue_length;
 
 	void create_helio_field(int n_components, int n_heliostats, double scale);
 
@@ -40,15 +41,15 @@ public:
 
 	std::priority_queue<solarfield_event> create_initial_queue(std::vector<double> operating_hours = {});
 
-	void process_failure(double t_last);
+	void process_failure();//double t_last);
 
-	void process_repair(double t_last);
+	void process_repair();//double t_last);
 
 	void run_current_event(double t_last);
 
 	void add_repair_to_queue();
 
-	void update_availability(double t_start, double t_end);
+	void update_statistics(double t_start, double t_end);
 
 	void simulate(bool (*callback)(float prg, const char *msg)=0, std::string *results_file_name = 0);
 	

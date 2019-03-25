@@ -12,6 +12,7 @@ solarfield_staff_member::solarfield_staff_member()
 	m_n_repairs_started = 0;
 	m_max_hours_per_day = std::numeric_limits<double>::quiet_NaN();
 	m_max_hours_per_week = std::numeric_limits<double>::quiet_NaN();
+	m_helio_assigned = NULL;
 }
 
 solarfield_staff_member::solarfield_staff_member(double max_per_day, double max_per_week)
@@ -23,6 +24,7 @@ solarfield_staff_member::solarfield_staff_member(double max_per_day, double max_
 	m_n_repairs_started = 0;
 	m_max_hours_per_day = max_per_day;
 	m_max_hours_per_week = fmin(7*max_per_day,max_per_week);
+	m_helio_assigned = NULL;
 }
 
 double solarfield_staff_member::get_time_available()
@@ -46,11 +48,23 @@ void solarfield_staff_member::add_time_worked(double time)
 
 void solarfield_staff_member::assign_heliostat(int helio_id)
 {
+	m_busy = true;
+	m_helio_assigned = helio_id;
 }
 
 void solarfield_staff_member::free()
 {
 	m_busy = false;
+}
+
+bool solarfield_staff_member::is_busy()
+{
+	return m_busy;
+}
+
+int solarfield_staff_member::get_assigned_heliostat()
+{
+	return m_helio_assigned;
 }
 
 
@@ -90,14 +104,18 @@ void solarfield_repair_staff::add_member(double max_per_day, double max_per_week
 bool solarfield_repair_staff::is_staff_available()
 {
 	for (solarfield_staff_member* m : m_members)
-		if (!m->m_busy)
+		if (!m->is_busy())
 			return true;
 	return false;
 }
 
-int solarfield_repair_staff::get_assigned_member()
+solarfield_staff_member* solarfield_repair_staff::get_assigned_member(int helio_id)
 {
-	return 0;
+	for (solarfield_staff_member* m : m_members)
+		if (m->get_assigned_heliostat() == helio_id)
+			return m;
+	throw std::exception("helio id not assigned to any staff member.");
+	return NULL;
 }
 
 /*

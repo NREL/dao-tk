@@ -1,6 +1,8 @@
 #include "solarfield_structures.h"
 #include "solarfield_staff.h"
 
+#include <iostream>
+
 
 
 solarfield_settings::solarfield_settings()
@@ -29,4 +31,22 @@ solarfield_settings::solarfield_settings()
 bool operator<(const solarfield_event & e1, const solarfield_event & e2)
 {
 	return e1.priority < e2.priority;
+}
+
+void solarfield_event::print_line()
+{
+	std::cerr << helio_id << ","
+		<< component_idx << ","
+		<< is_repair << ","
+		<< time << ","
+		<< priority << "\n";
+}
+
+void solarfield_event::print()
+{
+	std::cerr << "\nhelio_id: " << helio_id << "\n"
+		<< "component_idx: " << component_idx << "\n"
+		<< "is_repair: " << is_repair << "\n"
+		<< "time: " << time << "\n"
+		<< "priority: " << priority << "\n";
 }
