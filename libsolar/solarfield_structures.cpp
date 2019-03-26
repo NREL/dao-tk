@@ -50,3 +50,26 @@ void solarfield_event::print()
 		<< "time: " << time << "\n"
 		<< "priority: " << priority << "\n";
 }
+
+void solarfield_results::print()
+{
+	std::cerr << "Results: \n"
+		<< "avg_avail: " << avg_avail << "\n"
+		<< "min_avail: " << min_avail << "\n"
+		<< "n_repairs: " << n_repairs << "\n"
+		<< "staff_utilization: " << staff_utilization << "\n"
+		<< "avg_avail_by_year: ";
+	for (size_t y = 0; y < yearly_avg_avail.size(); y++)
+		std::cerr << yearly_avg_avail.at(y) << ",";
+	std::cerr << "\nstaff_time: ";
+	for (size_t i = 0; i < staff_time.size(); i++)
+		std::cerr << staff_time.at(i) << ",";
+}
+
+void solarfield_results::print_avail_and_queue_schedule()
+{
+	std::cerr << "t,avail,queue_len\n";
+	for (size_t t = 0; t < avail_schedule.size(); t++)
+		std::cerr << t << "," << avail_schedule[t] << "," << queue_size_vs_time[t] << "\n";
+	std::cerr << "\n";
+}

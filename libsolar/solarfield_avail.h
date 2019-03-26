@@ -31,11 +31,9 @@ public:
 
 	void create_helio_field(int n_components, int n_heliostats, double scale);
 
-	std::vector<double> get_operating_hours();
+	void get_operating_hours();
 
-	double get_time_of_failure(std::vector<double> operating_hours, double t_start, double op_life);
-
-	double get_time_of_failure(double sunrise, double sunset, double t_start, double op_life);
+	double get_time_of_failure(double t_start, double op_life);
 
 	double get_time_of_repair(double t_start, double repair_time, solarfield_staff_member* staff);
 

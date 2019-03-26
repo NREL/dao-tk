@@ -1,4 +1,5 @@
 #include "solarfield_heliostat.h"
+#include <iostream>
 
 helio_component_inputs::helio_component_inputs()
 {
@@ -124,7 +125,7 @@ void solarfield_heliostat::initialize(std::vector<solarfield_helio_component*> c
 	m_n_repairs.assign(m_n_components, 0);
 
 	m_components = components;
-	m_lifetimes.reserve(m_n_components);
+	m_lifetimes.assign(m_n_components, 0);
 	for (int c = 0; c < m_n_components; c++)
 	{
 		m_lifetimes[c] = m_components.at(c)->gen_lifetime(gen, 0);
@@ -166,13 +167,14 @@ double solarfield_heliostat::get_op_time_to_next_failure()
 void solarfield_heliostat::update_failure_time()
 {
 	m_next_component_to_fail = 0;
-	m_time_to_next_failure = std::numeric_limits<double>::quiet_NaN();
+	m_time_to_next_failure = m_lifetimes.at(0);
 	for (int i=1; i<m_n_components; i++)
 		if (m_lifetimes.at(i) < m_time_to_next_failure)
 		{
 			m_time_to_next_failure = m_lifetimes.at(i);
 			m_next_component_to_fail = i;
 		}
+	//std::cerr << "heliostat fail time: " << m_time_to_next_failure << "\n";
 }
 
 unsigned int solarfield_heliostat::get_next_component_to_fail()

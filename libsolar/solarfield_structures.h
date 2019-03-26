@@ -31,6 +31,7 @@ struct solarfield_settings
 	double sunrise;				// Time [hr] at sunrise (applied to all days, only used if m_is_fixed_hours = true)
 	double sunset;				// Time [hr] at sunset (applied to all days, only used if m_is_fixed_hours = true)
 	s_location location;		// Location (only used if m_is_fixed_hours = false)
+	std::vector<double> op_schedule;  //calculated from clearsky as needed
 
 
 	//-- Simulation options
@@ -72,6 +73,9 @@ struct solarfield_results
 	std::vector<std::vector<double>> repair_time_per_year;	// Repair time per component per year
 
 	std::vector<double> queue_size_vs_time;			// Fraction of heliostats in queue vs time
+
+	void print();
+	void print_avail_and_queue_schedule();
 
 };
 
