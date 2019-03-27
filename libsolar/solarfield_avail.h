@@ -24,12 +24,15 @@ public:
 	solarfield_event m_current_event;
 	solarfield_repair_staff m_staff;
 	heliostat_field m_field;
+
 	WELLFiveTwelve* m_gen;
 
 	double m_current_availability;
 	int m_repair_queue_length;
 
 	void create_helio_field(int n_components, int n_heliostats, double scale);
+
+	void assign_generator(WELLFiveTwelve &gen);
 
 	void get_operating_hours();
 

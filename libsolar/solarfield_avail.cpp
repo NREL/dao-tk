@@ -36,8 +36,6 @@ void solarfield_availability::initialize()
 	double problem_scale = (double)m_settings.n_helio / hscale;
 	int n_helio_s = (int)hscale;
 	int n_components = (int)m_settings.helio_components.size();
-	WELLFiveTwelve gen(m_settings.seed % 100);
-	m_gen = &gen;
 	m_staff = solarfield_repair_staff(m_settings.n_om_staff[0], m_settings.max_hours_per_day, m_settings.max_hours_per_week);
 	get_operating_hours();
 	create_helio_field(n_components, n_helio_s, problem_scale);
@@ -106,12 +104,17 @@ void solarfield_availability::create_helio_field(int n_components, int n_heliost
 
 		sum_performance += m_settings.helio_performance[i];
 
-		hel->initialize(m_field.m_components, m_gen, scale, m_settings.helio_performance[i]);
+		hel->initialize(m_field.m_components, *m_gen, scale, m_settings.helio_performance[i]);
 		m_field.m_helios.push_back(hel);
 
 		if (m_settings.is_tracking)
 			hel->initialize_repair_time_tracking();
 	}
+}
+
+void solarfield_availability::assign_generator(WELLFiveTwelve &gen)
+{
+	m_gen = &gen;
 }
 
 void solarfield_availability::get_operating_hours()
@@ -276,7 +279,7 @@ void solarfield_availability::process_failure()
 	if (m_results.min_avail > m_current_availability)
 		m_results.min_avail = m_current_availability;
 	m_results.n_failures_per_component[m_current_event.component_idx] += 1;
-	m_field.m_helios.at(m_current_event.helio_id)->fail(m_current_event.time, m_gen);
+	m_field.m_helios.at(m_current_event.helio_id)->fail(m_current_event.time, *m_gen);
 	if (m_staff.is_staff_available())
 	{
 		solarfield_staff_member* staff = m_staff.get_available_staff();
