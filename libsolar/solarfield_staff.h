@@ -32,8 +32,8 @@ public:
 	double m_max_hours_per_week;	// Maximum hours per week
 
 	solarfield_staff_member();
-	solarfield_staff_member(double max_hours_per_day, double max_hours_per_week);
 	~solarfield_staff_member() {};
+	void initialize(double max_hours_per_day, double max_hours_per_week);
 
 	double get_time_available();
 	double get_time_available_week();

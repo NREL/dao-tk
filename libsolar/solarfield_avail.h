@@ -30,6 +30,8 @@ public:
 	double m_current_availability;
 	int m_repair_queue_length;
 
+	void create_om_staff(int n_staff, double max_hours_per_day, double max_hours_per_week);
+
 	void create_helio_field(int n_components, int n_heliostats, double scale);
 
 	void assign_generator(WELLFiveTwelve &gen);

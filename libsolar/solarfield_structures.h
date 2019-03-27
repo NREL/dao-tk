@@ -25,6 +25,7 @@ struct solarfield_settings
 	int n_helio_sim;
 	std::vector<helio_component_inputs> helio_components;  // Heliostat component inputs
 	std::vector<double> helio_performance;				   // Heliostat performance (i.e. efficiency) (full field)
+	double sum_performance;
 
 	//-- Heliostat operating hours
 	bool is_fix_hours;			// Fix operating hours?

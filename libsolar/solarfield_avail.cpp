@@ -36,7 +36,7 @@ void solarfield_availability::initialize()
 	double problem_scale = (double)m_settings.n_helio / hscale;
 	int n_helio_s = (int)hscale;
 	int n_components = (int)m_settings.helio_components.size();
-	m_staff = solarfield_repair_staff(m_settings.n_om_staff[0], m_settings.max_hours_per_day, m_settings.max_hours_per_week);
+	create_om_staff(m_settings.n_om_staff[0], m_settings.max_hours_per_day, m_settings.max_hours_per_week);
 	get_operating_hours();
 	create_helio_field(n_components, n_helio_s, problem_scale);
 	initialize_results();
@@ -86,13 +86,27 @@ void solarfield_availability::initialize_results()
 
 }
 
+void solarfield_availability::create_om_staff(int n_staff, double max_hours_per_day, double max_hours_per_week)
+{
+	m_staff = solarfield_repair_staff();
+	m_staff.m_max_hours_per_day = max_hours_per_day;
+	m_staff.m_max_hours_per_week = max_hours_per_week;
+	m_staff.m_n_staff = n_staff;
+	for (int m = 0; m < n_staff; m++)
+	{
+		solarfield_staff_member *staff = new solarfield_staff_member();
+		staff->initialize(max_hours_per_day, max_hours_per_week);
+		m_staff.m_members.push_back(staff);
+	}
+}
+
 void solarfield_availability::create_helio_field(int n_components, int n_heliostats, double scale)
 {
 	m_field.m_components.clear();
 	m_field.m_helios.clear();
 	m_field.m_helios.reserve(n_heliostats);
 	m_field.m_components.reserve(n_components);
-	double sum_performance = 0.0;
+	m_settings.sum_performance = 0.0;
 	for (int c = 0; c < n_components; c++)
 	{
 		m_field.add_component(m_settings.helio_components.at(c));
@@ -102,7 +116,7 @@ void solarfield_availability::create_helio_field(int n_components, int n_heliost
 	{
 		solarfield_heliostat *hel = new solarfield_heliostat;
 
-		sum_performance += m_settings.helio_performance[i];
+		m_settings.sum_performance += m_settings.helio_performance[i];
 
 		hel->initialize(m_field.m_components, *m_gen, scale, m_settings.helio_performance[i]);
 		m_field.m_helios.push_back(hel);
@@ -275,7 +289,7 @@ void solarfield_availability::process_failure()
 	
 	t_last -- time of last event [h]
 	*/
-	m_current_availability -= m_settings.helio_performance[m_current_event.helio_id];
+	m_current_availability -= m_settings.helio_performance[m_current_event.helio_id] / m_settings.sum_performance;
 	if (m_results.min_avail > m_current_availability)
 		m_results.min_avail = m_current_availability;
 	m_results.n_failures_per_component[m_current_event.component_idx] += 1;
@@ -314,7 +328,7 @@ void solarfield_availability::process_repair()
 
 	t_last -- time of last event [h]
 	*/
-	m_current_availability += m_settings.helio_performance[m_current_event.helio_id];
+	m_current_availability += m_settings.helio_performance[m_current_event.helio_id] / m_settings.sum_performance;
 	m_results.n_repairs_per_component[m_current_event.component_idx] += 1;
 	m_field.m_helios.at(m_current_event.helio_id)->end_repair(
 		m_current_event.time,
