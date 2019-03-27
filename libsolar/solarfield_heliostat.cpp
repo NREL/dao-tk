@@ -217,8 +217,6 @@ void solarfield_heliostat::start_repair(double time)
 void solarfield_heliostat::end_repair(double time, int idx)
 {
 	m_status = OPERATIONAL;
-	if (std::abs(m_repair_time - time + m_time_of_last_event) > DBL_EPSILON)
-		throw std::exception("repair tracking incorrect. ");
 	m_repair_time = 0.;
 	m_time_repairing += (time - m_time_of_last_event);
 	m_time_of_last_event = time;

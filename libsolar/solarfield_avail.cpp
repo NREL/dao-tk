@@ -297,6 +297,7 @@ void solarfield_availability::process_failure()
 	if (m_staff.is_staff_available())
 	{
 		solarfield_staff_member* staff = m_staff.get_available_staff();
+		staff->assign_heliostat(m_current_event.helio_id);
 		double end_time = get_time_of_repair(
 			m_current_event.time,
 			m_field.m_helios.at(m_current_event.helio_id)->get_repair_time(),
@@ -340,6 +341,7 @@ void solarfield_availability::process_repair()
 	{
 		//new repair assignment
 		solarfield_event e = m_repair_queue.top();
+		staff->assign_heliostat(e.helio_id);
 		double end_time = get_time_of_repair(
 			m_current_event.time,
 			m_field.m_helios.at(e.helio_id)->get_repair_time(),
