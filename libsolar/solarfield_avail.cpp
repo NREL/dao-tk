@@ -337,6 +337,19 @@ void solarfield_availability::process_repair()
 	);
 	solarfield_staff_member* staff = m_staff.get_assigned_member(m_current_event.helio_id);
 
+	solarfield_heliostat* hel = m_field.m_helios.at(m_current_event.helio_id);
+	hel->update_failure_time();
+	double fail_time = get_time_of_failure(m_current_event.time, hel->get_op_time_to_next_failure());
+	m_event_queue.push(
+		solarfield_event(
+			m_current_event.helio_id,
+			hel->get_next_component_to_fail(),
+			false,
+			fail_time,
+			1. / fail_time
+		)
+	);
+
 	if (m_repair_queue_length > 0)
 	{
 		//new repair assignment
@@ -361,7 +374,9 @@ void solarfield_availability::process_repair()
 		m_repair_queue.pop();
 	}
 	else
+	{
 		staff->free();
+	}
 }
 
 void solarfield_availability::run_current_event(double t_last)
