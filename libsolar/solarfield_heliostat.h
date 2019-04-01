@@ -57,6 +57,7 @@ public:
 	double gen_repair_time(WELLFiveTwelve &gen);
 
 	double get_mean_repair_time();
+	double get_repair_cost();
 };
 
 

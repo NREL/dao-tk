@@ -56,9 +56,6 @@ public:
 
 	void simulate(bool (*callback)(float prg, const char *msg)=0, std::string *results_file_name = 0);
 	
-
-	
-
 };
 
 #endif

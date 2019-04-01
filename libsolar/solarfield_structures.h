@@ -16,7 +16,7 @@ struct solarfield_settings
 
 
 	//-- Staff 
-	std::vector<int> n_om_staff;	// Total number of staff per year
+	int n_om_staff;					// Total number of full-time staff
 	double max_hours_per_day;		// Maximum time per day for full-time staff [hr]
 	double max_hours_per_week;		// Maximum time per week for full-time staff [hr]
 
@@ -57,10 +57,12 @@ struct solarfield_results
 
 	std::vector<double> avail_schedule;		// Availability schedule
 	std::vector<double> yearly_avg_avail;	// Yearly-average availability
+	
 
 	double n_repairs;								// Total number of repairs completed
 	std::vector<double> n_repairs_per_component;	// Total number of repairs per component
 	std::vector<double> n_failures_per_component;	// Total number of failures per component
+	std::vector<double> repair_cost_per_year;         // Total repair cost by year
 
 	double staff_utilization;						
 	
@@ -112,5 +114,21 @@ struct solarfield_event
 
 bool operator<(const solarfield_event& e1, const solarfield_event& e2);
 
+struct solarfield_opt_settings
+{
+	//inputs
+	int max_num_staff;
+	double hourly_cost_per_staff;  //per hour
+	double labor_discount_rate;
+	double revenue_discount_rate;
+	double repair_discount_rate;
+	double temporary_staff_cost_multiple; //in m^2 per hour
+	double system_efficiency; //assumed efficiency including receiver, TES losses, power cycle
+	double price_per_kwh;  //assumed average for grid output
+	double num_years;      //years of operation to calculate NPV of annual costs
+	
+	solarfield_opt_settings() {};
+	//void print();
+};
 
 #endif

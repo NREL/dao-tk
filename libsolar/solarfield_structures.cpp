@@ -73,3 +73,4 @@ void solarfield_results::print_avail_and_queue_schedule()
 		std::cerr << t << "," << avail_schedule[t] << "," << queue_size_vs_time[t] << "\n";
 	std::cerr << "\n";
 }
+

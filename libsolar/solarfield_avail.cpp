@@ -36,7 +36,7 @@ void solarfield_availability::initialize()
 	double problem_scale = (double)m_settings.n_helio / hscale;
 	int n_helio_s = (int)hscale;
 	int n_components = (int)m_settings.helio_components.size();
-	create_om_staff(m_settings.n_om_staff[0], m_settings.max_hours_per_day, m_settings.max_hours_per_week);
+	create_om_staff(m_settings.n_om_staff, m_settings.max_hours_per_day, m_settings.max_hours_per_week);
 	get_operating_hours();
 	create_helio_field(n_components, n_helio_s, problem_scale);
 	initialize_results();
@@ -60,6 +60,7 @@ void solarfield_availability::initialize_results()
 	m_results.n_repairs = 0;
 	m_results.n_repairs_per_component.assign(m_settings.helio_components.size(), 0);
 	m_results.n_failures_per_component.assign(m_settings.helio_components.size(), 0);
+	m_results.repair_cost_per_year.assign(m_settings.n_years, 0);
 
 	m_results.staff_utilization = 0.;
 
@@ -331,6 +332,7 @@ void solarfield_availability::process_repair()
 	*/
 	m_current_availability += m_settings.helio_performance[m_current_event.helio_id] / m_settings.sum_performance;
 	m_results.n_repairs_per_component[m_current_event.component_idx] += 1;
+	m_results.repair_cost_per_year[int((m_current_event.time-DBL_EPSILON) / 8760)] += m_field.m_components.at(m_current_event.component_idx)->get_repair_cost();
 	m_field.m_helios.at(m_current_event.helio_id)->end_repair(
 		m_current_event.time,
 		m_current_event.component_idx
@@ -485,7 +487,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	while (t < (double)nhours)
 	{
 		m_current_event = m_event_queue.top();
-		m_current_event.print();
+		//m_current_event.print();
 		run_current_event(t);
 		t = m_current_event.time;
 		m_event_queue.pop();

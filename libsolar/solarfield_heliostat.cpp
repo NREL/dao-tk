@@ -86,6 +86,11 @@ double solarfield_helio_component::get_mean_repair_time()
 	return m_properties.m_mean_repair_time;
 }
 
+double solarfield_helio_component::get_repair_cost()
+{
+	return m_properties.m_repair_cost;
+}
+
 
 
 
