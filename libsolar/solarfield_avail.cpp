@@ -434,18 +434,36 @@ void solarfield_availability::update_statistics(double t_start, double t_end)
 	/* 
 	Updates time-series summary statistics between t_start and t_end. 
 	*/
-
 	int idx = (int)t_start;
+
+	//if start and end occur in same timestep, just update one index of results
+	//and terminate.
+	if (idx == int(t_end))
+	{
+		m_results.avail_schedule[idx] += (t_end - t_start)*m_current_availability;
+		m_results.queue_size_vs_time[idx] += (t_end - t_start)*m_repair_queue_length;
+		return;
+	}
+
+	//otherwise, update the results at (i) the timestep containing t_start, 
+	// (ii) all those timesteps falling between t_start and t_end, and, 
+	// (iii) , the timestep containing t_end.
 	m_results.avail_schedule[idx] += (idx + 1 - t_start)*m_current_availability;
 	m_results.queue_size_vs_time[idx] += (idx + 1 - t_start)*m_repair_queue_length;
-	while (idx < (int)(t_end) && idx < m_settings.n_years * 8760 -1)
+	while (idx < (int)(t_end)-1 && idx < m_settings.n_years * 8760 -1)
 	{
 		idx++;
 		m_results.avail_schedule[idx] += m_current_availability;
 		m_results.queue_size_vs_time[idx] += m_repair_queue_length;
 	}
-	m_results.avail_schedule[int(t_end)] += (t_end - (int)t_end)*m_current_availability;
-	m_results.queue_size_vs_time[int(t_end)] += (t_end - (int)t_end)*m_repair_queue_length;
+
+	//only update the timestep containing t_end if t_end is not at the 
+	//boundary between two time periods.
+	if (t_end - int(t_end) > DBL_EPSILON)
+	{
+		m_results.avail_schedule[int(t_end)] += (t_end - (int)t_end)*m_current_availability;
+		m_results.queue_size_vs_time[int(t_end)] += (t_end - (int)t_end)*m_repair_queue_length;
+	}
 }
 
 
