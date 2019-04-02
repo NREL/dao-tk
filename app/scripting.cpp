@@ -342,7 +342,7 @@ void _test(lk::invoke_t &cxt)
 	P->m_variables.solarm.assign( 2.4 );
 	P->m_variables.tshours.assign( 10. );
 	P->m_variables.degr_replace_limit.assign( .7 );
-	P->m_variables.om_staff.assign( 5 );
+	//P->m_variables.om_staff.assign( 5 );
 	//P->m_variables.n_wash_crews.assign( 3 );
     P->m_parameters.heliostat_repair_cost.assign(0.);
 	P->m_variables.N_panel_pairs.assign( 8 );

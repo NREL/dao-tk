@@ -11,6 +11,7 @@
 #include "../liboptical/optical_degr.h"
 #include "../liboptical/wash_opt.h"
 #include "../libsolar/solarfield_avail.h"
+#include "../libsolar/solarfield_opt.h"
 #include "../libcycle/plant.h"
 #include "../libcycle/well512.h"
 
@@ -353,7 +354,7 @@ struct variables : public hash_base
 	variable solarm;
 	variable tshours;
 	variable degr_replace_limit;
-	variable om_staff;
+	//variable om_staff;
 	//variable n_wash_crews;
 	variable N_panel_pairs;
 
@@ -606,6 +607,7 @@ struct design_outputs : public hash_base
 
 struct solarfield_outputs : public hash_base
 {
+	parameter n_om_staff;
 	parameter n_repairs;
 	parameter staff_utilization;
 	parameter heliostat_repair_cost_y1;
