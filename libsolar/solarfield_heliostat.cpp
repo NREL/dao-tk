@@ -208,7 +208,7 @@ void solarfield_heliostat::fail(double time, WELLFiveTwelve &gen)
 
 	m_time_of_last_event = time;
 	m_lifetimes[m_next_component_to_fail] = m_components.at(m_next_component_to_fail)->gen_lifetime(m_time_operating, gen);
-	m_repair_time = m_components.at(m_next_component_to_fail)->gen_repair_time(gen);
+	m_repair_time = m_components.at(m_next_component_to_fail)->gen_repair_time(gen) * m_scale;  //assume block of m_scale heliostats repaired in series with identical repair times.
 	update_failure_time();
 }
 

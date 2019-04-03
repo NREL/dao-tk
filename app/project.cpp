@@ -1420,7 +1420,7 @@ bool Project::M()
 	sfa.m_settings.max_hours_per_week = m_parameters.om_staff_max_hours_week.as_number();
 
 	sfa.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
-	sfa.m_settings.n_helio_sim = m_design_outputs.number_heliostats.as_integer();//m_parameters.n_heliostats_sim.as_integer();
+	sfa.m_settings.n_helio_sim = m_parameters.n_heliostats_sim.as_integer();
 	sfa.m_settings.seed = m_parameters.avail_seed.as_integer();
 
 	sfa.m_settings.is_fix_hours = false;
