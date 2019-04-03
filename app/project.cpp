@@ -1420,7 +1420,7 @@ bool Project::M()
 	sfa.m_settings.max_hours_per_week = m_parameters.om_staff_max_hours_week.as_number();
 
 	sfa.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
-	sfa.m_settings.n_helio_sim = m_parameters.n_heliostats_sim.as_integer();
+	sfa.m_settings.n_helio_sim = m_design_outputs.number_heliostats.as_integer();//m_parameters.n_heliostats_sim.as_integer();
 	sfa.m_settings.seed = m_parameters.avail_seed.as_integer();
 
 	sfa.m_settings.is_fix_hours = false;
@@ -1482,7 +1482,7 @@ bool Project::M()
 	ssc_number_t *ann = ssc_data_get_array(m_ssc_data, "annual_helio_energy", &nr);
 	for (int i = 0; i < nr; i++)
 	{
-		ann_e.push_back((double)ann[i]);
+		ann_e.push_back((double)ann[i] / 1000.);
 	}
 	sfa.m_settings.helio_performance = ann_e;
 	
@@ -2145,7 +2145,7 @@ bool Project::Z()
             is_explicit_valid = false;
             is_financial_valid = false;
             D();
-			message_handler("Model D Complete");
+			//message_handler("Model D Complete");
         }
         else
             message_handler("Using existing solar field design in objective function");
@@ -2158,7 +2158,6 @@ bool Project::Z()
             is_cycle_avail_valid = false;
             is_financial_valid = false;
             M();
-			message_handler("Model M Complete");
         }
         else
             message_handler("Using existing heliostat field availability results in objective function");
@@ -2171,7 +2170,6 @@ bool Project::Z()
             is_cycle_avail_valid = false;
             is_financial_valid = false;
             O();
-			message_handler("Model O Complete");
         }
         else
             message_handler("Using existing heliostat field soiling/degradation results in objective function");
@@ -2201,7 +2199,6 @@ bool Project::Z()
         {
             is_financial_valid = false;
             E();
-			message_handler("Model E Complete");
         }
         else
             message_handler("Using existing cost results in objective function");
@@ -2211,7 +2208,6 @@ bool Project::Z()
 		if (!is_financial_valid)
 		{
 			F();
-			message_handler("Model F Complete");
 		}
 		else
             message_handler("Using existing financial results in objective function");
@@ -3696,6 +3692,7 @@ void Project::PrintCurrentResults()
     message << "Results\n-------------------------------------------------\n";
     message << "Objective function value (PPA) [c/kWh]\t" << m_financial_outputs.ppa.as_number() << "\n";
     message << "Solar field area [m2]\t" << m_design_outputs.area_sf.as_number() << "\n";
+	message << "Number of heliostats\t" << m_design_outputs.number_heliostats.as_integer() << "\n";
     message << "Average soiling eff. [%]\t" << m_optical_outputs.avg_soil.as_number()*100. << "\n";
     message << "Number of wash crews\t" << m_optical_outputs.n_wash_crews.as_number() << "\n";
     message << "Average mirror degradation [%]\t" << m_optical_outputs.avg_degr.as_number()*100. << "\n";
@@ -3706,6 +3703,7 @@ void Project::PrintCurrentResults()
     message << "Average cycle capacity\t" << m_cycle_outputs.cycle_capacity_ave.as_number() << "\n";
     message << "Annual receiver starts\t" << m_simulation_outputs.annual_rec_starts.as_number() << "\n";
     message << "Annual revenue units\t" << m_simulation_outputs.annual_revenue_units.as_number() << "\n";
+	message << "Number of O&M staff\t" << m_solarfield_outputs.n_om_staff.as_number() << "\n";
     message << "Average field availability [%]\t" << m_solarfield_outputs.avg_avail.as_number()*100. << "\n";
     message << "Heliostat repair events per yr\t" << m_solarfield_outputs.n_repairs.as_number() << "\n";
     message_handler(message.str().c_str());

@@ -45,6 +45,7 @@ void solarfield_staff_member::assign_heliostat(int helio_id)
 {
 	m_busy = true;
 	m_helio_assigned = helio_id;
+	m_n_repairs_started++;
 }
 
 void solarfield_staff_member::free()

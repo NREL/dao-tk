@@ -338,7 +338,7 @@ void solarfield_availability::process_repair()
 		m_current_event.component_idx
 	);
 	solarfield_staff_member* staff = m_staff.get_assigned_member(m_current_event.helio_id);
-
+	staff->m_n_repairs_completed++;
 	solarfield_heliostat* hel = m_field.m_helios.at(m_current_event.helio_id);
 	hel->update_failure_time();
 	double fail_time = get_time_of_failure(m_current_event.time, hel->get_op_time_to_next_failure());
@@ -529,18 +529,6 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	m_results.staff_utilization = hours_worked / max_hours;
 
 	solarfield_heliostat* hel;
-
-	//--- Total failures and repairs per component
-	for (int h = 0; h < n_helio_s; h++)
-	{
-		hel = m_field.m_helios[h];
-
-		for (int c = 0; c < n_components; c++)
-		{
-			m_results.n_repairs_per_component[c] += hel->get_repairs_per_component()[c] * problem_scale;
-			m_results.n_failures_per_component[c] += hel->get_failures_per_component()[c] * problem_scale;
-		}
-	}
 
 	// Time per staff member
 	if (m_settings.is_tracking)
