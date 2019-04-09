@@ -2925,7 +2925,7 @@ void Project::initialize_cycle_model(PowerCycle &pc)
 		c_eff_cold, c_eff_hot);
 
 	pc.m_sim_params.num_scenarios = m_parameters.num_cycle_scenarios.as_integer();
-	pc.m_sim_params.steplength = 0.7;//1.0 / m_parameters.disp_steps_per_hour.as_number();
+	pc.m_sim_params.steplength = 1.0 / m_parameters.disp_steps_per_hour.as_number();
 	
 	pc.Initialize(0.0);
 	
