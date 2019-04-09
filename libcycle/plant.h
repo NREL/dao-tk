@@ -293,7 +293,8 @@ public:
 		double ramp_mult, 
 		int t, 
 		std::string start, 
-		std::string mode
+		std::string mode,
+		double duration = 1.0
 	);
 	void ResetHazardRates();
 	std::unordered_map<std::string, ComponentStatus> GetComponentStates();

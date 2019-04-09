@@ -2517,7 +2517,7 @@ double PowerCycle::GetRampMult(double thermal_out)
 
 }
 
-void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, std::string mode)
+void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, std::string mode, double duration)
 {
 
     /*
@@ -2543,13 +2543,13 @@ void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, s
 	{
 		if (m_components.at(i).IsOperational())
 			m_components.at(i).Operate(
-				m_sim_params.steplength, ramp_mult,
+				duration, ramp_mult,
 				t > m_results.period_of_last_repair[m_current_scenario], 
 				hazard_increase, mode
 			);
 		else
 		{
-			m_components.at(i).AdvanceDowntime(m_sim_params.steplength, mode);
+			m_components.at(i).AdvanceDowntime(duration, mode);
 		}
 	}
 }
@@ -2964,14 +2964,35 @@ void PowerCycle::OperatePlant(double power_out,
 		m_current_cycle_state.time_in_standby = m_sim_params.steplength;
 		m_current_cycle_state.downtime = 0.0;
 		m_current_cycle_state.time_online = 0.0;
+		if (m_sim_params.steplength >= 1.0 + DBL_EPSILON)
+		{
+			OperateComponents(ramp_mult, t, start, "SS", 1.0);
+			OperateComponents(ramp_mult, t, start, "SO", m_sim_params.steplength-1.0);
+		}
+		else
+		{
+			OperateComponents(ramp_mult, t, start, "SS", m_sim_params.steplength);
+		}
 	}
 	else if (mode == "SF" || mode == "SO") //standby - first hour; standby ongoing (>1 hour)
 	{
 		m_current_cycle_state.is_online = false;
 		m_current_cycle_state.is_on_standby = true;
-		m_current_cycle_state.time_in_standby += m_sim_params.steplength;
 		m_current_cycle_state.downtime = 0.0;
 		m_current_cycle_state.time_online = 0.0;
+		if (m_current_cycle_state.time_in_standby <= 1.0 - DBL_EPSILON &&
+			m_current_cycle_state.time_in_standby + m_sim_params.steplength >= 1.0 + DBL_EPSILON)
+		{
+			OperateComponents(ramp_mult, t, start, "SF", 
+				1.0 - m_current_cycle_state.time_in_standby);
+			OperateComponents(ramp_mult, t, start, "SO", 
+				m_current_cycle_state.time_in_standby + m_sim_params.steplength - 1.0);
+		}
+		else 
+		{
+			OperateComponents(ramp_mult, t, start, mode, m_sim_params.steplength);
+		}
+		m_current_cycle_state.time_in_standby += m_sim_params.steplength;
 	}
 	else if (mode == "OS") //online - start
 	{
@@ -2981,6 +3002,15 @@ void PowerCycle::OperatePlant(double power_out,
 		m_current_cycle_state.downtime = 0.0;
 		m_current_cycle_state.time_online = m_sim_params.steplength;
 		m_current_cycle_state.hours_to_maintenance -= m_sim_params.steplength;
+		if (m_sim_params.steplength >= 1.0 + DBL_EPSILON)
+		{
+			OperateComponents(ramp_mult, t, start, "OS", 1.0);
+			OperateComponents(ramp_mult, t, start, "OO", m_sim_params.steplength - 1.0);
+		}
+		else
+		{
+			OperateComponents(ramp_mult, t, start, "OS", m_sim_params.steplength);
+		}
 	}
 	else if (mode == "OF" || mode == "OO") //standby - first hour; standby ongoing (>1 hour)
 	{
@@ -2988,12 +3018,24 @@ void PowerCycle::OperatePlant(double power_out,
 		m_current_cycle_state.is_on_standby = false;
 		m_current_cycle_state.time_in_standby = 0.0;
 		m_current_cycle_state.downtime = 0.0;
+		if (m_current_cycle_state.time_online <= 1.0 - DBL_EPSILON &&
+			m_current_cycle_state.time_online + m_sim_params.steplength >= 1.0 + DBL_EPSILON)
+		{
+			OperateComponents(ramp_mult, t, start, "OF",
+				1.0 - m_current_cycle_state.time_online);
+			OperateComponents(ramp_mult, t, start, "OO",
+				m_current_cycle_state.time_online + m_sim_params.steplength - 1.0);
+		}
+		else
+		{
+			OperateComponents(ramp_mult, t, start, mode, m_sim_params.steplength);
+		}
 		m_current_cycle_state.time_online += m_sim_params.steplength;
 		m_current_cycle_state.hours_to_maintenance -= m_sim_params.steplength;
 	}
 	else
 		throw std::runtime_error("invalid operating mode.");
-	OperateComponents(ramp_mult, t, start, mode); 
+	
 
 }
 

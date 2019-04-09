@@ -445,7 +445,7 @@ void Component::TestForFailure(
 
          
 void Component::Operate(
-	double time, 
+	double duration, 
 	double ramp_mult, 
 	bool read_only, 
 	double hazard_increase, 
@@ -455,7 +455,7 @@ void Component::Operate(
     /* 
     assumes operation for a given period of time, with 
     no permanent change to the hazard rate.
-    time -- time of operation
+    duration -- length of time of operation
     ramp_mult -- degradation multiplier due to ramping
     gen -- random U[0,1] variate generator object
     read_only -- indicates whether to generate a failure event if 
@@ -488,19 +488,19 @@ void Component::Operate(
 	{
 		if (m_failure_types.at(j).GetFailureMode() == opmode || (opmode != "OFF" && m_failure_types.at(j).GetFailureMode() == "ALL"))
 		{
-			if (time * m_status.hazard_rate * ramp_mult > m_status.lifetimes.at(j) && !read_only)
+			if (duration * m_status.hazard_rate * ramp_mult > m_status.lifetimes.at(j) && !read_only)
 				throw std::runtime_error("failure should be thrown.");
-			m_status.lifetimes.at(j) -= (time * m_status.hazard_rate * ramp_mult);
+			m_status.lifetimes.at(j) -= (duration * m_status.hazard_rate * ramp_mult);
 		}
 		if (m_failure_types.at(j).GetFailureMode() == "O" && (opmode == "OO" || opmode == "OF"))
 		{
-			if (time * m_status.hazard_rate * ramp_mult > m_status.lifetimes.at(j) && !read_only)
+			if (duration * m_status.hazard_rate * ramp_mult > m_status.lifetimes.at(j) && !read_only)
 				throw std::runtime_error("failure should be thrown.");
-			m_status.lifetimes.at(j) -= (time * m_status.hazard_rate * ramp_mult);
+			m_status.lifetimes.at(j) -= (duration * m_status.hazard_rate * ramp_mult);
 		}
 	}		
 	if (opmode == "OO" || opmode == "OF")
-		m_status.age += time;
+		m_status.age += duration;
 }
          
 void Component::ReadFailure(double downtime, double life_remaining, 

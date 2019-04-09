@@ -173,7 +173,7 @@ public:
 	);
          
     void Operate(
-		double time, 
+		double duration,
 		double ramp_mult,
 		bool read_only,
 		double hazard_increase, 
