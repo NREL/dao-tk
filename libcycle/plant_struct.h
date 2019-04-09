@@ -62,7 +62,6 @@ struct simulation_params
 	int read_periods;
 	int sim_length;
 	double steplength;
-	double epsilon;
 	bool print_output;
 	int num_scenarios;
 	double hourly_labor_cost;

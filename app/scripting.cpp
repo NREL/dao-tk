@@ -430,7 +430,7 @@ void _power_cycle(lk::invoke_t &cxt)
 	LK_DOC("power_cycle", "Simulate the power cycle capacity over time, "
 		"after accounting for maintenance and failures. "
 		"Table keys include: cycle_power, ambient_temperature, standby, "
-		"read_periods, sim_length, eps, output, num_scenarios, "
+		"read_periods, sim_length, output, num_scenarios, "
 		"cycle_hourly_labor_cost, stop_cycle_at_first_failure, "
 		"stop_cycle_at_first_repair, maintenance_interval, maintenance_duration, "
 		"downtime_threshold,steplength, hours_to_maintenance, power_output, "
@@ -646,10 +646,6 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("steplength") != h->end())
 		steplength = h->at("steplength")->as_number();
 
-	double eps = 0;
-	if (h->find("eps") != h->end())
-		eps = h->at("eps")->as_number();
-
 	bool output = false;
 	if (h->find("output") != h->end())
 		output = h->at("output")->as_boolean();
@@ -660,7 +656,7 @@ void _power_cycle(lk::invoke_t &cxt)
 
 	double cycle_hourly_labor_cost = 50.;
 	if (h->find("cycle_hourly_labor_cost") != h->end())
-		eps = h->at("cycle_hourly_labor_cost")->as_number();
+		cycle_hourly_labor_cost = h->at("cycle_hourly_labor_cost")->as_number();
 
 	bool stop_at_first_failure = false;
 	if (h->find("stop_cycle_at_first_failure") != h->end())
@@ -674,7 +670,6 @@ void _power_cycle(lk::invoke_t &cxt)
 		read_periods,
 		sim_length,
 		steplength,
-		eps,
 		output,
 		num_scenarios,
 		cycle_hourly_labor_cost,

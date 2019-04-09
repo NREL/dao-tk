@@ -105,7 +105,6 @@ public:
 		int read_periods = 0,
 		int sim_length = 48,
 		double steplength = 1,
-		double epsilon = 1.E-10,
 		bool print_output = false,
 		int num_scenarios = 1,
 		double hourly_labor_cost = 50.,

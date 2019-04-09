@@ -1567,7 +1567,7 @@ bool Project::C()
 	initialize_cycle_model(pc);
 
 	double steplength = 8760. / (double)nrec;
-	pc.SetSimulationParameters(0, nrec*ny, steplength, 1.e-8, false, ns, m_parameters.cycle_hourly_labor_cost.as_number(), false, false);
+	pc.SetSimulationParameters(0, nrec*ny, steplength, false, ns, m_parameters.cycle_hourly_labor_cost.as_number(), false, false);
 
 	//Assign Dispatch  
 	std::unordered_map < std::string, std::vector < double > > dispatch;
@@ -3130,7 +3130,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 		int nsteps = (int)ceil(current_horizon / steplength);
 		
 		
-		pc.SetSimulationParameters(0, nsteps, steplength, 1.e-8, false, m_parameters.num_cycle_scenarios.as_integer(), m_parameters.cycle_hourly_labor_cost.as_number(), true, true);
+		pc.SetSimulationParameters(0, nsteps, steplength, false, m_parameters.num_cycle_scenarios.as_integer(), m_parameters.cycle_hourly_labor_cost.as_number(), true, true);
 
 
 		//-- Initialize solutions for this model horizon 
