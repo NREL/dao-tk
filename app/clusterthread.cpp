@@ -10,7 +10,6 @@ void ClusterThread::Setup(std::string &tname, Project *P, cluster_sim *C, ssc_da
     _thread_id = tname;
     _P = P;
     _C = C;
-    _ssc_data = ssc_data;
     _result = results;
     _keys = keys;
     Finished = false;
@@ -251,6 +250,10 @@ void ClusterThread::StartThread() //Entry()
                 for (int h = 0; h < nperday*ncount; h++)
                     (*_result)[key].at(doy_full*nperday + h) = p_data[doy_sim*nperday + h];
             }
+			//single output values (enter as individual vectors)
+			ssc_number_t tic;
+			ssc_data_get_number(_ssc_data, "total_installed_cost", &tic);
+			(*_result)["total_installed_cost_v"] = { tic };
             //------------------------------------
 
             //Update progress

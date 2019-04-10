@@ -29,6 +29,7 @@ extern ssc_bool_t ssc_progress_handler(ssc_module_t, ssc_handler_t, int action, 
 extern ssc_bool_t ssc_silent_handler(ssc_module_t, ssc_handler_t, int action, float, float, const char *, const char *, void *);
 extern bool sim_progress_handler(float progress, const char *msg);
 extern void message_handler(const char *msg);
+extern void iterplot_update_handler();
 extern int double_scale(double val, int *scale);
 extern double double_unscale(int val, int power);
 
@@ -125,6 +126,22 @@ public:
         _keys.clear();
         _items.clear();
     };
+
+    ordered_hash_vector slice(int left, int right)
+    {
+        /*
+        Return a subset of the current ordered_hash_vector between indices [left, right).
+        */
+        ordered_hash_vector res;
+        int ruse = right > (int)item_count() - 1 ? (int)item_count() : right;
+        int luse = left < 0 ? 0 : left;
+        for (int i = luse; i < ruse; i++)
+        {
+            svd_pair respr = at_index(i);
+            res[respr.first] = respr.second;
+        }
+        return res;
+    }
 };
 
 class data_base : public lk::vardata_t
@@ -558,6 +575,7 @@ struct parameters : public hash_base
     //vector-doubles
 	parameter c_ces;
 	parameter dispatch_factors_ts;
+    parameter wlim_series;
 	parameter user_sf_avail;
 	parameter condenser_eff_cold;
 	parameter condenser_eff_hot;
@@ -889,6 +907,7 @@ public:
     bool IsStopFlag();
     void PrintCurrentResults();
     void ClearStoredData();
+    void AddToSSCContext(std::string varname, lk::vardata_t& dat);
 };
 
 

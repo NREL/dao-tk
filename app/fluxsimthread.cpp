@@ -1,7 +1,7 @@
 #include "fluxsimthread.h"
 
 
-ssc_bool_t ssc_fluxthread_handler(ssc_module_t, ssc_handler_t, int action, float f0, float f1, const char *s0, const char *, void *data)
+ssc_bool_t ssc_fluxthread_handler(ssc_module_t, ssc_handler_t, int action, float f0, float, const char *, const char *, void *data)
 {
 
     if (action == SSC_UPDATE)

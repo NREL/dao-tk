@@ -7,6 +7,7 @@
 #include <wx/stdpaths.h>
 #include <wx/busyinfo.h>
 #include <wx/splitter.h>
+#include <wx/tglbtn.h>
 
 #ifdef __WXMSW__
 #include <wex/mswfatal.h>
@@ -38,6 +39,7 @@
 #include "scriptview.h"
 #include "scriptlist.h"
 #include "logview.h"
+#include "iterplotview.h"
 #include "daotk_app.h"
 
 int version_major = 0;
@@ -122,6 +124,7 @@ enum {
 	ID_MAIN_MENU = wxID_HIGHEST + 123, ID_SCRIPT_MENU, ID_TABS, 
 	ID_NEW_SCRIPT, ID_OPEN_SCRIPT, ID_RUN_SCRIPT, ID_SCRIPT_VARIABLES,
 	ID_SAVE_SCRIPT, ID_SAVE_SCRIPT_AS, ID_SCRIPT_HELP, ID_SCRIPT_FIND, ID_SCRIPT_NEXT, //ID_SCRIPT_PREV
+    ID_TOGGLE_SCRIPTLIST, ID_TOGGLE_SCRIPT, ID_TOGGLE_LOG, ID_TOGGLE_ITERPLOT,
 };
 
 
@@ -150,13 +153,17 @@ EVT_MENU(ID_SCRIPT_NEXT, MainWindow::OnCommand)
 // EVT_MENU(ID_SCRIPT_PREV, MainWindow::OnCommand)
 EVT_BUTTON(wxID_HELP, MainWindow::OnCommand)
 EVT_MENU(ID_SCRIPT_VARIABLES, MainWindow::OnCommand)
+EVT_TOGGLEBUTTON(ID_TOGGLE_SCRIPTLIST, MainWindow::OnCommand)
+EVT_TOGGLEBUTTON(ID_TOGGLE_SCRIPT, MainWindow::OnCommand)
+EVT_TOGGLEBUTTON(ID_TOGGLE_LOG, MainWindow::OnCommand)
+EVT_TOGGLEBUTTON(ID_TOGGLE_ITERPLOT, MainWindow::OnCommand)
 END_EVENT_TABLE()
 
 static MainWindow *g_mainWindow = 0;
 
 MainWindow::MainWindow()
 	: wxFrame(0, wxID_ANY, "DAOToolkit",
-		wxDefaultPosition, wxSize(1100, 700))
+		wxDefaultPosition, wxSize(1700, 800))
 {
 #ifdef __WXMSW__
 	SetIcon(wxICON(appicon));
@@ -210,28 +217,43 @@ MainWindow::MainWindow()
 	sz_stat->Add( m_progressBar, 1, wxALL|wxEXPAND, 3 );
     sz_stat->AddSpacer(7);
 	sz_stat->Add( m_statusLabel, 5, wxTOP|wxEXPAND, 15-ht/2 );
+    sz_stat->AddStretchSpacer();
+    sz_stat->Add(m_toggleScriptList = new wxToggleButton(parent, ID_TOGGLE_SCRIPTLIST, "Script list"), 0, wxALL | wxEXPAND, 2);
+    sz_stat->Add(m_toggleScript = new wxToggleButton(parent, ID_TOGGLE_SCRIPT, "Script window"), 0, wxALL | wxEXPAND, 2);
+    sz_stat->Add(m_toggleLog = new wxToggleButton(parent, ID_TOGGLE_LOG, "Log window"), 0, wxALL | wxEXPAND, 2);
+    sz_stat->Add(m_toggleIterPlot = new wxToggleButton(parent, ID_TOGGLE_ITERPLOT, "Progress plots"), 0, wxALL | wxEXPAND, 2);
+
+    m_toggleScriptList->SetValue(true);
+    m_toggleScript->SetValue(true);
+    m_toggleLog->SetValue(true);
+    m_toggleIterPlot->SetValue(true);
 
 	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(tools, 0, wxALL | wxEXPAND, 0);
 	sizer->Add(m_notebook, 1, wxALL | wxEXPAND, 0);
 	sizer->Add(sz_stat, 0, wxALL|wxEXPAND, 0 );
 
-	wxSplitterWindow *splitwin = new wxSplitterWindow(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE ); 
-	splitwin->SetMinimumPaneSize(210);
+	m_splitmainwin = new wxSplitterWindow(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE ); 
+    m_splitmainwin->SetMinimumPaneSize(210);
 
-	wxSplitterWindow *splitscript = new wxSplitterWindow(splitwin, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE ); 
+	m_splitscriptwin = new wxSplitterWindow(m_splitmainwin, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE );
 
 	m_tabList->Append("Script");
-	m_ScriptViewForm = new ScriptView(splitscript);
-	m_ScriptList = new ScriptList(splitscript, &m_image_dir);
-	splitscript->SplitVertically(m_ScriptList, m_ScriptViewForm, 180);
+	m_ScriptViewForm = new ScriptView(m_splitscriptwin);
+	m_ScriptList = new ScriptList(m_splitscriptwin, &m_image_dir);
+    m_splitscriptwin->SplitVertically(m_ScriptList, m_ScriptViewForm, 180);
 
-	m_LogViewForm = new LogView(splitwin);
+    m_splitlogwin = new wxSplitterWindow(m_splitmainwin, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE | wxSP_PERMIT_UNSPLIT);
+    
+	m_LogViewForm = new LogView(m_splitlogwin);
+    m_IterPlotForm = new IterPlotView(m_splitlogwin, &m_project, m_image_dir.GetPath());
+    m_splitlogwin->SplitVertically(m_LogViewForm, m_IterPlotForm, 400);
+    m_splitlogwin->SetSashGravity(0.5);
 
-	m_notebook->AddPage(splitwin, "Script");
+    m_splitmainwin->SplitVertically(m_splitscriptwin, m_splitlogwin, 650);
+    m_splitmainwin->SetSashGravity(0.9);
 
-	splitwin->SplitVertically(splitscript, m_LogViewForm, 400);
-    splitwin->SetSashGravity(0.4);
+    m_notebook->AddPage(m_splitmainwin, "Script");
     
 	m_tabList->Append("Data");
 	m_DataViewForm = new DataView(m_notebook, m_image_dir.GetFullPath().c_str() );
@@ -242,6 +264,9 @@ MainWindow::MainWindow()
     main_sizer->Add(main_panel, 1, wxEXPAND, 0);
     main_panel->SetSizerAndFit(sizer);
     SetSizer(main_sizer);
+
+    m_splitmainwin->SetSashPosition(2000, true);
+    m_splitlogwin->SetSashPosition(400, true);
 
     std::vector<wxAcceleratorEntry> entries;
     entries.push_back(wxAcceleratorEntry(wxACCEL_CTRL, 'o', wxID_OPEN));
@@ -810,6 +835,45 @@ void MainWindow::OnCommand(wxCommandEvent &evt)
     case ID_SCRIPT_FIND:
         m_ScriptViewForm->GetEditor()->ShowFindReplaceDialog();
         break;
+    case ID_TOGGLE_SCRIPTLIST:
+    case ID_TOGGLE_SCRIPT:
+    case ID_TOGGLE_LOG:
+    case ID_TOGGLE_ITERPLOT:
+    {
+        bool toggle_script_list = m_toggleScriptList->GetValue();
+        bool toggle_script = m_toggleScript->GetValue();
+        bool toggle_log = m_toggleLog->GetValue();
+        bool toggle_iter_plot = m_toggleIterPlot->GetValue();
+
+        Freeze();
+
+        m_splitmainwin->Show();
+        m_splitscriptwin->SplitVertically(m_ScriptList, m_ScriptViewForm);
+        m_splitlogwin->SplitVertically(m_LogViewForm, m_IterPlotForm);
+        m_splitmainwin->SplitVertically(m_splitscriptwin, m_splitlogwin);
+
+        if (!toggle_log && toggle_iter_plot)
+            m_splitlogwin->Unsplit(m_LogViewForm);
+        if (toggle_log && !toggle_iter_plot)
+            m_splitlogwin->Unsplit(m_IterPlotForm);
+        if (!toggle_script_list && toggle_script)
+            m_splitscriptwin->Unsplit(m_ScriptList);
+        if (toggle_script_list && !toggle_script)
+            m_splitscriptwin->Unsplit(m_ScriptViewForm);
+        if (!(toggle_log || toggle_iter_plot || toggle_script || toggle_script_list))
+            m_splitmainwin->Hide();
+        else
+        {
+            if (!(toggle_script || toggle_script_list))
+                m_splitmainwin->Unsplit(m_splitscriptwin);
+
+            if (!(toggle_log || toggle_iter_plot))
+                m_splitmainwin->Unsplit(m_splitlogwin);
+        }
+        
+        Thaw();
+        break;
+    }
 	};
     UpdateFrameTitle();
 }
@@ -842,6 +906,11 @@ void MainWindow::SetProgress( int percent, const wxString &msg )
 void MainWindow::UpdateDataTable()
 {
 	m_DataViewForm->UpdateView();
+}
+
+void MainWindow::UpdateIterPlot()
+{
+    m_IterPlotForm->UpdateDataFromProject();
 }
 
 bool MainWindow::UpdateIsStopFlagSet()

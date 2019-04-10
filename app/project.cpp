@@ -191,6 +191,8 @@ void parameters::initialize()
     flux_max.set(                        1000.,                     "flux_max",      false,                            "Maximum receiver flux",       "kW/m2",             "Simulation|Parameters" );
     forecast_gamma.set(                     0.,                      "fc_gamma",     false,                      "Forecast TES hedging factor",           "-",             "Simulation|Parameters" );
     dispatch_factors_ts.set(            pvalts,          "dispatch_factors_ts",      false,                       "TOD price multiplier array",           "-",             "Simulation|Parameters" );
+    std::vector< double > bigv(8760, std::numeric_limits<double>::infinity());
+    wlim_series.set(                      bigv,                  "wlim_series",      false,              "Maximum power output from the cycle",         "kWe",             "Simulation|Parameters" );
 
     maintenance_interval.set(             1.e6,         "maintenance_interval",      false,      "Runtime duration between maintenance events",           "h",                  "Cycle|Parameters" );
     maintenance_duration.set(             168.,         "maintenance_duration",      false,                   "Duration of maintenance events",           "h",                  "Cycle|Parameters" );
@@ -297,6 +299,7 @@ void parameters::initialize()
     (*this)["flux_max"] = &flux_max;
     (*this)["forecast_gamma"] = &forecast_gamma;
     (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
+    (*this)["wlim_series"] = &wlim_series;
     (*this)["maintenance_interval"] = &maintenance_interval;
     (*this)["maintenance_duration"] = &maintenance_duration;
     (*this)["downtime_threshold"] = &downtime_threshold;
@@ -1122,7 +1125,8 @@ void Project::update_calculated_values_post_layout()
 
 	int N_hel;
 	int nc;
-	ssc_number_t* helio_positions = ssc_data_get_matrix(m_ssc_data, "helio_positions", &N_hel, &nc);
+	//ssc_number_t* helio_positions = 
+	ssc_data_get_matrix(m_ssc_data, "helio_positions", &N_hel, &nc);
 	ssc_data_set_number(m_ssc_data, "N_hel", N_hel);
 }
 
@@ -1247,9 +1251,11 @@ bool Project::D()
     ssc_to_lk_hash(m_ssc_data, m_design_outputs);
 	
 	//update values
+	{
 		int nr, nc;
 		ssc_number_t *p_hel = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
 		ssc_data_set_matrix(m_ssc_data, "helio_positions", p_hel, nr, nc);
+	}
 
 	ssc_number_t val;
 	ssc_data_get_number(m_ssc_data, "area_sf", &val);
@@ -1268,10 +1274,11 @@ bool Project::D()
 	
 	// obtain annual energy by heliostat
 	std::vector< double > ann_e = {};
-	ssc_number_t *ann = ssc_data_get_array(m_ssc_data, "annual_helio_energy", &nr);
-	for (int i = 0; i < nr; i++)
 	{
-		ann_e.push_back((double)ann[i]);
+		int nr;
+		ssc_number_t *ann = ssc_data_get_array(m_ssc_data, "annual_helio_energy", &nr);
+		for (int i = 0; i < nr; i++)
+			ann_e.push_back((double)ann[i]);
 	}
 
     //calculate flux maps and efficiency matrix with multithreading, if specified
@@ -1843,7 +1850,6 @@ bool Project::S()
 	ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sf, nrec);
 	delete p_sf;
 
-
 	//--- Set ssc parameters
     lk_hash_to_ssc(m_ssc_data, m_parameters);
     lk_hash_to_ssc(m_ssc_data, m_variables);
@@ -1884,9 +1890,6 @@ bool Project::S()
 
 	ssc_data_set_number(m_ssc_data, "allow_controller_exceptions", 0);
 
-    
-
-
 	//--- Run ssc simulation.  Cycle availability model will be run separately 
 	unordered_map < std::string, std::vector<double>> ssc_soln;
 	if (!m_parameters.is_cycle_avail.as_boolean())
@@ -1913,8 +1916,6 @@ bool Project::S()
 		is_simulation_valid = save_simulation_outputs(ssc_soln);
 		is_cycle_avail_valid = C();
 	}
-
-
 
 	//--- Run ssc simulation including re-evaluation or re-dispatch at points of cycle failure/repair. 
 	PowerCycle pc;
@@ -1963,6 +1964,9 @@ bool Project::S()
 
     lk_hash_to_ssc(m_ssc_data, m_simulation_outputs);
     
+	ssc_data_get_number(m_ssc_data, "total_installed_cost", &val);
+	m_financial_outputs.total_installed_cost.assign(val);
+
 	return is_simulation_valid;
 }
 
@@ -2093,8 +2097,8 @@ bool Project::F()
 	ssc_data_get_number(m_ssc_data, "project_return_aftertax_irr", &val);
 	m_financial_outputs.project_return_aftertax_irr.assign(val);
 
-	ssc_data_get_number(m_ssc_data, "total_installed_cost", &val);
-	m_financial_outputs.total_installed_cost.assign(val);
+	//ssc_data_get_number(m_ssc_data, "total_installed_cost", &val);
+	//m_financial_outputs.total_installed_cost.assign(val);
 
 	ssc_module_free(mod_fin);
 
@@ -2630,6 +2634,9 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
             }
         }
 
+		//collect single calculated values
+		ssc_data_set_number(m_ssc_data, "total_installed_cost", collect_ssc_data["total_installed_cost_v"].front());
+
         delete [] simthread;
 #endif
 	}
@@ -2643,7 +2650,6 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
 
 	ssc_soln["beam_clusters"] = ssc_soln["beam"];
 	ssc_soln["pricing_mult_clusters"] = ssc_soln["pricing_mult"];
-
 
 	//-- Read in full-year weather/price for results if necessary (if running discrete increments "beam", "tdry", and "pricing_mult" contain only values at the cluster exemplars)
 	ssc_soln["beam"] = collect_ssc_data["beam"];
@@ -3688,4 +3694,12 @@ void Project::ClearStoredData()
     std::vector<void*> ptrs = GetDataObjects();
     for (size_t i = 0; i < ptrs.size(); i++)
         static_cast<hash_base*>(ptrs.at(i))->initialize();
+}
+
+void Project::AddToSSCContext(std::string varname, lk::vardata_t& dat)
+{
+    //update the local ssc context with a new parameter
+    lk::varhash_t temp;
+    temp[varname] = &dat;
+    lk_hash_to_ssc(m_ssc_data, temp);
 }

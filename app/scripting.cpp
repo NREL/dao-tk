@@ -1,4 +1,7 @@
 #include <set>
+#include <future>
+//#include <chrono>
+//#include <thread>
 
 #include <lk/env.h>
 #include <ssc/sscapi.h>
@@ -129,6 +132,11 @@ void message_handler(const char *msg)
 	    MainWindow::Instance().Log(msg);
 }
 
+void iterplot_update_handler()
+{
+    MainWindow::Instance().UpdateIterPlot();
+}
+
 bool sim_progress_handler(float progress, const char *msg)
 {
 	MainWindow::Instance().SetProgress((int)(progress*100.), msg);
@@ -213,6 +221,22 @@ void _varinfo(lk::invoke_t &cxt)
         return;
     }
 
+}
+
+void _sscvar(lk::invoke_t &cxt)
+{
+    LK_DOC("set_ssc_par", "Set secondary project settings directly in SSC context (advanced user).", "(string:name, variant:value):none");
+
+    if (cxt.arg_count() != 2)
+    {
+        MainWindow::Instance().Log("The function set_ssc_par() requires two arguments.");
+        return;
+    }
+
+    std::string name = cxt.arg(0).as_string();
+    lk::vardata_t arg = cxt.arg(1);
+
+    MainWindow::Instance().GetProject()->AddToSSCContext(name, arg);
 }
 
 void _var(lk::invoke_t &cxt)
@@ -860,6 +884,11 @@ void _simulate_cycle(lk::invoke_t &cxt)
 }
 
 
+bool __opt_thread_helper(optimization* O)
+{
+    return O->run_optimization();
+}
+
 void _optimize(lk::invoke_t &cxt)
 {
     LK_DOC("optimize_system", 
@@ -872,9 +901,9 @@ void _optimize(lk::invoke_t &cxt)
     optimization Opt(P);
 
     //defaults
-    Opt.m_settings.convex_flag = false;
-    Opt.m_settings.max_delta = 1;
-    Opt.m_settings.trust = false;
+    Opt.m_settings.convex_flag = true;
+    Opt.m_settings.max_delta = 10;
+    Opt.m_settings.trust = true;
     //override if needed
     if (cxt.arg_count() > 0)
     {
@@ -907,8 +936,16 @@ void _optimize(lk::invoke_t &cxt)
 
     }
 
+    //Opt.run_optimization();
+    std::future<bool> res = std::async(__opt_thread_helper, &Opt);
+    
+    while (true)
+    {
+        if (res.wait_for(std::chrono::milliseconds(20)) == std::future_status::ready)
+            break;
 
-    Opt.run_optimization();
+        wxYieldIfNeeded();
+    }
 
     mw.UpdateDataTable();
     mw.SetProgress(0.);

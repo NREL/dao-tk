@@ -12,10 +12,13 @@ class wxSimplebook;
 class wxPanel;
 class wxMetroButton;
 class wxMetroTabList;
+class wxToggleButton;
+class wxSplitterWindow;
 class ScriptView;
 class ScriptList;
 class DataView;
 class LogView;
+class IterPlotView;
 
 
 class MyApp : public wxApp
@@ -45,11 +48,19 @@ private:
 	wxMetroButton * m_scriptMenuButton;
 	wxMetroTabList *m_tabList;
 	wxSimplebook *m_notebook;
+    wxSplitterWindow *m_splitmainwin;
+    wxSplitterWindow *m_splitscriptwin;
+    wxSplitterWindow *m_splitlogwin;
+    wxToggleButton *m_toggleScriptList;
+    wxToggleButton *m_toggleScript;
+    wxToggleButton *m_toggleLog;
+    wxToggleButton *m_toggleIterPlot;
 
 	ScriptView *m_ScriptViewForm;
 	ScriptList *m_ScriptList;
 	DataView *m_DataViewForm;
 	LogView *m_LogViewForm;
+    IterPlotView *m_IterPlotForm;
 
 	wxStaticText *m_statusLabel;
 	wxGauge *m_progressBar;
@@ -72,6 +83,7 @@ public:
 	bool UpdateIsStopFlagSet();
 	void SetProgress( int percent, const wxString &msg = wxEmptyString );
 	void UpdateDataTable();
+    void UpdateIterPlot();
 
 	void ClearLog();
 	void Log(const wxString &, bool wnl = true);
