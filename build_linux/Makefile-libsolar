@@ -10,7 +10,8 @@ OBJECTS = \
 	solarfield_structures.o\
     solarfield_heliostat.o\
     solarfield_staff.o\
-	solarfield_avail.o
+	solarfield_avail.o\
+	solarfield_opt.o
 
 TARGET = libsolar.a
 

@@ -21,12 +21,14 @@
   <ItemGroup>
     <ClCompile Include="..\libsolar\solarfield_avail.cpp" />
     <ClCompile Include="..\libsolar\solarfield_heliostat.cpp" />
+    <ClCompile Include="..\libsolar\solarfield_opt.cpp" />
     <ClCompile Include="..\libsolar\solarfield_staff.cpp" />
     <ClCompile Include="..\libsolar\solarfield_structures.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\libsolar\solarfield_avail.h" />
     <ClInclude Include="..\libsolar\solarfield_heliostat.h" />
+    <ClInclude Include="..\libsolar\solarfield_opt.h" />
     <ClInclude Include="..\libsolar\solarfield_staff.h" />
     <ClInclude Include="..\libsolar\solarfield_structures.h" />
   </ItemGroup>

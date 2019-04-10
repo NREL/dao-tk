@@ -46,32 +46,18 @@ private:
 
 	helio_component_inputs m_properties;
 
-	unsigned int m_status;			// Component status
-	double m_repair_time_remaining;	// Time remaining until component repairs are completed [hr]
-	double m_time_to_next_failure;  // Time until next failure [hr]
-	double m_operational_age;		// Current age [hr]
-	double m_age_at_last_failure;	// Age at last failure [hr]
-	double m_scale;		
 public:
 
 	solarfield_helio_component();
 	solarfield_helio_component(const helio_component_inputs &inputs);
 	~solarfield_helio_component() {};
 
-	void set_scale(double scale);
-	void set_time_to_next_failure(WELLFiveTwelve &gen);
-	void set_time_to_repair(WELLFiveTwelve &gen);
 
-	bool test_for_failure(double timestep);
-	void fail(WELLFiveTwelve &gen);
-	void operate(double timestep);
-	void repair(double repair_time);
+	double gen_lifetime(double age, WELLFiveTwelve &gen);
+	double gen_repair_time(WELLFiveTwelve &gen);
 
-	unsigned int get_operational_state();
-	double get_repair_time();
-	double get_time_to_next_failure();
 	double get_mean_repair_time();
-	double get_operational_age();
+	double get_repair_cost();
 };
 
 
@@ -86,52 +72,51 @@ public:
 class solarfield_heliostat
 {
 private:
-	std::vector<solarfield_helio_component *> m_components;	 // Components
 	std::vector<int> m_n_failures;							// Total number of failures per component
 	std::vector<int> m_n_repairs;							// Total number of repairs completed per component
+	std::vector<double> m_lifetimes;   
+	std::vector<solarfield_helio_component*> m_components;
+	WELLFiveTwelve* m_gen;
 
 	unsigned int m_status;				// Current operational state 
 	int m_n_components;					// Number of components	
 
 	double m_scale;						// Heliostat scale (i.e number of heliostats this heliostat represents)
-	double m_performance;				// Performance metric (i.e. efficiency) that can be used to prioritize repairs
-	double m_mean_repair_time;			// Mean time to repair (all failed components)
-	double m_time_to_next_failure;		// Time to next failure [h]
-	double m_repair_time_remaining;		// Total repair time needed for all components [h]
+	double m_output;                    // annual energy output
+	double m_performance;				// Performance metric (i.e. annual energy output) that can be used to prioritize repair
 
 	double m_time_operating;			// Total time operational [hr]
 	double m_time_repairing;			// Total time spent being repaired [hr]
 	double m_time_failed;				// Total time spent waiting to be repaired [hr]
 
+	double m_time_of_last_event;        // Time at last failure, repair start, 
+										// or repair end - used to track waiting time
+	double m_time_to_next_failure;      // Time to next failure - used for event generation
+	int m_next_component_to_fail;       // Used for event generation
+	double m_repair_time;               // Repair time - used for event generation
+
 	bool m_is_track_repair_time;
 	std::vector<double> m_repair_time_per_component;
-
-	void add_component(const helio_component_inputs &inputs);
 
 public:
 
 	solarfield_heliostat();
-	~solarfield_heliostat()
-	{
-		for (size_t i = 0; i < m_components.size(); i++)
-			delete(m_components[i]);
-		m_components.clear();
-	};
+	~solarfield_heliostat(){};
 
-	void initialize(const std::vector<helio_component_inputs> & components, WELLFiveTwelve &gen, double scale = 1.0, double performance = 1.0);
+	void initialize(std::vector<solarfield_helio_component*> components, WELLFiveTwelve &gen, double scale = 1.0, double performance = 1.0);
 
 	int get_n_components();
 	unsigned int get_operational_state();
-	double get_total_repair_time();
-	double get_mean_repair_time();
-	double get_time_to_next_failure();
 	double get_performance();
-	std::vector<int> get_failed_components();
-	std::vector<solarfield_helio_component *> get_components();
+	double get_op_time_to_next_failure();
+	void update_failure_time();
+	unsigned int get_next_component_to_fail();
+	std::vector<solarfield_helio_component*> get_components();
+	double get_repair_time();
 
-	void fail(double timestep, WELLFiveTwelve &gen);
-	void operate(double timestep);
-	int repair(double timestep);
+	void fail(double time, WELLFiveTwelve &gen);
+	void start_repair(double time);
+	void end_repair(double time, int idx);
 
 	std::vector<int> get_failures_per_component();
 	std::vector<int> get_repairs_per_component();
@@ -154,6 +139,7 @@ class heliostat_field
 
 public:
 	std::vector<solarfield_heliostat *> m_helios;
+	std::vector<solarfield_helio_component *>  m_components;
 
 	heliostat_field() {};
 	~heliostat_field()
@@ -161,7 +147,12 @@ public:
 		for (size_t i = 0; i < m_helios.size(); i++)
 			delete(m_helios[i]);
 		m_helios.clear();
+		for (size_t i = 0; i < m_components.size(); i++)
+			delete(m_components[i]);
+		m_components.clear();
 	};
+
+	void add_component(const helio_component_inputs &inputs);
 };
 
 

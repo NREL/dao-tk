@@ -35,9 +35,9 @@ void Project::add_documentation()
         "the mirror wash crew encounters the heliostat in question after its reflectivity is "
         "below the limit. Upon replacement, a cost equal to the parameter 'heliostat_refurbish_cost' "
         "is incurred.");
-    m_variables.om_staff.doc.set("-",
-        "The number of staff (continuous) available for addressing operations and maintenance events, "
-        "including:<br><ul><li>Heliostat failures</li><li>Cycle maintenance events</li></ul>");
+    //m_variables.om_staff.doc.set("-",
+    //    "The number of staff (continuous) available for addressing operations and maintenance events, "
+    //    "including:<br><ul><li>Heliostat failures</li><li>Cycle maintenance events</li></ul>");
     //m_variables.n_wash_crews.doc.set("-",
     //    "Number of crews available to wash heliostats. Each crew consists of a washing device "
     //    "and sufficient staff to operate it. Crews operate independently from one another.");

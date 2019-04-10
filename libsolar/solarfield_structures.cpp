@@ -1,6 +1,8 @@
 #include "solarfield_structures.h"
 #include "solarfield_staff.h"
 
+#include <iostream>
+
 
 
 solarfield_settings::solarfield_settings()
@@ -22,9 +24,53 @@ solarfield_settings::solarfield_settings()
 	repair_order = PERF_OVER_MRT;
 	is_tracking = false;
 
-	is_allow_multiple_per_helio = false;
 	is_trade_repairs = true;
-	is_prioritize_partial_repairs = true;
-	is_split_operation = true;
 
 }
+
+bool operator<(const solarfield_event & e1, const solarfield_event & e2)
+{
+	return e1.priority < e2.priority;
+}
+
+void solarfield_event::print_line()
+{
+	std::cerr << helio_id << ","
+		<< component_idx << ","
+		<< is_repair << ","
+		<< time << ","
+		<< priority << "\n";
+}
+
+void solarfield_event::print()
+{
+	std::cerr << "\nhelio_id: " << helio_id << "\n"
+		<< "component_idx: " << component_idx << "\n"
+		<< "is_repair: " << is_repair << "\n"
+		<< "time: " << time << "\n"
+		<< "priority: " << priority << "\n";
+}
+
+void solarfield_results::print()
+{
+	std::cerr << "Results: \n"
+		<< "avg_avail: " << avg_avail << "\n"
+		<< "min_avail: " << min_avail << "\n"
+		<< "n_repairs: " << n_repairs << "\n"
+		<< "staff_utilization: " << staff_utilization << "\n"
+		<< "avg_avail_by_year: ";
+	for (size_t y = 0; y < yearly_avg_avail.size(); y++)
+		std::cerr << yearly_avg_avail.at(y) << ",";
+	std::cerr << "\nstaff_time: ";
+	for (size_t i = 0; i < staff_time.size(); i++)
+		std::cerr << staff_time.at(i) << ",";
+}
+
+void solarfield_results::print_avail_and_queue_schedule()
+{
+	std::cerr << "t,avail,queue_len\n";
+	for (size_t t = 0; t < avail_schedule.size(); t++)
+		std::cerr << t << "," << avail_schedule[t] << "," << queue_size_vs_time[t] << "\n";
+	std::cerr << "\n";
+}
+
