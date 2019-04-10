@@ -1917,8 +1917,6 @@ bool Project::S()
 		is_cycle_avail_valid = C();
 	}
 
-
-
 	//--- Run ssc simulation including re-evaluation or re-dispatch at points of cycle failure/repair. 
 	PowerCycle pc;
 	WELLFiveTwelve gen1(0);
@@ -1966,6 +1964,9 @@ bool Project::S()
 
     lk_hash_to_ssc(m_ssc_data, m_simulation_outputs);
     
+	ssc_data_get_number(m_ssc_data, "total_installed_cost", &val);
+	m_financial_outputs.total_installed_cost.assign(val);
+
 	return is_simulation_valid;
 }
 
@@ -2096,8 +2097,8 @@ bool Project::F()
 	ssc_data_get_number(m_ssc_data, "project_return_aftertax_irr", &val);
 	m_financial_outputs.project_return_aftertax_irr.assign(val);
 
-	ssc_data_get_number(m_ssc_data, "total_installed_cost", &val);
-	m_financial_outputs.total_installed_cost.assign(val);
+	//ssc_data_get_number(m_ssc_data, "total_installed_cost", &val);
+	//m_financial_outputs.total_installed_cost.assign(val);
 
 	ssc_module_free(mod_fin);
 
@@ -2633,6 +2634,9 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
             }
         }
 
+		//collect single calculated values
+		ssc_data_set_number(m_ssc_data, "total_installed_cost", collect_ssc_data["total_installed_cost_v"].front());
+
         delete [] simthread;
 #endif
 	}
@@ -2646,7 +2650,6 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
 
 	ssc_soln["beam_clusters"] = ssc_soln["beam"];
 	ssc_soln["pricing_mult_clusters"] = ssc_soln["pricing_mult"];
-
 
 	//-- Read in full-year weather/price for results if necessary (if running discrete increments "beam", "tdry", and "pricing_mult" contain only values at the cluster exemplars)
 	ssc_soln["beam"] = collect_ssc_data["beam"];
