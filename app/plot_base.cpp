@@ -463,7 +463,7 @@ wxBitmap *PlotBase::GetBitmap()
     return &_bitmap;
 }
 
-void PlotBase::AxesSetup(wxMemoryDC &dc, double /*minval*/, double /*maxval*/)
+void PlotBase::AxesSetup(wxMemoryDC &dc)
 {
     //Draw the bounding box
     dc.SetPen( *wxWHITE_PEN );

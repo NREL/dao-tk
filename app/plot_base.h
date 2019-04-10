@@ -127,7 +127,7 @@ public:
     void SetXAxisReversed(bool do_reverse);
     void SetImagePositionOffset(std::vector<double> left_top);
 
-    void AxesSetup(wxMemoryDC &dc, double minval=0., double maxval=0.);
+    void AxesSetup(wxMemoryDC &dc);
     void DrawColorbar(wxMemoryDC &dc, double minval, double maxval, double aveval);
     void DrawText(wxMemoryDC &dc, std::string message, double x, double y);
     void DrawSeries(wxMemoryDC &dc, std::vector<double> &points, std::string label);

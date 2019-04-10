@@ -93,13 +93,16 @@ void IterationPlot::DoPaint(wxDC &_pdc)
             datmax = 2*datmin;
             datmin = 0;
         }
+		if (datmin == 0. && datmax == 0.)
+		{
+			datmax = 1.;
+		}
         //axes limits
-        _plotobjs.at(i).SetXAxisRange(0, _data.iteration_count() + 1);
         _plotobjs.at(i).SetXAxisRange(0, datpair.second.size() + 1);
         _plotobjs.at(i).SetYAxisRange(datmin, datmax);
         //plot positioning
         _plotobjs.at(i).SetImagePositionOffset({ 0., (double)(parsize.y*i)});
-        _plotobjs.at(i).AxesSetup(memdc, datmin, datmax);
+        _plotobjs.at(i).AxesSetup(memdc);
         //draw the data
         _plotobjs.at(i).DrawSeries(memdc, datpair.second, datpair.first );
     }
@@ -111,7 +114,7 @@ void IterationPlot::DoPaint(wxDC &_pdc)
 
 void IterationPlot::OnEraseBackground(wxEraseEvent &) {}
 
-void IterationPlot::OnCommand(wxCommandEvent &)
+void IterationPlot::OnCommand(wxCommandEvent &evt)
 {
     /*switch (evt.GetId())
     {
