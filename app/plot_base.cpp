@@ -463,7 +463,7 @@ wxBitmap *PlotBase::GetBitmap()
     return &_bitmap;
 }
 
-void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
+void PlotBase::AxesSetup(wxMemoryDC &dc, double /*minval*/, double /*maxval*/)
 {
     //Draw the bounding box
     dc.SetPen( *wxWHITE_PEN );
@@ -508,7 +508,7 @@ void PlotBase::AxesSetup(wxMemoryDC &dc, double minval, double maxval)
     _left_buffer = 7 + etss.GetWidth(); //15+etss.GetWidth()+etss.GetHeight();
     _top_buffer = 2;
     _bottom_buffer = etss.GetHeight()+10;
-    int nzdec = CalcBestSigFigs(std::max(fabs(maxval),fabs(minval)) );
+    //int nzdec = CalcBestSigFigs(std::max(fabs(maxval),fabs(minval)) );
     _right_buffer = 5; // etss.GetWidth();
 
     //Plot area (excluding area for axes) in pixels
@@ -646,7 +646,7 @@ void PlotBase::DrawSeries(wxMemoryDC &dc, std::vector<double> &points, std::stri
 			npt++;
 
     //draw the rest
-    double xpt0, ypt0;
+    double xpt0=-1, ypt0=-1;
     for (size_t i = 0; i < npt; i++)
     {
         double ypt = _origin[1] - _ppy * points[i];

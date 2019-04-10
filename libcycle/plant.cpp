@@ -1995,7 +1995,7 @@ int PowerCycle::NumberOfAirstreamsOnline()
 	return num_streams;
 }
 
-double PowerCycle::GetCondenserEfficiency(double temp)
+double PowerCycle::GetCondenserEfficiency(double)
 {
 	return 1.0;
 }

@@ -111,7 +111,7 @@ void IterationPlot::DoPaint(wxDC &_pdc)
 
 void IterationPlot::OnEraseBackground(wxEraseEvent &) {}
 
-void IterationPlot::OnCommand(wxCommandEvent &evt)
+void IterationPlot::OnCommand(wxCommandEvent &)
 {
     /*switch (evt.GetId())
     {
