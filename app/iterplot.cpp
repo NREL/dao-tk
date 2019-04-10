@@ -73,14 +73,17 @@ void IterationPlot::DoPaint(wxDC &_pdc)
         _plotobjs.at(i).SetPlotSize(parsize);
         
 
-        //std::vector<double>* ppa = _data.has_item("ppa");
         svd_pair datpair = _data.at_index(i);
         double datmin = 9e9;
         double datmax = -9e9;
         for (size_t j = 0; j < datpair.second.size(); j++)
         {
-            datmin = datpair.second.at(j) < datmin ? datpair.second.at(j) : datmin;
-            datmax = datpair.second.at(j) > datmax ? datpair.second.at(j) : datmax;
+			double dattest = datpair.second.at(j);
+			if (dattest != dattest)
+				continue;
+
+            datmin = dattest < datmin ? dattest : datmin;
+            datmax = dattest > datmax ? dattest : datmax;
         }
         //max and min
         datmin = datmin - (datmax - datmin)*.05;

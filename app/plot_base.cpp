@@ -640,17 +640,20 @@ void PlotBase::DrawSeries(wxMemoryDC &dc, std::vector<double> &points, std::stri
     if (points.size() == 0)
         return;
 
-
+	int npt = 0;
+	for (size_t i = 0; i < points.size(); i++)
+		if (points.at(i) == points.at(i))
+			npt++;
 
     //draw the rest
     double xpt0, ypt0;
-    for (size_t i = 0; i < points.size(); i++)
+    for (size_t i = 0; i < npt; i++)
     {
         double ypt = _origin[1] - _ppy * points[i];
         double xpt = _origin[0] + _ppx * (i + 1);
 
         //draw first or last point with a circle
-        if (i == 0 || i == (int)points.size() - 1)
+        if (i == 0 || i == (int)npt - 1)
         {
             dc.SetPen(*wxGREEN_PEN);
             dc.SetBrush(*wxGREEN_BRUSH);
@@ -683,7 +686,17 @@ void PlotBase::DrawSeries(wxMemoryDC &dc, std::vector<double> &points, std::stri
     dc.DrawText(label, xcoord, ycoord);
 
     //calculate change pct
-    double diff = (points.back() - points.front()) / points.front();
+	double firstval = points.front();
+	double lastval = points.back();
+	for (std::vector<double>::iterator valit = points.end() - 1; valit != points.begin(); valit--)
+	{
+		if (*valit == *valit)
+		{
+			lastval = *valit;
+			break;
+		}
+	}
+    double diff = (lastval - firstval) / firstval;
     if (diff != diff)
         diff = 0.;
     bool isneg = diff < 0.;
@@ -714,12 +727,12 @@ void PlotBase::DrawSeries(wxMemoryDC &dc, std::vector<double> &points, std::stri
         dc.DrawPolygon(3, pl, xcoord+2, ycoord + 4);
     }
     
-    int nsf = CalcBestSigFigs(points.back());
+    int nsf = CalcBestSigFigs(lastval);
     wxString numlab;
     if (nsf > 4)
-        numlab = wxString::Format("%.2e", points.back());
+        numlab = wxString::Format("%.2e", lastval);
     else
-        numlab = wxString::Format(wxString::Format("%%.%df", nsf), points.back());
+        numlab = wxString::Format(wxString::Format("%%.%df", nsf), lastval);
 
     wxSize numlabsize = dc.GetTextExtent(numlab);
     xcoord -= numlabsize.GetWidth() + 4;
