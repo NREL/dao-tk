@@ -86,8 +86,8 @@ void IterationPlot::DoPaint(wxDC &_pdc)
             datmax = dattest > datmax ? dattest : datmax;
         }
         //max and min
-        datmin = datmin - (datmax - datmin)*.05;
-        datmax = datmax + (datmax - datmin)*.05;
+        datmin = datmin - (datmax - datmin)*0.05;
+        datmax = datmax + (datmax - datmin)*0.20;		//give some buffer for plot labels
         if (datmin == datmax)
         {
             datmax = 2*datmin;

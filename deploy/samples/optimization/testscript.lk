@@ -1,13 +1,14 @@
 /* 
 Test script for optimization
 */
+initialize();
 
 var('solar_resource_file', 'C:/Users/mwagner/Documents/NREL/projects/sam/deploy/solar_resource/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv');
 
 var('P_ref', 75);	//MWe
-var('is_dispatch', true);
+var('is_dispatch', false);
 var('is_use_clusters', true);
-var('n_clusters', 25 );
+var('n_clusters', 24 );
 
 price = [];
 for(i=0; i<8760; i++)
@@ -29,7 +30,7 @@ ovars =
 		['dni_des',[900], 600., 1100.],
 		['solarm', [2.4], 0.8, 5],
 		['N_panel_pairs',[8],6,11],
-		['om_staff', [3], 1, 25]
+		//['om_staff', [3], 1, 25]
 	];
 
 for(i=0; i<#ovars; i++)

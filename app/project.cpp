@@ -60,7 +60,6 @@
     solarm.set(                           dnan,      dmin,      dmax,             "solarm",                                   "Solar multiple",        "-",      "Variables", false, false);
     tshours.set(                          dnan,      dmin,      dmax,            "tshours",                             "Thermal storage size",       "hr",      "Variables", false, false);
     degr_replace_limit.set(               dnan,      dmin,      dmax, "degr_replace_limit",             "Mirror degradation replacement limit",        "-",      "Variables", false, false);
-    //om_staff.set(                           -1,      -999,       999,           "om_staff",                              "Number of o&m staff",        "-",      "Variables", false, true);
     N_panel_pairs.set(                      -1,      -999,       999,       "N_panel_pairs",                  "Number of receiver panel pairs",        "-",      "Variables", false, true);
 
 
@@ -73,7 +72,6 @@
     (*this)["solarm"] = &solarm;
     (*this)["tshours"] = &tshours;
     (*this)["degr_replace_limit"] = &degr_replace_limit;
-    //(*this)["om_staff"] = &om_staff;
     (*this)["N_panel_pairs"] = &N_panel_pairs;
 
 };
