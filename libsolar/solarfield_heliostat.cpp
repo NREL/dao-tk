@@ -219,7 +219,7 @@ void solarfield_heliostat::start_repair(double time)
 	m_time_of_last_event = time;	
 }
 
-void solarfield_heliostat::end_repair(double time, int idx)
+void solarfield_heliostat::end_repair(double time, int)
 {
 	m_status = OPERATIONAL;
 	m_repair_time = 0.;

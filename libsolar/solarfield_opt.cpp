@@ -44,7 +44,7 @@ double solarfield_opt::calculate_repair_cost()
 	return total_cost;
 }
 
-void solarfield_opt::optimize_staff(bool(*callback)(float prg, const char *msg), std::string *results_file_name)
+void solarfield_opt::optimize_staff(bool(*)(float prg, const char *msg), std::string *)
 {
 	WELLFiveTwelve gen(0);
 	gen.assignStates(m_sfa.m_settings.seed % 100);

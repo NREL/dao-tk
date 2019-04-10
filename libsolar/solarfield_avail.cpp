@@ -470,11 +470,11 @@ void solarfield_availability::update_statistics(double t_start, double t_end)
 
 
 
-void solarfield_availability::simulate(bool(*callback)(float prg, const char *msg), std::string *results_file_name)
+void solarfield_availability::simulate(bool(*)(float prg, const char *msg), std::string *results_file_name)
 {
 	double hscale = (double)m_settings.n_helio_sim;
 	double problem_scale = (double)m_settings.n_helio / hscale;
-	int n_helio_s = (int)hscale;
+	//int n_helio_s = (int)hscale;
 	int nhours = m_settings.n_years * 8760;
 	int n_components = (int)m_settings.helio_components.size();
 
@@ -483,14 +483,16 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	m_event_queue = create_initial_queue();
 	m_repair_queue = {};	
 	
-	double t = 0.;
-	while (t < (double)nhours)
 	{
-		m_current_event = m_event_queue.top();
-		//m_current_event.print();
-		run_current_event(t);
-		t = m_current_event.time;
-		m_event_queue.pop();
+		double t = 0.;
+		while (t < (double)nhours)
+		{
+			m_current_event = m_event_queue.top();
+			//m_current_event.print();
+			run_current_event(t);
+			t = m_current_event.time;
+			m_event_queue.pop();
+		}
 	}
 
 	//----------------------------------------------------------
@@ -528,7 +530,7 @@ void solarfield_availability::simulate(bool(*callback)(float prg, const char *ms
 	m_results.n_repairs = repairs_made;
 	m_results.staff_utilization = hours_worked / max_hours;
 
-	solarfield_heliostat* hel;
+	//solarfield_heliostat* hel;
 
 	// Time per staff member
 	if (m_settings.is_tracking)
