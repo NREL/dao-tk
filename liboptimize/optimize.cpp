@@ -10,6 +10,12 @@
 #include <stdio.h>
 #include <algorithm>
 
+//#define TEST_OBJECTIVE
+#ifdef TEST_OBJECTIVE
+#include <chrono>
+#include <thread>
+#endif
+
 //------------------------------------------
 template <typename T>
 static inline bool assign_filter_nan(T c, void*)
@@ -45,15 +51,28 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     the necessary methods to update the objective function
     */
 
-    optimization* O = static_cast<optimization* const>(data);
+    optimization* O = static_cast<optimization*>(data);
     Project *P = O->get_project();
 
     //list of all output variables
-    std::vector<parameter*> allouts = { &P->m_financial_outputs.ppa, &P->m_financial_outputs.lcoe_real, &P->m_financial_outputs.total_installed_cost,
-                                   &P->m_design_outputs.area_sf, &P->m_optical_outputs.avg_soil, &P->m_optical_outputs.n_wash_vehicles,
-                                   &P->m_optical_outputs.avg_degr, &P->m_simulation_outputs.annual_generation, &P->m_simulation_outputs.annual_cycle_starts,
-                                   &P->m_simulation_outputs.annual_rec_starts, &P->m_simulation_outputs.annual_revenue_units,
-                                   &P->m_solarfield_outputs.avg_avail, &P->m_solarfield_outputs.n_repairs };
+
+    std::vector<parameter*> allouts = { 
+		&P->m_financial_outputs.ppa, 
+		&P->m_financial_outputs.lcoe_real, 
+		&P->m_financial_outputs.total_installed_cost,
+        &P->m_design_outputs.area_sf, 
+		&P->m_optical_outputs.avg_soil, 
+		&P->m_optical_outputs.n_wash_crews,
+		&P->m_solarfield_outputs.n_om_staff,
+        &P->m_optical_outputs.avg_degr, 
+		&P->m_simulation_outputs.annual_generation, 
+		&P->m_simulation_outputs.annual_cycle_starts,
+        &P->m_simulation_outputs.annual_rec_starts, 
+		&P->m_simulation_outputs.annual_revenue_units,
+        &P->m_solarfield_outputs.avg_avail, 
+		&P->m_solarfield_outputs.n_repairs 
+	};
+
        
     //figure out which variables were changed and as a result, which components of the objective function need updating
     std::set<std::string> triggered_methods;
@@ -112,6 +131,18 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     if (ncheck != (int)n)
         throw std::runtime_error("Error in continuous objective function evaluation. Variable count has changed. See user support for help.");
 
+#ifdef TEST_OBJECTIVE
+    double ppa = 0.;
+    for (unsigned i = 0; i < n; i++)
+        ppa += x[i] * x[i];
+    for (size_t i = 0; i < allouts.size(); i++)
+        allouts.at(i)->assign(ppa + (double)i);
+    
+    if (P->IsStopFlag())
+        throw std::runtime_error("The simulation has been terminated by the user.");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+#else
     //run all of the methods in order
     std::vector<std::string> allmethods = P->GetAllMethodNames();
     
@@ -146,12 +177,16 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     }
 
     double ppa = P->m_financial_outputs.ppa.as_number();
+#endif
 
     P->PrintCurrentResults();
 
     //update the actual output value to override the NAN that was initialized
     for (size_t i = 0; i < allouts.size(); i++)
         P->m_optimization_outputs.iteration_history.hash_vector[allouts.at(i)->name].back() = allouts.at(i)->as_number();
+
+    //update the iteration plot
+    iterplot_update_handler();
 
     return ppa;
 };
@@ -202,7 +237,7 @@ double optimization::run_continuous_subproblem()
     nlopt_opt opt = nlopt_create(nlopt_algorithm::NLOPT_LN_BOBYQA, n);
     nlopt_set_lower_bounds(opt, lb);
     nlopt_set_upper_bounds(opt, ub);
-    nlopt_set_min_objective(opt, continuous_objective_eval, (void*)this);
+    nlopt_set_min_objective(opt, continuous_objective_eval, this);
 
     nlopt_set_ftol_rel(opt, .01);
     nlopt_set_xtol_rel(opt, .001);
@@ -653,7 +688,7 @@ bool optimization::run_optimization()
                         for (int i = 0; i < integer_variables.size(); i++)
                         {
                             int vv = grid(new_ind, i + 1);
-                            m_settings.variables.at(i).assign(vv);
+							integer_variables.at(i)->assign(vv);
                             x_star_maybe.push_back(vv);
                         }
 

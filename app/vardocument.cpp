@@ -35,9 +35,9 @@ void Project::add_documentation()
         "the mirror wash crew encounters the heliostat in question after its reflectivity is "
         "below the limit. Upon replacement, a cost equal to the parameter 'heliostat_refurbish_cost' "
         "is incurred.");
-    m_variables.om_staff.doc.set("-",
-        "The number of staff (continuous) available for addressing operations and maintenance events, "
-        "including:<br><ul><li>Heliostat failures</li><li>Cycle maintenance events</li></ul>");
+    //m_variables.om_staff.doc.set("-",
+    //    "The number of staff (continuous) available for addressing operations and maintenance events, "
+    //    "including:<br><ul><li>Heliostat failures</li><li>Cycle maintenance events</li></ul>");
     //m_variables.n_wash_crews.doc.set("-",
     //    "Number of crews available to wash heliostats. Each crew consists of a washing device "
     //    "and sufficient staff to operate it. Crews operate independently from one another.");
@@ -160,6 +160,9 @@ void Project::add_documentation()
         "Weighting factor for hedging thermal storage inventory against forecast uncertainty. "
         "The dispatch optimization objective function is formulated such that:<br>"
         "max Z = (1-gamma) * (Revenue days 1 and 2) + gamma * (TES charge end day 1)"
+    );
+    m_parameters.wlim_series.doc.set("kWe",
+        "Time series representing the maximum allowable net power output from the power cycle."
     );
 
     //calculated

@@ -77,7 +77,6 @@ simulation_params::simulation_params()
 	read_periods = 0;
 	sim_length = 48;
 	steplength = 1.;
-	epsilon = 1e-10;
 	print_output = false;
 	num_scenarios = 1;
 	hourly_labor_cost = 50.;
@@ -91,7 +90,6 @@ void simulation_params::print()
 	std::cerr << "read_periods: " << read_periods << "\n"
 		<< "sim_length: " << sim_length << "\n"
 		<< "steplength: " << steplength << "\n"
-		<< "epsilon: " << epsilon << "\n"
 		<< "print_output: " << print_output << "\n"
 		<< "num_scenarios: " << num_scenarios << "\n"
 		<< "hourly_labor_cost: " << hourly_labor_cost << "\n"

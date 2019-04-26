@@ -26,7 +26,10 @@
     <ClCompile Include="..\app\daotk_app.cpp" />
     <ClCompile Include="..\app\dataview.cpp" />
     <ClCompile Include="..\app\fluxsimthread.cpp" />
+    <ClCompile Include="..\app\iterplot.cpp" />
+    <ClCompile Include="..\app\iterplotview.cpp" />
     <ClCompile Include="..\app\logview.cpp" />
+    <ClCompile Include="..\app\plot_base.cpp" />
     <ClCompile Include="..\app\project.cpp" />
     <ClCompile Include="..\app\project_init.cpp" />
     <ClCompile Include="..\app\scripting.cpp" />
@@ -41,7 +44,10 @@
     <ClInclude Include="..\app\daotk_app.h" />
     <ClInclude Include="..\app\dataview.h" />
     <ClInclude Include="..\app\fluxsimthread.h" />
+    <ClInclude Include="..\app\iterplot.h" />
+    <ClInclude Include="..\app\iterplotview.h" />
     <ClInclude Include="..\app\logview.h" />
+    <ClInclude Include="..\app\plot_base.h" />
     <ClInclude Include="..\app\project.h" />
     <ClInclude Include="..\app\scripting.h" />
     <ClInclude Include="..\app\scriptlist.h" />

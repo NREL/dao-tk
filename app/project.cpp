@@ -60,7 +60,6 @@
     solarm.set(                           dnan,      dmin,      dmax,             "solarm",                                   "Solar multiple",        "-",      "Variables", false, false);
     tshours.set(                          dnan,      dmin,      dmax,            "tshours",                             "Thermal storage size",       "hr",      "Variables", false, false);
     degr_replace_limit.set(               dnan,      dmin,      dmax, "degr_replace_limit",             "Mirror degradation replacement limit",        "-",      "Variables", false, false);
-    om_staff.set(                           -1,      -999,       999,           "om_staff",                              "Number of o&m staff",        "-",      "Variables", false, true);
     N_panel_pairs.set(                      -1,      -999,       999,       "N_panel_pairs",                  "Number of receiver panel pairs",        "-",      "Variables", false, true);
 
 
@@ -73,7 +72,6 @@
     (*this)["solarm"] = &solarm;
     (*this)["tshours"] = &tshours;
     (*this)["degr_replace_limit"] = &degr_replace_limit;
-    (*this)["om_staff"] = &om_staff;
     (*this)["N_panel_pairs"] = &N_panel_pairs;
 
 };
@@ -195,6 +193,8 @@ void parameters::initialize()
     flux_max.set(                        1000.,                     "flux_max",      false,                            "Maximum receiver flux",       "kW/m2",             "Simulation|Parameters" );
     forecast_gamma.set(                     0.,                      "fc_gamma",     false,                      "Forecast TES hedging factor",           "-",             "Simulation|Parameters" );
     dispatch_factors_ts.set(            pvalts,          "dispatch_factors_ts",      false,                       "TOD price multiplier array",           "-",             "Simulation|Parameters" );
+    std::vector< double > bigv(8760, std::numeric_limits<double>::infinity());
+    wlim_series.set(                      bigv,                  "wlim_series",      false,              "Maximum power output from the cycle",         "kWe",             "Simulation|Parameters" );
 
     maintenance_interval.set(             1.e6,         "maintenance_interval",      false,      "Runtime duration between maintenance events",           "h",                  "Cycle|Parameters" );
     maintenance_duration.set(             168.,         "maintenance_duration",      false,                   "Duration of maintenance events",           "h",                  "Cycle|Parameters" );
@@ -303,6 +303,7 @@ void parameters::initialize()
     (*this)["flux_max"] = &flux_max;
     (*this)["forecast_gamma"] = &forecast_gamma;
     (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
+    (*this)["wlim_series"] = &wlim_series;
     (*this)["maintenance_interval"] = &maintenance_interval;
     (*this)["maintenance_duration"] = &maintenance_duration;
     (*this)["downtime_threshold"] = &downtime_threshold;
@@ -378,13 +379,15 @@ solarfield_outputs::solarfield_outputs() { initialize(); }
 
 void solarfield_outputs::initialize()
 {
+
 	/* 
 	Set up output members
 	*/
 
 	double nan = std::numeric_limits<double>::quiet_NaN();
 
-    n_repairs.set(                         nan,                    "n_repairs",       true,                      "Number of heliostat repairs",        "-",    "Heliostat availability|Outputs" );
+	n_om_staff.set(                        nan,                   "n_om_staff",       true,             "Number of full-time O&M repair staff",        "-",    "Heliostat availability|Outputs" );
+	n_repairs.set(                         nan,                    "n_repairs",       true,                      "Number of heliostat repairs",        "-",    "Heliostat availability|Outputs" );
     staff_utilization.set(                 nan,            "staff_utilization",       true,                                "Staff utilization",        "-",    "Heliostat availability|Outputs" );
     heliostat_repair_cost_y1.set(          nan,     "heliostat_repair_cost_y1",       true,                   "Heliostat repair cost (year 1)",        "$",    "Heliostat availability|Outputs" );
     heliostat_repair_cost.set(             nan,        "heliostat_repair_cost",       true );
@@ -394,7 +397,8 @@ void solarfield_outputs::initialize()
     avail_schedule.set(              empty_vec,               "avail_schedule",       true,            "Heliostat field availability schedule",        "-",    "Heliostat availability|Outputs" );
     n_repairs_per_component.set(     empty_vec,      "n_repairs_per_component",       true,       "Average annual heliostat component repairs",        "-",    "Heliostat availability|Outputs" );
 
-    (*this)["n_repairs"] = &n_repairs;
+	(*this)["n_om_staff"] = &n_om_staff;
+	(*this)["n_repairs"] = &n_repairs;
     (*this)["staff_utilization"] = &staff_utilization;
     (*this)["heliostat_repair_cost_y1"] = &heliostat_repair_cost_y1;
     (*this)["heliostat_repair_cost_real"] = &heliostat_repair_cost;
@@ -848,7 +852,7 @@ Project::Project()
     m_variables.P_ref.triggers = {"D", "M", "O", "S", "C", "E", "F"};  //{ &Project::D, &Project::M, &Project::C, &Project::O, &Project::S, &Project::E, &Project::F };
     m_variables.tshours.triggers = { "S", "E", "F"}; // { &Project::S, &Project::E, &Project::F };
     m_variables.degr_replace_limit.triggers = { "O", "S", "E", "F"}; // { &Project::O, &Project::S, &Project::E, &Project::F };
-    m_variables.om_staff.triggers = { "M", "S", "E", "F" }; // { &Project::M, &Project::S, &Project::E, &Project::F };
+    //m_variables.om_staff.triggers = { "M", "S", "E", "F" }; // { &Project::M, &Project::S, &Project::E, &Project::F };
     m_variables.N_panel_pairs.triggers = { "S", "E", "F" }; // {&Project::S, &Project::E, &Project::F };
 
     _all_method_pointers.clear();
@@ -1129,7 +1133,8 @@ void Project::update_calculated_values_post_layout()
 
 	int N_hel;
 	int nc;
-	ssc_number_t* helio_positions = ssc_data_get_matrix(m_ssc_data, "helio_positions", &N_hel, &nc);
+	//ssc_number_t* helio_positions = 
+	ssc_data_get_matrix(m_ssc_data, "helio_positions", &N_hel, &nc);
 	ssc_data_set_number(m_ssc_data, "N_hel", N_hel);
 }
 
@@ -1254,9 +1259,11 @@ bool Project::D()
     ssc_to_lk_hash(m_ssc_data, m_design_outputs);
 	
 	//update values
+	{
 		int nr, nc;
 		ssc_number_t *p_hel = ssc_data_get_matrix(m_ssc_data, "heliostat_positions", &nr, &nc);
 		ssc_data_set_matrix(m_ssc_data, "helio_positions", p_hel, nr, nc);
+	}
 
 	ssc_number_t val;
 	ssc_data_get_number(m_ssc_data, "area_sf", &val);
@@ -1275,10 +1282,11 @@ bool Project::D()
 	
 	// obtain annual energy by heliostat
 	std::vector< double > ann_e = {};
-	ssc_number_t *ann = ssc_data_get_array(m_ssc_data, "annual_helio_energy", &nr);
-	for (int i = 0; i < nr; i++)
 	{
-		ann_e.push_back((double)ann[i]);
+		int nr;
+		ssc_number_t *ann = ssc_data_get_array(m_ssc_data, "annual_helio_energy", &nr);
+		for (int i = 0; i < nr; i++)
+			ann_e.push_back((double)ann[i]);
 	}
 
     //calculate flux maps and efficiency matrix with multithreading, if specified
@@ -1419,12 +1427,12 @@ bool Project::M()
 	sfa.m_settings.n_years = m_parameters.plant_lifetime.as_integer();
 	sfa.m_settings.step = m_parameters.avail_model_timestep.as_number();
 	
-	sfa.m_settings.n_om_staff.assign(sfa.m_settings.n_years, m_variables.om_staff.as_number());
+	//sfa.m_settings.n_om_staff = m_variables.om_staff.as_number();
 	sfa.m_settings.max_hours_per_day = 9.;
 	sfa.m_settings.max_hours_per_week = m_parameters.om_staff_max_hours_week.as_number();
 
 	sfa.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
-	sfa.m_settings.n_helio_sim = m_parameters.n_heliostats_sim.as_integer();
+	sfa.m_settings.n_helio_sim = std::min(m_parameters.n_heliostats_sim.as_integer(), m_design_outputs.number_heliostats.as_integer());
 	sfa.m_settings.seed = m_parameters.avail_seed.as_integer();
 
 	sfa.m_settings.is_fix_hours = false;
@@ -1480,39 +1488,59 @@ bool Project::M()
 
 	sfa.m_settings.is_tracking = false;
 
+	//get SSC data
 	int nr;
 	std::vector< double > ann_e = {};
 	ssc_number_t *ann = ssc_data_get_array(m_ssc_data, "annual_helio_energy", &nr);
 	for (int i = 0; i < nr; i++)
 	{
-		ann_e.push_back((double)ann[i]);
+		ann_e.push_back((double)ann[i] / 1000.);
 	}
-
 	sfa.m_settings.helio_performance = ann_e;
-	sfa.simulate(sim_progress_handler);
+	
+	ssc_number_t term_int_rate;
+	ssc_data_get_number(m_ssc_data, "inflation_rate", &term_int_rate);
+
+	//solarfield optimization parameters
+	solarfield_opt sfo;
+	sfo.m_settings.hourly_cost_per_staff = m_parameters.om_staff_cost.as_number();
+	sfo.m_settings.labor_discount_rate = term_int_rate * 0.01;
+	sfo.m_settings.max_num_staff = m_parameters.om_staff_max_hours_week.as_number();
+	sfo.m_settings.num_years = m_parameters.plant_lifetime.as_integer();
+	sfo.m_settings.price_per_kwh = m_parameters.price_per_kwh.as_number();
+	sfo.m_settings.repair_discount_rate = term_int_rate * 0.01;
+	sfo.m_settings.system_efficiency = m_parameters.TES_powercycle_eff.as_number();
+	sfo.m_settings.revenue_discount_rate = term_int_rate * 0.01;
+	sfo.m_settings.temporary_staff_cost_multiple = 2.5;
+
+	sfo.m_sfa = sfa;
+	
+	
+	sfo.optimize_staff(sim_progress_handler);
 
 
 	//Calculate staff cost and repair cost
-	sfa.m_results.heliostat_repair_cost_y1 = 0.0;
-	for (int c = 0; c < sfa.m_settings.helio_components.size(); c++)
-		sfa.m_results.heliostat_repair_cost_y1 += sfa.m_settings.helio_components[c].m_repair_cost * ( sfa.m_results.n_repairs_per_component[c] / sfa.m_settings.n_years); // Average yearly repair cost
+	sfo.m_results.heliostat_repair_cost_y1 = 0.0;
+	for (int y = 0; y < sfa.m_settings.n_years; y++)
+		sfo.m_results.heliostat_repair_cost_y1 += sfo.m_results.repair_cost_per_year[y] / sfa.m_settings.n_years; // Average yearly repair cost
 
 	
 	//lifetime costs
 	//treat heliostat repair costs as consuming reserve equipment paid for at the project outset
-	sfa.m_results.heliostat_repair_cost = calc_real_dollars(sfa.m_results.heliostat_repair_cost_y1);
+	sfa.m_results.heliostat_repair_cost = calc_real_dollars(sfo.m_results.heliostat_repair_cost_y1);
 
     //assign outputs to project structure
-    m_solarfield_outputs.n_repairs.assign( sfa.m_results.n_repairs / sfa.m_settings.n_years);
-    m_solarfield_outputs.staff_utilization.assign( sfa.m_results.staff_utilization );
-    m_solarfield_outputs.heliostat_repair_cost_y1.assign( sfa.m_results.heliostat_repair_cost_y1 );
-    m_solarfield_outputs.heliostat_repair_cost.assign( sfa.m_results.heliostat_repair_cost );
-	m_solarfield_outputs.avg_avail.assign(sfa.m_results.avg_avail);
-    m_solarfield_outputs.avail_schedule.assign_vector( sfa.m_results.avail_schedule);
+	m_solarfield_outputs.n_om_staff.assign( sfo.m_sfa.m_settings.n_om_staff );
+    m_solarfield_outputs.n_repairs.assign( sfo.m_results.n_repairs / sfo.m_sfa.m_settings.n_years );
+    m_solarfield_outputs.staff_utilization.assign( sfo.m_results.staff_utilization );
+    m_solarfield_outputs.heliostat_repair_cost_y1.assign( sfo.m_results.heliostat_repair_cost_y1 );
+    m_solarfield_outputs.heliostat_repair_cost.assign( sfo.m_results.heliostat_repair_cost );
+	m_solarfield_outputs.avg_avail.assign( sfo.m_results.avg_avail );
+    m_solarfield_outputs.avail_schedule.assign_vector( sfo.m_results.avail_schedule );
 
 	std::vector<double> n_per_comp;
 	for (int c = 0; c < ncomp; c++)
-		n_per_comp.push_back( sfa.m_results.n_repairs_per_component[c] / sfa.m_settings.n_years );
+		n_per_comp.push_back( sfo.m_results.n_repairs_per_component[c] / sfo.m_sfa.m_settings.n_years );
 	
 	m_solarfield_outputs.n_repairs_per_component.assign_vector(n_per_comp);
 
@@ -1574,7 +1602,7 @@ bool Project::C()
 	initialize_cycle_model(pc);
 
 	double steplength = 8760. / (double)nrec;
-	pc.SetSimulationParameters(0, nrec*ny, steplength, 1.e-8, false, ns, m_parameters.cycle_hourly_labor_cost.as_number(), false, false);
+	pc.SetSimulationParameters(0, nrec*ny, steplength, false, ns, m_parameters.cycle_hourly_labor_cost.as_number(), false, false);
 
 	//Assign Dispatch  
 	std::unordered_map < std::string, std::vector < double > > dispatch;
@@ -1878,7 +1906,6 @@ bool Project::S()
 	ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sf, nrec);
 	delete p_sf;
 
-
 	//--- Set ssc parameters
     lk_hash_to_ssc(m_ssc_data, m_parameters);
     lk_hash_to_ssc(m_ssc_data, m_variables);
@@ -1919,9 +1946,6 @@ bool Project::S()
 
 	ssc_data_set_number(m_ssc_data, "allow_controller_exceptions", 0);
 
-    
-
-
 	//--- Run ssc simulation.  Cycle availability model will be run separately 
 	unordered_map < std::string, std::vector<double>> ssc_soln;
 	if (!m_parameters.is_cycle_avail.as_boolean())
@@ -1948,8 +1972,6 @@ bool Project::S()
 		is_simulation_valid = save_simulation_outputs(ssc_soln);
 		is_cycle_avail_valid = C();
 	}
-
-
 
 	//--- Run ssc simulation including re-evaluation or re-dispatch at points of cycle failure/repair. 
 	PowerCycle pc;
@@ -1998,6 +2020,9 @@ bool Project::S()
 
     lk_hash_to_ssc(m_ssc_data, m_simulation_outputs);
     
+	ssc_data_get_number(m_ssc_data, "total_installed_cost", &val);
+	m_financial_outputs.total_installed_cost.assign(val);
+
 	return is_simulation_valid;
 }
 
@@ -2026,7 +2051,7 @@ bool Project::E()
 	double e_tes_real = calc_real_dollars(e_tes);
 
 	// OM labor costs
-	double heliostat_om_labor_y1 = m_parameters.om_staff_cost.as_number() * m_variables.om_staff.as_number() * m_parameters.om_staff_max_hours_week.as_number()*52.;
+	double heliostat_om_labor_y1 = m_parameters.om_staff_cost.as_number() * m_solarfield_outputs.n_om_staff.as_number() * m_parameters.om_staff_max_hours_week.as_number()*52.;
 	double heliostat_om_labor = calc_real_dollars(heliostat_om_labor_y1, false, true);
 
 	// Washing labor costs
@@ -2128,8 +2153,8 @@ bool Project::F()
 	ssc_data_get_number(m_ssc_data, "project_return_aftertax_irr", &val);
 	m_financial_outputs.project_return_aftertax_irr.assign(val);
 
-	ssc_data_get_number(m_ssc_data, "total_installed_cost", &val);
-	m_financial_outputs.total_installed_cost.assign(val);
+	//ssc_data_get_number(m_ssc_data, "total_installed_cost", &val);
+	//m_financial_outputs.total_installed_cost.assign(val);
 
 	ssc_module_free(mod_fin);
 
@@ -2157,6 +2182,7 @@ bool Project::Z()
             is_explicit_valid = false;
             is_financial_valid = false;
             D();
+			//message_handler("Model D Complete");
         }
         else
             message_handler("Using existing solar field design in objective function");
@@ -2216,9 +2242,11 @@ bool Project::Z()
 
 
         // Financial simulation
-        if (!is_financial_valid)
-            F();
-        else
+		if (!is_financial_valid)
+		{
+			F();
+		}
+		else
             message_handler("Using existing financial results in objective function");
 
 
@@ -2665,6 +2693,9 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
             }
         }
 
+		//collect single calculated values
+		ssc_data_set_number(m_ssc_data, "total_installed_cost", collect_ssc_data["total_installed_cost_v"].front());
+
         delete [] simthread;
 #endif
 	}
@@ -2678,7 +2709,6 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
 
 	ssc_soln["beam_clusters"] = ssc_soln["beam"];
 	ssc_soln["pricing_mult_clusters"] = ssc_soln["pricing_mult"];
-
 
 	//-- Read in full-year weather/price for results if necessary (if running discrete increments "beam", "tdry", and "pricing_mult" contain only values at the cluster exemplars)
 	ssc_soln["beam"] = collect_ssc_data["beam"];
@@ -2960,6 +2990,7 @@ void Project::initialize_cycle_model(PowerCycle &pc)
 		c_eff_cold, c_eff_hot);
 
 	pc.m_sim_params.num_scenarios = m_parameters.num_cycle_scenarios.as_integer();
+	pc.m_sim_params.steplength = 1.0 / m_parameters.disp_steps_per_hour.as_number();
 	
 	pc.Initialize(0.0);
 	
@@ -3164,7 +3195,7 @@ bool Project::integrate_cycle_and_simulation(PowerCycle &pc, const cycle_ssc_int
 		int nsteps = (int)ceil(current_horizon / steplength);
 		
 		
-		pc.SetSimulationParameters(0, nsteps, steplength, 1.e-8, false, m_parameters.num_cycle_scenarios.as_integer(), m_parameters.cycle_hourly_labor_cost.as_number(), true, true);
+		pc.SetSimulationParameters(0, nsteps, steplength, false, m_parameters.num_cycle_scenarios.as_integer(), m_parameters.cycle_hourly_labor_cost.as_number(), true, true);
 
 
 		//-- Initialize solutions for this model horizon 
@@ -3701,6 +3732,7 @@ void Project::PrintCurrentResults()
     message << "Results\n-------------------------------------------------\n";
     message << "Objective function value (PPA) [c/kWh]\t" << m_financial_outputs.ppa.as_number() << "\n";
     message << "Solar field area [m2]\t" << m_design_outputs.area_sf.as_number() << "\n";
+	message << "Number of heliostats\t" << m_design_outputs.number_heliostats.as_integer() << "\n";
     message << "Average soiling eff. [%]\t" << m_optical_outputs.avg_soil.as_number()*100. << "\n";
     message << "Number of wash crews\t" << m_optical_outputs.n_wash_vehicles.as_number() << "\n";
     message << "Average mirror degradation [%]\t" << m_optical_outputs.avg_degr.as_number()*100. << "\n";
@@ -3711,6 +3743,7 @@ void Project::PrintCurrentResults()
     message << "Average cycle capacity\t" << m_cycle_outputs.cycle_capacity_ave.as_number() << "\n";
     message << "Annual receiver starts\t" << m_simulation_outputs.annual_rec_starts.as_number() << "\n";
     message << "Annual revenue units\t" << m_simulation_outputs.annual_revenue_units.as_number() << "\n";
+	message << "Number of O&M staff\t" << m_solarfield_outputs.n_om_staff.as_number() << "\n";
     message << "Average field availability [%]\t" << m_solarfield_outputs.avg_avail.as_number()*100. << "\n";
     message << "Heliostat repair events per yr\t" << m_solarfield_outputs.n_repairs.as_number() << "\n";
     message_handler(message.str().c_str());
@@ -3722,4 +3755,12 @@ void Project::ClearStoredData()
     std::vector<void*> ptrs = GetDataObjects();
     for (size_t i = 0; i < ptrs.size(); i++)
         static_cast<hash_base*>(ptrs.at(i))->initialize();
+}
+
+void Project::AddToSSCContext(std::string varname, lk::vardata_t& dat)
+{
+    //update the local ssc context with a new parameter
+    lk::varhash_t temp;
+    temp[varname] = &dat;
+    lk_hash_to_ssc(m_ssc_data, temp);
 }

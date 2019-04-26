@@ -1,4 +1,7 @@
 #include <set>
+#include <future>
+//#include <chrono>
+//#include <thread>
 
 #include <lk/env.h>
 #include <ssc/sscapi.h>
@@ -129,6 +132,11 @@ void message_handler(const char *msg)
 	    MainWindow::Instance().Log(msg);
 }
 
+void iterplot_update_handler()
+{
+    MainWindow::Instance().UpdateIterPlot();
+}
+
 bool sim_progress_handler(float progress, const char *msg)
 {
 	MainWindow::Instance().SetProgress((int)(progress*100.), msg);
@@ -213,6 +221,22 @@ void _varinfo(lk::invoke_t &cxt)
         return;
     }
 
+}
+
+void _sscvar(lk::invoke_t &cxt)
+{
+    LK_DOC("set_ssc_par", "Set secondary project settings directly in SSC context (advanced user).", "(string:name, variant:value):none");
+
+    if (cxt.arg_count() != 2)
+    {
+        MainWindow::Instance().Log("The function set_ssc_par() requires two arguments.");
+        return;
+    }
+
+    std::string name = cxt.arg(0).as_string();
+    lk::vardata_t arg = cxt.arg(1);
+
+    MainWindow::Instance().GetProject()->AddToSSCContext(name, arg);
 }
 
 void _var(lk::invoke_t &cxt)
@@ -342,7 +366,7 @@ void _test(lk::invoke_t &cxt)
 	P->m_variables.solarm.assign( 2.4 );
 	P->m_variables.tshours.assign( 10. );
 	P->m_variables.degr_replace_limit.assign( .7 );
-	P->m_variables.om_staff.assign( 5 );
+	//P->m_variables.om_staff.assign( 5 );
 	//P->m_variables.n_wash_crews.assign( 3 );
     P->m_parameters.heliostat_repair_cost.assign(0.);
 	P->m_variables.N_panel_pairs.assign( 8 );
@@ -430,7 +454,7 @@ void _power_cycle(lk::invoke_t &cxt)
 	LK_DOC("power_cycle", "Simulate the power cycle capacity over time, "
 		"after accounting for maintenance and failures. "
 		"Table keys include: cycle_power, ambient_temperature, standby, "
-		"read_periods, sim_length, eps, output, num_scenarios, "
+		"read_periods, sim_length, output, num_scenarios, "
 		"cycle_hourly_labor_cost, stop_cycle_at_first_failure, "
 		"stop_cycle_at_first_repair, maintenance_interval, maintenance_duration, "
 		"downtime_threshold,steplength, hours_to_maintenance, power_output, "
@@ -646,10 +670,6 @@ void _power_cycle(lk::invoke_t &cxt)
 	if (h->find("steplength") != h->end())
 		steplength = h->at("steplength")->as_number();
 
-	double eps = 0;
-	if (h->find("eps") != h->end())
-		eps = h->at("eps")->as_number();
-
 	bool output = false;
 	if (h->find("output") != h->end())
 		output = h->at("output")->as_boolean();
@@ -660,7 +680,7 @@ void _power_cycle(lk::invoke_t &cxt)
 
 	double cycle_hourly_labor_cost = 50.;
 	if (h->find("cycle_hourly_labor_cost") != h->end())
-		eps = h->at("cycle_hourly_labor_cost")->as_number();
+		cycle_hourly_labor_cost = h->at("cycle_hourly_labor_cost")->as_number();
 
 	bool stop_at_first_failure = false;
 	if (h->find("stop_cycle_at_first_failure") != h->end())
@@ -674,7 +694,6 @@ void _power_cycle(lk::invoke_t &cxt)
 		read_periods,
 		sim_length,
 		steplength,
-		eps,
 		output,
 		num_scenarios,
 		cycle_hourly_labor_cost,
@@ -865,6 +884,11 @@ void _simulate_cycle(lk::invoke_t &cxt)
 }
 
 
+bool __opt_thread_helper(optimization* O)
+{
+    return O->run_optimization();
+}
+
 void _optimize(lk::invoke_t &cxt)
 {
     LK_DOC("optimize_system", 
@@ -877,9 +901,9 @@ void _optimize(lk::invoke_t &cxt)
     optimization Opt(P);
 
     //defaults
-    Opt.m_settings.convex_flag = false;
-    Opt.m_settings.max_delta = 1;
-    Opt.m_settings.trust = false;
+    Opt.m_settings.convex_flag = true;
+    Opt.m_settings.max_delta = 10;
+    Opt.m_settings.trust = true;
     //override if needed
     if (cxt.arg_count() > 0)
     {
@@ -912,8 +936,16 @@ void _optimize(lk::invoke_t &cxt)
 
     }
 
+    //Opt.run_optimization();
+    std::future<bool> res = std::async(__opt_thread_helper, &Opt);
+    
+    while (true)
+    {
+        if (res.wait_for(std::chrono::milliseconds(20)) == std::future_status::ready)
+            break;
 
-    Opt.run_optimization();
+        wxYieldIfNeeded();
+    }
 
     mw.UpdateDataTable();
     mw.SetProgress(0.);

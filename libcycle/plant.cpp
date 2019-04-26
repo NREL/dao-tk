@@ -100,7 +100,6 @@ void PowerCycle::SetSimulationParameters(
 	int read_periods,
 	int sim_length,
 	double steplength,
-	double epsilon,
 	bool print_output,
 	int num_scenarios,
 	double hourly_labor_cost,
@@ -127,7 +126,6 @@ void PowerCycle::SetSimulationParameters(
     m_sim_params.read_periods = read_periods;
     m_sim_params.sim_length = sim_length;
 	m_sim_params.steplength = steplength;
-	m_sim_params.epsilon = epsilon;
     m_sim_params.print_output = print_output;
 	m_sim_params.num_scenarios = num_scenarios;
 	m_sim_params.hourly_labor_cost = hourly_labor_cost;
@@ -517,13 +515,12 @@ void PowerCycle::WriteSimParamsFile()
 		);
 	std::ofstream pfile;
 	pfile.open(rng_filename);
-	pfile << "read_periods,sim_length,steplength,epsilon,print_output,"
+	pfile << "read_periods,sim_length,steplength,print_output,"
 		<< "num_scenarios,hourly_labor_cost,stop_at_first_repair,"
 		<< "stop_at_first_failure\n";
 	pfile << m_sim_params.read_periods << ","
 		<< m_sim_params.sim_length << ","
 		<< m_sim_params.steplength << ","
-		<< m_sim_params.epsilon << ","
 		<< m_sim_params.print_output << ","
 		<< m_sim_params.num_scenarios << ","
 		<< m_sim_params.hourly_labor_cost << ","
@@ -1027,12 +1024,11 @@ void PowerCycle::ReadSimParamsFile()
 	m_sim_params.read_periods = std::stoi(split_line[0]);
 	m_sim_params.sim_length = std::stoi(split_line[1]);
 	m_sim_params.steplength = std::stod(split_line[2]);
-	m_sim_params.epsilon = std::stod(split_line[3]);
-	m_sim_params.print_output = std::stoi(split_line[4]);
-	m_sim_params.num_scenarios = std::stoi(split_line[5]);
-	m_sim_params.hourly_labor_cost = std::stod(split_line[6]);
-	m_sim_params.stop_at_first_repair = std::stoi(split_line[7]);
-	m_sim_params.stop_at_first_failure = std::stoi(split_line[8]);
+	m_sim_params.print_output = std::stoi(split_line[3]);
+	m_sim_params.num_scenarios = std::stoi(split_line[4]);
+	m_sim_params.hourly_labor_cost = std::stod(split_line[5]);
+	m_sim_params.stop_at_first_repair = std::stoi(split_line[6]);
+	m_sim_params.stop_at_first_failure = std::stoi(split_line[7]);
 }
 
 void PowerCycle::ReadDayIDXFile()
@@ -1995,7 +1991,7 @@ int PowerCycle::NumberOfAirstreamsOnline()
 	return num_streams;
 }
 
-double PowerCycle::GetCondenserEfficiency(double temp)
+double PowerCycle::GetCondenserEfficiency(double)
 {
 	return 1.0;
 }
@@ -2120,7 +2116,7 @@ double PowerCycle::GetSaltPumpCapacity()
 			num_pumps_operational += 1;
 		}
 	}
-	if (m_current_cycle_state.salt_pump_switch_time > m_sim_params.epsilon)
+	if (m_current_cycle_state.salt_pump_switch_time > DBL_EPSILON)
 	{
 		return std::max(
 			0.0,
@@ -2142,7 +2138,7 @@ double PowerCycle::GetWaterPumpCapacity()
 			num_pumps_operational += 1;
 		}
 	}
-	if (m_current_cycle_state.water_pump_switch_time > m_sim_params.epsilon)
+	if (m_current_cycle_state.water_pump_switch_time > DBL_EPSILON)
 	{
 		return std::max(
 			0.0,
@@ -2165,7 +2161,7 @@ double PowerCycle::GetBoilerPumpCapacity()
 		}
 	}
 
-	if (m_current_cycle_state.boiler_pump_switch_time > m_sim_params.epsilon)
+	if (m_current_cycle_state.boiler_pump_switch_time > DBL_EPSILON)
 	{
 		return std::max(
 			0.0,
@@ -2504,7 +2500,7 @@ double PowerCycle::GetRampMult(double thermal_out)
 	thermal_out -- thermal power out for current time period
 	retval -- floating point multiplier
 	*/
-	if (thermal_out <= m_sim_params.epsilon)
+	if (thermal_out <= DBL_EPSILON)
 		return 1.0;
 	if (std::fabs(thermal_out - m_current_cycle_state.thermal_output) >= m_ramp_threshold_min)
 	{
@@ -2517,7 +2513,7 @@ double PowerCycle::GetRampMult(double thermal_out)
 
 }
 
-void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, std::string mode)
+void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, std::string mode, double duration)
 {
 
     /*
@@ -2543,13 +2539,13 @@ void PowerCycle::OperateComponents(double ramp_mult, int t, std::string start, s
 	{
 		if (m_components.at(i).IsOperational())
 			m_components.at(i).Operate(
-				m_sim_params.steplength, ramp_mult,
+				duration, ramp_mult,
 				t > m_results.period_of_last_repair[m_current_scenario], 
 				hazard_increase, mode
 			);
 		else
 		{
-			m_components.at(i).AdvanceDowntime(m_sim_params.steplength, mode);
+			m_components.at(i).AdvanceDowntime(duration, mode);
 		}
 	}
 }
@@ -2589,7 +2585,7 @@ std::string PowerCycle::GetStartMode(int t)
 	t -- time period index
 	*/
 	double power_out = m_dispatch.at("cycle_power").at(t);
-	if (power_out > m_sim_params.epsilon)
+	if (power_out > DBL_EPSILON)
 	{
 		if (IsOnline())
 			return "None";
@@ -2610,10 +2606,10 @@ std::string PowerCycle::GetOperatingMode(int t)
 	*/
 	double power_out = m_dispatch.at("cycle_power").at(t);
 	double standby = m_dispatch.at("standby").at(t);
-	if (power_out > m_sim_params.epsilon)
+	if (power_out > DBL_EPSILON)
 	{
 		if (IsOnline())
-			if (m_current_cycle_state.time_online <= 1.0 - m_sim_params.epsilon)
+			if (m_current_cycle_state.time_online <= 1.0 - DBL_EPSILON)
 				return "OF"; //in the first hour of power cycle operation
 			else
 				return "OO"; //ongoing (>1 hour) power cycle operation
@@ -2622,7 +2618,7 @@ std::string PowerCycle::GetOperatingMode(int t)
 	else if (standby >= 0.5)
 	{
 		if (IsOnStandby())
-			if (m_current_cycle_state.time_in_standby <= 1.0 - m_sim_params.epsilon)
+			if (m_current_cycle_state.time_in_standby <= 1.0 - DBL_EPSILON)
 				return "SF"; //in first hour of standby
 			else
 				return "SO"; // ongoing standby (>1 hour)
@@ -2724,8 +2720,8 @@ int PowerCycle::FirstPeriodOfDifference(
 	for (int i = 0; i < m_sim_params.sim_length; i++)
 	{
 		if (
-			std::abs(cycle_efficiencies.at(i) - m_results.cycle_efficiency[m_current_scenario].at(i)) > m_sim_params.epsilon ||
-			std::abs(cycle_capacities.at(i) - m_results.cycle_capacity[m_current_scenario].at(i)) > m_sim_params.epsilon
+			std::abs(cycle_efficiencies.at(i) - m_results.cycle_efficiency[m_current_scenario].at(i)) > DBL_EPSILON ||
+			std::abs(cycle_capacities.at(i) - m_results.cycle_capacity[m_current_scenario].at(i)) > DBL_EPSILON
 			)
 		{
 			return i;
@@ -2777,7 +2773,7 @@ void PowerCycle::RunDispatch()
 		SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
 		std::string start = GetStartMode(t);
 		std::string mode = GetOperatingMode(t);
-		if (m_cycle_capacity < m_sim_params.epsilon)
+		if (m_cycle_capacity < DBL_EPSILON)
 		{
 			power_output = 0.0;
 			mode = "OFF";
@@ -2791,7 +2787,7 @@ void PowerCycle::RunDispatch()
 			SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
 			//if the cycle Capacity is set to zero, this means the plant is in maintenace
 			//or a critical failure has occurred, so shut the plant down.
-			if (m_cycle_capacity < m_sim_params.epsilon)
+			if (m_cycle_capacity < DBL_EPSILON)
 			{
 				power_output = 0.0;
 				mode = "OFF";
@@ -2810,7 +2806,7 @@ void PowerCycle::RunDispatch()
 				PlantMaintenanceShutdown(t, false, true, GetMaxComponentDowntime());
 			}
 			SetCycleCapacityAndEfficiency(m_dispatch.at("ambient_temperature").at(t));
-			if (m_cycle_capacity  <= 1.0 - m_sim_params.epsilon)
+			if (m_cycle_capacity  <= 1.0 - DBL_EPSILON)
 			{
 				power_output = std::min(power_output, m_cycle_capacity*m_current_cycle_state.capacity);
 				thermal_output = std::min(thermal_output, m_cycle_capacity*m_current_cycle_state.thermal_capacity);
@@ -2964,14 +2960,35 @@ void PowerCycle::OperatePlant(double power_out,
 		m_current_cycle_state.time_in_standby = m_sim_params.steplength;
 		m_current_cycle_state.downtime = 0.0;
 		m_current_cycle_state.time_online = 0.0;
+		if (m_sim_params.steplength >= 1.0 + DBL_EPSILON)
+		{
+			OperateComponents(ramp_mult, t, start, "SS", 1.0);
+			OperateComponents(ramp_mult, t, start, "SO", m_sim_params.steplength-1.0);
+		}
+		else
+		{
+			OperateComponents(ramp_mult, t, start, "SS", m_sim_params.steplength);
+		}
 	}
 	else if (mode == "SF" || mode == "SO") //standby - first hour; standby ongoing (>1 hour)
 	{
 		m_current_cycle_state.is_online = false;
 		m_current_cycle_state.is_on_standby = true;
-		m_current_cycle_state.time_in_standby += m_sim_params.steplength;
 		m_current_cycle_state.downtime = 0.0;
 		m_current_cycle_state.time_online = 0.0;
+		if (m_current_cycle_state.time_in_standby <= 1.0 - DBL_EPSILON &&
+			m_current_cycle_state.time_in_standby + m_sim_params.steplength >= 1.0 + DBL_EPSILON)
+		{
+			OperateComponents(ramp_mult, t, start, "SF", 
+				1.0 - m_current_cycle_state.time_in_standby);
+			OperateComponents(ramp_mult, t, start, "SO", 
+				m_current_cycle_state.time_in_standby + m_sim_params.steplength - 1.0);
+		}
+		else 
+		{
+			OperateComponents(ramp_mult, t, start, mode, m_sim_params.steplength);
+		}
+		m_current_cycle_state.time_in_standby += m_sim_params.steplength;
 	}
 	else if (mode == "OS") //online - start
 	{
@@ -2981,6 +2998,15 @@ void PowerCycle::OperatePlant(double power_out,
 		m_current_cycle_state.downtime = 0.0;
 		m_current_cycle_state.time_online = m_sim_params.steplength;
 		m_current_cycle_state.hours_to_maintenance -= m_sim_params.steplength;
+		if (m_sim_params.steplength >= 1.0 + DBL_EPSILON)
+		{
+			OperateComponents(ramp_mult, t, start, "OS", 1.0);
+			OperateComponents(ramp_mult, t, start, "OO", m_sim_params.steplength - 1.0);
+		}
+		else
+		{
+			OperateComponents(ramp_mult, t, start, "OS", m_sim_params.steplength);
+		}
 	}
 	else if (mode == "OF" || mode == "OO") //standby - first hour; standby ongoing (>1 hour)
 	{
@@ -2988,12 +3014,24 @@ void PowerCycle::OperatePlant(double power_out,
 		m_current_cycle_state.is_on_standby = false;
 		m_current_cycle_state.time_in_standby = 0.0;
 		m_current_cycle_state.downtime = 0.0;
+		if (m_current_cycle_state.time_online <= 1.0 - DBL_EPSILON &&
+			m_current_cycle_state.time_online + m_sim_params.steplength >= 1.0 + DBL_EPSILON)
+		{
+			OperateComponents(ramp_mult, t, start, "OF",
+				1.0 - m_current_cycle_state.time_online);
+			OperateComponents(ramp_mult, t, start, "OO",
+				m_current_cycle_state.time_online + m_sim_params.steplength - 1.0);
+		}
+		else
+		{
+			OperateComponents(ramp_mult, t, start, mode, m_sim_params.steplength);
+		}
 		m_current_cycle_state.time_online += m_sim_params.steplength;
 		m_current_cycle_state.hours_to_maintenance -= m_sim_params.steplength;
 	}
 	else
 		throw std::runtime_error("invalid operating mode.");
-	OperateComponents(ramp_mult, t, start, mode); 
+	
 
 }
 
@@ -3245,7 +3283,7 @@ double PowerCycle::GetExpectedStartsToNextFailure()
 			}
 		}
 	}
-	if (1.0 - p < m_sim_params.epsilon)
+	if (1.0 - p < DBL_EPSILON)
 	{
 		return INFINITY;
 	}
@@ -3261,7 +3299,7 @@ void PowerCycle::AgePlant(double age)
 	year of age.
 	*/
 	//skip this if age = 0.0
-	if (age < m_sim_params.epsilon)
+	if (age < DBL_EPSILON)
 	{
 		return;
 	}
@@ -3297,7 +3335,7 @@ void PowerCycle::AgePlant(double age)
 
 	//stop to repair any components that have still failed
 	double m = GetMaxComponentDowntime();
-	if (m > m_sim_params.epsilon)
+	if (m > DBL_EPSILON)
 	{
 		m_sim_params.steplength = 2 * m;
 		AdvanceDowntime("OFF");

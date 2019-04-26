@@ -64,6 +64,7 @@ static lk::fcall_t *daotk_functions()
         _optimize,
 		_var,
         _varinfo,
+        _sscvar,
 		0 };
 
 	return (lk::fcall_t*)st;
