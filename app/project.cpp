@@ -1791,7 +1791,7 @@ bool Project::O()
 	od.m_wc_results = wc.m_results;
 	od.m_solar_data = wc.m_solution_data;
 	od.m_settings.annual_profit_per_kwh = (
-		wc.m_settings.profit_per_kwh / wc.m_settings.annual_multiplier
+		wc.m_settings.profit_per_kwh / wc.m_settings.annual_rev_multiplier
 		);
 	//use a one-year warmup period, or half a year if the sim length is one year. 
 	if (m_parameters.finance_period.as_integer() > 1)

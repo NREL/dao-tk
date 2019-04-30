@@ -115,7 +115,7 @@ void WashCrewOptimizer::ReadSolarDataFromFiles()
 	m_solar_data.y_pos = y;
 	m_solar_data.mirror_output = output;
 	m_solar_data.num_mirrors_by_group = mirrors_by_group;
-	m_solar_data.num_mirror_groups = mirrors_by_group.size();
+	m_solar_data.num_mirror_groups = (int)mirrors_by_group.size();
 }
 
 void WashCrewOptimizer::ReadWeatherData()
@@ -235,9 +235,10 @@ void WashCrewOptimizer::ReadInputsFile()
 	m_settings.system_efficiency = inputs["system_efficiency"];
 	m_settings.num_years = inputs["num_years"];
 	m_settings.price_per_kwh = inputs["price_per_kwh"];
-	m_settings.max_num_crews = inputs["max_num_crews"];
+	m_settings.max_num_crews = (int)inputs["max_num_crews"];
 	m_settings.heliostat_size = inputs["helio_size"];
-	m_settings.soiling_rate = inputs["soiling_rate"];
+	LinearSoilingFunc f(inputs["soiling_rate"] / 24.);
+	m_func = &f;
 	m_settings.seasonal_cost_multiple = inputs["seasonal_multiple"];
 
 }
@@ -407,7 +408,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 	(provided as input) to wash once.
 	*/
 	m_solution_data = solar_field_data();
-	m_solution_data.scale = hours * (m_settings.wash_rate / m_settings.heliostat_size);
+	m_solution_data.scale = (int)(hours * (m_settings.wash_rate / m_settings.heliostat_size));
 	m_solution_data.groupings.clear();
 	for (int t = 0; t < m_settings.periods.size(); t++)
 		m_results.solution_assignments[t] = {};
@@ -456,7 +457,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 
 	//Create a vector consisting of all the elemnents of the set 
 	//(which are unique and ordered).
-	m_solution_data.num_mirror_groups = assignment_breaks.size() - 1;
+	m_solution_data.num_mirror_groups = (int)assignment_breaks.size() - 1;
 	std::vector<double> x(m_solution_data.num_mirror_groups, 0);
 	std::vector<int> y(m_solution_data.num_mirror_groups, 0);
 	m_solution_data.num_mirrors_by_group.assign(y.begin(), y.end());
@@ -465,7 +466,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 	m_solution_data.x_pos.assign(x.begin(), x.end());
 	m_solution_data.y_pos.assign(x.begin(), x.end());
 	int idx = 0;
-	int m;
+	int m = 0;
 	for (int c : assignment_breaks)
 	{
 		if (c != 0)
@@ -501,11 +502,12 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 				cumulative_mirrors += solar_mirrors;
 				solution_mirrors -= solar_mirrors;
 				solar_data_idx++;
+				if (solar_data_idx < m_solar_data.num_mirror_groups)
 				solar_mirrors = m_solar_data.num_mirrors_by_group[solar_data_idx];
 			}
 		}
 		m_solution_data.mirror_output[solution_idx] = sol_group_output;
-		for (size_t t = 0; t < m_settings.periods.size() - 1; t++)
+		for (int t = 0; t < (int)m_settings.periods.size() - 1; t++)
 		{
 			if (
 				std::find(
@@ -538,9 +540,7 @@ void WashCrewOptimizer::CalculateRevenueAndCosts()
 	/*
 	Calculates the NPV of the revenue generated per heliostat, as well as the 
 	NPV of the cost per crew, according to the settings and solar data 
-	provided as input.  Revenue per mirror and cost per crew are stored in
-	m_settings.revenuw_per_mirror and m_settings.total_cost_per_crew,
-	respectively.
+	provided as input. 
 	*/
 	double annual_labor_cost = (
 		m_settings.hourly_cost_per_crew * m_settings.crew_hours_per_week * (365./7.)
@@ -573,6 +573,8 @@ void WashCrewOptimizer::CalculateRevenueAndCosts()
 		m_settings.price_per_kwh * m_settings.system_efficiency 
 		* m_settings.operating_margin * revenue_multiplier
 		);
+
+	m_settings.annual_rev_multiplier = revenue_multiplier;  //used later in optical simulation
 
 }
 
@@ -651,7 +653,7 @@ double WashCrewOptimizer::GetAssignmentCost(int i, int j)
 	double mirrors_per_hour = (m_settings.wash_rate / m_settings.heliostat_size);
 	double time = GetNumberOfMirrors(i, j) * (168. / m_settings.crew_hours_per_week) / mirrors_per_hour; //in hours between cleanings
 
-	return m_settings.profit_per_kwh * total_output * m_func->Evaluate(time);// + m_settings.total_cost_per_crew;
+	return m_settings.profit_per_kwh * total_output * m_func->Evaluate(time);
 }
 
 double WashCrewOptimizer::EvaluatePath(std::vector<int> path)
@@ -743,7 +745,7 @@ std::vector<int> WashCrewOptimizer::GetEqualAssignmentPath(int num_crews)
 	std::vector<int> path = {0};
 	for (int j = 1; j <= num_crews; j++)
 	{
-		path.push_back(round(j * (float)(m_condensed_data.num_mirror_groups) / num_crews));
+		path.push_back(round((float)j * (float)(m_condensed_data.num_mirror_groups) / (float)num_crews));
 	}
 	return path;
 }
@@ -860,7 +862,7 @@ std::vector<int> WashCrewOptimizer::RetracePath(
 		parent = parents[i*row_length + parent];
 	}
 
-	for (int i = path.size()-1; i >= 0; i--)
+	for (int i = (int)path.size()-1; i >= 0; i--)
 		rev_path.push_back(path.at(i));
 
 	return rev_path;
@@ -877,7 +879,7 @@ void WashCrewOptimizer::CalculateSolutionObjective(std::unordered_map<std::strin
 	for (size_t t = 0; t < m_settings.periods.size()-1; t++)
 	{
 		crews = m_results.num_crews_by_period[t];
-		cost += rev_losses[int_pair_to_string(crews, t+1)];
+		cost += rev_losses[int_pair_to_string(crews, (int)t+1)];
 		ft_crews = std::min(crews, ft_crews);
 		vehicles = std::max(crews, vehicles);
 	}
@@ -1006,7 +1008,7 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 			//use the equal-assignment path if specified; otherwise, use DP output.
 			
 			m_results.assignments_by_crews[i] = {0};
-			for (int c = 0; c < path.size()-1; c++)
+			for (int c = 0; c < (int)path.size()-1; c++)
 				m_results.assignments_by_crews[i].push_back(
 					GetNumberOfMirrors(path[c], path[c + 1])
 				);

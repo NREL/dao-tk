@@ -66,16 +66,13 @@ struct wash_crew_settings
 	double wash_rate; //in m^2 per hour
 	double heliostat_size; //m^2
 	double crew_hours_per_week;
-	double crew_hours_per_day;
-	double total_cost_per_crew;  //NPV of labor and capital costs
 	double system_efficiency; //assumed efficiency including receiver, TES losses, power cycle
 	double profit_per_kwh;  //per kwh dni sent to receiver, assuming 100% mirror efficiency
 	double operating_margin; //used in calculating profit losses
 	double num_years;      //years of operation to calculate NPV of annual costs
 	double price_per_kwh;  //assumed average for grid output
-	double annual_multiplier;
+	double annual_rev_multiplier;
 	double seasonal_cost_multiple;
-	double soiling_rate;
 	double vehicle_cost;
 	
 	bool use_uniform_assignment;

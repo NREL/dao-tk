@@ -60,13 +60,12 @@ wash_crew_settings::wash_crew_settings()
 	wash_rate = 3677.885;
 	heliostat_size = 115;  //crescent dunes site
 	crew_hours_per_week = 0.;
-	total_cost_per_crew = 0.;  //NPV
 	system_efficiency = 0.;
 	operating_margin = 1.;
 	profit_per_kwh = 0.;  //assuming 100% efficiency
 	num_years = 0.;   //years of operation to calculate NPV of annual costs
 	price_per_kwh = 0.;  //assumed average (no multiplier)
-	annual_multiplier = 0.;
+	annual_rev_multiplier = 0.;
 	vehicle_life = 10;
 	vehicle_cost = 100000.;
 	seasonal_cost_multiple = 1.1;
@@ -85,12 +84,11 @@ void wash_crew_settings::print()
 		<< "wash_rate" << ": " << wash_rate << "\n"
 		<< "heliostat_size" << ": " << heliostat_size << "\n"
 		<< "crew_hours_per_week" << ": " << crew_hours_per_week << "\n"
-		<< "total_cost_per_crew" << ": " << total_cost_per_crew << "\n"
 		<< "system_efficiency" << ": " << system_efficiency << "\n"
 		<< "operating_margin" << ": " << operating_margin << "\n"
 		<< "num_years" << ": " << num_years << "\n"
 		<< "price_per_kwh" << ": " << price_per_kwh << "\n"
-		<< "annual_multiplier" << ": " << annual_multiplier << "\n"
+		<< "annual_rev_multiplier" << ": " << annual_rev_multiplier << "\n"
 		<< "vehicle_life" << ": " << vehicle_life << "\n"
 		<< "vehicle_cost" << ": " << vehicle_cost << "\n"
 		<< "seasonal_cost_multiple" << ": " << seasonal_cost_multiple << "\n"

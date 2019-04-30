@@ -212,7 +212,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 
 	//scale the problem
 	int n_helio_s, t_cycle, sim_hr;
-	size_t period_idx;
+	size_t period_idx = 0;
 	double wash_units_per_hour_s;
 	//double problem_scale = 1.;
 	//double hscale = 250.;
@@ -351,19 +351,19 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 
 			//update the crew schedule only if the number of crews changes
 			if (n_active_crews != (size_t)m_wc_results.num_crews_by_period[period_idx])
-			for (size_t c = 0; c < m_settings.n_wash_crews; c++)
+			for (size_t crew_idx = 0; crew_idx < m_settings.n_wash_crews; crew_idx++)
 			{
-				if (c < n_active_crews)
+				if (crew_idx < n_active_crews)
 				{
-					crews.at(c).is_active = true;
-					crews.at(c).start_heliostat = m_wc_results.solution_assignments[period_idx].at(c);
-					crews.at(c).end_heliostat = m_wc_results.solution_assignments[period_idx].at(c+1);
+					crews.at(crew_idx).is_active = true;
+					crews.at(crew_idx).start_heliostat = (int)m_wc_results.solution_assignments[period_idx].at(crew_idx);
+					crews.at(crew_idx).end_heliostat = (int)m_wc_results.solution_assignments[period_idx].at(crew_idx +1);
 				}
 				else
 				{
-					crews.at(c).is_active = false;
-					crews.at(c).hours_today = 0.;
-					crews.at(c).hours_this_week = 0.;
+					crews.at(crew_idx).is_active = false;
+					crews.at(crew_idx).hours_today = 0.;
+					crews.at(crew_idx).hours_this_week = 0.;
 				}
 			}
 		}
@@ -548,7 +548,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 
 
 	//fill in the return data
-	int replacements_made = 0;
+	float replacements_made = 0.;
 	for (size_t s = 0; s < crews.size(); s++)
 	{
 		//hours_worked += crews.at(s).hours_worked;
@@ -567,13 +567,13 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 
 	for (int i = 0; i<m_settings.n_hr_sim; i++)
 	{
-		float s = soil.at(i);
-		float d = degr.at(i);
+		float s = (float)soil.at(i);
+		float d = (float)degr.at(i);
 
 		m_results.soil_schedule[i] = s;
 		m_results.degr_schedule[i] = d;
-		m_results.repl_schedule[i] = repr.at(i);
-		m_results.repl_total[i] = repr_cum.at(i);
+		m_results.repl_schedule[i] = (float)repr.at(i);
+		m_results.repl_total[i] = (float)repr_cum.at(i);
 
 		m_results.avg_degr += d;
 		m_results.avg_soil += s;
