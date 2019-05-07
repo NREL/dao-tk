@@ -7,11 +7,12 @@ Energy -- Energy Efficiency and Renewable Energy grant DE-EE000030338 ("Concurre
 cost and expected O&M").
 
 This work is the result of a collaboration between researchers and industry, including: 
-* National Renewable Energy Laboratory (Prime awardee, Dr. Mike Wagner lead) 
-* Colorado School of Mines, Prof. Alexandra Newman 
-* Northwestern University, Prof. David Morton 
-* Argonne National Laboratory, Dr. Sven Leyffer 
-* SolarReserve(TM), Charles Diep and Jolyon Dent
+* National Renewable Energy Laboratory 
+* Colorado School of Mines
+* Northwestern University
+
+Previous contributors include:
+* Argonne National Laboratory
 
 For project documentation, please vist the [DAO-Tk wiki](https://github.com/NREL/dao-tk/wiki).
 
@@ -52,15 +53,15 @@ These are the general quick steps you need to follow to set up your computer for
 
 5. As you did for wxWidgets, for each of the following projects, clone (download) the repository, build the project, and then (Windows only) create an environment variable pointing to the project folder. Build the projects in the following order, and assign the environment variable for each project before you build the next one:
 
-<table>
-<tr><th>Project</th><th>Repository URL</th><th>Windows Environment Variable</th></tr>
-<tr><td>wxWidgets</td><td>https://www.wxwidgets.org/downloads</td><td>WXMSW3</td></tr>
-<tr><td>LK</td><td>https://github.com/NREL/lk</td><td>LKDIR</td></tr>
-<tr><td>WEX</td><td>https://github.com/NREL/wex</td><td>WEXDIR</td></tr>
-<tr><td>Google Test</td><td>https://github.com/google/googletest</td><td>GTEST</td></tr>
-<tr><td>SSC</td><td>https://github.com/mjwagner2/ssc<br><i>use the daotk-develop branch</i></td><td>SSCDIR</td></tr>
-<tr><td>DAO-Tk</td><td>https://github.com/NREL/DAO-Tk</td><td></td></tr>
-</table>
+| Project | Windows Environment Variable |
+|---------|------------------|
+| [wxWidgets](https://www.wxwidgets.org/downloads) | WXMSW3 |
+| [LK](https://github.com/NREL/lk) | LKDIR |
+| [WEX](https://github.com/NREL/wex) | WEXDIR |
+| [Google Test](https://github.com/google/googletest) | GTEST |
+| [SSC](https://github.com/mjwagner2/ssc) <br><i>use the daotk-develop branch</i> | SSCDIR |
+| [DAO-Tk](https://github.com/NREL/DAO-Tk) |  |
+
 
 6. After successfully building all repositories, copy the SSC shared or DLL object from the SSC build folder into the platform-specific DAO-Tk deploy folder. For example, on Linux:
 ```
@@ -88,22 +89,30 @@ DAO-Tk's open source code is copyrighted by the U.S. Department of Energy -- Ene
 
 The code in this project is organized as follows:
 
-<table>
-<tr><th>Folder</th><th>Description</th></tr>
-<tr><td>./app</td><td>Source code for the user interface and scripting routines</td></tr>
-<tr><td>./build_linux</td><td>Build and makefiles for linux platforms</td></tr>
-<tr><td>./build_vs2017</td><td>Build and project files for VisualStudio 2017 (v15)</td></tr>
-<tr><td>./deploy</td><td>Files contained in the distribution package</td></tr>
-<tr><td>./deploy/samples</td><td>Sample project and script files</td></tr>
-<tr><td>./deploy/libraries</td><td>Libraries used by the models</td></tr>
-<tr><td>./deploy/site_data</td><td>Site data used by the models</td></tr>
-<tr><td>./libcluster</td><td>Source code for the data clustering model</td></tr>
-<tr><td>./libcycle</td><td>Source code for the cycle availability and failure model</td></tr>
-<tr><td>./libclearsky</td><td>Source code for clear sky irradiance model</td></tr>
-<tr><td>./liboptimize</td><td>Source code and libraries for the nonlinear design optimization problem</td></tr>
-<tr><td>./liboptical</td><td>Source code for the optical degradation and soiling model</td></tr>
-<tr><td>./libsolar</td><td>Source code for the solar field failure model</td></tr>
-<tr><td>./rapidjson</td><td>JSON read-write library (see note)</td></tr>
-</table>
+| Folder				| Description |
+|-------------------|------------------------------------|
+| ./app | Source code for the user interface and scripting routines |
+| ./build\_linux | Build and makefiles for linux platforms |
+| ./build\_vs2017 | Build and project files for VisualStudio 2017 (v15) |
+| ./deploy | Files contained in the distribution package |
+| ./deploy/samples | Sample project and script files |
+| ./deploy/rs | Libraries used by the models |
+| ./deploy/samples | Sample files and LK scripts |
+| ./libclearsky | Source code for clear sky irradiance model |
+| ./libcluster | Source code for the data clustering model |
+| ./libcycle | Source code for the cycle availability and failure model |
+| ./liboptical | Source code for the optical degradation and soiling model |
+| ./liboptimize | Source code and libraries for the nonlinear design optimization problem |
+| ./libsolar | Source code for the solar field failure model |
 
-Source code for the JSON library credit [Tencent/rapidjson](https://github.com/Tencent/rapidjson).
+
+## External libraries
+
+DAO-Tk utilizes the following open-source libraries:
+
+| Project | Version | Usage |
+|---------|---------|-------|
+| [RapidJSON](https://github.com/Tencent/rapidjson)  	| v1.1.0 	| JSON read-write library for project files |
+| [Eigen](http://eigen.tuxfamily.org)                 				| v3.3.5 	| Eigen is a C++ template library for linear algebra - matrices, vectors, numerical solvers, and related algorithms. |
+| [NLOpt](https://nlopt.readthedocs.io/en/latest/)    		| v2.5   	| NLopt is a free/open-source library for nonlinear optimization, providing a common interface for a number of different free optimization routines available online as well as original implementations of various other algorithms. |
+| [lp\_solve](http://lpsolve.sourceforge.net/5.5/)     		| v5.5.2.5 | lp\_solve is a free linear (integer) programming solver based on the revised simplex method and the Branch-and-bound method for the integers. |
