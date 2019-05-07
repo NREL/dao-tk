@@ -3,7 +3,7 @@
 This project develops a toolkit for the design, analysis, and optimization of concentrating solar power 
 (CSP) systems, including optimization of both physical design variables and operations and maintenance 
 (O&M) activity. The software is derived and actively developed under funding from the U.S. Department of 
-Energy -- Energy Efficiency and Renewable Energy grant DE-EE000030338 ("Concurrent optimization of capital 
+Energy -- Energy Efficiency and Renewable Energy grant DE-EE00034245 ("Real-time operations optimization software") and was previously funded under grant DE-EE000030338 ("Concurrent optimization of capital 
 cost and expected O&M").
 
 This work is the result of a collaboration between researchers and industry, including: 
