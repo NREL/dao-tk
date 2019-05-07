@@ -33,6 +33,8 @@ struct opt_settings
 	int seed;
 
 	std::vector<int> periods;
+
+	void print();
 }; 
 
 struct opt_heliostat
