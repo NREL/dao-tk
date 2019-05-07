@@ -286,11 +286,6 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		}
 	}
 
-	std::vector< double > soil(m_settings.n_hr_sim + m_settings.n_hr_warmup);
-	std::vector< double > degr(m_settings.n_hr_sim + m_settings.n_hr_warmup);
-	std::vector< int > repr(m_settings.n_hr_sim + m_settings.n_hr_warmup);
-	std::vector< double > repr_cum(m_settings.n_hr_sim + m_settings.n_hr_warmup);
-
 	//random generators
 	unsigned seed1 = m_settings.seed; 
 	WELLFiveTwelve soil_gen(seed1 % 100);
@@ -302,6 +297,11 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 	GammaProcessDist degr_dist;
 	degr_dist = GammaProcessDist(0, refl_c, 4 * m_settings.degr_loss_per_hr, "linear");
 
+	//outputs setup
+	m_results.soil_schedule = new float[m_settings.n_hr_sim];
+	m_results.degr_schedule = new float[m_settings.n_hr_sim];
+	m_results.repl_schedule = new float[m_settings.n_hr_sim];
+	m_results.repl_total = new float[m_settings.n_hr_sim];
 	
 	
 	//---------
@@ -348,10 +348,8 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 				period_idx = 0;
 			else
 				period_idx++;
-
-			//update the crew schedule only if the number of crews changes
-			if (n_active_crews != (size_t)m_wc_results.num_crews_by_period[period_idx])
-			for (size_t crew_idx = 0; crew_idx < m_settings.n_wash_crews; crew_idx++)
+			n_active_crews = m_wc_results.num_crews_by_period[period_idx];
+			for (int crew_idx = 0; crew_idx < m_settings.n_wash_crews; crew_idx++)
 			{
 				if (crew_idx < n_active_crews)
 				{
@@ -539,10 +537,10 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		if (t >= m_settings.n_hr_warmup)
 		{
 			sim_hr = t - m_settings.n_hr_warmup;
-			soil.at(sim_hr) = soil_ave / m_solar_data.total_mirror_output;
-			degr.at(sim_hr) = refl_ave / m_solar_data.total_mirror_output;
-			repr.at(sim_hr) = n_replacements_t;
-			repr_cum.at(sim_hr) = n_replacements_cumu;
+			m_results.soil_schedule[sim_hr] = soil_ave / m_solar_data.total_mirror_output;
+			m_results.degr_schedule[sim_hr] = refl_ave / m_solar_data.total_mirror_output;
+			m_results.repl_schedule[sim_hr] = n_replacements_t;
+			m_results.repl_total[sim_hr] = n_replacements_cumu;
 		}
 	}
 
@@ -557,26 +555,14 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 
 	m_results.n_replacements = replacements_made;
 
-	m_results.soil_schedule = new float[m_settings.n_hr_sim];
-	m_results.degr_schedule = new float[m_settings.n_hr_sim];
-	m_results.repl_schedule = new float[m_settings.n_hr_sim];
-	m_results.repl_total = new float[m_settings.n_hr_sim];
-
 	m_results.avg_degr = 0.;
 	m_results.avg_soil = 0.;
 
+	//calculate average soiling, degradation
 	for (int i = 0; i<m_settings.n_hr_sim; i++)
 	{
-		float s = (float)soil.at(i);
-		float d = (float)degr.at(i);
-
-		m_results.soil_schedule[i] = s;
-		m_results.degr_schedule[i] = d;
-		m_results.repl_schedule[i] = (float)repr.at(i);
-		m_results.repl_total[i] = (float)repr_cum.at(i);
-
-		m_results.avg_degr += d;
-		m_results.avg_soil += s;
+		m_results.avg_degr += m_results.degr_schedule[i];
+		m_results.avg_soil += m_results.soil_schedule[i];
 	}
 
 	m_results.avg_degr /= (float)m_settings.n_hr_sim;
@@ -604,8 +590,8 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		//hourly data
 		for (int t = 0; t<m_settings.n_hr_sim; t++)
 		{
-			ofs << t << "," << soil.at(t) << "," << degr.at(t) << "," << soil.at(t)*degr.at(t) << ","
-				<< repr.at(t) << "," << repr_cum.at(t) << "\n";
+			ofs << t << "," << m_results.soil_schedule[t] << "," << m_results.degr_schedule[t] << "," << m_results.soil_schedule[t]* m_results.degr_schedule[t] << ","
+				<< m_results.repl_schedule[t] << "," << m_results.repl_total[t] << "\n";
 		}
 
 		ofs.close();

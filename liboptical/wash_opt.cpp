@@ -411,8 +411,8 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 	m_solution_data.scale = (int)(hours * (m_settings.wash_rate / m_settings.heliostat_size));
 	m_solution_data.groupings.clear();
 	for (int t = 0; t < m_settings.periods.size(); t++)
-		m_results.solution_assignments[t] = {};
-	
+		m_results.solution_assignments[t] = {0};
+	m_solution_data.total_mirror_output = m_solar_data.total_mirror_output;
 
 	//detremine the breakpoints that may be the end of a crew's assignment.
 	std::set<int> assignment_breaks = {0};
@@ -441,6 +441,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 						m_results.assignments_by_crews[m_results.num_crews_by_period[t]].at(c+1)
 					)));
 
+	/*
 	for (size_t t = 0; t < m_settings.periods.size()-1; t++)
 	{
 		std::cerr << "Period " << t << " mirrors: ";
@@ -450,7 +451,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 		}
 		std::cerr << "\n";
 	}
-
+	*/
 	//Add the hourly breaks.
 	for (int c = 0; c <= m_solar_data.num_mirrors; c += m_solution_data.scale)
 		assignment_breaks.insert(c);
@@ -526,13 +527,6 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 		m_solution_data.y_pos[solution_idx] = 1.;
 		m_solution_data.names[solution_idx] = solution_idx+1;
 	}
-
-	for (int solution_idx = 0; solution_idx < m_solution_data.num_mirror_groups; solution_idx++)
-	{
-		std::cerr << m_solution_data.num_mirror_groups << "  "
-			<< m_solution_data.mirror_output[solution_idx] << "\n";
-	}
-		//std::cerr << m_solution_data.names[solution_idx] = solution_idx;
 }
 
 void WashCrewOptimizer::CalculateRevenueAndCosts()
