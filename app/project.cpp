@@ -3699,8 +3699,12 @@ bool Project::integrate_cycle_and_clusters(const std::unordered_map<std::string,
 		int npts = (horizon / 24) * nperday;
 		inputs.initial_ssc_soln.clear();
 		for (it = initial_soln.begin(); it != initial_soln.end(); it++)
-			inputs.initial_ssc_soln[it->first].assign(it->second.begin() + j, it->second.begin() + j + npts);
-
+		{
+			if (it->first == "total_installed_cost_v")
+				inputs.initial_ssc_soln[it->first].assign(it->second.begin(), it->second.begin() + 1);
+			else 
+				inputs.initial_ssc_soln[it->first].assign(it->second.begin() + j, it->second.begin() + j + npts);
+		}
 		// run 'integrate_cycle_and_simulation' for this time block starting from the existing solution (will not re-run ssc unless failures/repairs occur)
 		inputs.initial_state = final_state;
         sim_progress_handler((double)g / (double)ng, "Simulating cycle availability");
