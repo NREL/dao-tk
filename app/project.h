@@ -575,6 +575,8 @@ struct parameters : public hash_base
 	parameter cycle_hourly_labor_cost;
 	parameter avail_model_timestep;
     parameter forecast_gamma;
+	parameter convergence_tol_obj;
+	parameter convergence_tol_step;
     //vector-doubles
 	parameter c_ces;
 	parameter dispatch_factors_ts;

@@ -101,6 +101,8 @@ void parameters::initialize()
     cluster_ndays.set(                       2,                "cluster_ndays",      false,                       "Number of days per cluster",         "day",                          "Settings" );
     cluster_nprev.set(                       1,                "cluster_nprev",      false,                   "Number of cluster warm-up days",         "day",                          "Settings" );
     is_run_continuous.set(                true,            "is_run_continuous",      false,               "Run performance sim. as continuous",           "-",                          "Settings" );
+    convergence_tol_obj.set(             0.001,          "convergence_tol_obj",      false,     "Convergence tolerance for objective function",           "-",                          "Settings" );            
+    convergence_tol_step.set(            0.001,         "convergence_tol_step",      false,              "Convergence tolerance for step size",           "-",                          "Settings" );
 	std::string ca = "affinity_propagation";
     cluster_algorithm.set(                  ca,            "cluster_algorithm",      false );
 	std::vector<double> default_feature_wts = { 1.0, 0.5, 0.5, 0.25, 0.75, 0.5, 0.5, 0.5, 0.0 };
@@ -230,6 +232,8 @@ void parameters::initialize()
     (*this)["cluster_ndays"] = &cluster_ndays;
     (*this)["cluster_nprev"] = &cluster_nprev;
     (*this)["is_run_continuous"] = &is_run_continuous;
+	(*this)["convergence_tol_obj"] = &convergence_tol_obj;
+	(*this)["convergence_tol_step"] = &convergence_tol_step;
     (*this)["cluster_algorithm"] = &cluster_algorithm;
     (*this)["clustering_feature_weights"] = &clustering_feature_weights;
     (*this)["clustering_feature_divisions"] = &clustering_feature_divisions;

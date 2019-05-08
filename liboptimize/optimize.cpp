@@ -240,8 +240,9 @@ double optimization::run_continuous_subproblem()
     nlopt_set_upper_bounds(opt, ub);
     nlopt_set_min_objective(opt, continuous_objective_eval, this);
 
-    nlopt_set_ftol_rel(opt, .01);
-    nlopt_set_xtol_rel(opt, .001);
+    nlopt_set_ftol_rel(opt, m_project_ptr->m_parameters.convergence_tol_obj.as_number());
+	nlopt_set_xtol_rel(opt, m_project_ptr->m_parameters.convergence_tol_step.as_number());
+
     int res = nlopt_optimize(opt, x, &minf);
     
     if (res < 0)
