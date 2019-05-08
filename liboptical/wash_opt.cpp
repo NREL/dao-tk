@@ -440,18 +440,7 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 						m_results.assignments_by_crews[m_results.num_crews_by_period[t]].at(c),
 						m_results.assignments_by_crews[m_results.num_crews_by_period[t]].at(c+1)
 					)));
-
-	/*
-	for (size_t t = 0; t < m_settings.periods.size()-1; t++)
-	{
-		std::cerr << "Period " << t << " mirrors: ";
-		for (int c = 0; c <= m_results.num_crews_by_period[t]; c++)
-		{
-			std::cerr << m_results.assignments_by_crews[m_results.num_crews_by_period[t]].at(c) << ",";
-		}
-		std::cerr << "\n";
-	}
-	*/
+	
 	//Add the hourly breaks.
 	for (int c = 0; c <= m_solar_data.num_mirrors; c += m_solution_data.scale)
 		assignment_breaks.insert(c);
@@ -520,7 +509,6 @@ void WashCrewOptimizer::GroupSolutionMirrors(int hours)
 				)
 			{
 				m_results.solution_assignments[t].push_back(solution_idx == 0 ? 0 : solution_idx + 1);
-				//std::cerr << "per " << t << " sol idx " << solution_idx << " mirrors " << cumulative_mirrors << "\n";
 			}
 		}
 		m_solution_data.x_pos[solution_idx] = 1.;
@@ -600,7 +588,6 @@ void WashCrewOptimizer::GetTotalFieldOutput()
 	m_condensed_data.total_mirror_output = sum_clean_output;
 	m_solar_data.num_mirrors = num_mirrors;
 	m_condensed_data.num_mirrors = num_mirrors;
-	//std::cerr << "gettotalfield: num mirrors " << m_solar_data.num_mirror_groups << " output " << m_solar_data.total_mirror_output << "\n";
 }
 
 double WashCrewOptimizer::GetNumberOfMirrors(int i, int j)
@@ -684,7 +671,6 @@ double WashCrewOptimizer::EvaluateFieldEfficiency(std::vector<int> path)
 		//get the time elapsed and average efficiency hit.
 		time = GetNumberOfMirrors(start_idx, end_idx) * (60./(m_settings.wash_rate / m_settings.heliostat_size)) * (168. / m_settings.crew_hours_per_week);
 		sum_soiling_eff += group_eff * m_func->Evaluate(time);
-		//std::cerr << "path size: " << path.size() << " idx: " << i << " start_idx: " << start_idx << " end_idx: " << end_idx << " group_eff: " << group_eff << " time: " << time << " soiling_loss: " << m_func->Evaluate(time) << "\n";
 	}
 	return 1 - (sum_soiling_eff / m_solar_data.total_mirror_output);
 }
@@ -886,16 +872,12 @@ void WashCrewOptimizer::CalculateSolutionObjective(std::unordered_map<std::strin
 		* m_settings.profit_per_kwh
 		)
 	);
-	//std::cerr << "lost rev: " << cost << "\n";
 
 	double ft_cost = m_settings.hourly_cost_per_crew * m_settings.crew_hours_per_week * (365. / 7);
 	double ann_labor_cost = ft_crews * ft_cost;
 	//add the vehicle and full-time crew costs
 	cost += vehicles * m_settings.capital_cost_per_crew;
 	cost += ft_crews * m_settings.labor_cost_per_ft_crew;
-
-	//std::cerr << "Full-time labor cost: " << ft_crews * m_settings.labor_cost_per_ft_crew << "\n";
-	//std::cerr << "Vehicle cost: " << vehicles * m_settings.capital_cost_per_crew << "\n";
 
 	//add seasonal labor costs 
 	double st_labor = 0.;
@@ -911,7 +893,6 @@ void WashCrewOptimizer::CalculateSolutionObjective(std::unordered_map<std::strin
 			m_solar_data.labor_by_period.at(t) * ft_cost * m_settings.seasonal_cost_multiple
 			) * (m_results.num_crews_by_period[t] - ft_crews);
 	}
-	//std::cerr << "Short-term labor cost: " << st_labor << "\n";
 
 	m_results.wash_crew_obj = cost;
 	m_results.num_ft_crews = ft_crews;
@@ -990,15 +971,7 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 			cost = EvaluatePath(path);
 
 			field_eff = EvaluateFieldEfficiency(path);
-			/*
-			std::cerr << "Cost for " << i << " wash crews: " << cost
-				<< "\nAssignment: ";
-			for (int j = 0; j < path.size(); j++)
-			{
-				std::cerr << path.at(j) << ",";
-			}
-			std::cerr << "\nAverage field efficiency: " << field_eff << "\n";
-			*/
+
 			//use the equal-assignment path if specified; otherwise, use DP output.
 			
 			m_results.assignments_by_crews[i] = {0};
@@ -1065,10 +1038,6 @@ void WashCrewOptimizer::OptimizeWashCrews(int scale, bool output)
 			{
 				change_crews.at(t - 1) = false;
 			}
-			//std::cerr << "month " << t << "," << month_delta << "," <<
-			//	(m_settings.labor_cost_per_seas_crew
-			//		* m_solar_data.labor_by_period.at(t - 1)) << "," <<
-			//	delta_rev_loss[int_pair_to_string(c, t)] << "\n";
 		}
 
 		// if neither full-time nor seasonal hires reduce losses, terminate.

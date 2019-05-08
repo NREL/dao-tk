@@ -58,18 +58,12 @@ void solarfield_opt::optimize_staff(bool(*)(float prg, const char *msg), std::st
 		m_sfa.initialize();
 		m_sfa.simulate();
 		total_cost = calculate_rev_loss() + calculate_labor_cost() + calculate_repair_cost();
-		std::cerr << "num staff: " << m_sfa.m_settings.n_om_staff << "\n";
-		std::cerr << "avg_avail: " << m_sfa.m_results.avg_avail << "\n";
-		std::cerr << "total_cost: " << total_cost << "\n";
 		if (total_cost > best_cost)
 			break;
 		best_cost = total_cost;
 		m_results = m_sfa.m_results;
 		m_sfa.m_settings.n_om_staff++;
 	}
-	m_sfa.m_settings.n_om_staff--;
-	std::cerr << "final cost: " << best_cost << "\n";
-	std::cerr << "optimal # of ft staff: " << m_sfa.m_settings.n_om_staff << "\n";
-	std::cerr << "avg_avail: " << m_results.avg_avail << "\n";
+	m_sfa.m_settings.n_om_staff--;  //this is the optimal number of staff to be output
 
 }
