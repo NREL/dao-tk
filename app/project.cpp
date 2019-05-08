@@ -2701,6 +2701,7 @@ bool Project::simulate_clusters(std::unordered_map<std::string, std::vector<doub
 
 		//collect single calculated values
 		ssc_data_set_number(m_ssc_data, "total_installed_cost", collect_ssc_data["total_installed_cost_v"].front());
+        collect_ssc_data.erase("total_installed_cost_v");
 
         delete [] simthread;
 #endif
