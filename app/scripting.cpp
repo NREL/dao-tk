@@ -328,6 +328,27 @@ void _var(lk::invoke_t &cxt)
 			case lk::vardata_t::VECTOR:
 				cxt.result().vec()->assign( dat->vec()->begin(), dat->vec()->end() );
 				break;
+			case lk::vardata_t::HASH:
+				if (dat->hash_vector.item_count() > 0)
+				{
+					cxt.result().empty_vector();
+					cxt.result().vec()->resize(dat->hash_vector.iteration_count()+1);
+					
+					cxt.result().vec()->front().empty_vector();
+
+					//first row is column names
+					for (size_t i = 0; i < dat->hash_vector.item_count(); i++)
+						cxt.result().vec()->front().vec_append(dat->hash_vector.at_index(i).first);
+					//iterations in remaining rows
+					for (size_t j = 0; j < dat->hash_vector.iteration_count(); j++)
+					{
+						cxt.result().vec()->at(j+1).empty_vector();
+
+						for (size_t i = 0; i < dat->hash_vector.item_count(); i++)
+							cxt.result().vec()->at(j + 1).vec_append(dat->hash_vector.at_index(i).second.at(j));
+					}
+					break;
+				}
 			default:
 				mw.Log("Specified variable does not contain valid data. Must be of type "
 						"string, double, integer, boolean, or array (vector).");
@@ -946,6 +967,37 @@ void _optimize(lk::invoke_t &cxt)
 
         wxYieldIfNeeded();
     }
+
+	//if converged, update the 'best point'
+	ordered_hash_vector* hv = &Opt.get_project()->m_optimization_outputs.iteration_history.hash_vector;
+	if (hv->item_count() > 0)
+	{
+		if (hv->iteration_count() > 0)
+		{
+			std::string ppaname = Opt.get_project()->m_objective_outputs.ppa.name;
+			if (hv->has_item(ppaname))
+			{
+				double current_best = std::numeric_limits<double>::infinity();
+				std::vector<double> ppas = (*hv)[ppaname];
+				int ind_save = -1;
+				for (size_t i = 0; i < ppas.size(); i++)
+				{
+					if (ppas.at(i) < current_best)
+					{
+						current_best = ppas.at(i);
+						ind_save = (int)i;
+					}
+				}
+
+				if (ind_save > 0)
+				{
+					ordered_hash_vector *bp = &Opt.get_project()->m_optimization_outputs.best_point.hash_vector;
+					for (size_t i = 0; i < hv->item_count(); i++)
+						(*bp)[hv->at_index(i).first] = { hv->at_index(i).second.at(ind_save) };
+				}
+			}
+		}
+	}
 
     mw.UpdateDataTable();
     mw.SetProgress(0.);
