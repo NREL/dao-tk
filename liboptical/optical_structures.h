@@ -26,10 +26,15 @@ struct opt_settings
 	double heliostat_refurbish_cost;
 
     int n_hr_sim;
+	int n_hr_warmup;
 	int soil_sim_interval;
 	int refl_sim_interval;
 
 	int seed;
+
+	std::vector<int> periods;
+
+	void print();
 }; 
 
 struct opt_heliostat
@@ -61,6 +66,8 @@ struct opt_crew
     int replacements_made;
     double hours_this_week;
     double hours_today;
+
+	bool is_active;
 
 	opt_crew();
 }; 

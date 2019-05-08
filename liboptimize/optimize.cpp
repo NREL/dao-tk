@@ -55,13 +55,15 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
     Project *P = O->get_project();
 
     //list of all output variables
+
     std::vector<parameter*> allouts = { 
 		&P->m_financial_outputs.ppa, 
 		&P->m_financial_outputs.lcoe_real, 
 		&P->m_financial_outputs.total_installed_cost,
         &P->m_design_outputs.area_sf, 
 		&P->m_optical_outputs.avg_soil, 
-		&P->m_optical_outputs.n_wash_crews,
+		&P->m_optical_outputs.n_wash_vehicles,
+		//&P->m_optical_outputs.wash_crew_schedule,
 		&P->m_solarfield_outputs.n_om_staff,
         &P->m_optical_outputs.avg_degr, 
 		&P->m_simulation_outputs.annual_generation, 
@@ -71,6 +73,7 @@ double continuous_objective_eval(unsigned n, const double *x, double *, void *da
         &P->m_solarfield_outputs.avg_avail, 
 		&P->m_solarfield_outputs.n_repairs 
 	};
+
        
     //figure out which variables were changed and as a result, which components of the objective function need updating
     std::set<std::string> triggered_methods;

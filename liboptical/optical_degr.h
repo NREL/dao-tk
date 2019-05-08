@@ -16,8 +16,7 @@ public:
 	opt_settings m_settings;
 	opt_results m_results;
 
-	double get_replacement_threshold(double interval);
-	double get_replacement_interval(double mirror_output, int num_mirrors);
+	double get_replacement_threshold(double mirror_output, int num_mirrors);
 
 	void simulate(bool(*callback)(float prg, const char *msg)=0, std::string *results_file_name = 0, std::string *trace_file_name = 0);
 

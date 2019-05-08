@@ -52,26 +52,30 @@ public:
 
 struct wash_crew_settings
 {
-	
-	//inputs
+	std::vector<int> periods;
 	int max_num_crews;
+	int vehicle_life;  //years
+
 	double capital_cost_per_crew; // fixed
+	double labor_cost_per_ft_crew;
+	double labor_cost_per_seas_crew;
 	double hourly_cost_per_crew;  //per hour
-	double discount_rate;
+	double discount_rate_rev;
+	double discount_rate_capital;
+	double discount_rate_labor;
 	double wash_rate; //in m^2 per hour
 	double heliostat_size; //m^2
 	double crew_hours_per_week;
 	double system_efficiency; //assumed efficiency including receiver, TES losses, power cycle
+	double profit_per_kwh;  //per kwh dni sent to receiver, assuming 100% mirror efficiency
+	double operating_margin; //used in calculating profit losses
 	double num_years;      //years of operation to calculate NPV of annual costs
 	double price_per_kwh;  //assumed average for grid output
-	int vehicle_life;  //years
-
+	double annual_rev_multiplier;
+	double seasonal_cost_multiple;
+	double vehicle_cost;
+	
 	bool use_uniform_assignment;
-
-	//derived parameters
-	double profit_per_kwh;  //per kwh dni sent to receiver, assuming no soiling/degr.
-	double annual_multiplier;
-	double total_cost_per_crew;
 
 	wash_crew_settings();
 	void print();
@@ -79,31 +83,41 @@ struct wash_crew_settings
 
 struct solar_field_data
 {
-	int *names;
-	double *x_pos;
-	double *y_pos;
-	double *mirror_output;
+	std::vector<int> names;
+	std::vector<double> x_pos;
+	std::vector<double> y_pos;
+	std::vector<double> mirror_output;
 	double total_mirror_output;
-	int *num_mirrors_by_group;
+	std::vector<int> num_mirrors_by_group;
 	int num_mirror_groups;
+	int num_mirrors;
 	int scale;
 	//double mirror_size;
 	//double annual_dni;
 	std::unordered_map<int, std::vector<int>> groupings;
+	std::vector<double> dni_by_period;  //period = month
+	std::vector<double> labor_by_period;  //period = month
 	solar_field_data();
-	//~solar_field_data();
+	~solar_field_data();
 };
 
 struct wash_crew_opt_results
 {
-	std::vector<int> assignments;
-	double *objective_values;
-	int *parents;
-	double *distances;
-	int num_wash_crews;
+	std::unordered_map<int,std::vector<int>> assignments_by_crews;
+	std::unordered_map<int, std::vector<int>> solution_assignments;
+	std::vector<int> num_crews_by_period;
+	int num_ft_crews;
+	int num_vehicles;
+	std::vector<double> objective_values;
+	std::vector<int> parents;
+	std::vector<double> distances;
+	double wash_crew_obj;
+	double field_eff;
+	double annual_labor_cost;
+	//int num_wash_crews;
 	solar_field_data solution_data;
 	wash_crew_opt_results();
-	//~wash_crew_opt_results();
+	~wash_crew_opt_results();
 };
 
 struct wash_crew_file_settings
@@ -112,6 +126,9 @@ struct wash_crew_file_settings
 	std::string obj_file;
 	std::string path_file;
 	std::string parents_file;
+	std::string weather_file;
+	std::string solar_data_file;
+	std::string inputs_file;
 	wash_crew_file_settings();
 };
 

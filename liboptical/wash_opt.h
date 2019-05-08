@@ -12,17 +12,13 @@ class WashCrewOptimizer
 public:
 	WashCrewOptimizer();
 	WashCrewOptimizer(
-		double *x_pos,
-		double *y_pos,
-		double *mirror_output,
+		std::vector<double> x_pos,
+		std::vector<double> y_pos,
+		std::vector<double> mirror_output,
 		int max_wash_crews,
 		int num_mirrors,
 		int scale
 	);
-	void Initialize();
-	void ReadFromFiles();
-	double GetFunctionDailyLoss();
-	double GetSoilingAccumulation(double accumulation);
 
 	wash_crew_settings m_settings;
 	solar_field_data m_solar_data;
@@ -30,6 +26,24 @@ public:
 	solar_field_data m_solution_data;
 	wash_crew_opt_results m_results;
 	wash_crew_file_settings m_file_settings;
+
+	std::string int_pair_to_string(int i, int j);
+
+	void Initialize();
+
+	void ReadWeatherData();
+
+	void ReadSolarDataFromFiles();
+
+	void ReadInputsFile();
+
+	void ReadAllFiles();
+
+	void AddNewHeliostats(int num_heliostats);
+
+	double GetFunctionDailyLoss();
+
+	double GetSoilingAccumulation(double accumulation);
 
 	void SortMirrors();
 
@@ -51,11 +65,11 @@ public:
 
 	double EvaluateFieldEfficiency(std::vector<int> path);
 
-	double* ObtainOBJs();
+	void ObtainOBJs();
 
 	int FindMinDistaceNode(
-		double *distances, 
-		bool *available, 
+		std::vector<double> distances,
+		std::vector<bool> available,
 		int array_size
 	);
 
@@ -63,21 +77,23 @@ public:
 
 	void RunDynamicProgram();
 
-	std::vector<int> RetracePath(int *parents, int num_rows, int row_length);
+	std::vector<int> RetracePath(std::vector<int> parents, int num_rows, int row_length);
+
+	void CalculateSolutionObjective(std::unordered_map<std::string, double> rev_losses);
 
 	void OptimizeWashCrews(int scale=-1, bool output=false);
 
 
 	void Output2DArrayToFile(
 		std::string filename, 
-		double* arr,
+		std::vector<double> arr,
 		int num_rows, 
 		int row_length
 	);
 
 	void Output2DIntArrayToFile(
 		std::string filename,
-		int* arr,
+		std::vector<int> arr,
 		int num_rows,
 		int row_length
 	);
