@@ -418,14 +418,14 @@ void optical_outputs::initialize()
 
 	double nan = std::numeric_limits<double>::quiet_NaN();
 	std::vector< double > empty_vec;
-	n_wash_vehicles.set(                   nan,              "n_wash_vehicles",       true,                       "Number of wash crews hired",        "-",        "Optical degradation|Outputs" );
+	n_wash_vehicles.set(                   nan,              "n_wash_vehicles",       true,                "Number of wash vehicles purchased",        "-",       "Optical degradation|Outputs" );
     n_replacements.set(                    nan,               "n_replacements",       true,                              "Mirror replacements",        "-",       "Optical degradation|Outputs" );
     heliostat_refurbish_cost.set(          nan,     "heliostat_refurbish_cost",       true,                          "Mirror replacement cost",        "$",       "Optical degradation|Outputs" );
     heliostat_refurbish_cost_y1.set(       nan,  "heliostat_refurbish_cost_y1",       true,                 "Mirror replacement cost (year 1)",        "$",       "Optical degradation|Outputs" );
     avg_soil.set(                          nan,                     "avg_soil",       true,                         "Average lifetime soiling",        "-",       "Optical degradation|Outputs" );
     avg_degr.set(                          nan,                     "avg_degr",       true,                     "Average lifetime degradation",        "-",       "Optical degradation|Outputs" );
 
-	wash_crew_schedule.set(          empty_vec,           "wash_crew_schedule",       true,                   "Number of wash crews by period",        "-",       "Optical degradation|Outputs" );
+	wash_crew_schedule.set(          empty_vec,           "wash_crew_schedule",       true,                    "Number of wash crews by month",        "-",       "Optical degradation|Outputs" );
     soil_schedule.set(               empty_vec,                "soil_schedule",       true,                              "Soiling time series",        "-",       "Optical degradation|Outputs" );
     degr_schedule.set(               empty_vec,                "degr_schedule",       true,                          "Degradation time series",        "-",       "Optical degradation|Outputs" );
     repl_schedule.set(               empty_vec,                "repl_schedule",       true,                         "Mirror repl. time series",        "-",       "Optical degradation|Outputs" );
@@ -438,7 +438,9 @@ void optical_outputs::initialize()
     (*this)["avg_soil"] = &avg_soil;
     (*this)["avg_degr"] = &avg_degr;
 
-    (*this)["soil_schedule"] = &soil_schedule;
+
+	(*this)["wash_crew_schedule"] = &wash_crew_schedule;
+	(*this)["soil_schedule"] = &soil_schedule;
     (*this)["degr_schedule"] = &degr_schedule;
     (*this)["repl_schedule"] = &repl_schedule;
     (*this)["repl_total"] = &repl_total;
