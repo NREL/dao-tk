@@ -6,7 +6,6 @@
 </head>
 <body>
     
-    
     <div class="navbar">
         <div style="display: inline-block">
             <img src="{% static "img/dtk64.png" %}" height="46px" alt="Logo" style="margin-left: 4px">
@@ -41,6 +40,14 @@
                     <a href="{% url 'event_log' %}">Event log</a>
                 </div>
             </div> 
+        </div>
+
+        <div class="livestatus">
+            <table><tr>
+                <td>Connection status</td><td><div class="circle ok"></div></td>
+                <td style="width: 5%;"></td>
+                <td>Model status</td><td><div class="circle warn"></div></td>
+            </tr></table>
         </div>
     </div>
     
