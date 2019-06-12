@@ -3,7 +3,7 @@ Test script for optimization
 */
 initialize();
 
-var('solar_resource_file', 'C:/Users/mwagner/Documents/NREL/projects/sam/deploy/solar_resource/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv');
+var('solar_resource_file', 'C:/Users/mwagner/Documents/NREL/software/sam/deploy/solar_resource/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv');
 
 var('P_ref', 75);	//MWe
 var('is_dispatch', false);
@@ -29,7 +29,7 @@ ovars =
 		['tshours',[8], 2., 20.],
 		['dni_des',[900], 600., 1100.],
 		['solarm', [2.4], 0.8, 5],
-		['N_panel_pairs',[8],6,11],
+		//['N_panel_pairs',[8],6,11],
 		//['om_staff', [3], 1, 25]
 	];
 
