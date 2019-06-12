@@ -1,10 +1,55 @@
 {% load static %}
 <html>
 <head>
+    <link rel="stylesheet" href="{% static "css/base.css" %}">
     <title>{% block title %}{% endblock %}</title>
 </head>
 <body>
-    <img src="{% static "img/dtk.png" %}" alt="Logo">
-    {% block content %}{% endblock %}
+    
+    
+    <div class="navbar">
+        <div style="display: inline-block">
+            <img src="{% static "img/dtk64.png" %}" height="46px" alt="Logo" style="margin-left: 4px">
+        </div>
+
+        <div style="display: inline-block">
+            <a href="{% url 'dashboard' %}">Dashboard</a>
+            <a href="{% url 'outlook' %}">Outlook</a>
+            <a href="{% url 'system' %}">System</a>
+            <a href="{% url 'planning' %}">Planning</a>
+            
+            <div class="dropdown">
+                    <button class="dropbtn">What if?
+                        <i class="fa fa-caret-down"></i>
+                    </button>
+                    <div class="dropdown-content">
+                        <a href="{% url 'weather' %}">Weather and markets</a>
+                        <a href="{% url 'interruptions' %}">Interruptions</a>
+                        <a href="{% url 'resources' %}">Resources</a>
+                    </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="dropbtn">Configure
+                    <i class="fa fa-caret-down"></i>
+                </button>
+                <div class="dropdown-content">
+                    <a href="{% url 'sources' %}">Data sources</a>
+                    <a href="{% url 'logging' %}">Data logging</a>
+                    <a href="{% url 'ui_settings' %}">Interface settings</a>
+                    <a href="{% url 'model_settings' %}">Model settings</a>
+                    <a href="{% url 'event_log' %}">Event log</a>
+                </div>
+            </div> 
+        </div>
+    </div>
+    
+    <div class="main" style="margin-top: 50pt;">
+        {% block content %}{% endblock %}
+        <p>Some text some text some text some text..</p>
+        <!-- <img src="{% static "img/dtk.png" %}" alt="Logo"><br>
+        <img src="{% static "img/dtk.png" %}" alt="Logo"><br> -->
+      </div>
+    
 </body>
 </html>
