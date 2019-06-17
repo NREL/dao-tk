@@ -6,65 +6,22 @@
 
 <div class="info-unit">
     <h2>Summary</h2>
-    <!-- Production actual compared to model production -->
-    <div class="summary-block">
-        <table>
-            <tr><td><img src="{% static "img/flash.png" %}" height="48px" alt="Flash"></td></tr>
-            <tr><td>Daily production total</td></tr>
-            <tr><td>
-                <div class="progress complete roundleft" style="width: {{ progress.cumulative.0 }}px"></div>
-                <div class="progress lag" style="width: {{ progress.lag.0 }}px"></div>
-                <div class="progress lead" style="width: {{ progress.lead.0 }}px"></div>
-                <div class="progress remain roundright" style="width: {{ progress.remain.0}}px"></div>
-            </td></tr>
-            <tr><td class="summary-label">
-                    {{ progress.progress.1 }} 
-                    {% if progress.lag.0 > 0 %} (-{{ progress.lag.1 }}) {% endif %}
-                    {% if progress.lead.0 > 0 %} (+{{ progress.lead.1 }}) {% endif %}
-                     of {{ progress.total.1 }} MWh<sub>e</sub>
-            </td></tr>
-        </table>
-    </div>
-    <!-- Net power output to the grid -->
-    <div class="summary-block">
-        <table>
-            <tr><td><img src="{% static "img/tower.png" %}" height="48px" alt="Power line"></td></tr>
-            <tr><td>Net power</td></tr>
-            <tr><td>
-                <div class="progress complete roundleft" style="width: {{ production.net.actual.0 }}px"></div>
-                <div class="progress roundright {% if production.net.exceeds_model %}lead{% else %}lag{% endif %}" style="width: {{ production.net.difference.0 }}px"></div>
-            </td></tr>
-            <tr><td class="summary-label">{{ production.net.actual.1 }} MW<sub>e</sub> ({% if production.net.exceeds_model %}+{% else %}-{% endif %}{{ production.net.difference.1 }})</td></tr>
-        </table>
-    </div>
-    <!-- Gross power output from the turbine -->
-    <div class="summary-block">
-        <table>
-            <tr><td><img src="{% static "img/turbine.png" %}" height="48px" alt="Turbine"></td></tr>
-            <tr><td>Gross power</td></tr>
-            <tr><td>
-                <div class="progress complete roundleft" style="width: {{ production.gross.actual.0 }}px"></div>
-                <div class="progress roundright {% if production.gross.exceeds_model %}lead{% else %}lag{% endif %}" style="width: {{ production.gross.model.0 }}px"></div>
-            </td></tr>
-            <tr><td class="summary-label">{{ production.gross.actual.1 }} MW<sub>e</sub> ({% if production.gross.exceeds_model %}+{% else %}-{% endif %}{{ production.gross.difference }})</td></tr>
-        </table>
-    </div>
-    <!-- Tank charge status -->
-    <div class="summary-block">
-        <table>
-            <tr><td><img src="{% static "img/tank.png" %}" height="48px" alt="Tanks"></td></tr>
-            <tr><td>Thermal storage charge</td></tr>
-            <tr><td>
-                <div class="progress complete roundleft" style="width: {{ production.storage.primary_bar }}px"></div>
-                <div class="progress {% if production.storage.exceeds_model %}lead{% else %}lag{% endif %}" style="width: {{ production.storage.difference.0 }}px"></div>
-                <div class="progress remain roundright" style="width: {{ production.storage.balance }}px"></div>
-            </td></tr>
-            <tr><td class="summary-label">{{ production.storage.actual }} MWh<sub>t</sub> ({% if production.storage.difference.1 > 0 %}+{% endif %}{{ production.storage.difference.1 }})</td></tr>
-        </table>
-    </div>
+
+    {% for summary_item in dashboard_summary_items %}
+        <div class="summary-block">
+            <table>
+                    <tr><td><img src="{% get_media_prefix %}{{ summary_item.icon }}"" height="48px" alt="{{summary_item.icon}}"></td></tr>
+                    <tr><td>{{ summary_item.name|safe }}</td></tr>
+                    <tr><td>
+                        <div class="progress complete roundleft" style="width: {{ summary_item.bar_left_width }}px"></div>
+                        <div class="progress {% if summary_item.exceeds_model %}lead{% else %}lag{% endif %}" style="width: {{ summary_item.bar_mid_width }}px"></div>
+                        <div class="progress remain roundright" style="width: {{ summary_item.bar_right_width }}px"></div>
+                    </td></tr>
+                    <tr><td class="summary-label">{{ summary_item.actual|floatformat:1 }} {{ summary_item.units|safe }} ({% if summary_item.exceeds_model %}+{% endif %}{{ summary_item.difference|floatformat:1 }})</td></tr>
+            </table>
+        </div>
+    {% endfor %}
 
 </div>
-
-
 
 {% endblock %}
