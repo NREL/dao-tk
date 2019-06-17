@@ -2,6 +2,7 @@
 <html>
 <head>
     <link rel="stylesheet" href="{% static "css/base.css" %}">
+    <link rel="stylesheet" href="{% static "css/unit.css" %}">
     <title>{% block title %}{% endblock %}</title>
 </head>
 <body>
@@ -44,9 +45,11 @@
 
         <div class="livestatus">
             <table><tr>
-                <td>Connection status</td><td><div class="circle ok"></div></td>
+                <td>Last update {{ last_refresh|date:'m/d/Y-H:i:s'}}</td>
                 <td style="width: 5%;"></td>
-                <td>Model status</td><td><div class="circle warn"></div></td>
+                <td>Connection status</td><td><div class="circle {% if connection_status %}ok{% else %}warn{% endif %}"></div></td>
+                <td style="width: 5%;"></td>
+                <td>Model status</td><td><div class="circle {% if model_status %}ok{% else %}warn{% endif %}"></div></td>
             </tr></table>
         </div>
     </div>

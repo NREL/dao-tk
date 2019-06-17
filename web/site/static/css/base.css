@@ -1,6 +1,6 @@
 /* Navbar container */
 .navbar {
-  background-color: #333;
+  background-color: rgb(174, 81, 0);
   font-family: Arial;
   position: fixed; /* Set the navbar to fixed position */
   top: 0; /* Position the navbar at the top of the page */
@@ -37,7 +37,7 @@
 
 /* Add a red background color to navbar links on hover */
 .navbar a:hover, .dropdown:hover .dropbtn {
-  background-color: rgb(185, 127, 0);
+  background-color: rgb(224, 171, 62);
 }
 
 .livestatus {
@@ -49,6 +49,7 @@
 .livestatus td {
   color: white;
   font-size: smaller;
+  font-style: italic;
 }
 
 .circle {
