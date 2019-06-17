@@ -5,8 +5,11 @@ from django.db import transaction
 # Model imports
 from ui.models import DashboardSummaryItem
 # Other package imports
-from datetime import datetime
-
+from datetime import datetime, timedelta
+import matplotlib.pyplot as plt, mpld3
+from io import StringIO
+#plot files imports
+from fig import timeseries
 #global variables
 PROGRESS_BAR_WIDTH = 160
 
@@ -101,90 +104,17 @@ def dashboard(request, context={}):
 
     context["dashboard_summary_items"] = DashboardSummaryItem.objects.all()
 
+    csvraw = [line.strip("\n").split(",")[0:2] for line in open("C:/Users/mwagner/Documents/NREL/software/dao-tk/web/site/fig/tsdata.csv",'r').readlines()[1:]]
+    #add the timestamp
+    dtit = datetime(2019, 1, 1, 0, 30, 0)
+    csvdat = ["timestamp,actual,model"]
+    for line in csvraw[24*100 : 24*105]:
+        csvdat.append( ",".join([dtit.strftime("%Y:%m:%d-%H:%M:%S")] + line) )
+        dtit += timedelta(minutes=30)
+    # print(csvdat)
 
-    # #get cumulative production for today
-    # production_daily_total_model = 110*14*0.75
-    # production_daily_actual = production_daily_total_model*0.4
-    # production_daily_model = production_daily_actual*1.2
-    
-    # context["progress"] = {
-    #     "progress" : [150/production_daily_total_model * PROGRESS_BAR_WIDTH, 150],
-    #     "lag" : [0/production_daily_total_model * PROGRESS_BAR_WIDTH, 0],
-    #     "lead" : [18/production_daily_total_model * PROGRESS_BAR_WIDTH, 18],
-    #     "remain" : [70/production_daily_total_model*PROGRESS_BAR_WIDTH, 70],
-    #     "total" : [1, production_daily_total_model],
-    # }
+    context["timeseries_plot"] = timeseries.daily_tracking(StringIO("\n".join(csvdat)), "Test timeseries plot", "MWh")
 
-    # #----get current production levels----
-    # #gross power
-    # gross_actual = 122
-    # gross_model = 108.5
-    # gross_difference = abs(gross_actual - gross_model)
-    # gross_barscale = gross_actual + gross_difference
-    # #net power
-    # net_actual = 113.5
-    # net_model = 102.2
-    # net_difference = abs(net_actual - net_model)
-    # net_barscale = net_actual + net_difference
-    # #storage charge state
-    # storage_is_charging = True
-    # storage_max = 8*120/.41
-    # storage_actual = storage_max * 0.6
-    # storage_model = storage_actual * 0.7
-    # storage_difference = storage_actual - storage_model
-    # storage_exceeds_model = bool(storage_actual > storage_model) if storage_is_charging else bool(storage_model > storage_actual)
-    # #revenue
-    # revenue_actual = 122
-    # revenue_model = 108.5
-    # revenue_difference = abs(revenue_actual - revenue_model)
-    # revenue_barscale = revenue_actual + revenue_difference
-
-    # context["production"] = {
-    #     "gross":{
-    #         "actual":[gross_actual/gross_barscale*PROGRESS_BAR_WIDTH, gross_actual], 
-    #         "model":[gross_difference/gross_barscale*PROGRESS_BAR_WIDTH, gross_model],
-    #         "exceeds_model":bool(gross_actual > gross_model),
-    #         "difference": abs(gross_actual - gross_model)
-    #         }, 
-    #     "net":{
-    #         "actual":[net_actual/net_barscale*PROGRESS_BAR_WIDTH, net_actual], 
-    #         "difference":[net_difference/net_barscale*PROGRESS_BAR_WIDTH, net_difference],
-    #         "model":[net_model/net_barscale*PROGRESS_BAR_WIDTH, net_model],
-    #         "exceeds_model":bool(net_actual > net_model),
-    #         }, 
-    #     "storage":{
-    #         "primary_bar":min([storage_actual, storage_model])/storage_max*PROGRESS_BAR_WIDTH,
-    #         "difference":[abs(storage_difference)/storage_max*PROGRESS_BAR_WIDTH, storage_difference],
-    #         "exceeds_model":storage_exceeds_model,
-    #         "actual":storage_actual,
-    #         "model":storage_model,
-    #         "balance":(storage_max - min([storage_actual, storage_model]) - abs(storage_difference))/storage_max*PROGRESS_BAR_WIDTH,
-    #     },
-    #     "revenue":{
-    #         "actual":[gross_actual/gross_barscale*PROGRESS_BAR_WIDTH, gross_actual], 
-    #         "model":[gross_difference/gross_barscale*PROGRESS_BAR_WIDTH, gross_model],
-    #         "exceeds_model":bool(gross_actual > gross_model),
-    #         "difference": abs(gross_actual - gross_model)
-    #     },
-    #     # "solar":{"actual":486., "model":445},
-    # }
-
-    # # #reformat all of the numbers
-    # # for groupkey, item in context["production"].items():
-    # #     for key, subitem in item.items():
-    # #         if type(subitem) == type([]):
-    # #             out = []
-    # #             for v in subitem:
-    # #                 out.append(float("{:.1f}".format(v)))
-    # #         elif type(subitem) == type(1.0):
-    # #             out = float("{:.1f}".format(subitem))
-    # #         else:
-    # #             out = subitem
-    # #         context["production"][groupkey][key] = out
-    # # print( context["production"] )
-
-    # #availability
-    
 
     return render(request, "dashboard.html", context)
 

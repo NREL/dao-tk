@@ -7,6 +7,7 @@ class DashboardSummaryItem(models.Model):
     units = models.CharField(max_length=25)
     icon = models.CharField(max_length=150)  #path to icon in static folder
 
+
     baseline_max = models.FloatField(default=None)
     actual = models.FloatField(default=None)
     model = models.FloatField(default=None)

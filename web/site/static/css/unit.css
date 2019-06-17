@@ -4,7 +4,7 @@
     border-width: 2px;
     border-color: rgb(150, 150, 150);
     box-shadow: 5px;
-    width: 50%;
+    width: fit-content;
     min-width: 250px;
     min-height: 250px;
 }
