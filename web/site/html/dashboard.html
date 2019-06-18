@@ -8,22 +8,24 @@
     <h2>Summary</h2>
 
     {% for summary_item in dashboard_summary_items %}
-        <div class="summary-block">
-            <table>
+        <a href="#{{ summary_item.varname }}" style="text-decoration: none;">
+            <div class="summary-block" {% if forloop.last %}style="border-right-style: none;"{% endif %}>
+                <table>
                     <tr><td><img src="{% get_media_prefix %}{{ summary_item.icon }}"" height="48px" alt="{{summary_item.icon}}"></td></tr>
-                    <tr><td>{{ summary_item.name|safe }}</td></tr>
                     <tr><td>
                         <div class="progress complete roundleft" style="width: {{ summary_item.bar_left_width }}px"></div>
                         <div class="progress {% if summary_item.exceeds_model %}lead{% else %}lag{% endif %}" style="width: {{ summary_item.bar_mid_width }}px"></div>
                         <div class="progress remain roundright" style="width: {{ summary_item.bar_right_width }}px"></div>
                     </td></tr>
-                    <tr><td class="summary-label">{{ summary_item.actual|floatformat:1 }} {{ summary_item.units|safe }} ({% if summary_item.exceeds_model %}+{% endif %}{{ summary_item.difference|floatformat:1 }})</td></tr>
-            </table>
-        </div>
+                    <tr><td class="summary-numeric">{{ summary_item.actual|floatformat:1 }} {{ summary_item.units|safe }} ({% if summary_item.exceeds_model %}+{% endif %}{{ summary_item.difference|floatformat:1 }})</td></tr>
+                    <tr><td class="summary-label">{{ summary_item.name|safe }}</td></tr>
+                </table>
+            </div>
+        </a>
     {% endfor %}
 
+    {{ timeseries_plot|safe }}
 </div>
 
-{{ timeseries_plot|safe }}
 
 {% endblock %}

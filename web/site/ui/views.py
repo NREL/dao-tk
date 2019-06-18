@@ -1,6 +1,6 @@
 #django imports
 from django.shortcuts import render
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, Http404, HttpResponseRedirect
 from django.db import transaction
 # Model imports
 from ui.models import DashboardSummaryItem
@@ -16,13 +16,16 @@ PROGRESS_BAR_WIDTH = 160
 # Create your views here.
 #-------------------------------------------------------------
 #-------------------------------------------------------------
-def index(request, path):
+def index(request, path=None):
     
     context = {
         'connection_status' : True,
         'model_status' : False,
         'last_refresh' : datetime.now(),
     }
+
+    if not path:
+        return HttpResponseRedirect("dashboard")
 
     #handle URL based on path
     pvals = path.split('/')
@@ -80,12 +83,12 @@ def dashboard(request, context={}):
     DashboardSummaryItem.objects.all().delete()
     
     data = []
-        # name                      #units              #icon           #max        #actual     #model
-    data.append(["Daily production total",  "MWh<sub>e</sub>",  "flash.png",    110*14*.75, 110*14*.25, 110*14*.31   ])
-    data.append(["Net power",               "MW<sub>e</sub>",   "tower.png",    110,        95,         92          ])
-    data.append(["Gross power",             "MW<sub>e</sub>",   "turbine.png",  120,        112.5,      111.9       ])
-    data.append(["Thermal storage charge",  "MWh<sub>t</sub>",  "tank.png",     110*12/.4,  110*6/.4,   110*7/.4    ])
-    data.append(["Daily revenue",           "$",                "notes.png",] + [ d * 90 for d in data[0][3:]])
+                # name                      #units              #icon           #varname                #group      #max        #actual     #model
+    data.append(["Daily production total",  "MWh<sub>e</sub>",  "flash.png",    "daily_production",     "summary",  110*14*.75, 110*14*.25, 110*14*.31   ])
+    data.append(["Net power",               "MW<sub>e</sub>",   "tower.png",    "net_power",            "summary",  110,        95,         80          ])
+    data.append(["Gross power",             "MW<sub>e</sub>",   "turbine.png",  "gross_power",          "summary",  120,        100,      111.9       ])
+    data.append(["Thermal storage charge",  "MWh<sub>t</sub>",  "tank.png",     "tes_charge",           "summary",  110*12/.4,  110*6/.4,   110*7/.4    ])
+    data.append(["Daily revenue",           "$",                "notes.png",    "daily_revenue",        "summary",  ] + [ d * 90 for d in data[0][-3:]])
     
 
     with transaction.atomic():
@@ -94,15 +97,15 @@ def dashboard(request, context={}):
                 name = row[0],
                 units = row[1],
                 icon = row[2],
-                baseline_max = row[3],
-                actual = row[4],
-                model = row[5],
+                varname = row[3],
+                group = row[4],
+                baseline_max = row[5],
+                actual = row[6],
+                model = row[7],
             )
 
             DSI.save()
-    #<<<<<<<<< end temporary code
 
-    context["dashboard_summary_items"] = DashboardSummaryItem.objects.all()
 
     csvraw = [line.strip("\n").split(",")[0:2] for line in open("C:/Users/mwagner/Documents/NREL/software/dao-tk/web/site/fig/tsdata.csv",'r').readlines()[1:]]
     #add the timestamp
@@ -111,8 +114,9 @@ def dashboard(request, context={}):
     for line in csvraw[24*100 : 24*105]:
         csvdat.append( ",".join([dtit.strftime("%Y:%m:%d-%H:%M:%S")] + line) )
         dtit += timedelta(minutes=30)
-    # print(csvdat)
+    #<<<<<<<<< end temporary code
 
+    context["dashboard_summary_items"] = DashboardSummaryItem.objects.all()
     context["timeseries_plot"] = timeseries.daily_tracking(StringIO("\n".join(csvdat)), "Test timeseries plot", "MWh")
 
 

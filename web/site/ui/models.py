@@ -1,12 +1,13 @@
 from django.db import models
 from django.db import transaction
 
-#dashboard summary object
+#--------- dashboard summary object --------------------
 class DashboardSummaryItem(models.Model):
-    name = models.CharField(max_length=150)
-    units = models.CharField(max_length=25)
-    icon = models.CharField(max_length=150)  #path to icon in static folder
-
+    name = models.CharField(max_length=100, default="")
+    varname = models.CharField(max_length=50, default="")
+    units = models.CharField(max_length=25, default="")
+    icon = models.CharField(max_length=150, default="")  #path to icon in media folder
+    group = models.CharField(max_length=50, default="")
 
     baseline_max = models.FloatField(default=None)
     actual = models.FloatField(default=None)
@@ -32,4 +33,4 @@ class DashboardSummaryItem(models.Model):
 
         #call the built-in save function
         super(DashboardSummaryItem, self).save(*args, **kwds)
-
+#----------------------------------------------------------

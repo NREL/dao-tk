@@ -1,12 +1,12 @@
 .info-unit {
-    border-radius: 7px;
+    border-radius: 5px;
     border-style: solid;
-    border-width: 2px;
-    border-color: rgb(150, 150, 150);
-    box-shadow: 5px;
+    border-width: 1px;
+    border-color: rgb(226, 226, 226);
     width: fit-content;
     min-width: 250px;
     min-height: 250px;
+    margin: auto;
 }
 
 .summary-block {
@@ -25,32 +25,38 @@
     display: inline;
 }
 
+.summary-numeric {
+    font-size: large;
+    font-weight: bolder;
+}
+
 .summary-label {
-    font-size: smaller;
+    font-size: small;
+    font-weight: bolder;
 }
 
 .progress {
-    height: 20px;
+    height: 15px;
     width: 60px;
     border-style: solid;
     border-color: black;
-    border-width: 0.5px;
+    border-width: 0px;
     display: inline-flex;
 }
 
 .progress.complete {
-    background-color: green;
+    background-color: rgb(129, 199, 129);
     margin-right: 0px;
 }
 
 .progress.lag {
-    background-color: red;
+    background-color: rgb(175, 112, 75);
     margin-left: -7px;
     margin-right: 0px;
 }
 
 .progress.lead {
-    background-color: yellowgreen;
+    background-color: rgb(192, 218, 137);
     margin-left: -5px;
     margin-right: 0px;
 }
@@ -61,11 +67,11 @@
 }
 
 .roundleft {
-    border-top-left-radius: 10px;
-    border-bottom-left-radius: 10px;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
 }
 
 .roundright {
-    border-top-right-radius: 10px;
-    border-bottom-right-radius: 10px;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
 }
