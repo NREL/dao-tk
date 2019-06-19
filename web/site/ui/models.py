@@ -1,5 +1,6 @@
 from django.db import models
 from django.db import transaction
+import datetime
 
 #--------- dashboard summary object --------------------
 class DashboardSummaryItem(models.Model):
@@ -33,4 +34,23 @@ class DashboardSummaryItem(models.Model):
 
         #call the built-in save function
         super(DashboardSummaryItem, self).save(*args, **kwds)
+#----------------------------------------------------------
+
+#----------------------------------------------------------
+class TimeSeriesEntry(models.Model):
+    timestamp = models.DateTimeField()
+    data = models.CharField(max_length=200, default=None)
+
+class TimeSeriesHighlight(models.Model):
+    name = models.CharField(max_length=100, default="")
+    varname = models.CharField(max_length=50, default="")
+    has_secondary_axis = models.BooleanField(default=False)
+    units = models.CharField(max_length=25, default="")
+    xaxis_label = models.CharField(max_length=100, default="")
+    yaxis_label = models.CharField(max_length=100, default="")
+
+    units_secondary = models.CharField(max_length=25, default="")
+    yaxis_label_secondary = models.CharField(max_length=100, default="")
+
+    entries = models.ManyToManyField(TimeSeriesEntry, "entries")
 #----------------------------------------------------------

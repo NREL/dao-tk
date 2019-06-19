@@ -4,7 +4,7 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path(r'<path:path>', views.index),     #main url handler. Supplemental named urls follow below.
+    path(r'<slug:path>', views.index),     #main url handler. Supplemental named urls follow below.
     path(r'dashboard', views.dashboard, name='dashboard'),
     path(r'outlook', views.outlook, name='outlook'),
     path(r'planning', views.planning, name='planning'),
