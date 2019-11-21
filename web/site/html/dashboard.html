@@ -18,7 +18,7 @@
         <a href="?sumchart={{ summary_item.varname }}" style="text-decoration: none;">
             <div class="summary-block {% if current_summary_plot == summary_item.varname %}selected{% endif %}" style="{% if forloop.last %}border-right-style: none;{% endif %}">
                 <table>
-                    <tr><td><img src="{% get_media_prefix %}{{ summary_item.icon }}"" height="48px" alt="{{summary_item.icon}}"></td></tr>
+                    <tr><td><img src="{% get_media_prefix %}{{ summary_item.icon }}" height="48px" alt="{{summary_item.icon}}"></td></tr>
                     <tr><td>
                         <div class="progress complete roundleft" style="width: {{ summary_item.bar_left_width }}px"></div>
                         <div class="progress {% if summary_item.exceeds_model %}lead{% else %}lag{% endif %}" style="width: {{ summary_item.bar_mid_width }}px"></div>
