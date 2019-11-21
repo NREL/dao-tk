@@ -106,7 +106,7 @@ def _temp_populate_database():
     TimeSeriesHighlight.objects.all().delete()
 
     # csvraw = [line.strip("\n").split(",")[0:2] for line in open("C:/Users/mwagner/Documents/NREL/software/dao-tk/web/site/fig/tsdata.csv",'r').readlines()[1:]]
-    df = pandas.read_csv("C:/Users/mwagner/Documents/NREL/software/dao-tk/web/site/fig/tsdata.csv", index_col='timestamp', date_parser=timeseries._timestamp_parse, keep_date_col=True)
+    df = pandas.read_csv("./fig/tsdata.csv", index_col='timestamp', date_parser=timeseries._timestamp_parse, keep_date_col=True)
     hdr_pairs = [
         ["gross_actual", "gross_model"], 
         ["net_actual", "net_model"], 
@@ -118,7 +118,7 @@ def _temp_populate_database():
     with transaction.atomic():
         for pair in hdr_pairs:
             ky = pair[0].split("_")[0]
-            #find associated highlight 
+            #find associated highlight
             dsi = DashboardSummaryItem.objects.all().filter(varname__icontains=ky)[0]
             TSH = TimeSeriesHighlight(
                 name = dsi.name,
@@ -149,8 +149,15 @@ def dashboard(request, context={}):
     """
     main view for the dashboard
     """
-    # _temp_populate_database()
-    
+
+    import os
+    import dtkweb.settings as settings
+
+    # populate database
+    database_path = settings.DATABASES['default']['NAME']
+    #if os.path.getsize(database_path) <= 0.:
+    if DashboardSummaryItem.objects.all().count() <= 0:
+        _temp_populate_database()
 
     context["dashboard_summary_items"] = DashboardSummaryItem.objects.all()
 
