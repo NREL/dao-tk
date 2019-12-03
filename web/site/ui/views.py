@@ -150,12 +150,9 @@ def dashboard(request, context={}):
     main view for the dashboard
     """
 
-    import os
     import dtkweb.settings as settings
 
     # populate database
-    database_path = settings.DATABASES['default']['NAME']
-    #if os.path.getsize(database_path) <= 0.:
     if DashboardSummaryItem.objects.all().count() <= 0:
         _temp_populate_database()
 
@@ -210,6 +207,16 @@ def dashboard(request, context={}):
 
 #-------------------------------------------------------------
 def outlook(request, context={}):
+    from bokeh.embed import server_session
+    from bokeh.util import session_id
+
+    bokeh_server_url = "http://127.0.0.1:5006/sliders"
+    server_script = server_session(None, session_id=session_id.generate_session_id(),
+                                   url=bokeh_server_url)
+    context = {"graphname" : "Sliders",
+               "server_script" : server_script,
+              }
+
     return render(request, "outlook.html", context)
 
 #-------------------------------------------------------------

@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Outlook</h1>
+    <div>
+        {% load static %}
+    </div>
+        <h1>Outlook</h1>
+        <h3>{{ graphname }}</h3>
+        {{server_script|safe}}
 
 {% endblock %}

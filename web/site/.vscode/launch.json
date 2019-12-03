@@ -46,6 +46,20 @@
             "django": true
         },
         {
+            "name": "Python: Django at 10.10.10.10:80",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "console": "integratedTerminal",
+            "args": [
+                "runserver",
+                "10.10.10.10:80",
+                "--noreload",
+                "--nothreading"
+            ],
+            "django": true
+        },
+        {
             "name": "Python: Flask",
             "type": "python",
             "request": "launch",

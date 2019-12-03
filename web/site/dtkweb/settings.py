@@ -12,6 +12,12 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 
 import os
 
+# Note Bokeh_SECRET_KEY must also be used/set when starting up Bokeh daemon
+# Obtain your own key by typing "bokeh secret" in a terminal
+# the key goes below, and in the bokehserver.service file
+os.environ["BOKEH_SECRET_KEY"] = "kitjOI83DgklnTuUykyHYABBCaV8oItJTZTQqVBav97G"
+os.environ["BOKEH_SIGN_SESSIONS"] = "False"
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # print("BASE " + BASE_DIR)
@@ -25,19 +31,19 @@ SECRET_KEY = '924+#o@k3eo&$rsoqzn!0#p#)alfdy$zgyl%^#epa@77a=23%w'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['10.10.10.10']
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'ui',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'ui',
 ]
 
 MIDDLEWARE = [
