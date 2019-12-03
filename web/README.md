@@ -30,7 +30,7 @@ For production testing, the web server [Waitress](https://docs.pylonsproject.org
 2.  Add a reverse-proxy, in this case Nginx. This functions to forward requests from port 80 to port 8000 but more importantly serves the static files. For Windows:
   1.  Download the latest mainline version of Nginx: http://nginx.org/en/docs/windows.html
   2.  Extract and place files in C:\Program Files\nginx-X.X.X\
-  3.  Configure nginx by replacing \conf\nginx.conf with the preconfigured file in this repo.
+  3.  Configure nginx by replacing \conf\nginx.conf with the preconfigured file in this repo, but in the file replace any user-specific file paths with your own (e.g., "C:/Users/mboyd/...")
   4.  Anytime this config file is edited, restart Nginx, which can be done using the included restart_nginx.bat batch file.
 3. Start the Nginx reverse proxy by running nginx.exe or the included batch file
 4. Start the Waitress webserver using a dedicated  prompt (e.g., Anaconda Prompt for the same reason)
