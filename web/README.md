@@ -12,8 +12,16 @@ For production testing, the web server [Waitress](https://docs.pylonsproject.org
   2. Choose manual option, then Network adapters
   3. Choose Microsoft->Microsoft KM-TEST Loopback Adapter
   4. After it is installed, find the name of the adapter by typing "ipconfig /all" in a Command Prompt and looking for the Loopback Adapter entry. For example, the name is "Ethernet 5" if the block entry name is "Ethernet adapter Ethernet 5:"
-  5. Configure the IP address, subnet mask and gateway. Choose a non-routable IP address like 10.10.10.10 (preferred). Configure this by entering this command at the command prompt: "netsh int ip set address "Ethernet 5" static 10.10.10.10 255.255.255.0 10.10.10.254 1" . This is for the case of the name being 'Ethernet 5' and the chosen IP being 10.10.10.10
+  5. Configure the IP address, subnet mask and gateway. Choose a non-routable IP address like 10.10.10.10 (preferred). Configure this by entering this command at the command prompt:
+    > netsh int ip set address "Ethernet 5" static 10.10.10.10 255.255.255.0 10.10.10.254 1
+	
+	  This is for the case of the name being 'Ethernet 5' and the chosen IP being 10.10.10.10
   6. Verify the change by running "ipconfig /all" again
+  7. ***Very Important***: NREL computers will not allow a second network 'connection' at the same time as a WiFi connection (however, this may only be for NREL Wifi networks). The loopback adapter is seen as another network connection and thus WiFi will not work while this is present and enabled. To disable the loopback address and regain access to the NREL WiFi networks, start a command prompt with administrator privileges and run:
+  
+    > netsh interface set interface "Ethernet 5" disable
+  
+    This is for a loopback adapter named "Ethernet 5". To re-enable, just re-run the above command but change 'disable' to 'enable'
 2. Add these system environment variables:
   1.  BOKEH_SECRET_KEY : 
   2.  BOKEH_SIGN_SESSIONS : False  (or True)   -> is this needed?
