@@ -12,6 +12,7 @@
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
+#include <float.h>
 
 optical_degradation::optical_degradation()
 {

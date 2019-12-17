@@ -90,7 +90,7 @@ solarfield_staff_member* solarfield_repair_staff::get_assigned_member(int helio_
 	for (solarfield_staff_member* m : m_members)
 		if (m->get_assigned_heliostat() == helio_id)
 			return m;
-	throw std::exception("helio id not assigned to any staff member.");
+	throw std::runtime_error("helio id not assigned to any staff member.");
 	return NULL;
 }
 
@@ -113,6 +113,6 @@ solarfield_staff_member* solarfield_repair_staff::get_available_staff()
 	for (solarfield_staff_member* m : m_members)
 		if (!m->m_busy)
 			return m;
-	throw std::exception("no members available");
+	throw std::runtime_error("no members available");
 	return NULL;
 }

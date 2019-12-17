@@ -1,7 +1,10 @@
-VPATH=../liboptimize
+HOME =..
+VPATH=$(HOME)/liboptimize
+LKDIR=$(HOME)/../lk
+SSCDIR=$(HOME)/../ssc
 
 CXX = g++
-CFLAGS = -g -D__64BIT__ -fPIC -Wall -O0 -I$(VPATH) -I$(VPATH)/nlopt -I$(VPATH)/eigen
+CFLAGS = -g -D__64BIT__ -fPIC -Wall -O0 -I$(VPATH) -I$(VPATH)/nlopt -I$(VPATH)/eigen -I$(HOME)/app -I$(LKDIR)/include -I$(SSCDIR)
 CXXFLAGS= -std=c++0x $(CFLAGS)
 
 CFLAGS += -D__64BIT__

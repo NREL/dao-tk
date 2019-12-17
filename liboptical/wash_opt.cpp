@@ -5,6 +5,7 @@
 #include <string>
 #include <algorithm>
 #include <set>
+#include <cmath>
 #include "wash_opt.h"
 
 WashCrewOptimizer::WashCrewOptimizer()

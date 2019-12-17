@@ -237,7 +237,9 @@ public:
     };
 	std::string GetDisplayName()
 	{
-		return (std::stringstream() << "[" << units << "] " << nice_name ).str();
+		std::stringstream ss;
+		ss << "[" << units << "] " << nice_name;
+		return ss.str();
 	};
 
 	bool IsInvalidAllowed()

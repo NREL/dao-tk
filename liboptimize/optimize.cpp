@@ -231,85 +231,86 @@ double optimization::run_continuous_subproblem()
     
     double minf = std::numeric_limits<double>::infinity(); //initialize minimum obj function return value
     
-    if (n < 1)
-        goto CLEAN_AND_RETURN;
-
-    //set up the NLOpt optimization problem
-    nlopt_opt opt = nlopt_create(nlopt_algorithm::NLOPT_LN_BOBYQA, n);
-    nlopt_set_lower_bounds(opt, lb);
-    nlopt_set_upper_bounds(opt, ub);
-    nlopt_set_min_objective(opt, continuous_objective_eval, this);
-
-    nlopt_set_ftol_rel(opt, m_project_ptr->m_parameters.convergence_tol_obj.as_number());
-	nlopt_set_xtol_rel(opt, m_project_ptr->m_parameters.convergence_tol_step.as_number());
-
-    int res = nlopt_optimize(opt, x, &minf);
-    
-    if (res < 0)
+    if (n >= 1)
     {
-        std::string message;
-        switch (res)
-        {
-        case NLOPT_INVALID_ARGS: // = -2,
-            message = "Invalid arguments in continuous optimization subproblem. Ensure lower and upper "
-                "bounds are correct and initial value(s) are within the specified bounds.";
-            break;
-        case NLOPT_OUT_OF_MEMORY: // = -3,
-            message = "Memory error! DAO-Tk ran out of memory while executing the continuous optimization subproblem.";
-            break;
-        case NLOPT_FORCED_STOP: // = -5,
-            message = "The user terminated the run.";
-            break;
-        case NLOPT_ROUNDOFF_LIMITED: // = -4,
-        case NLOPT_FAILURE: // = -1, /* generic failure code */
-        default:
-            message = "An error occurred while executing the continuous optimization subproblem.";
-        }
-        message_handler((message + "\n").c_str());
+        //set up the NLOpt optimization problem
+        nlopt_opt opt = nlopt_create(nlopt_algorithm::NLOPT_LN_BOBYQA, n);
+        nlopt_set_lower_bounds(opt, lb);
+        nlopt_set_upper_bounds(opt, ub);
+        nlopt_set_min_objective(opt, continuous_objective_eval, this);
 
-        goto CLEAN_AND_RETURN;
-    }
-    else
-    {
-        std::string message;
+        nlopt_set_ftol_rel(opt, m_project_ptr->m_parameters.convergence_tol_obj.as_number());
+        nlopt_set_xtol_rel(opt, m_project_ptr->m_parameters.convergence_tol_step.as_number());
 
-        switch (res)
-        {
-        case NLOPT_SUCCESS:  // = 1, /* generic success code */
-            message = "Continuous optimization reached optimal solution.";
-            break;
-        case NLOPT_STOPVAL_REACHED: // = 2,
-            message = "Continuous optimization reach the specified stopping value: optimization complete";
-            break;
-        case NLOPT_FTOL_REACHED: // = 3,
-            message = "Continuous optimization converged below specified objective function tolerance: optimization complete";
-            break;
-        case NLOPT_XTOL_REACHED: // = 4,
-            message = "Continuous optimization converged below specified variable change tolerance: optimization complete";
-            break;
-        case NLOPT_MAXEVAL_REACHED: // = 5,
-            message = "Continuous optimization terminated at the maximum number of function evaluations. Result may be significantly suboptimal.";
-            break;
-        case NLOPT_MAXTIME_REACHED: // = 6
-            message = "Continuous optimization solution timed out. Result may be significantly suboptimal.";
-            break;
-        }
+        int res = nlopt_optimize(opt, x, &minf);
         
-        message.append("\n>> Final PPA: " + std::to_string(minf) + "\n>> Variable values:\n");
-
-        for(size_t i=0; i<continuous_variables.size(); i++)
+        if (res < 0)
         {
-            variable* vit = continuous_variables.at(i);
-            message.append(">> " + vit->nice_name + " [" + vit->units + "]\t" + std::to_string(x[i]) + "\n");
-            vit->assign(x[i]);
+            std::string message;
+            switch (res)
+            {
+            case NLOPT_INVALID_ARGS: // = -2,
+                message = "Invalid arguments in continuous optimization subproblem. Ensure lower and upper "
+                    "bounds are correct and initial value(s) are within the specified bounds.";
+                break;
+            case NLOPT_OUT_OF_MEMORY: // = -3,
+                message = "Memory error! DAO-Tk ran out of memory while executing the continuous optimization subproblem.";
+                break;
+            case NLOPT_FORCED_STOP: // = -5,
+                message = "The user terminated the run.";
+                break;
+            case NLOPT_ROUNDOFF_LIMITED: // = -4,
+            case NLOPT_FAILURE: // = -1, /* generic failure code */
+            default:
+                message = "An error occurred while executing the continuous optimization subproblem.";
+            }
+            message_handler((message + "\n").c_str());
+
+            // goto CLEAN_AND_RETURN;
         }
+        else
+        {
+            std::string message;
 
-        message_handler((message + "\n").c_str());
+            switch (res)
+            {
+            case NLOPT_SUCCESS:  // = 1, /* generic success code */
+                message = "Continuous optimization reached optimal solution.";
+                break;
+            case NLOPT_STOPVAL_REACHED: // = 2,
+                message = "Continuous optimization reach the specified stopping value: optimization complete";
+                break;
+            case NLOPT_FTOL_REACHED: // = 3,
+                message = "Continuous optimization converged below specified objective function tolerance: optimization complete";
+                break;
+            case NLOPT_XTOL_REACHED: // = 4,
+                message = "Continuous optimization converged below specified variable change tolerance: optimization complete";
+                break;
+            case NLOPT_MAXEVAL_REACHED: // = 5,
+                message = "Continuous optimization terminated at the maximum number of function evaluations. Result may be significantly suboptimal.";
+                break;
+            case NLOPT_MAXTIME_REACHED: // = 6
+                message = "Continuous optimization solution timed out. Result may be significantly suboptimal.";
+                break;
+            }
+            
+            message.append("\n>> Final PPA: " + std::to_string(minf) + "\n>> Variable values:\n");
 
+            for(size_t i=0; i<continuous_variables.size(); i++)
+            {
+                variable* vit = continuous_variables.at(i);
+                message.append(">> " + vit->nice_name + " [" + vit->units + "]\t" + std::to_string(x[i]) + "\n");
+                vit->assign(x[i]);
+            }
+
+            message_handler((message + "\n").c_str());
+
+        }
     }
-
-CLEAN_AND_RETURN:
-    delete[] x, lb, ub;
+    // CLEAN_AND_RETURN:
+    delete[] x;
+    delete[] lb;
+    delete[] ub;
 
     return minf;
 }
@@ -376,14 +377,15 @@ bool optimization::run_optimization()
 
                 LB((int)i) = v.minval.as_integer();
                 UB((int)i) = v.maxval.as_integer();
-                if (v.initializers.size() != n)
+                if (v.initializers.size() != (size_t)n)
                 {
-                    std::runtime_error((std::stringstream()
-                        << "Malformed data in optimization routine. Dimensionality of the initializer array for variable '" << v.name << "' is incorrect. "
-                        << "Expecting " << n << " values but received " << v.initializers.size() << " instead.").str()
-                    );
+                    std::stringstream sstr;
+                    sstr << "Malformed data in optimization routine. Dimensionality of the initializer array for variable '" << v.name << "' is incorrect. "
+                        << "Expecting " << n << " values but received " << v.initializers.size() << " instead.";
+
+                    std::runtime_error( sstr.str() );                    
                 }
-                for (int j = 0; j < v.initializers.size(); j++)
+                for (int j = 0; j < (int)v.initializers.size(); j++)
                     X(j, (int)i) = (int)v.initializers.at(j);
             }
         }
@@ -480,7 +482,7 @@ bool optimization::run_optimization()
 
         // To store the set of n+1 points that generate the value eta at each grid point.. The evaluated points are their own generators
         Matrix<int> eta_gen((int)F.size(), n + 1);
-        for (int i = 0; i < not_nans.size(); i++)
+        for (int i = 0; i < (int)not_nans.size(); i++)
             for (int j = 0; j < n + 1; j++)
                 eta_gen(not_nans.at(i), j) = not_nans.at(i);
 
@@ -687,7 +689,7 @@ bool optimization::run_optimization()
                         eval_performed_flag = true;
 
                         Vector<int> x_star_maybe;
-                        for (int i = 0; i < integer_variables.size(); i++)
+                        for (int i = 0; i < (int)integer_variables.size(); i++)
                         {
                             int vv = grid(new_ind, i + 1);
 							integer_variables.at(i)->assign(vv);

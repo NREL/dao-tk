@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <float.h>
 
 solarfield_availability::solarfield_availability()
 {
@@ -166,7 +167,7 @@ void solarfield_availability::get_operating_hours()
 			else if ((double)h >= daily_sunset[d] - 1)
 				op_hours.push_back(daily_sunset[d] - (double)h);
 			else
-				throw std::exception("Logic broken!");
+				throw std::runtime_error("Logic broken!");
 		}
 	}
 	m_settings.op_schedule.clear();
@@ -420,7 +421,7 @@ void solarfield_availability::add_repair_to_queue()
 			m_field.m_components.at(m_current_event.component_idx)->get_mean_repair_time()
 			);
 	else
-		throw std::exception("invalid repair order");
+		throw std::runtime_error("invalid repair order");
 	m_repair_queue.push( solarfield_event(
 		m_current_event.helio_id,
 		m_current_event.component_idx,

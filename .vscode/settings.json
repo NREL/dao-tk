@@ -66,6 +66,7 @@
         "bitset": "cpp",
         "codecvt": "cpp",
         "*.xpm": "cpp",
-        "core": "cpp"
+        "core": "cpp",
+        "string": "cpp"
     }
 }

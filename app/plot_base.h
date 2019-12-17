@@ -93,7 +93,7 @@ public:
         position_offset& operator=(std::vector<double>& rhs)
         {
             if (rhs.size() != 2)
-                throw std::exception("Dimension mismatch in right hand side assignment of iteration plot position offset vector.");
+                throw std::runtime_error("Dimension mismatch in right hand side assignment of iteration plot position offset vector.");
             left = rhs[0];
             top = rhs[1];
             return *this;

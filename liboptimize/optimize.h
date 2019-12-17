@@ -59,7 +59,8 @@ public:
             return this->as_number() == testval;
     };
 
-    void optimization_variable::assign(double d)
+    // void optimization_variable::assign(double d)
+    void assign(double d)
     {
         m_parent->assign(d);
         lk::vardata_t::assign(d);

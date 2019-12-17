@@ -4,6 +4,8 @@
 #define _WASH_OPT_STRUCT_
 
 #include <unordered_map>
+#include <vector>
+#include <string>
 
 class SoilingFunction
 {

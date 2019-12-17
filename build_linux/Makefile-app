@@ -15,8 +15,7 @@ CC = gcc
 CXX = g++
 WARNINGS=-Wall -Wno-unknown-pragmas #-Werror
 CFLAGS =  -g -O0 -I. -I$(JSONDIR) -I$(WEXDIR)/include -I$(LKDIR)/include -I$(SSCDIR) \
-			-I$(HOME)/libsolar -I$(HOME)/liboptical -I$(HOME)/libcluster -I$(HOME)/libcycle \
-			-I$(HOME)/libclearsky -I$(HOME)/liboptimize \
+			-I$(HOME)/app -I$(HOME)/libsolar -I$(HOME)/liboptical -I$(HOME)/libcluster -I$(HOME)/libcycle -I$(HOME)/libclearsky -I$(HOME)/liboptimize \
 			-DLK_USE_WXWIDGETS `wx-config-3 --cflags` $(WARNINGS)
 LDFLAGS = -std=c++0x -no-pie -I.. ./ssc.so $(WEXLIB) $(LKLIB) liboptical.a libsolar.a \
 			libcluster.a libcycle.a libclearsky.a liboptimize.a \

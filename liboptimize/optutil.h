@@ -181,7 +181,7 @@ public:
         if (this->size() != rhs.size())
             std::runtime_error("Vector subtraction size mismatch");
         Vector<T> res;
-        for (int i = 0; i < rhs.size(); i++)
+        for (int i = 0; i < (int)rhs.size(); i++)
             res.push_back(this->operator()(i) - rhs(i));
         return res;
     }

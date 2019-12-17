@@ -36,7 +36,7 @@ void FluxSimThread::Setup(int thread_id, int thread_ct, Project *P, ssc_data_t s
     _ssc_data = ssc_data_create();
 
     const char* vname = ssc_data_first(ssc_data);
-    while (vname != '\0')
+    while (vname != SSC_INVALID)
     {
         switch (ssc_data_query(ssc_data, vname))
         {
