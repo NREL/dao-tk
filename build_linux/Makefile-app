@@ -30,9 +30,12 @@ OBJECTS  = \
 	logview.o \
 	project_init.o \
 	project.o \
+	plot_base.o \
 	scripting.o \
 	scriptview.o \
 	scriptlist.o \
+	iterplot.o \
+	iterplotview.o \
 	vardocument.o \
 	clusterthread.o \
 	fluxsimthread.o \

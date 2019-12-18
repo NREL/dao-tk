@@ -3,7 +3,7 @@ Test script for optimization
 */
 initialize();
 
-var('solar_resource_file', 'C:/Users/mwagner/Documents/NREL/software/sam/deploy/solar_resource/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv');
+var('solar_resource_file', '/home/mike/workspace/sam/deploy/solar_resource/daggett_ca_34.865371_-116.783023_psmv3_60_tmy.csv');
 
 var('P_ref', 75);	//MWe
 var('is_dispatch', false);
