@@ -4,6 +4,7 @@
 #include "solarfield_heliostat.h"
 #include "solarfield_structures.h"
 #include "./../libcycle/distributions.h"
+#include <stdexcept>
 
 enum repair_order {
 	FAILURE_ORDER,		// Repair in order failed

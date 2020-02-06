@@ -4,6 +4,7 @@
 #include <string>
 #include "distributions.h"
 #include "well512.h"
+#include <stdexcept>
 
 class FailureType
 {
