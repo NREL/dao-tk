@@ -15,7 +15,7 @@ import os
 # Note Bokeh_SECRET_KEY must also be used/set when starting up Bokeh daemon
 # Obtain your own key by typing "bokeh secret" in a terminal
 # the key goes below, and in the bokehserver.service file
-os.environ["BOKEH_SECRET_KEY"] = "kitjOI83DgklnTuUykyHYABBCaV8oItJTZTQqVBav97G"
+os.environ["BOKEH_SECRET_KEY"] = "3Sp4NTG18NLUfmU5nTIkgPTGGTHGpHMVlbFeRri4SVMU"
 os.environ["BOKEH_SIGN_SESSIONS"] = "False"
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)

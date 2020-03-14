@@ -62,12 +62,14 @@ def index(request, path=None):
     else:
         if 'dashboard' in pvals[0]:
             return dashboard(request, context)
-        elif 'outlook' in pvals[0]:
-            return outlook(request, context)
-        elif 'planning' in pvals[0]:
-            return planning(request, context)
-        elif 'system' in pvals[0]:
-            return system(request, context)
+        elif 'forecast' in pvals[0]:
+            return forecast(request, context)
+        elif 'history' in pvals[0]:
+            return history(request, context)
+        elif 'maintenance' in pvals[0]:
+            return maintenance(request, context)
+        elif 'settings' in pvals[0]:
+            return settings(request, context)
         else:
             return Http404(request)
 
@@ -218,6 +220,22 @@ def outlook(request, context={}):
               }
 
     return render(request, "outlook.html", context)
+
+#-------------------------------------------------------------
+def forecast(request, context={}):
+    return render(request, "forecast.html", context)
+
+#-------------------------------------------------------------
+def history(request, context={}):
+    return render(request, "history.html", context)
+
+#-------------------------------------------------------------
+def maintenance(request, context={}):
+    return render(request, "maintenance.html", context)
+
+#-------------------------------------------------------------
+def settings(request, context={}):
+    return render(request, "settings.html", context)
 
 #-------------------------------------------------------------
 def planning(request, context={}):

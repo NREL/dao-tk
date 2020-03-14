@@ -1,0 +1,132 @@
+body {
+  background-color: white;
+  padding: 0px;
+  margin: 0;
+}
+
+h1,
+h2,
+p,
+ul,
+li {
+  font-family: sans-serif;
+}
+
+li {
+  list-style-type: none;
+}
+
+i {
+  margin-right: 10px;
+}
+
+.content {
+  padding: 20px;
+  margin-left: 230px;
+}
+
+/* The side navigation menu */
+.sidebar-navigation {
+  height: 100%; /* 100% Full-height */
+  width: 230px; /* 0 width - change this with JavaScript */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Stay on top */
+  top: 0; /* Stay at the top */
+  left: 0;
+  background-color: #2b4055; /* Black*/
+  overflow-x: hidden; /* Disable horizontal scroll */
+  padding-left: 0px;
+  padding-top: 10px; /* Place content 60px from the top */
+  transition: 0.5s; /* 0.5 second transition effect to slide in the sidenav */
+  margin: 0;
+}
+
+/* The navigation menu links */
+.sidebar-navigation a,
+.sidebar-navigation li {
+  padding: 5px 10px 5px 10px;
+  margin-bottom: 6px;
+  text-decoration: none;
+  font-size: 15px;
+  color: #ecf0f1;
+  display: block;
+  transition: 0.3s;
+}
+
+/* When you mouse over the navigation links, change their color */
+.sidebar-navigation a:hover {
+  color: #f1f1f1;
+}
+
+/* Profile Information */
+.img-circle.profile-img {
+  width: 70%;
+  background: #fff;
+  margin-left: 10%;
+  z-index: 1000;
+  position: inherit;
+  margin-top: 0px;
+  border: 1px solid rgba(52, 73, 94, 0.44);
+  padding: 4px;
+}
+
+.img-circle {
+  border-radius: 50%;
+}
+
+.profile_pic {
+  width: 35%;
+  float: left;
+}
+
+.profile_info h2 {
+  font-size: 14px;
+  color: #ecf0f1;
+  margin: 0;
+  font-weight: 300;
+}
+
+.profile_info {
+  padding: 25px 10px 10px;
+  width: 65%;
+  float: left;
+}
+
+.profile:after {
+  content: ".";
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+
+.data {
+  margin-top: 20px;
+}
+
+.livestatus {
+  color: white;
+  float: right;
+  padding: 14px 16px;
+}
+
+.livestatus td {
+ padding: 5px;
+}
+
+ .circle {
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+}
+
+.circle.ok {
+  background-color: green;
+}
+.circle.warn {
+  background-color: orange;
+}
+
+.tile_count {
+    width: 100%;
+}

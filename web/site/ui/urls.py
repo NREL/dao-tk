@@ -6,6 +6,10 @@ urlpatterns = [
     path('', views.index, name='index'),
     path(r'<slug:path>', views.index),     #main url handler. Supplemental named urls follow below.
     path(r'dashboard', views.dashboard, name='dashboard'),
+    path(r'forecast', views.forecast, name='forecast'),
+    path(r'history', views.history, name='history'),
+    path(r'maintenance', views.maintenance, name='maintenance'),
+    path(r'settings', views.settings, name='settings'),
     path(r'outlook', views.outlook, name='outlook'),
     path(r'planning', views.planning, name='planning'),
     path(r'system', views.system, name='system'),
