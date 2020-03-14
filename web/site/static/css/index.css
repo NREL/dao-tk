@@ -127,6 +127,22 @@ i {
   background-color: orange;
 }
 
-.tile_count {
+.row.tile_count {
     width: 100%;
+    text-align: center;
+}
+
+.live-data{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content:center;
+}
+
+.sidebar-navigation .csp-logo {
+  border-radius: 50%;
+  margin-right: 20px;
+}
+
+.sidebar-navigation h3{
+  font-size: 1.75rem;
 }

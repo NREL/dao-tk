@@ -3,8 +3,7 @@
     position: absolute;
     left: 0;
     height: 80px;
-    border-left: 5px solid #ADB2B5;
-    margin-top: 10px;
+    border-left: 1px solid #ADB2B5;
 }
 
 .tile_count .tile_stats_count:first-child:before {

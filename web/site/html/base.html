@@ -10,69 +10,16 @@
     <link rel="stylesheet" href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-1.0.4.min.css">
     <link rel="stylesheet" href="{% static "css/bootstrap.min.css" %}">
     <link rel="stylesheet" href="{% static "css/DailyStatistics.css" %}">
+    <link rel="icon" href="{% static "img/dtk32.png" %}">
     <title>{% block title %}{% endblock %}</title>
     {% block head %}{% endblock %}
 </head>
 
 <body>
-
-    <div>
-        <!-- Image of the sun -->
-        <!-- <img src="{% static "img/dtk64.png" %}" height="46px" alt="Logo" style="margin-left: 4px"> -->
-        <br />
-
-        <ul class="sidebar-navigation">
-            <li>
-                <h3>Concentrated Solar Power Dashboard</h3>
-            </li>
-            <li>
-                <div class="profile">
-                    <div class="profile_pic">
-                        <img src="{% static "img/default-user-avatar.png" %}" alt="profile pic"
-                            class="img-circle profile-img" />
-                    </div>
-                    <div class="profile_info">
-                        <h2>Plant Manager</h2>
-                    </div>
-                </div>
-            </li>
-            <br />
-            <li>
-                <a href="{% url 'dashboard' %}"><i class="fa fa-home"></i>Dashboard</a>
-            </li>
-            <li>
-                <a href="{% url 'forecast' %}"><i class="fa fa-line-chart"></i>Forecast</a>
-            </li>
-            <li>
-                <a href="{% url 'history' %}"><i class="fa fa-bar-chart" aria-hidden="true"></i>History</a>
-            </li>
-            <li>
-                <a href="{% url 'maintenance' %}"><i class="fa fa-table" aria-hidden="true"></i>Maintenance</a>
-            </li>
-            <li>
-                <a href="{% url 'settings' %}"><i class="fa fa-pencil-square-o" aria-hidden="true"></i>Settings</a>
-            </li>
-        </ul>
-    </div>
-
-    <div class="livestatus content">
-        <table>
-            <tr>
-                <td>Last update {{ last_refresh|date:'m/d/Y-H:i:s'}}</td>
-                <td style="width: 5%;"></td>
-                <td>Connection status</td>
-                <td>
-                    <div class="circle {% if connection_status %}ok{% else %}warn{% endif %}"></div>
-                </td>
-                <td style="width: 5%;"></td>
-                <td>Model status</td>
-                <td>
-                    <div class="circle {% if model_status %}ok{% else %}warn{% endif %}"></div>
-                </td>
-            </tr>
-        </table>
-    </div>
-
+    {% include "snippets/navbar.html" %}
+    
+    {% include "snippets/live_status.html" %}
+    
     <div class="content">
 
         {% block content %}{% endblock %}

@@ -1,0 +1,17 @@
+<div class="livestatus content">
+    <table>
+        <tr>
+            <td>Last update {{ last_refresh|date:'m/d/Y-H:i:s'}}</td>
+            <td style="width: 5%;"></td>
+            <td>Connection status</td>
+            <td>
+                <div class="circle {% if connection_status %}ok{% else %}warn{% endif %}"></div>
+            </td>
+            <td style="width: 5%;"></td>
+            <td>Model status</td>
+            <td>
+                <div class="circle {% if model_status %}ok{% else %}warn{% endif %}"></div>
+            </td>
+        </tr>
+    </table>
+</div>
