@@ -37,6 +37,7 @@ ALLOWED_HOSTS = ['10.10.10.10']
 # Application definition
 
 INSTALLED_APPS = [
+    'BokehApps',
     'ui',
     'django.contrib.admin',
     'django.contrib.auth',

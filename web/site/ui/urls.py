@@ -3,8 +3,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.index, name='index'),
-    path(r'<slug:path>', views.index),     #main url handler. Supplemental named urls follow below.
+    path('', views.dashboard, name='index'),
     path(r'dashboard', views.dashboard, name='dashboard'),
     path(r'forecast', views.forecast, name='forecast'),
     path(r'history', views.history, name='history'),
