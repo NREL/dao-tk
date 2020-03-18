@@ -53,6 +53,7 @@ static lk::fcall_t *daotk_functions()
 		_test,
 		_initialize,
 		_generate_solarfield,
+		_simulate_flux_profiles,
 		_power_cycle,
 		_simulate_optical,
 		_simulate_solarfield,

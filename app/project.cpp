@@ -184,6 +184,7 @@ void parameters::initialize()
     soil_per_hour.set(                  1.5e-4,                "soil_per_hour",      false,                                "Mean soiling rate",        "1/hr",    "Optical degradation|Parameters" );
     helio_reflectance.set(                0.95,            "helio_reflectance",      false,                       "Initial mirror reflectance",           "-",    "Optical degradation|Parameters" );
     is_uniform_helio_assign.set(          true,      "is_uniform_helio_assign",      false,              "Assign equal wash time to each crew",           "-",    "Optical degradation|Parameters" );
+	is_fixed_repl_threshold.set(		  false,	 "is_fixed_repl_threshold",		 false,		   "Use fixed heliostat replacement threshold",			  "-",	  "Optical degradation|Parameters" );
 
     std::vector< double > pvalts(8760, 1.);
     disp_rsu_cost.set(                    950.,                "disp_rsu_cost",      false,                            "Receiver startup cost",           "$",             "Simulation|Parameters" );
@@ -259,6 +260,7 @@ void parameters::initialize()
     (*this)["is_use_target_heuristic"] = &is_use_target_heuristic;
     (*this)["cycle_nyears"] = &cycle_nyears;
     (*this)["is_uniform_helio_assign"] = &is_uniform_helio_assign;
+	(*this)["is_fixed_repl_threshold"] = &is_fixed_repl_threshold;
     (*this)["plant_lifetime"] = &plant_lifetime;
     (*this)["finance_period"] = &finance_period;
     (*this)["ppa_multiplier_model"] = &ppa_multiplier_model;
@@ -1303,10 +1305,14 @@ bool Project::D()
             ann_e.push_back((double)ann[i]);
     }
 
+	ssc_module_free(mod_solarpilot);
+
     //calculate flux maps and efficiency matrix with multithreading, if specified
     if (m_parameters.n_sim_threads.as_integer() > 1)
     {
-        
+		if (!calculate_flux_profiles())
+			return false;
+		/*
         int N_hel, nc;
         ssc_number_t* helio_positions = ssc_data_get_matrix(m_ssc_data, "helio_positions", &N_hel, &nc);
         ssc_data_set_matrix(m_ssc_data, "helio_positions_in", helio_positions, N_hel, nc);
@@ -1348,7 +1354,7 @@ bool Project::D()
         {
             if (simthread[i].IsFinishedWithErrors() || simthread[i].IsSimulationCancelled())
             {
-                ssc_module_free(mod_solarpilot);
+                //ssc_module_free(mod_solarpilot);
                 is_design_valid = false;
                 delete[] simthread;
                 return false;
@@ -1382,6 +1388,7 @@ bool Project::D()
         delete[] opteff_table;
         delete[] flux_table;
         delete[] simthread;
+		*/
     }
 
     //Collect calculated data
@@ -1389,7 +1396,7 @@ bool Project::D()
 
     ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 0.);
 
-    ssc_module_free(mod_solarpilot);
+    //ssc_module_free(mod_solarpilot);
 
     //assign outputs and return
     
@@ -1406,6 +1413,125 @@ bool Project::D()
     is_design_valid = true;
     return true;
 }
+
+bool Project::calculate_flux_profiles()
+{
+
+	int N_hel, nc;
+	ssc_number_t* helio_positions = ssc_data_get_matrix(m_ssc_data, "helio_positions", &N_hel, &nc);
+	ssc_data_set_matrix(m_ssc_data, "helio_positions_in", helio_positions, N_hel, nc);
+	ssc_data_set_number(m_ssc_data, "field_model_type", 2.);  // use this layout
+	ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 1.);
+
+
+	if (m_parameters.n_sim_threads.as_integer() == 1)
+	{
+		ssc_module_t mod_solarpilot = ssc_module_create("solarpilot");
+		ssc_bool_t res = ssc_module_exec_with_handler(mod_solarpilot, m_ssc_data, ssc_progress_handler, 0);
+		if (!res)
+		{
+			ssc_module_free(mod_solarpilot);
+			is_design_valid = false;
+			return false;
+		}
+		ssc_module_free(mod_solarpilot);
+	}
+
+
+	if (m_parameters.n_sim_threads.as_integer() > 1)
+	{
+
+		int nthread = std::min(m_parameters.n_sim_threads.as_integer(), wxThread::GetCPUCount());
+		FluxSimThread *simthread = new FluxSimThread[nthread];
+
+		for (int i = 0; i < nthread; i++)
+			simthread[i].Setup(i, nthread, this, m_ssc_data);
+
+		for (int i = 0; i < nthread; i++)
+			std::thread(&FluxSimThread::StartThread, std::ref(simthread[i])).detach();
+
+		//Wait loop
+		while (true)
+		{
+			int nsim_done = 0, nsim_total = 0, nthread_done = 0;
+			for (int i = 0; i < nthread; i++)
+			{
+				if (simthread[i].IsFinished())
+					nthread_done++;
+				int ncomp, ntot;
+				simthread[i].GetStatus(&ncomp, &ntot);
+				nsim_done += ncomp;
+				nsim_total += ntot;
+			}
+			if (!sim_progress_handler((double)nsim_done / (double)nsim_total, "Multi-threaded flux characterization"))
+			{
+				for (int i = 0; i < nthread; i++)
+					simthread[i].CancelSimulation();
+			}
+			if (nthread_done == nthread) break;
+			std::this_thread::sleep_for(std::chrono::milliseconds(150));
+		}
+
+		for (int i = 0; i < nthread; i++)
+		{
+			if (simthread[i].IsFinishedWithErrors() || simthread[i].IsSimulationCancelled())
+			{
+				is_design_valid = false;
+				delete[] simthread;
+				return false;
+			}
+		}
+
+		//reconstruct field efficiency and flux matrices from multithreaded data
+		std::vector< std::vector< double > > collect_results;
+
+		for (int k = 0; k < nthread; k++)
+			for (size_t i = 0; i < simthread[k]._results.size(); i++)
+				collect_results.push_back(simthread[k]._results.at(i));
+
+		int nitem = (int)collect_results.size();
+		ssc_number_t* opteff_table = new ssc_number_t[nitem * 3];
+		int nflux = (collect_results.front().size() - 3);
+		ssc_number_t* flux_table = new ssc_number_t[nitem * nflux];
+
+		//assign to the ssc data module
+		for (int i = 0; i < nitem; i++)
+		{
+			for (int j = 0; j < 3; j++)
+				opteff_table[i * 3 + j] = collect_results[i][j];
+			for (int j = 0; j < nflux; j++)
+				flux_table[i*nflux + j] = collect_results[i][j + 3];
+		}
+		ssc_data_set_matrix(m_ssc_data, "opteff_table", opteff_table, nitem, 3);
+		ssc_data_set_matrix(m_ssc_data, "flux_table", flux_table, nitem, nflux);
+
+		delete[] opteff_table;
+		delete[] flux_table;
+		delete[] simthread;
+	}
+
+	ssc_data_unassign(m_ssc_data, "helio_positions_in");
+	ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 0.);
+
+	return true;
+}
+
+bool Project::recalculate_flux_profiles_from_design()
+{
+	lk_hash_to_ssc(m_ssc_data, m_parameters);
+	lk_hash_to_ssc(m_ssc_data, m_variables);
+	calculate_flux_profiles();
+	ssc_to_lk_hash(m_ssc_data, m_design_outputs);
+
+	is_sf_optical_valid = false;
+	is_simulation_valid = false;
+	is_explicit_valid = false;
+	is_financial_valid = false;
+	is_cycle_avail_valid = false;
+
+	return true;
+}
+
 
 
 bool Project::M()
@@ -1541,7 +1667,7 @@ bool Project::M()
     
     //lifetime costs
     //treat heliostat repair costs as consuming reserve equipment paid for at the project outset
-    sfa.m_results.heliostat_repair_cost = calc_real_dollars(sfo.m_results.heliostat_repair_cost_y1);
+    sfo.m_results.heliostat_repair_cost = calc_real_dollars(sfo.m_results.heliostat_repair_cost_y1);
 
     //assign outputs to project structure
     m_solarfield_outputs.n_om_staff.assign( sfo.m_sfa.m_settings.n_om_staff );
@@ -1822,7 +1948,7 @@ bool Project::O()
     od.m_settings.n_helio = m_design_outputs.number_heliostats.as_integer();
     od.m_settings.degr_loss_per_hr = m_parameters.degr_per_hour.as_number();
     od.m_settings.degr_accel_per_year = m_parameters.degr_accel_per_year.as_number();
-    //od.m_settings.replacement_threshold = m_variables.degr_replace_limit.as_number();
+    od.m_settings.replacement_threshold = m_variables.degr_replace_limit.as_number();
     od.m_settings.heliostat_refurbish_cost = m_parameters.heliostat_refurbish_cost.as_number() * wc.m_settings.heliostat_size;
     od.m_settings.soil_loss_per_hr = m_parameters.soil_per_hour.as_number();
     od.m_settings.wash_units_per_hour = m_parameters.wash_rate.as_number() / wc.m_settings.heliostat_size;
@@ -1832,7 +1958,8 @@ bool Project::O()
     od.m_settings.refl_sim_interval = 168;
     od.m_settings.soil_sim_interval = 24;
     od.m_settings.use_mean_replacement_threshold = false;
-    od.m_settings.use_fixed_replacement_threshold = false;
+	od.m_settings.use_fixed_replacement_threshold = m_parameters.is_fixed_repl_threshold.as_boolean(); // false;
+	
 
     od.simulate(sim_progress_handler);
 

@@ -494,6 +494,7 @@ struct parameters : public hash_base
 	parameter is_reoptimize_at_failures;
 	parameter is_use_target_heuristic;
 	parameter is_uniform_helio_assign;
+	parameter is_fixed_repl_threshold;
 
     //strings
 	parameter ampl_data_dir;
@@ -856,6 +857,7 @@ class Project
 	void update_calculated_values_post_layout();
 	double calc_real_dollars(const double &dollars, bool is_revenue=false, bool is_labor=false, bool one_time_exp=false, int num_years=0);
 	
+	bool calculate_flux_profiles();
 	bool simulate_clusters(std::unordered_map<std::string, std::vector<double>> &ssc_soln);
 	std::unordered_map<std::string, std::vector<double>> ssc_data_to_map(const ssc_data_t & ssc_data, std::vector<std::string> keys);
 	bool accumulate_annual_results(const std::vector<double> &soln, double &sum, double &summult_price, double &starts, double &ramp, double &ramp_index);
@@ -899,6 +901,7 @@ public:
 
 	//objective function methods
 	bool D();       //Solar field layout and design
+	bool recalculate_flux_profiles_from_design(); // Re-calculate flux profiles using fixed design
 	bool M();       //Heliostat mechanical availability
 	bool C();       //Cycle availability 
 	bool O();       //Optical degradation and soiling

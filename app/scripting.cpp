@@ -1002,3 +1002,11 @@ void _optimize(lk::invoke_t &cxt)
     mw.UpdateDataTable();
     mw.SetProgress(0.);
 }
+
+void _simulate_flux_profiles(lk::invoke_t &cxt)
+{
+	LK_DOC("simulate_flux_profiles", "Re-calculates flux profiles from current project settings using existing solar field layout. Does not need to be called unless project settings change after field layout is created.", "([table:options]):table");
+	MainWindow::Instance().GetProject()->recalculate_flux_profiles_from_design();
+	MainWindow::Instance().UpdateDataTable();
+	MainWindow::Instance().SetProgress(0.);
+}
