@@ -1520,6 +1520,11 @@ bool Project::recalculate_flux_profiles_from_design()
 {
 	lk_hash_to_ssc(m_ssc_data, m_parameters);
 	lk_hash_to_ssc(m_ssc_data, m_variables);
+
+	ssc_number_t helio_optical_error_mrad;
+	ssc_data_get_number(m_ssc_data, "helio_optical_error_mrad", &helio_optical_error_mrad);
+	ssc_data_set_number(m_ssc_data, "helio_optical_error", helio_optical_error_mrad / 1000.);
+
 	calculate_flux_profiles();
 	ssc_to_lk_hash(m_ssc_data, m_design_outputs);
 
