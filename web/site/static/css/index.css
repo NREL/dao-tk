@@ -146,3 +146,11 @@ i {
 .sidebar-navigation h3{
   font-size: 1.75rem;
 }
+
+.card.h-100 .card-body{
+  padding: 0;
+}
+
+.col .card{
+  border: none;
+}

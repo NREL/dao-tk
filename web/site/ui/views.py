@@ -151,59 +151,15 @@ def dashboard(request, context={}):
     """
     main view for the dashboard
     """
+    from bokeh.embed import server_session
+    from bokeh.util import session_id
 
-    import dtkweb.settings as settings
-
-    # populate database
-    if DashboardSummaryItem.objects.all().count() <= 0:
-        _temp_populate_database()
-
-    context["dashboard_summary_items"] = DashboardSummaryItem.objects.all()
-
-    #set default view parameters from session
-    try:
-        context["current_summary_plot"] = request.session["current_summary_plot"]
-    except:
-        context["current_summary_plot"] = 'daily_production'
-    try:
-        context["timeseries_plot_start"] = request.session["timeseries_plot_start"]  #stored for json as YYYY/MM/DD
-    except:
-        context["timeseries_plot_start"] = datetime.strftime(datetime.today(), "%Y-%m-%d")
-
-    #handle plot switching using get parameters
-    #current_summary_plot key is 'sumchart'
-    if 'sumchart' in request.GET.keys():
-        request.session['current_summary_plot'] = \
-            context['current_summary_plot'] = \
-                request.GET.get('sumchart')
-
-    #handle GET form submissions
-    if request.method == "GET":
-        #timeseries plot start date key 'psd'
-        if 'psd' in request.GET.keys():
-            request.session['timeseries_plot_start'] = \
-                context['timeseries_plot_start'] = \
-                    request.GET.get('psd')
-
-    try:
-        #load the highlight time series from the database
-        TSH = TimeSeriesHighlight.objects.all().get(varname=context["current_summary_plot"])
-        
-        #convert start date text to a datetime object
-        ts_plot_start = datetime.strptime( context['timeseries_plot_start'], "%Y-%m-%d" )
-
-        #get the timeseries data by filtering the relevant time range
-        tsdata = TSH.entries.filter(timestamp__range=(ts_plot_start, ts_plot_start + timedelta(days=1)))
-        
-        strdata = ["timestamp,actual,model"]
-        for entry in tsdata:
-            strdata.append( str(entry.timestamp) + "," + entry.data )
-        
-        context["timeseries_plot"] = timeseries.daily_tracking(StringIO("\n".join(strdata)), TSH.name, TSH.units)
-
-    except Exception as e:
-        print(e)
-        pass
+    bokeh_server_url = "http://127.0.0.1:5006/dashboard_plot"
+    server_script = server_session(None, session_id=session_id.generate_session_id(),
+                                   url=bokeh_server_url)
+    context = {"plot_name" : "Dashboard",
+               "plot_script" : server_script,
+              }
 
     return render(request, "dashboard.html", context)
 
