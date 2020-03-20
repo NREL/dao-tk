@@ -8,13 +8,15 @@ Forecast
 <div>
   {% load static %}
 </div>
-<h1>Solar Forecast</h1>
+<h1>Forecast Data</h1>
 <div class="data data-forcast">
   <!-- Daily Statistics -->
   {% include "snippets/live_data.html" %}
   <br/>
   <!-- Data Cards -->
-  {% include "snippets/card.html" %}
+  <!-- Market Data -->
+  {% include "snippets/card.html" with plot_script=mkt_script %}
+  <!-- Solar Forecast Data -->
   <!-- {% include "snippets/card.html" %} -->
 </div>
 {% endblock %}

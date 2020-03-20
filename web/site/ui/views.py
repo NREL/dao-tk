@@ -157,8 +157,8 @@ def dashboard(request, context={}):
     bokeh_server_url = "http://127.0.0.1:5006/dashboard_plot"
     server_script = server_session(None, session_id=session_id.generate_session_id(),
                                    url=bokeh_server_url)
-    context = {"plot_name" : "Dashboard",
-               "plot_script" : server_script,
+    context = {"db_name" : "Dashboard",
+               "db_script" : server_script,
               }
 
     return render(request, "dashboard.html", context)
@@ -191,8 +191,8 @@ def forecast(request, context={}):
     # solar_script = server_session(None, session_id=session_id.generate_session_id(),
     #                                url=solar_url)
     
-    context = {"plot_name" : "Market Forecast",
-               "plot_script" : mkt_script,
+    context = {"mkt_script" : "Market Forecast",
+               "mkt_script" : mkt_script,
             #    "solar_plot": "Solar Forecast",
             #    "solar_script": solar_script,
               }

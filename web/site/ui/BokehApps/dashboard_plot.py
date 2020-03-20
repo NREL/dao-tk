@@ -27,12 +27,7 @@ for i, data_label in enumerate(data_labels[2:]):
 
 def make_dataset(time_box):
     # Prepare data
-    print(make_dataset.__name__)
     data = data_base[-time_box:]
-    
-    # data = DashboardDataRTO.objects.all()[LAST_24_HOURS:]
-    by_plot = pd.DataFrame(columns=['time','value', 'color', 'name'])
-    # print([plot_name for plot_name in data_labels[2:]])
 
     # return ColumnDataSource(data={
     #         time = [datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data],
