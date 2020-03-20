@@ -179,6 +179,24 @@ def outlook(request, context={}):
 
 #-------------------------------------------------------------
 def forecast(request, context={}):
+
+    from bokeh.embed import server_session
+    from bokeh.util import session_id
+
+    market_url = "http://127.0.0.1:5006/market_plot"
+    mkt_script = server_session(None, session_id=session_id.generate_session_id(),
+                                   url=market_url)
+
+    # solar_url = "http://127.0.0.1:5006/solar_plot"
+    # solar_script = server_session(None, session_id=session_id.generate_session_id(),
+    #                                url=solar_url)
+    
+    context = {"plot_name" : "Market Forecast",
+               "plot_script" : mkt_script,
+            #    "solar_plot": "Solar Forecast",
+            #    "solar_script": solar_script,
+              }
+
     return render(request, "forecast.html", context)
 
 #-------------------------------------------------------------

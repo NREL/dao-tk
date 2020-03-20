@@ -1,6 +1,6 @@
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem
-from bokeh.models.widgets import Button, CheckboxGroup
+from bokeh.models.widgets import Button, CheckboxGroup, RadioButtonGroup
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox
 import pandas as pd
@@ -19,23 +19,37 @@ data_labels = c.execute("pragma table_info('ui_dashboarddatarto')").fetchall()
 data_labels = [label[1] for label in data_labels]
 data_base = c.execute("select * from ui_dashboarddatarto order by id desc limit {}".format(TIME_BOXES['LAST_48_HOURS'])).fetchall()
 data_base.reverse()
+label_colors = {}
+for i, data_label in enumerate(data_labels[2:]):
+    label_colors.update({
+        data_label: Category20[12][i]
+    })
 
 def make_dataset(time_box):
     # Prepare data
-    
+    print(make_dataset.__name__)
     data = data_base[-time_box:]
     
     # data = DashboardDataRTO.objects.all()[LAST_24_HOURS:]
     by_plot = pd.DataFrame(columns=['time','value', 'color', 'name'])
     # print([plot_name for plot_name in data_labels[2:]])
 
-    return ColumnDataSource(data=dict(
-        time = [[datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data],] * len(data_labels[2:]),
-        value = [[entry[plot_name] for entry in data] for plot_name in data_labels[2:]],
-        color = Category20[12][:len(data_labels[2:])],
-        label = data_labels[2:]
-    ))
+    # return ColumnDataSource(data={
+    #         time = [datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data],
+    #         value = [[entry[plot_name] for entry in data] for plot_name in data_labels[2:]],
+    #         color = Category20[12][:len(data_labels[2:])],
+    #         label = data_labels[2:]
+    #     }
+    cds = ColumnDataSource(data={
+            'time': [datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data]
+        })
+    
+    for i, plot_name in enumerate(data_labels[2:]):
+        cds.data.update({ 
+            plot_name: [entry[plot_name] for entry in data]
+        })
 
+    return cds
     # for i, plot_name in enumerate(data_labels[2:]):
     #     dataset = pd.DataFrame()
     #     dataset['time'] = [entry['timestamp'] for entry in data]
@@ -69,7 +83,7 @@ def style(p):
 def make_plot(src): # Takes in a ColumnDataSource
     # Create the plot
 
-    time = src.data['time'][0]
+    time = src.data['time']
     plot = figure(
         tools="xpan", # this gives us our tools
         x_axis_type="datetime",
@@ -84,36 +98,41 @@ def make_plot(src): # Takes in a ColumnDataSource
     plot.extra_y_ranges = {"mwt": DataRange1d()}
     plot.add_layout(LinearAxis(y_range_name="mwt", axis_label="Power (MWt)"), 'right')
     legend = Legend(orientation='horizontal', location='top_center', spacing=10)
+
     # legend.orientation = 'horizontal'
     # legend.location = 'top_center'
     lines = {}
-    for (x, y, label, color) in zip(src.data['time'], src.data['value'], src.data['label'], src.data['color']):
+    for label in data_labels[2:]:
         legend_label = ' '.join(word.title() for word in label.split('_'))
         if 'field' in label:
             lines[label] = plot.line( 
-                x=x,
-                y=y,
-                line_color = color, 
+                x='time',
+                y=label,
+                line_color = label_colors[label], 
                 line_alpha = 0.7, 
-                hover_line_color = color,
+                hover_line_color = label_colors[label],
                 hover_alpha = 1.0,
                 y_range_name='mwt',
+                source = src,
                 line_width=2,
                 visible=False)
+
             legend_label = legend_label + " (MWt)"
             legend.items.append(LegendItem(label=legend_label , renderers=[lines[label]]))
             plot.extra_y_ranges['mwt'].renderers.append(lines[label])
 
         else:
             lines[label] = plot.line( 
-                x=x,
-                y=y,
-                line_color = color, 
+                x='time',
+                y=label,
+                line_color = label_colors[label], 
                 line_alpha = 0.7, 
-                hover_line_color = color,
+                hover_line_color = label_colors[label],
                 hover_alpha = 1.0,
+                source=src,
                 line_width=2,
                 visible=False)
+
             legend_label = legend_label + " (MWe)"
             legend.items.append(LegendItem(label=legend_label, renderers=[lines[label]]))
             plot.y_range.renderers.append(lines[label])
@@ -127,26 +146,21 @@ def make_plot(src): # Takes in a ColumnDataSource
 
     return plot
 
-# Update the plot based on selections
-def update(attr, old, new):
-    # 12, 24, 48 hour update
-
-    # new_src = make_dataset(data_to_plot)
-    # src.data.update(new_src.data)
-    return
-
-# Convert this to a button for time
-# plot_selection.on_change('active', update)
+def updateTime(attr, old, new):
+    new_src = make_dataset(list(TIME_BOXES.values())[new])
+    src.data.update(new_src.data)
+    plot.x_range.start = min(src.data['time'])
 
 src = make_dataset(TIME_BOXES['LAST_24_HOURS'])
-
 plot = make_plot(src)
 
-# Put Controls into single element
-# controls = WidgetBox(plot_selection)
+# Create widget layout
+radio_button_group = RadioButtonGroup(
+    labels=["Last 12 Hours", "Last 24 Hours", "Last 48 Hours"], active=1)
+radio_button_group.on_change('active', updateTime)
+widgets = row(radio_button_group)
 
-# Create row layout
-layout = row(plot)
+layout = column(widgets, plot, sizing_mode='stretch_both')
 
 curdoc().add_root(layout)
 curdoc().title = "Dashboard"
