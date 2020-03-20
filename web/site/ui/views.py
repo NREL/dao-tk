@@ -159,6 +159,8 @@ def dashboard(request, context={}):
                                    url=bokeh_server_url)
     context = {"db_name" : "Dashboard",
                "db_script" : server_script,
+               "last_refresh": datetime.now(),
+               "connection_status": True
               }
 
     return render(request, "dashboard.html", context)
