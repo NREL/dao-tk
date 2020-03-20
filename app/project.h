@@ -495,6 +495,7 @@ struct parameters : public hash_base
 	parameter is_use_target_heuristic;
 	parameter is_uniform_helio_assign;
 	parameter is_fixed_repl_threshold;
+	parameter is_include_start_ramp_costs;
 
     //strings
 	parameter ampl_data_dir;

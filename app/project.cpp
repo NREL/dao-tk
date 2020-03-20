@@ -153,7 +153,8 @@ void parameters::initialize()
     om_staff_cost.set(                      75,                "om_staff_cost",      false,                              "O&M staff cost rate",        "$/hr",              "Financial|Parameters" );
     wash_crew_cost.set(                    50.,               "wash_crew_cost",      false,                              "Wash crew cost rate",        "$/hr",              "Financial|Parameters" );
     adjust_constant.set(                     4,              "adjust:constant",      false,                            "Misc fixed power loss",           "%",              "Financial|Parameters" );
-    
+    is_include_start_ramp_costs.set(	  true,	 "is_include_start_ramp_costs",		 false,	"Include startup and ramping costs in financial models?",	   "",			    "Financial|Parameters" );
+
     std::string rp = "perf_over_mrt";
     std::vector< double > shape = { 1. };
     std::vector< double > scale = { 12000. };
@@ -277,6 +278,7 @@ void parameters::initialize()
     (*this)["om_staff_cost"] = &om_staff_cost;
     (*this)["wash_crew_cost"] = &wash_crew_cost;
     (*this)["adjust_constant"] = &adjust_constant;
+	(*this)["is_include_start_ramp_costs"] = &is_include_start_ramp_costs;
     (*this)["avail_seed"] = &avail_seed;
     (*this)["om_staff_max_hours_week"] = &om_staff_max_hours_week;
     (*this)["n_heliostats_sim"] = &n_heliostats_sim;
@@ -2275,9 +2277,12 @@ bool Project::F()
     om_cost += m_explicit_outputs.heliostat_om_labor_y1.as_number();
     om_cost += m_explicit_outputs.heliostat_wash_cost_y1.as_number();
 
-    om_cost += m_simulation_outputs.annual_rec_starts.as_number() * m_parameters.disp_rsu_cost.as_number();
-    om_cost += m_simulation_outputs.annual_cycle_starts.as_number() * m_parameters.disp_csu_cost.as_number();
-    om_cost += m_simulation_outputs.annual_cycle_ramp.as_number() * 1.e6 * m_parameters.disp_pen_delta_w.as_number();
+	if (m_parameters.is_include_start_ramp_costs.as_boolean())
+	{
+		om_cost += m_simulation_outputs.annual_rec_starts.as_number() * m_parameters.disp_rsu_cost.as_number();
+		om_cost += m_simulation_outputs.annual_cycle_starts.as_number() * m_parameters.disp_csu_cost.as_number();
+		om_cost += m_simulation_outputs.annual_cycle_ramp.as_number() * 1.e6 * m_parameters.disp_pen_delta_w.as_number();
+	}
 
     if (is_sf_avail_valid)
         om_cost += m_solarfield_outputs.heliostat_repair_cost_y1.as_number();
@@ -2461,12 +2466,16 @@ bool Project::Z()
             m_objective_outputs.heliostat_wash_cost_real.as_number() +
             m_objective_outputs.heliostat_repair_cost_real.as_number() +
             m_objective_outputs.heliostat_refurbish_cost_real.as_number() +
-            m_objective_outputs.rec_start_cost_real.as_number() +
-            m_objective_outputs.cycle_start_cost_real.as_number() +
-            m_objective_outputs.cycle_ramp_cost_real.as_number() +
             m_objective_outputs.cycle_repair_cost_real.as_number();
 
-        m_objective_outputs.om_cost_real.assign(om_cost);
+		if (m_parameters.is_include_start_ramp_costs.as_boolean())
+		{
+			om_cost += m_objective_outputs.rec_start_cost_real.as_number();
+			om_cost += m_objective_outputs.cycle_start_cost_real.as_number();
+			om_cost += m_objective_outputs.cycle_ramp_cost_real.as_number();
+		}
+
+		m_objective_outputs.om_cost_real.assign(om_cost);
 
         //-- Revenue
         ssc_number_t ppa_price_input;
