@@ -66,6 +66,7 @@ static lk::fcall_t *daotk_functions()
 		_var,
         _varinfo,
         _sscvar,
+		_clear_model,
 		0 };
 
 	return (lk::fcall_t*)st;

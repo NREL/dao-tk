@@ -922,6 +922,13 @@ public:
     void PrintCurrentResults();
     void ClearStoredData();
     void AddToSSCContext(std::string varname, lk::vardata_t& dat);
+	
+
+	void Clear_F();
+	void Clear_S();
+	void Clear_O();
+	void Clear_M();
+
 };
 
 

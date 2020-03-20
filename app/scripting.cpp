@@ -1010,3 +1010,29 @@ void _simulate_flux_profiles(lk::invoke_t &cxt)
 	MainWindow::Instance().UpdateDataTable();
 	MainWindow::Instance().SetProgress(0.);
 }
+
+void _clear_model(lk::invoke_t &cxt)
+{
+	LK_DOC("clear_model", "Clears output from selected model and all dependent models. Valid model names are: solarfield_availability, optical_degradation, performance, financial", "(string:name):none");
+	std::string name = cxt.arg(0).as_string();	
+	MainWindow &mw = MainWindow::Instance();
+
+	if (name == "solarfield_availability")
+		mw.GetProject()->Clear_M();
+	else if (name == "optical_degradation")
+		mw.GetProject()->Clear_O();
+	else if (name == "performance")
+		mw.GetProject()->Clear_S();
+	else if (name == "financial")
+		mw.GetProject()->Clear_F();
+	else
+		mw.Log(wxString::Format("The specified model name (%s) is not valid. Valid names are solarfield_availability, optical_degradation, performance, financial", name.c_str()));
+	
+	mw.UpdateDataTable();
+	mw.SetProgress(0.);
+	return;
+
+
+
+
+}

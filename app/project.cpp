@@ -2050,12 +2050,13 @@ bool Project::S()
     for (int i = 0; i<nrec; i++)
         p_sf[i] = 100.*(1. - avail[i]*soil[i]*degr[i]);
     ssc_data_set_array(m_ssc_data, "sf_adjust:hourly", p_sf, nrec);
-    delete p_sf;
+    delete[] p_sf;
 
     //--- Set ssc parameters
     lk_hash_to_ssc(m_ssc_data, m_parameters);
     lk_hash_to_ssc(m_ssc_data, m_variables);
 
+	
     ssc_number_t val, nhel, helio_height, helio_width, dens_mirror;
     //ssc_data_set_number(m_ssc_data, "P_ref", m_variables.P_ref.as_number());
     //ssc_data_set_number(m_ssc_data, "flux_max", 1000.0);
@@ -2080,15 +2081,21 @@ bool Project::S()
     ssc_data_set_matrix(m_ssc_data, "flux_maps", p_fluxmap, nr, nc);
 
     ssc_number_t *p_opt = ssc_data_get_matrix(m_ssc_data, "opteff_table", &nr, &nc);
+	ssc_number_t *p_opt_new = new ssc_number_t[nr * nc];
     ssc_number_t *p_fluxpos = new ssc_number_t[nr * 2];
     for (int r = 0; r < nr; r++)
     {
-        p_opt[r*nc] += 180;
+		p_opt_new[r*nc] = p_opt[r*nc]+180;
+		p_opt_new[r*nc+1] = p_opt[r*nc+1];
+		p_opt_new[r*nc+2] = p_opt[r*nc+2];
+
         p_fluxpos[r * 2] = p_opt[r*nc];
         p_fluxpos[r * 2 + 1] = p_opt[r*nc + 1];
     }
-    ssc_data_set_matrix(m_ssc_data, "eta_map", p_opt, nr, nc);
+	ssc_data_set_matrix(m_ssc_data, "eta_map", p_opt_new, nr, nc);
     ssc_data_set_matrix(m_ssc_data, "flux_positions", p_fluxpos, nr, 2);
+	delete[] p_opt_new;
+	delete[] p_fluxpos;
 
     ssc_data_set_number(m_ssc_data, "allow_controller_exceptions", 0);
 
@@ -3917,4 +3924,38 @@ void Project::AddToSSCContext(std::string varname, lk::vardata_t& dat)
     lk::varhash_t temp;
     temp[varname] = &dat;
     lk_hash_to_ssc(m_ssc_data, temp);
+}
+
+
+
+void Project::Clear_F()  // Clears E, F, Z
+{
+	is_explicit_valid = false;
+	is_financial_valid = false;
+	m_explicit_outputs.initialize();
+	m_financial_outputs.initialize();
+	m_objective_outputs.initialize();
+}
+
+void Project::Clear_S()  // Clears S, C, E, F, Z
+{
+	is_simulation_valid = false;
+	is_cycle_avail_valid = false;
+	m_simulation_outputs.initialize();
+	m_cycle_outputs.initialize();
+	Clear_F();
+}
+
+void Project::Clear_O()  // Clears O, S, C, E, F, Z
+{
+	is_sf_optical_valid = false;
+	m_optical_outputs.initialize();
+	Clear_S();
+}
+
+void Project::Clear_M()  // Clears M, S, C, E, F, Z
+{
+	is_sf_avail_valid = false;
+	m_solarfield_outputs.initialize();
+	Clear_O();
 }

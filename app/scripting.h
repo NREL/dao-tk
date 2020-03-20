@@ -22,5 +22,6 @@ extern void _simulate_cycle(lk::invoke_t &cxt);
 extern void _optimize(lk::invoke_t &cxt);
 
 extern void _simulate_flux_profiles(lk::invoke_t &cxt);
+extern void _clear_model(lk::invoke_t &cxt);
 
 #endif
