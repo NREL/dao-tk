@@ -636,7 +636,7 @@ struct solarfield_outputs : public hash_base
 	parameter n_repairs;
 	parameter staff_utilization;
 	parameter heliostat_repair_cost_y1;
-	parameter heliostat_repair_cost;
+	parameter heliostat_repair_cost_real;
 	parameter avail_schedule;
 
 	parameter avg_avail;
@@ -654,7 +654,7 @@ struct optical_outputs : public hash_base
 	parameter n_replacements;
 	parameter heliostat_wash_labor_cost;
 	parameter heliostat_wash_labor_cost_y1;
-	parameter heliostat_refurbish_cost;
+	parameter heliostat_refurbish_cost_real;
 	parameter heliostat_refurbish_cost_y1;
 	parameter avg_soil;
 	parameter avg_degr;
@@ -673,7 +673,8 @@ struct cycle_outputs : public hash_base
 {
 	parameter cycle_efficiency;
 	parameter cycle_capacity;
-	parameter cycle_labor_cost;
+	parameter cycle_labor_cost_y1;
+	parameter cycle_labor_cost_real;
 	parameter num_failures;
     parameter cycle_efficiency_ave;
     parameter cycle_capacity_ave;
@@ -723,7 +724,8 @@ struct explicit_outputs : public hash_base
 	parameter heliostat_om_labor_real;
 	parameter heliostat_wash_cost_y1;
 	parameter heliostat_wash_cost_real;
-	parameter heliostat_wash_capital_cost;
+	parameter heliostat_wash_capital_cost_y1;
+	parameter heliostat_wash_capital_cost_real;
 
 	explicit_outputs();
     void initialize();
@@ -759,7 +761,7 @@ struct objective_outputs : public hash_base
 	parameter heliostat_om_labor_real;
 	parameter heliostat_wash_cost_real;
 	parameter heliostat_refurbish_cost_real;
-	parameter heliostat_wash_capital_cost;
+	parameter heliostat_wash_capital_cost_real;
 	parameter om_cost_real;
 
 	parameter cycle_repair_cost_real;

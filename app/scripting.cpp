@@ -441,11 +441,11 @@ void _test(lk::invoke_t &cxt)
 	mw.Log(wxString::Format("Number of heliostats: %d", (int)P->m_design_outputs.number_heliostats.as_integer()));
 	mw.Log(wxString::Format("Number of repairs: %d", (int)P->m_solarfield_outputs.n_repairs.as_integer()));
 	mw.Log(wxString::Format("Number of mirror replacements: %d", (int)P->m_optical_outputs.n_replacements.as_integer()));
-	mw.Log(wxString::Format("Heliostat replacement cost: %.2f", P->m_optical_outputs.heliostat_refurbish_cost.as_number()));
+	mw.Log(wxString::Format("Heliostat replacement cost: %.2f", P->m_optical_outputs.heliostat_refurbish_cost_real.as_number()));
 	mw.Log(wxString::Format("Heliostat replacement cost_y1: %.2f", P->m_optical_outputs.heliostat_refurbish_cost_y1.as_number()));
 	mw.Log(wxString::Format("Average soiling: %.2f", P->m_optical_outputs.avg_soil.as_number()));
 	mw.Log(wxString::Format("Average degradation: %.2f", P->m_optical_outputs.avg_degr.as_number()));
-	mw.Log(wxString::Format("Average cycle repair labor costs: %.2f", P->m_cycle_outputs.cycle_labor_cost.as_number()));
+	mw.Log(wxString::Format("Average cycle repair labor costs: %.2f", P->m_cycle_outputs.cycle_labor_cost_y1.as_number()));
 	mw.Log(wxString::Format("Number of failed components: %d", P->m_cycle_outputs.num_failures.as_integer()));
 	mw.Log(wxString::Format("Number of wash vehicles: %d", P->m_optical_outputs.n_wash_vehicles.as_integer()));
 	mw.Log(wxString::Format("Total sales: %.2f", P->m_financial_outputs.ppa.as_number()));

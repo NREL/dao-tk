@@ -197,12 +197,12 @@ void Project::add_documentation()
     m_solarfield_outputs.staff_utilization.doc.set("-", "Fractional usage (hours worked over maximum hours available) of "
         "heliostat field O&M staff.");
     m_solarfield_outputs.heliostat_repair_cost_y1.doc.set("$/yr", "Annualized cost of all heliostat repairs made discounted to year 1.");
-    m_solarfield_outputs.heliostat_repair_cost.doc.set("$", "Lifetime cost of all heliostat repairs made.");
+    m_solarfield_outputs.heliostat_repair_cost_real.doc.set("$", "Lifetime cost of all heliostat repairs made.");
     m_solarfield_outputs.avail_schedule.doc.set("-", "Calculated solar field availability time series based on modeled failure and repair events.");
 
 	m_optical_outputs.n_wash_vehicles.doc.set("-", "Number of wash vehicles purchased.");
     m_optical_outputs.n_replacements.doc.set("1/yr", "Number of replacements made due to heliostat optical degradation.");
-    m_optical_outputs.heliostat_refurbish_cost.doc.set("$", "Total cost incurred for mirror replacement on a heliostat due to optical degradation.");
+    m_optical_outputs.heliostat_refurbish_cost_real.doc.set("$", "Total cost incurred for mirror replacement on a heliostat due to optical degradation.");
     m_optical_outputs.heliostat_refurbish_cost_y1.doc.set("$", "Cost of replacing degraded mirrors discounted to year 1.");
     m_optical_outputs.avg_soil.doc.set("-", "Average steady-state soiling efficiency.");
     m_optical_outputs.avg_degr.doc.set("-", "Average lifetime degradation efficiency.");
