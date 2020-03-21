@@ -46,7 +46,7 @@ def make_dataset(time_box):
             postfix = '_lower' if value_name[1] == "_minus" else "_upper"
             add_or_sub = operator.sub if value_name[1] == "_minus" else operator.add
             cds.data[value_name[0] + postfix] = list(\
-                add_or_sub(value_arr, np.multiply(value_arr, temp_arr)))
+                add_or_sub(value_arr, np.multiply(value_arr, temp_arr/100))) # Divide by 100 for percentage (%)
             cds.data.pop(col_name)
 
     return cds
@@ -88,6 +88,10 @@ def make_plot(src): # Takes in a ColumnDataSource
     used_labels = set()
     for label in (label for label in data_labels[2:] if label not in used_labels):
 
+        if '_' in label:
+            legend_label = ' '.join([word.title() for word in label.split('_')])
+        else:
+            legend_label = label.upper()
         if not re.search('(_minus|_plus)', label) is None:
             value_name = re.split('(_minus|_plus)', label)[0]
             band = Band(
@@ -98,7 +102,8 @@ def make_plot(src): # Takes in a ColumnDataSource
                 level = 'underlay',
                 fill_alpha=1.0, 
                 line_width=1, 
-                line_color='black')
+                line_color='black',
+                name = label)
             used_labels.add(value_name + '_lower')
             used_labels.add(value_name + '_upper')
             plot.add_layout(band)
@@ -111,11 +116,14 @@ def make_plot(src): # Takes in a ColumnDataSource
                 hover_line_color = 'green',
                 hover_alpha = 1.0,
                 line_width=2,
-                source=src)
+                legend_label = legend_label,
+                source=src,
+                name = label)
             used_labels.add(label)
 
     # styling
     plot = style(plot)
+    plot.legend.click_policy = 'hide'
 
     return plot
 
