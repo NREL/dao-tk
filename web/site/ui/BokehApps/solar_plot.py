@@ -1,6 +1,6 @@
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem, Band
-from bokeh.models.widgets import RadioButtonGroup
+from bokeh.models.widgets import RadioButtonGroup, CheckboxGroup
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox
 import pandas as pd
@@ -88,10 +88,8 @@ def make_plot(src): # Takes in a ColumnDataSource
     used_labels = set()
     for label in (label for label in data_labels[2:] if label not in used_labels):
 
-        if '_' in label:
-            legend_label = ' '.join([word.title() for word in label.split('_')])
-        else:
-            legend_label = label.upper()
+        legend_label = col_to_title(label)
+        
         if not re.search('(_minus|_plus)', label) is None:
             value_name = re.split('(_minus|_plus)', label)[0]
             band = Band(
@@ -127,6 +125,14 @@ def make_plot(src): # Takes in a ColumnDataSource
 
     return plot
 
+# Convert the column name to a title (Only for this SQLite table)
+def col_to_title(label):
+    if '_' in label:
+            legend_label = ' '.join([word.title() for word in label.split('_')])
+    else:
+        legend_label = label.upper()
+    return legend_label
+
 def updateTime(attr, old, new):
     new_src = make_dataset(list(TIME_BOXES.values())[new])
     src.data.update(new_src.data)
@@ -141,12 +147,21 @@ src = make_dataset(TIME_BOXES['NEXT_24_HOURS'])
 plot = make_plot(src)
 
 # Create widget layout
+# Create Radio Button Group
 radio_button_group = RadioButtonGroup(
     labels=["Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], active=1)
 radio_button_group.on_change('active', updateTime)
-widgets = row(radio_button_group)
 
-layout = column(widgets, plot, sizing_mode='stretch_both')
+# Create Checkbox Select Group
+plot_select = CheckboxGroup(
+    labels = [col_to_title(label) for label in data_labels[2:] if re.search('_minus|_plus', label) is None],
+    active = [0]
+)
+
+plot_select_widget = row(plot_select, sizing_mode='fixed', width=200, height=50)
+widgets = column(radio_button_group, plot_select_widget)
+
+layout = row(widgets, plot, sizing_mode='stretch_both')
 
 curdoc().add_root(layout)
 curdoc().title = "Solar Plot"
