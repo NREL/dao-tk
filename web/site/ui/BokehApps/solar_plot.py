@@ -1,7 +1,7 @@
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem, Band
 from bokeh.models.widgets import RadioButtonGroup, CheckboxGroup
-from bokeh.palettes import Category20
+from bokeh.palettes import Spectral9
 from bokeh.layouts import column, row, WidgetBox
 import pandas as pd
 from bokeh.io import curdoc
@@ -22,6 +22,7 @@ data_labels = c.execute("pragma table_info('ui_forecastssolardata')").fetchall()
 data_labels = [label[1] for label in data_labels]
 data_base = c.execute("select * from ui_forecastssolardata order by id desc limit {}".format(TIME_BOXES['NEXT_48_HOURS'])).fetchall()
 data_base.reverse()
+label_colors = {}
 
 def make_dataset(time_box):
     # Prepare data
@@ -32,9 +33,14 @@ def make_dataset(time_box):
         'time': [datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data]
     })
 
+    j = 0
     for col_name in data_labels[2:]:
         cds.data.update({
             col_name: [entry[col_name] for entry in data]
+        })
+        
+        label_colors.update({
+            col_name+'_color': [Spectral9[j]]
         })
 
         if '_plus' in col_name or '_minus' in col_name:
@@ -48,6 +54,8 @@ def make_dataset(time_box):
             cds.data[value_name[0] + postfix] = list(\
                 add_or_sub(value_arr, np.multiply(value_arr, temp_arr/100))) # Divide by 100 for percentage (%)
             cds.data.pop(col_name)
+        else:
+            j += 1
 
     return cds
 
@@ -77,13 +85,13 @@ def make_plot(src): # Takes in a ColumnDataSource
     plot = figure(
         tools="xpan", # this gives us our tools
         x_axis_type="datetime",
-        sizing_mode = 'scale_both',
         plot_height=250,
+        sizing_mode='scale_both',
         toolbar_location = None,
         x_axis_label = None,
         y_axis_label = "Forecast ($)",
         x_range=(time[0], time[-1]),
-        title="Market Forecast"
+        title="Solar Forecast"
         )
     used_labels = set()
     for label in (label for label in data_labels[2:] if label not in used_labels):
@@ -106,12 +114,13 @@ def make_plot(src): # Takes in a ColumnDataSource
             used_labels.add(value_name + '_upper')
             plot.add_layout(band)
         else:
+            color = label_colors[label+'_color'][0]
             plot.line( 
                 x='time',
                 y=label,
-                line_color = 'green', 
+                line_color = color, 
                 line_alpha = 0.7, 
-                hover_line_color = 'green',
+                hover_line_color = color,
                 hover_alpha = 1.0,
                 line_width=2,
                 legend_label = legend_label,
@@ -149,19 +158,28 @@ plot = make_plot(src)
 # Create widget layout
 # Create Radio Button Group
 radio_button_group = RadioButtonGroup(
-    labels=["Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], active=1)
+    labels=["Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], 
+    active=1,
+    sizing_mode = 'fixed',
+    width = 300,
+    height = 30)
 radio_button_group.on_change('active', updateTime)
 
 # Create Checkbox Select Group
 plot_select = CheckboxGroup(
     labels = [col_to_title(label) for label in data_labels[2:] if re.search('_minus|_plus', label) is None],
-    active = [0]
+    active = [0],
+    sizing_mode = 'scale_both'
 )
 
-plot_select_widget = row(plot_select, sizing_mode='fixed', width=200, height=50)
-widgets = column(radio_button_group, plot_select_widget)
+widgets = column(
+    radio_button_group, 
+    plot_select,
+    sizing_mode = 'fixed',
+    width = 310,
+    height = 300)
 
-layout = row(widgets, plot, sizing_mode='stretch_both')
+layout = row(widgets, plot, sizing_mode='scale_width')
 
 curdoc().add_root(layout)
 curdoc().title = "Solar Plot"
