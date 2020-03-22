@@ -90,7 +90,7 @@ def make_plot(src): # Takes in a ColumnDataSource
         sizing_mode='scale_both',
         toolbar_location = None,
         x_axis_label = None,
-        y_axis_label = "Forecast ($)",
+        y_axis_label = "Power (W/m^2)",
         x_range=(time[0], time[-1]),
         title="Solar Forecast"
         )
@@ -110,6 +110,7 @@ def make_plot(src): # Takes in a ColumnDataSource
                 fill_alpha=1.0, 
                 line_width=1, 
                 line_color='black',
+                visible = label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
                 name = label)
             plot.add_layout(bands[label])
         else:
@@ -124,11 +125,11 @@ def make_plot(src): # Takes in a ColumnDataSource
                 line_width=2,
                 legend_label = legend_label,
                 source=src,
+                visible = label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
                 name = label)
 
     # styling
     plot = style(plot)
-    plot.legend.click_policy = 'hide'
 
     return plot
 
@@ -155,6 +156,12 @@ def update(attr, old, new):
     # Update ranges
     plot.x_range.start = min(src.data['time'])
     plot.x_range.end = max(src.data['time'])
+    # Update visible plots
+    for label in lines.keys():
+        label_name = col_to_title(label)
+        lines[label].visible = label_name in [plot_select.labels[i] for i in plot_select.active]
+        if label in bands.keys():
+            bands[label].visible = lines[label].visible
 
 
 # Create widgets
