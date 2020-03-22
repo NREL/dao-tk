@@ -131,6 +131,9 @@ def make_plot(src): # Takes in a ColumnDataSource
     # styling
     plot = style(plot)
 
+    plot.legend.orientation = 'horizontal'
+    plot.legend.location = 'top_center'
+
     return plot
 
 def col_to_title(label):
@@ -195,7 +198,7 @@ widgets = column(
     radio_button_group, 
     plot_select,
     sizing_mode = 'fixed',
-    width = 310,
+    width = 320,
     height = 300)
 
 layout = row(widgets, plot, sizing_mode='scale_width')
