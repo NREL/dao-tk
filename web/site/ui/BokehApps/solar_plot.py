@@ -101,7 +101,7 @@ def make_plot(src): # Takes in a ColumnDataSource
         
         if not re.search('(_lower|_upper)', label) is None:
             value_name = re.split('(_lower|_upper)', label)[0]
-            bands[label] = Band(
+            bands[value_name] = Band(
                 base='time',
                 lower= value_name + '_lower',
                 upper= value_name + '_upper',
@@ -112,7 +112,7 @@ def make_plot(src): # Takes in a ColumnDataSource
                 line_color='black',
                 visible = label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
                 name = label)
-            plot.add_layout(bands[label])
+            plot.add_layout(bands[value_name])
         else:
             color = label_colors[label+'_color']
             lines[label] = plot.line( 
