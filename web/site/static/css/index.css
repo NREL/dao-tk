@@ -145,6 +145,7 @@ i {
 
 .card.h-100 .card-body{
   padding: 0;
+  margin-top: 10px;
 }
 
 .col .card{

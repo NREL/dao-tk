@@ -15,8 +15,10 @@ Forecast
   <br/>
   <!-- Data Cards -->
   <!-- Market Data -->
-  {% include "snippets/card.html" with plot_script=mkt_script %}
-  <!-- Solar Forecast Data -->
-  {% include "snippets/card.html" with plot_script=solar_script%}
+  <div class='data'>
+    {% include "snippets/card.html" with plot_script=mkt_script %}
+    <!-- Solar Forecast Data -->
+    {% include "snippets/card.html" with plot_script=solar_script%}
+    </div>
 </div>
 {% endblock %}

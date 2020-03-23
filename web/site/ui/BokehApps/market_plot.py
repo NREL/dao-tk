@@ -1,6 +1,6 @@
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem, Band
-from bokeh.models.widgets import Button, CheckboxGroup, RadioButtonGroup
+from bokeh.models.widgets import Button, CheckboxGroup, RadioButtonGroup, Div
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox
 import pandas as pd
@@ -9,9 +9,10 @@ import sqlite3
 from datetime import datetime
 import numpy as np
 
-TIME_BOXES = {'NEXT_12_HOURS': 720,
-              'NEXT_24_HOURS': 720 * 2,
-              'NEXT_48_HOURS': 720 * 4
+TIME_BOXES = {'NEXT_6_HOURS': 360,
+              'NEXT_12_HOURS': 360 * 2,
+              'NEXT_24_HOURS': 360 * 4,
+              'NEXT_48_HOURS': 360 * 8
               }
 conn = sqlite3.connect('../../db.sqlite3')
 conn.row_factory = sqlite3.Row
@@ -70,8 +71,7 @@ def make_plot(src): # Takes in a ColumnDataSource
         x_axis_label = None,
         y_axis_label = "Forecast ($)",
         x_range=(time[0], time[-1]),
-        y_range=(-0.2, max(src.data['upper']) + 0.2),
-        title="Market Forecast"
+        y_range=(-0.2, max(src.data['upper']) + 0.2)
         )
 
     plot.line( 
@@ -115,11 +115,13 @@ plot = make_plot(src)
 
 # Create widget layout
 radio_button_group = RadioButtonGroup(
-    labels=["Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], active=1)
+    labels=["Next 6 Hours", "Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], active=2)
 radio_button_group.on_change('active', updateTime)
 widgets = row(radio_button_group)
 
-layout = column(widgets, plot, sizing_mode='stretch_both')
+title = Div(text="""<h2>Market Forecast</h2>""")
+
+layout = column(title, widgets, plot, sizing_mode='stretch_both')
 
 curdoc().add_root(layout)
 curdoc().title = "Dashboard"

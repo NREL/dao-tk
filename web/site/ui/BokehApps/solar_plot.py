@@ -1,6 +1,6 @@
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem, Band
-from bokeh.models.widgets import RadioButtonGroup, CheckboxButtonGroup
+from bokeh.models.widgets import RadioButtonGroup, CheckboxButtonGroup, Div
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox, Spacer
 import pandas as pd
@@ -11,9 +11,10 @@ import numpy as np
 import re
 import operator
 
-TIME_BOXES = {'NEXT_12_HOURS': 720,
-              'NEXT_24_HOURS': 720 * 2,
-              'NEXT_48_HOURS': 720 * 4
+TIME_BOXES = {'NEXT_6_HOURS': 360,
+              'NEXT_12_HOURS': 360 * 2,
+              'NEXT_24_HOURS': 360 * 4,
+              'NEXT_48_HOURS': 360 * 8
               }
 conn = sqlite3.connect('../../db.sqlite3')
 conn.row_factory = sqlite3.Row
@@ -92,8 +93,7 @@ def make_plot(src): # Takes in a ColumnDataSource
         toolbar_location = None,
         x_axis_label = None,
         y_axis_label = "Power (W/m^2)",
-        x_range=(time[0], time[-1]),
-        title="Solar Forecast"
+        x_range=(time[0], time[-1])
         )
 
     for label in [label for label in src.column_names[1:]]:
@@ -171,8 +171,8 @@ def update(attr, old, new):
 # Create widgets
 # Create Radio Button Group Widget
 radio_button_group = RadioButtonGroup(
-    labels=["Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], 
-    active=1,
+    labels=["Next 6 hours", "Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], 
+    active=2,
     width_policy='fit',
     width = 320)
 radio_button_group.on_change('active', update)
@@ -186,6 +186,8 @@ plot_select = CheckboxButtonGroup(
 )
 
 plot_select.on_change('active', update)
+
+title = Div(text="""<h2>Solar Forecast</h2>""")
 
 # Set initial plot information
 initial_plots = [title_to_col(plot_select.labels[i]) for i in plot_select.active]
@@ -202,7 +204,7 @@ widgets = row(
     width_policy='max'
 )
 
-layout = column(widgets, plot, width_policy='max')
+layout = column(title, widgets, plot, width_policy='max')
 
 # Show to current document/page
 curdoc().add_root(layout)

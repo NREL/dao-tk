@@ -8,9 +8,10 @@ from bokeh.io import curdoc
 import sqlite3
 from datetime import datetime
 
-TIME_BOXES = {'LAST_12_HOURS': 720,
-              'LAST_24_HOURS': 720 * 2,
-              'LAST_48_HOURS': 720 * 4
+TIME_BOXES = {'LAST_6_HOURS': 360,
+              'LAST_12_HOURS': 360 * 2,
+              'LAST_24_HOURS': 360 * 4,
+              'LAST_48_HOURS': 360 * 8
               }
 conn = sqlite3.connect('../../db.sqlite3')
 conn.row_factory = sqlite3.Row
@@ -151,7 +152,7 @@ plot = make_plot(src)
 
 # Create widget layout
 radio_button_group = RadioButtonGroup(
-    labels=["Last 12 Hours", "Last 24 Hours", "Last 48 Hours"], active=1)
+    labels=["Last 6 Hours", "Last 12 Hours", "Last 24 Hours", "Last 48 Hours"], active=1)
 radio_button_group.on_change('active', updateTime)
 widgets = row(radio_button_group)
 
