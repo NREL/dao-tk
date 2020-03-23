@@ -1,8 +1,8 @@
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem
-from bokeh.models.widgets import Button, CheckboxGroup, RadioButtonGroup
+from bokeh.models.widgets import Button, CheckboxButtonGroup, RadioButtonGroup
 from bokeh.palettes import Category20
-from bokeh.layouts import column, row, WidgetBox
+from bokeh.layouts import column, row, WidgetBox, Spacer
 import pandas as pd
 from bokeh.io import curdoc
 import sqlite3
@@ -21,6 +21,7 @@ data_labels = [label[1] for label in data_labels]
 data_base = c.execute("select * from ui_dashboarddatarto order by id desc limit {}".format(TIME_BOXES['LAST_48_HOURS'])).fetchall()
 data_base.reverse()
 label_colors = {}
+lines = {}
 for i, data_label in enumerate(data_labels[2:]):
     label_colors.update({
         data_label: Category20[12][i]
@@ -30,12 +31,6 @@ def make_dataset(time_box):
     # Prepare data
     data = data_base[-time_box:]
 
-    # return ColumnDataSource(data={
-    #         time = [datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data],
-    #         value = [[entry[plot_name] for entry in data] for plot_name in data_labels[2:]],
-    #         color = Category20[12][:len(data_labels[2:])],
-    #         label = data_labels[2:]
-    #     }
     cds = ColumnDataSource(data={
             'time': [datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data]
         })
@@ -46,16 +41,6 @@ def make_dataset(time_box):
         })
 
     return cds
-    # for i, plot_name in enumerate(data_labels[2:]):
-    #     dataset = pd.DataFrame()
-    #     dataset['time'] = [entry['timestamp'] for entry in data]
-    #     dataset['value'] = [entry[plot_name] for entry in data]
-    #     dataset['color'] = Blues8[i]
-    #     dataset['name'] = plot_name
-
-    #     by_plot = by_plot.append(dataset)
-
-    # return ColumnDataSource(by_plot)
 
 # Styling for a plot
 def style(p):
@@ -84,6 +69,7 @@ def make_plot(src): # Takes in a ColumnDataSource
         tools="xpan", # this gives us our tools
         x_axis_type="datetime",
         sizing_mode = 'scale_both',
+        width_policy='max',
         plot_height=250,
         toolbar_location = None,
         x_axis_label = None,
@@ -95,11 +81,8 @@ def make_plot(src): # Takes in a ColumnDataSource
     plot.add_layout(LinearAxis(y_range_name="mwt", axis_label="Power (MWt)"), 'right')
     legend = Legend(orientation='horizontal', location='top_center', spacing=10)
 
-    # legend.orientation = 'horizontal'
-    # legend.location = 'top_center'
-    lines = {}
     for label in data_labels[2:]:
-        legend_label = ' '.join(word.title() for word in label.split('_'))
+        legend_label = col_to_title(label)
         if 'field' in label:
             lines[label] = plot.line( 
                 x='time',
@@ -110,11 +93,10 @@ def make_plot(src): # Takes in a ColumnDataSource
                 hover_alpha = 1.0,
                 y_range_name='mwt',
                 source = src,
-                line_width=2,
-                visible=False)
+                line_width=1,
+                legend_label = legend_label,
+                visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
 
-            legend_label = legend_label + " (MWt)"
-            legend.items.append(LegendItem(label=legend_label , renderers=[lines[label]]))
             plot.extra_y_ranges['mwt'].renderers.append(lines[label])
 
         else:
@@ -127,36 +109,77 @@ def make_plot(src): # Takes in a ColumnDataSource
                 hover_alpha = 1.0,
                 source=src,
                 line_width=2,
-                visible=False)
+                legend_label = legend_label,
+                visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
 
-            legend_label = legend_label + " (MWe)"
-            legend.items.append(LegendItem(label=legend_label, renderers=[lines[label]]))
             plot.y_range.renderers.append(lines[label])
-
-    lines['actual'].visible = True
-    plot.add_layout(legend, 'above')
-    plot.legend.click_policy = 'hide'
     
     # styling
     plot = style(plot)
 
+    plot.legend.orientation = 'horizontal'
+    plot.legend.location = 'top_center'
+
     return plot
 
-def updateTime(attr, old, new):
-    new_src = make_dataset(list(TIME_BOXES.values())[new])
+def col_to_title(label):
+    # Convert column name to title
+
+    legend_label = ' '.join([word.upper() for word in label.split('_')])
+
+    return legend_label
+
+def title_to_col(title):
+    # Convert title to a column name
+
+    col_name = title.lower().replace(' ','_')
+    return col_name
+
+def update(attr, old, new):
+    # Update plots when widgets change
+
+    # Get updated time block information
+    time_box = list(TIME_BOXES.values())[radio_button_group.active]
+    new_src = make_dataset(time_box)
     src.data.update(new_src.data)
+    # Update ranges
     plot.x_range.start = min(src.data['time'])
+    plot.x_range.end = max(src.data['time'])
+    # Update visible plots
+    for label in lines.keys():
+        label_name = col_to_title(label)
+        lines[label].visible = label_name in [plot_select.labels[i] for i in plot_select.active]
+
+# Create widget layout
+radio_button_group = RadioButtonGroup(
+    labels=["Last 6 Hours", "Last 12 Hours", "Last 24 Hours", "Last 48 Hours"], 
+    active=2,
+    width_policy='min')
+radio_button_group.on_change('active', update)
+
+# Create Checkbox Select Group Widget
+labels_list = [col_to_title(label) for label in data_labels[2:]]
+plot_select = CheckboxButtonGroup(
+    labels = labels_list,
+    active = [0],
+    width_policy='min'
+)
+
+plot_select.on_change('active', update)
+
+# Set initial plot information
+initial_plots = [title_to_col(plot_select.labels[i]) for i in plot_select.active]
 
 src = make_dataset(TIME_BOXES['LAST_24_HOURS'])
 plot = make_plot(src)
 
-# Create widget layout
-radio_button_group = RadioButtonGroup(
-    labels=["Last 6 Hours", "Last 12 Hours", "Last 24 Hours", "Last 48 Hours"], active=1)
-radio_button_group.on_change('active', updateTime)
-widgets = row(radio_button_group)
+widgets = row(
+    radio_button_group,
+    Spacer(width_policy='max'),
+    plot_select)
+    # width_policy='max')
 
-layout = column(widgets, plot, sizing_mode='stretch_both')
+layout = column(widgets, plot, width_policy='max')
 
 curdoc().add_root(layout)
 curdoc().title = "Dashboard"
