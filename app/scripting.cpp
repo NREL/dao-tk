@@ -326,6 +326,7 @@ void _var(lk::invoke_t &cxt)
 				cxt.result().assign( dat->as_number() );
 				break;
 			case lk::vardata_t::VECTOR:
+				cxt.result().empty_vector();
 				cxt.result().vec()->assign( dat->vec()->begin(), dat->vec()->end() );
 				break;
 			case lk::vardata_t::HASH:
