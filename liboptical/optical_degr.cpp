@@ -270,7 +270,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 		for (int i = 0; i < n_helio_s; i++)
 		{
 			helios.at(i).replacement_threshold = mean_threshold;
-			helios.at(i).replacement_interval = mean_threshold / m_settings.degr_loss_per_hr;
+			helios.at(i).replacement_interval = (1 - mean_threshold) / m_settings.degr_loss_per_hr;
 		}
 	}
 	else
@@ -282,7 +282,7 @@ void optical_degradation::simulate(bool(*callback)(float prg, const char *msg), 
 				m_solar_data.mirror_output[i],
 				m_solar_data.num_mirrors_by_group[i]
 			);
-			helios.at(i).replacement_interval = helios.at(i).replacement_threshold / m_settings.degr_loss_per_hr;
+			helios.at(i).replacement_interval = (1 - helios.at(i).replacement_threshold) / m_settings.degr_loss_per_hr;
 			//std::cerr << i << "  " << helios.at(i).replacement_threshold << "  " << m_solar_data.mirror_output[i] <<  "  "   << m_solar_data.num_mirrors_by_group[i] << "\n";
 		}
 	}
