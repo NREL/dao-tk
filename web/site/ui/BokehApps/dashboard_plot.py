@@ -94,9 +94,10 @@ def make_plot(src): # Takes in a ColumnDataSource
                 y_range_name='mwt',
                 source = src,
                 line_width=1,
-                legend_label = legend_label,
                 visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
 
+            legend_item = LegendItem(label=legend_label, renderers=[lines[label]])
+            legend.items.append(legend_item)
             plot.extra_y_ranges['mwt'].renderers.append(lines[label])
 
         else:
@@ -109,16 +110,16 @@ def make_plot(src): # Takes in a ColumnDataSource
                 hover_alpha = 1.0,
                 source=src,
                 line_width=2,
-                legend_label = legend_label,
                 visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
 
+            legend_item = LegendItem(label=legend_label, renderers=[lines[label]])
+            legend.items.append(legend_item)
             plot.y_range.renderers.append(lines[label])
     
     # styling
     plot = style(plot)
 
-    plot.legend.orientation = 'horizontal'
-    plot.legend.location = 'top_center'
+    plot.add_layout(legend, 'above')
 
     return plot
 
