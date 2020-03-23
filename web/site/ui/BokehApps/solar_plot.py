@@ -1,8 +1,8 @@
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem, Band
-from bokeh.models.widgets import RadioButtonGroup, CheckboxGroup
-from bokeh.palettes import Spectral9
-from bokeh.layouts import column, row, WidgetBox
+from bokeh.models.widgets import RadioButtonGroup, CheckboxButtonGroup
+from bokeh.palettes import Category20
+from bokeh.layouts import column, row, WidgetBox, Spacer
 import pandas as pd
 from bokeh.io import curdoc
 import sqlite3
@@ -41,7 +41,7 @@ def make_dataset(time_box):
         })
         
         label_colors.update({
-            col_name+'_color': Spectral9[i]
+            col_name+'_color': i*2
         })
 
         r = re.compile(col_name+'_(minus|plus)')
@@ -88,6 +88,7 @@ def make_plot(src): # Takes in a ColumnDataSource
         x_axis_type="datetime",
         plot_height=250,
         sizing_mode='scale_both',
+        width_policy='max',
         toolbar_location = None,
         x_axis_label = None,
         y_axis_label = "Power (W/m^2)",
@@ -98,7 +99,7 @@ def make_plot(src): # Takes in a ColumnDataSource
     for label in [label for label in src.column_names[1:]]:
 
         legend_label = col_to_title(label)
-        
+
         if not re.search('(_lower|_upper)', label) is None:
             value_name = re.split('(_lower|_upper)', label)[0]
             bands[value_name] = Band(
@@ -107,26 +108,26 @@ def make_plot(src): # Takes in a ColumnDataSource
                 upper= value_name + '_upper',
                 source=src,
                 level = 'underlay',
-                fill_alpha=1.0, 
+                fill_alpha=1.0,
+                fill_color=Category20[20][label_colors[value_name+'_color']+1],
                 line_width=1, 
                 line_color='black',
                 visible = label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
                 name = label)
             plot.add_layout(bands[value_name])
         else:
-            color = label_colors[label+'_color']
+            color = Category20[20][label_colors[label+'_color']]
             lines[label] = plot.line( 
                 x='time',
                 y=label,
                 line_color = color, 
-                line_alpha = 0.7, 
-                hover_line_color = color,
-                hover_alpha = 1.0,
-                line_width=2,
+                line_alpha = 1.0,
+                line_width=1,
                 legend_label = legend_label,
                 source=src,
                 visible = label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
-                name = label)
+                name = label,
+                )
 
     # styling
     plot = style(plot)
@@ -172,16 +173,16 @@ def update(attr, old, new):
 radio_button_group = RadioButtonGroup(
     labels=["Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], 
     active=1,
-    sizing_mode = 'fixed',
-    width = 300,
-    height = 30)
+    width_policy='fit',
+    width = 320)
 radio_button_group.on_change('active', update)
 
 # Create Checkbox Select Group Widget
-plot_select = CheckboxGroup(
-    labels = [col_to_title(label) for label in data_labels[2:] if re.search('_(minus|plus)', label) is None],
+labels_list = [col_to_title(label) for label in data_labels[2:] if re.search('_(minus|plus)', label) is None]
+plot_select = CheckboxButtonGroup(
+    labels = labels_list,
     active = [0],
-    sizing_mode = 'scale_both'
+    width=400
 )
 
 plot_select.on_change('active', update)
@@ -194,14 +195,14 @@ src = make_dataset(TIME_BOXES['NEXT_24_HOURS'])
 plot = make_plot(src)
 
 # Setup Widget Layouts
-widgets = column(
-    radio_button_group, 
+widgets = row(
+    radio_button_group,
+    Spacer(width_policy='max'),
     plot_select,
-    sizing_mode = 'fixed',
-    width = 320,
-    height = 300)
+    width_policy='max'
+)
 
-layout = row(widgets, plot, sizing_mode='scale_width')
+layout = column(widgets, plot, width_policy='max')
 
 # Show to current document/page
 curdoc().add_root(layout)

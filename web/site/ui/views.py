@@ -189,14 +189,14 @@ def forecast(request, context={}):
     mkt_script = server_session(None, session_id=session_id.generate_session_id(),
                                    url=market_url)
 
-    # solar_url = "http://127.0.0.1:5006/solar_plot"
-    # solar_script = server_session(None, session_id=session_id.generate_session_id(),
-    #                                url=solar_url)
+    solar_url = "http://127.0.0.1:5006/solar_plot"
+    solar_script = server_session(None, session_id=session_id.generate_session_id(),
+                                   url=solar_url)
     
     context = {"mkt_script" : "Market Forecast",
                "mkt_script" : mkt_script,
-            #    "solar_plot": "Solar Forecast",
-            #    "solar_script": solar_script,
+               "solar_plot": "Solar Forecast",
+               "solar_script": solar_script,
               }
 
     return render(request, "forecast.html", context)

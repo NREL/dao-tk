@@ -4,11 +4,7 @@ body {
   margin: 0;
 }
 
-h1,
-h2,
-p,
-ul,
-li {
+h1,h2,p,ul,li {
   font-family: sans-serif;
 }
 
@@ -153,4 +149,8 @@ i {
 
 .col .card{
   border: none;
+}
+
+.row:has( .card.h-100){
+  margin-top:20px;
 }
