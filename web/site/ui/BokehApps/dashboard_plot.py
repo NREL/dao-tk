@@ -9,11 +9,11 @@ import sqlite3
 import datetime
 import re
 
-TIME_BOXES = {'TODAY': 360 * 4,
-              'LAST_6_HOURS': 360,
-              'LAST_12_HOURS': 360 * 2,
-              'LAST_24_HOURS': 360 * 4,
-              'LAST_48_HOURS': 360 * 8
+TIME_BOXES = {'TODAY': 1,
+              'LAST_6_HOURS': 6,
+              'LAST_12_HOURS': 12,
+              'LAST_24_HOURS': 24,
+              'LAST_48_HOURS': 48
               }
 conn = sqlite3.connect('../../db.sqlite3')
 conn.row_factory = sqlite3.Row
@@ -21,14 +21,17 @@ c = conn.cursor()
 data_labels = c.execute("pragma table_info('ui_dashboarddatarto')").fetchall()
 data_labels = [label[1] for label in data_labels]
 
-current_time = datetime.datetime.now().time().replace(second=0, microsecond=0)
-current_time_data_rows = current_time.hour * 60 + current_time.minute
-print(current_time_data_rows)
-extra_time_data_rows = TIME_BOXES['LAST_24_HOURS'] - current_time_data_rows
+def get_non_zero_padded_date(date):
+    # Return date in string without 0 padding on date month and day
+    return date.strftime('X%m/X%d/%Y %H:%M').replace('X0','').replace('X','')
 
-data_base = c.execute("select * from ui_dashboarddatarto order by id desc limit {}"\
-    .format(TIME_BOXES['LAST_48_HOURS'] + extra_time_data_rows)).fetchall()
-data_base.reverse()
+
+current_datetime = datetime.datetime.now().replace(year=2010) # Eventually the year will be removed
+delta_low = datetime.timedelta(days=2)
+delta_high = datetime.timedelta(days=1)
+
+data_base = c.execute("select * from ui_dashboarddatarto where timestamp >:low and timestamp <=:high",
+    {'low':get_non_zero_padded_date(current_datetime - delta_low), 'high': get_non_zero_padded_date(current_datetime + delta_high)}).fetchall()
 label_colors = {}
 lines = {}
 for i, data_label in enumerate(data_labels[2:]):
@@ -36,35 +39,25 @@ for i, data_label in enumerate(data_labels[2:]):
         data_label: Category20[12][i]
     })
 
-# Current Datetime information
-current_date = max([datetime.datetime.strptime(
-    entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data_base]).date()
-current_datetime = datetime.datetime.combine(current_date, current_time)
-
 def make_dataset(time_box):
     # Prepare data
-    if time_box != 'TODAY':
-        data = data_base[-(TIME_BOXES[time_box] + extra_time_data_rows):-extra_time_data_rows]
-    else:
-        # Minutes remaining in the day
-        data = data_base[-TIME_BOXES['TODAY']:]
-
+    
     cds = ColumnDataSource(data={
-            'time': [datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data]
+            'time': [datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data_base]
         })
     current_cds = ColumnDataSource(data={
-            'time': [datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data\
+            'time': [datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data_base\
                 if datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') <= current_datetime]
         })
     
     for i, plot_name in enumerate(data_labels[2:]):
         if re.match('(actual|field.*)', plot_name) is not None:
             current_cds.data.update({ 
-                plot_name: [entry[plot_name] for entry in data if datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') <= current_datetime]
+                plot_name: [entry[plot_name] for entry in data_base if datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') <= current_datetime]
             })
         else:
             cds.data.update({ 
-                plot_name: [entry[plot_name] for entry in data]
+                plot_name: [entry[plot_name] for entry in data_base]
             })
 
     return cds, current_cds
@@ -101,7 +94,7 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
         toolbar_location = None,
         x_axis_label = None,
         y_axis_label = "Power (MWe)",
-        x_range=(time[0], time[-1]),
+        x_range=(current_datetime.date(), current_datetime.date() + datetime.timedelta(days=1)),
         )
 
     plot.extra_y_ranges = {"mwt": DataRange1d()}
@@ -178,18 +171,21 @@ def update(attr, old, new):
 
     # Get updated time block information
     time_box = list(TIME_BOXES.keys())[radio_button_group.active]
-    new_src, new_current_src = make_dataset(time_box)
-    src.data.update(new_src.data)
-    current_src.data.update(new_current_src.data)
     # Update ranges
-    plot.x_range.start = min(src.data['time'])
-    plot.x_range.end = max(src.data['time'])
+    if time_box == 'TODAY':
+        plot.x_range.start = current_datetime.date()
+        plot.x_range.end = current_datetime.date() + datetime.timedelta(days=1)
+    else:
+        plot.x_range.start = current_datetime - datetime.timedelta(hours=TIME_BOXES[time_box])
+        plot.x_range.end = current_datetime
+
     # Update visible plots
     for label in lines.keys():
         label_name = col_to_title(label)
         lines[label].visible = label_name in [plot_select.labels[i] for i in plot_select.active]
 
 # Create widget layout
+# Create radio button group widget
 radio_button_group = RadioButtonGroup(
     labels=["Today", "Last 6 Hours", "Last 12 Hours", "Last 24 Hours", "Last 48 Hours"], 
     active=0,
