@@ -21,15 +21,16 @@ data_labels = c.execute("pragma table_info('ui_forecastsmarketdata')").fetchall(
 data_labels = [label[1] for label in data_labels]
 
 
-def get_non_zero_padded_date(date):
+def get_string_date(date):
     # Return date in string without 0 padding on date month and day
-    return date.strftime('X%m/X%d/%Y %H:%M').replace('X0','').replace('X','')
+    string_date = date.strftime('%m/%d/%Y %H:%M')
+    return string_date
 
 current_datetime = datetime.datetime.now().replace(year=2010) # Eventually the year will be removed
-delta_high = datetime.timedelta(hours=TIME_BOXES['NEXT_48_HOURS'])
+delta_end = datetime.timedelta(hours=TIME_BOXES['NEXT_48_HOURS'])
 
-data_base = c.execute("select * from ui_forecastsmarketdata where timestamp >:low and timestamp <=:high",
-    {'low':get_non_zero_padded_date(current_datetime), 'high': get_non_zero_padded_date(current_datetime + delta_high)}).fetchall()
+data_base = c.execute("select * from ui_forecastsmarketdata where timestamp >:start and timestamp <=:end",
+    {'start':get_string_date(current_datetime), 'end': get_string_date(current_datetime + delta_end)}).fetchall()
 
 def make_dataset():
     # Prepare data
@@ -40,7 +41,7 @@ def make_dataset():
     # Get error percentages
     lower_ar = np.array([entry[data_labels[3]]/100 for entry in data_base])
     upper_ar = np.array([entry[data_labels[4]]/100 for entry in data_base])
-    
+   
     source = ColumnDataSource(data=dict(
             time = [datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data_base],
             value = value,
