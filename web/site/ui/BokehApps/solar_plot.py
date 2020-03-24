@@ -1,6 +1,6 @@
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem, Band
-from bokeh.models.widgets import RadioButtonGroup, CheckboxButtonGroup, Div
+from bokeh.models.widgets import RadioButtonGroup, CheckboxButtonGroup, Div, Select
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox, Spacer
 import pandas as pd
@@ -10,6 +10,7 @@ import datetime
 import numpy as np
 import re
 import operator
+from scipy.signal import savgol_filter
 
 TIME_BOXES = {'NEXT_6_HOURS': 6,
               'NEXT_12_HOURS': 12,
@@ -36,7 +37,7 @@ label_colors = {}
 lines = {}
 bands = {}
 
-def make_dataset():
+def make_dataset(distribution):
     # Prepare data
  
     cds = ColumnDataSource(data={
@@ -66,6 +67,11 @@ def make_dataset():
                 value_arr - np.multiply(value_arr, value_minus_arr))
             cds.data[col_name+'_upper'] = list(\
                 value_arr + np.multiply(value_arr, value_plus_arr))
+
+    if distribution == "Smoothed":
+        window, order = 51, 3
+        for label in cds.column_names[1:]:
+            cds.data[label] = savgol_filter(cds.data[label], window, order) 
     
     return cds
 
@@ -167,6 +173,8 @@ def update(attr, old, new):
     # Update ranges
     plot.x_range.start = current_datetime
     plot.x_range.end = current_datetime + datetime.timedelta(hours=TIME_BOXES[time_box])
+    new_src = make_dataset(distribution_select.value)
+    src.data.update(new_src.data)
     # Update visible plots
     for label in lines.keys():
         label_name = col_to_title_upper(label)
@@ -193,18 +201,27 @@ plot_select = CheckboxButtonGroup(
 
 plot_select.on_change('active', update)
 
+distribution = 'Discrete'
+distribution_select = Select(
+    value=distribution,
+    options=['Discrete', 'Smoothed'])
+distribution_select.on_change('value', update)
+
+
 title = Div(text="""<h2>Solar Forecast</h2>""")
 
 # Set initial plot information
 initial_plots = [title_to_col(plot_select.labels[i]) for i in plot_select.active]
 
-src = make_dataset()
+src = make_dataset(distribution)
 
 plot = make_plot(src)
 
 # Setup Widget Layouts
 widgets = row(
     radio_button_group,
+    Spacer(width_policy='max'),
+    distribution_select,
     Spacer(width_policy='max'),
     plot_select,
     width_policy='max'

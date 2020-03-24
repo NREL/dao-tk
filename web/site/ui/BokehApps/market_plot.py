@@ -1,13 +1,14 @@
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem, Band
-from bokeh.models.widgets import Button, CheckboxGroup, RadioButtonGroup, Div
+from bokeh.models.widgets import Button, CheckboxGroup, RadioButtonGroup, Div, Select
 from bokeh.palettes import Category20
-from bokeh.layouts import column, row, WidgetBox
+from bokeh.layouts import column, row, WidgetBox, Spacer
 import pandas as pd
 from bokeh.io import curdoc
 import sqlite3
 import datetime
 import numpy as np
+from scipy.signal import savgol_filter
 
 TIME_BOXES = {'NEXT_6_HOURS': 6,
               'NEXT_12_HOURS': 12,
@@ -32,7 +33,7 @@ delta_end = datetime.timedelta(hours=TIME_BOXES['NEXT_48_HOURS'])
 data_base = c.execute("select * from ui_forecastsmarketdata where timestamp >:start and timestamp <=:end",
     {'start':get_string_date(current_datetime), 'end': get_string_date(current_datetime + delta_end)}).fetchall()
 
-def make_dataset():
+def make_dataset(distribution):
     # Prepare data
 
     # Market Forecast
@@ -42,14 +43,19 @@ def make_dataset():
     lower_ar = np.array([entry[data_labels[3]]/100 for entry in data_base])
     upper_ar = np.array([entry[data_labels[4]]/100 for entry in data_base])
    
-    source = ColumnDataSource(data=dict(
+    cds = ColumnDataSource(data=dict(
             time = [datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data_base],
             value = value,
             lower = list(- np.multiply(value_ar, lower_ar) + value_ar),
             upper = list(np.multiply(value_ar, upper_ar) + value_ar)
         ))
 
-    return source
+    if distribution == "Smoothed":
+        window, order = 51, 3
+        for label in cds.column_names[1:]:
+            cds.data[label] = savgol_filter(cds.data[label], window, order)
+
+    return cds
 
 # Styling for a plot
 def style(p):
@@ -115,24 +121,36 @@ def make_plot(src): # Takes in a ColumnDataSource
     return plot
 
 def update(attr, old, new):
-    time_box = list(TIME_BOXES.keys())[new]
+    time_box = list(TIME_BOXES.keys())[radio_button_group.active]
     plot.x_range.end = current_datetime \
         + datetime.timedelta(hours=TIME_BOXES[time_box])
+    new_src = make_dataset(distribution_select.value)
+    src.data.update(new_src.data)
 
-# Convert this to a button for time
-# plot_selection.on_change('active', update)
-
-src = make_dataset()
-
-plot = make_plot(src)
 
 # Create widget layout
+
+distribution = 'Discrete'
+distribution_select = Select(
+    value=distribution, 
+    options=['Discrete', 'Smoothed'])
+distribution_select.on_change('value', update)
+
 radio_button_group = RadioButtonGroup(
     labels=["Next 6 Hours", "Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], 
     active=2,
     width_policy='min')
 radio_button_group.on_change('active', update)
-widgets = row(radio_button_group, width_policy='max')
+
+src = make_dataset(distribution)
+
+plot = make_plot(src)
+
+widgets = row(
+    radio_button_group,
+    distribution_select,
+    Spacer(width_policy='max'),
+    width_policy='max')
 
 title = Div(text="""<h2>Market Forecast</h2>""")
 
