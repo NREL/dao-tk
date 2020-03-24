@@ -11,10 +11,10 @@ import numpy as np
 import re
 import operator
 
-TIME_BOXES = {'NEXT_6_HOURS': 360,
-              'NEXT_12_HOURS': 360 * 2,
-              'NEXT_24_HOURS': 360 * 4,
-              'NEXT_48_HOURS': 360 * 8
+TIME_BOXES = {'NEXT_6_HOURS': 6,
+              'NEXT_12_HOURS': 12,
+              'NEXT_24_HOURS': 24,
+              'NEXT_48_HOURS': 48
               }
 conn = sqlite3.connect('../../db.sqlite3')
 conn.row_factory = sqlite3.Row
@@ -22,34 +22,29 @@ c = conn.cursor()
 data_labels = c.execute("pragma table_info('ui_forecastssolardata')").fetchall()
 data_labels = [label[1] for label in data_labels]
 
-current_time = datetime.datetime.now().time().replace(second=0, microsecond=0)
-current_time_data_rows = current_time.hour * 60 + current_time.minute
-extra_time_data_rows = TIME_BOXES['NEXT_24_HOURS'] - current_time_data_rows
+def get_non_zero_padded_date(date):
+    # Return date in string without 0 padding on date month and day
+    return date.strftime('X%m/X%d/%Y %H:%M').replace('X0','').replace('X','')
 
-data_base = c.execute("select * from ui_forecastssolardata order by id desc limit {}"\
-    .format(TIME_BOXES['NEXT_48_HOURS'] + extra_time_data_rows)).fetchall()
-data_base.reverse()
+current_datetime = datetime.datetime.now().replace(year=2010) # Eventually the year will be removed
+delta_high = datetime.timedelta(hours=TIME_BOXES['NEXT_48_HOURS'])
+
+data_base = c.execute("select * from ui_forecastssolardata where timestamp >:low and timestamp <=:high",
+    {'low':get_non_zero_padded_date(current_datetime), 'high': get_non_zero_padded_date(current_datetime + delta_high)}).fetchall()
 label_colors = {}
 lines = {}
 bands = {}
 
-# Current Datetime information
-current_date = max([datetime.datetime.strptime(
-    entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data_base]).date()
-current_datetime = datetime.datetime.combine(current_date, current_time)
-
-def make_dataset(time_box):
+def make_dataset():
     # Prepare data
-    
-    data = data_base[:TIME_BOXES[time_box]]
-
+ 
     cds = ColumnDataSource(data={
-        'time': [datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data]
+        'time': [datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data_base]
     })
 
     for i,col_name in enumerate([label for label in data_labels[2:] if re.search('_(minus|plus)', label) is None]):
         cds.data.update({
-            col_name: [entry[col_name] for entry in data]
+            col_name: [entry[col_name] for entry in data_base]
         })
         
         label_colors.update({
@@ -62,9 +57,9 @@ def make_dataset(time_box):
 
             value_arr = np.array(cds.data[col_name])
             value_minus_arr = np.array(
-                [entry[col_name+'_minus']/100 for entry in data]) # Divide by 100 for percentage (%)
+                [entry[col_name+'_minus']/100 for entry in data_base]) # Divide by 100 for percentage (%)
             value_plus_arr = np.array(
-                [entry[col_name+'_plus']/100 for entry in data]) # Divide by 100 for percentage (%)
+                [entry[col_name+'_plus']/100 for entry in data_base]) # Divide by 100 for percentage (%)
 
             cds.data[col_name+'_lower'] = list(\
                 value_arr - np.multiply(value_arr, value_minus_arr))
@@ -96,7 +91,7 @@ def make_plot(src): # Takes in a ColumnDataSource
     # Create the plot
     time = src.data['time']
     plot = figure(
-        tools="xpan", # this gives us our tools
+        tools="", # this gives us our tools
         x_axis_type="datetime",
         plot_height=250,
         sizing_mode='scale_both',
@@ -104,12 +99,12 @@ def make_plot(src): # Takes in a ColumnDataSource
         toolbar_location = None,
         x_axis_label = None,
         y_axis_label = "Power (W/m^2)",
-        x_range=(time[0], time[-1])
+        x_range=(current_datetime, current_datetime + datetime.timedelta(hours=TIME_BOXES['NEXT_12_HOURS']))
         )
 
     for label in [label for label in src.column_names[1:]]:
 
-        legend_label = col_to_title(label)
+        legend_label = col_to_title_upper(label)
 
         if not re.search('(_lower|_upper)', label) is None:
             value_name = re.split('(_lower|_upper)', label)[0]
@@ -148,7 +143,7 @@ def make_plot(src): # Takes in a ColumnDataSource
 
     return plot
 
-def col_to_title(label):
+def col_to_title_upper(label):
     # Convert column name to title
 
     legend_label = ' '.join([word.upper() for word in label.split('_')])
@@ -166,14 +161,12 @@ def update(attr, old, new):
 
     # Get updated time block information
     time_box = list(TIME_BOXES.keys())[radio_button_group.active]
-    new_src = make_dataset(time_box)
-    src.data.update(new_src.data)
     # Update ranges
-    plot.x_range.start = min(src.data['time'])
-    plot.x_range.end = max(src.data['time'])
+    plot.x_range.start = current_datetime
+    plot.x_range.end = current_datetime + datetime.timedelta(hours=TIME_BOXES[time_box])
     # Update visible plots
     for label in lines.keys():
-        label_name = col_to_title(label)
+        label_name = col_to_title_upper(label)
         lines[label].visible = label_name in [plot_select.labels[i] for i in plot_select.active]
         if label in bands.keys():
             bands[label].visible = lines[label].visible
@@ -188,7 +181,7 @@ radio_button_group = RadioButtonGroup(
 radio_button_group.on_change('active', update)
 
 # Create Checkbox Select Group Widget
-labels_list = [col_to_title(label) for label in data_labels[2:] if re.search('_(minus|plus)', label) is None]
+labels_list = [col_to_title_upper(label) for label in data_labels[2:] if re.search('_(minus|plus)', label) is None]
 plot_select = CheckboxButtonGroup(
     labels = labels_list,
     active = [0],
@@ -202,7 +195,7 @@ title = Div(text="""<h2>Solar Forecast</h2>""")
 # Set initial plot information
 initial_plots = [title_to_col(plot_select.labels[i]) for i in plot_select.active]
 
-src = make_dataset('NEXT_24_HOURS')
+src = make_dataset()
 
 plot = make_plot(src)
 

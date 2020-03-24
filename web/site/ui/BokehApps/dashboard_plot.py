@@ -25,7 +25,6 @@ def get_non_zero_padded_date(date):
     # Return date in string without 0 padding on date month and day
     return date.strftime('X%m/X%d/%Y %H:%M').replace('X0','').replace('X','')
 
-
 current_datetime = datetime.datetime.now().replace(year=2010) # Eventually the year will be removed
 delta_low = datetime.timedelta(days=2)
 delta_high = datetime.timedelta(days=1)
@@ -33,11 +32,11 @@ delta_high = datetime.timedelta(days=1)
 data_base = c.execute("select * from ui_dashboarddatarto where timestamp >:low and timestamp <=:high",
     {'low':get_non_zero_padded_date(current_datetime - delta_low), 'high': get_non_zero_padded_date(current_datetime + delta_high)}).fetchall()
 label_colors = {}
-lines = {}
 for i, data_label in enumerate(data_labels[2:]):
     label_colors.update({
         data_label: Category20[12][i]
     })
+lines = {}
 
 def make_dataset(time_box):
     # Prepare data
@@ -86,7 +85,7 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
 
     time = src.data['time']
     plot = figure(
-        tools="xpan", # this gives us our tools
+        tools="", # this gives us our tools
         x_axis_type="datetime",
         sizing_mode = 'scale_both',
         width_policy='max',
@@ -156,7 +155,7 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
 def col_to_title(label):
     # Convert column name to title
 
-    legend_label = ' '.join([word.upper() for word in label.split('_')])
+    legend_label = ' '.join([word.title() for word in label.split('_')])
 
     return legend_label
 
