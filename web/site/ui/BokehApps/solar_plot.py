@@ -22,15 +22,16 @@ c = conn.cursor()
 data_labels = c.execute("pragma table_info('ui_forecastssolardata')").fetchall()
 data_labels = [label[1] for label in data_labels]
 
-def get_non_zero_padded_date(date):
-    # Return date in string without 0 padding on date month and day
-    return date.strftime('X%m/X%d/%Y %H:%M').replace('X0','').replace('X','')
+def get_string_date(date):
+
+    string_date = date.strftime('%m/%d/%Y %H:%M')
+    return string_date
 
 current_datetime = datetime.datetime.now().replace(year=2010) # Eventually the year will be removed
-delta_high = datetime.timedelta(hours=TIME_BOXES['NEXT_48_HOURS'])
+delta_end = datetime.timedelta(hours=TIME_BOXES['NEXT_48_HOURS'])
 
-data_base = c.execute("select * from ui_forecastssolardata where timestamp >:low and timestamp <=:high",
-    {'low':get_non_zero_padded_date(current_datetime), 'high': get_non_zero_padded_date(current_datetime + delta_high)}).fetchall()
+data_base = c.execute("select * from ui_forecastssolardata where timestamp >:start and timestamp <=:end",
+    {'start':get_string_date(current_datetime), 'end': get_string_date(current_datetime + delta_end)}).fetchall()
 label_colors = {}
 lines = {}
 bands = {}
