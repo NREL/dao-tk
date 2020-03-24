@@ -21,16 +21,16 @@ c = conn.cursor()
 data_labels = c.execute("pragma table_info('ui_dashboarddatarto')").fetchall()
 data_labels = [label[1] for label in data_labels]
 
-def get_non_zero_padded_date(date):
+def get_string_date(date):
     # Return date in string without 0 padding on date month and day
-    return date.strftime('X%m/X%d/%Y %H:%M').replace('X0','').replace('X','')
+    return date.strftime('%m/%d/%Y %H:%M')
 
 current_datetime = datetime.datetime.now().replace(year=2010) # Eventually the year will be removed
-delta_low = datetime.timedelta(days=2)
-delta_high = datetime.timedelta(days=1)
+delta_start = datetime.timedelta(days=2)
+delta_end = datetime.timedelta(days=1)
 
-data_base = c.execute("select * from ui_dashboarddatarto where timestamp >:low and timestamp <=:high",
-    {'low':get_non_zero_padded_date(current_datetime - delta_low), 'high': get_non_zero_padded_date(current_datetime + delta_high)}).fetchall()
+data_base = c.execute("select * from ui_dashboarddatarto where timestamp >:start and timestamp <=:end",
+    {'start':get_string_date(current_datetime - delta_start), 'end': get_string_date(current_datetime + delta_end)}).fetchall()
 label_colors = {}
 for i, data_label in enumerate(data_labels[2:]):
     label_colors.update({
@@ -121,6 +121,7 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
                 hover_line_color = label_colors[label],
                 hover_alpha = 1.0,
                 y_range_name='mwt',
+                level='underlay',
                 source = current_src,
                 line_width=2,
                 visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
