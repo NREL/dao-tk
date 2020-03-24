@@ -6,7 +6,7 @@ from bokeh.layouts import column, row, WidgetBox, Spacer
 import pandas as pd
 from bokeh.io import curdoc
 import sqlite3
-from datetime import datetime
+import datetime
 import numpy as np
 import re
 import operator
@@ -21,19 +21,30 @@ conn.row_factory = sqlite3.Row
 c = conn.cursor()
 data_labels = c.execute("pragma table_info('ui_forecastssolardata')").fetchall()
 data_labels = [label[1] for label in data_labels]
-data_base = c.execute("select * from ui_forecastssolardata order by id desc limit {}".format(TIME_BOXES['NEXT_48_HOURS'])).fetchall()
+
+current_time = datetime.datetime.now().time().replace(second=0, microsecond=0)
+current_time_data_rows = current_time.hour * 60 + current_time.minute
+extra_time_data_rows = TIME_BOXES['NEXT_24_HOURS'] - current_time_data_rows
+
+data_base = c.execute("select * from ui_forecastssolardata order by id desc limit {}"\
+    .format(TIME_BOXES['NEXT_48_HOURS'] + extra_time_data_rows)).fetchall()
 data_base.reverse()
 label_colors = {}
 lines = {}
 bands = {}
 
+# Current Datetime information
+current_date = max([datetime.datetime.strptime(
+    entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data_base]).date()
+current_datetime = datetime.datetime.combine(current_date, current_time)
+
 def make_dataset(time_box):
     # Prepare data
     
-    data = data_base[:time_box]
+    data = data_base[:TIME_BOXES[time_box]]
 
     cds = ColumnDataSource(data={
-        'time': [datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data]
+        'time': [datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data]
     })
 
     for i,col_name in enumerate([label for label in data_labels[2:] if re.search('_(minus|plus)', label) is None]):
@@ -154,7 +165,7 @@ def update(attr, old, new):
     # Update plots when widgets change
 
     # Get updated time block information
-    time_box = list(TIME_BOXES.values())[radio_button_group.active]
+    time_box = list(TIME_BOXES.keys())[radio_button_group.active]
     new_src = make_dataset(time_box)
     src.data.update(new_src.data)
     # Update ranges
@@ -173,8 +184,7 @@ def update(attr, old, new):
 radio_button_group = RadioButtonGroup(
     labels=["Next 6 hours", "Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], 
     active=2,
-    width_policy='fit',
-    width = 320)
+    width_policy='min')
 radio_button_group.on_change('active', update)
 
 # Create Checkbox Select Group Widget
@@ -182,7 +192,7 @@ labels_list = [col_to_title(label) for label in data_labels[2:] if re.search('_(
 plot_select = CheckboxButtonGroup(
     labels = labels_list,
     active = [0],
-    width=400
+    width_policy='min'
 )
 
 plot_select.on_change('active', update)
@@ -192,7 +202,7 @@ title = Div(text="""<h2>Solar Forecast</h2>""")
 # Set initial plot information
 initial_plots = [title_to_col(plot_select.labels[i]) for i in plot_select.active]
 
-src = make_dataset(TIME_BOXES['NEXT_24_HOURS'])
+src = make_dataset('NEXT_24_HOURS')
 
 plot = make_plot(src)
 
