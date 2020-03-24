@@ -206,8 +206,17 @@ def forecast(request, context={}):
 #-------------------------------------------------------------
 def history(request, context={}):
 
+    from bokeh.embed import server_session
+    from bokeh.util import session_id
+
+    bokeh_server_url = "http://127.0.0.1:5006/historical_data"
+    server_script = server_session(None, session_id=session_id.generate_session_id(),
+                                   url=bokeh_server_url)
+
     context = {"last_refresh": datetime.now(),
                "connection_status": True,
+               "history_plot": "Historical Data",
+               "history_script": server_script
               }
     return render(request, "history.html", context)
 
