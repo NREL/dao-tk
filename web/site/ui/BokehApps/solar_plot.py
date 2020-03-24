@@ -70,7 +70,7 @@ def make_dataset(distribution):
 
     if distribution == "Smoothed":
         window, order = 51, 3
-        for label in cds.column_names[1:]:
+        for label in filter(lambda x: x != 'clear_sky', cds.column_names[1:]):
             cds.data[label] = savgol_filter(cds.data[label], window, order) 
     
     return cds

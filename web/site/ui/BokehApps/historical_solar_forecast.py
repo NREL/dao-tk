@@ -1,6 +1,6 @@
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem, Band
-from bokeh.models.widgets import RadioButtonGroup, CheckboxButtonGroup, Div, DateSlider, Slider, Button
+from bokeh.models.widgets import CheckboxButtonGroup, RadioButtonGroup, Div, DateSlider, Slider, Button, Select
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox, Spacer
 import pandas as pd
@@ -10,6 +10,7 @@ import datetime
 import numpy as np
 import re
 import operator
+from scipy.signal import savgol_filter
 
 conn = sqlite3.connect('../../db.sqlite3')
 conn.row_factory = sqlite3.Row
@@ -26,11 +27,9 @@ label_colors = {}
 lines = {}
 bands = {}
 
-def make_dataset(range_start, range_end):
+def make_dataset(range_start, range_end, distribution):
     # Prepare data
 
-    print(range_start)
-    print(range_end)
     data = c.execute("select * from ui_forecastssolardata where timestamp >:range_start and timestamp <=:range_end",
     {'range_start':get_string_date(range_start), 'range_end':get_string_date(range_end)}).fetchall()
  
@@ -61,6 +60,10 @@ def make_dataset(range_start, range_end):
                 value_arr - np.multiply(value_arr, value_minus_arr))
             cds.data[col_name+'_upper'] = list(\
                 value_arr + np.multiply(value_arr, value_plus_arr))
+    if distribution == "Smoothed":
+        window, order = 51, 3
+        for label in filter(lambda x: x != 'clear_sky', cds.column_names[1:]):
+            cds.data[label] = savgol_filter(cds.data[label], window, order)
     
     return cds
 
@@ -157,11 +160,18 @@ def updateRange():
     selected_date = datetime.datetime.combine(date_slider.value, datetime.datetime.min.time())
     range_start = selected_date - delta
     range_end = selected_date + delta
-    new_src = make_dataset(range_start, range_end)
+    new_src = make_dataset(range_start, range_end, distribution_select.value)
     src.data.update(new_src.data)
 
 def update(attr, old, new):
     # Update plots when widgets change
+    delta = datetime.timedelta(hours=date_span_slider.value)
+    selected_date = datetime.datetime.combine(date_slider.value, datetime.datetime.min.time())
+    range_start = selected_date - delta
+    range_end = selected_date + delta
+
+    new_src = make_dataset(range_start, range_end, distribution_select.value)
+    src.data.update(new_src.data)
 
     # Update visible plots
     for label in lines.keys():
@@ -196,13 +206,19 @@ date_span_slider = Slider(title='Time Span (Hours)', start=4, end=120, value=24,
 update_range_button = Button(label='Update', button_type='primary', width=100)
 update_range_button.on_click(updateRange)
 
+distribution = 'Discrete'
+distribution_select = Select(
+    value=distribution,
+    options=['Discrete', 'Smoothed'])
+distribution_select.on_change('value', update)
+
 title = Div(text="""<h2>Historical Solar Forecast</h2>""")
 
 # Set initial plot information
 initial_plots = [title_to_col(plot_select.labels[i]) for i in plot_select.active]
 
-delta_init = datetime.timedelta(days=1)
-src = make_dataset(current_datetime - delta_init, current_datetime + delta_init)
+delta_init = datetime.timedelta(hours=24)
+src = make_dataset(current_datetime.date() - delta_init, current_datetime.date() + delta_init, distribution)
 
 plot = make_plot(src)
 
@@ -215,7 +231,11 @@ widgets = row(
     date_widgets,
     Spacer(width_policy='max'),
     column(
-        Spacer(width_policy='max'), 
+        Spacer(height_policy='max'),
+        distribution_select),
+    Spacer(width_policy='max'),
+    column(
+        Spacer(height_policy='max'), 
         plot_select),
     width_policy='max'
 )

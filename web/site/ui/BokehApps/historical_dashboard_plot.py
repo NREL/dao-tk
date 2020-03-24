@@ -1,6 +1,6 @@
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem, Span
-from bokeh.models.widgets import Button, CheckboxButtonGroup, RadioButtonGroup, Div, DateSlider, Slider, Button
+from bokeh.models.widgets import CheckboxButtonGroup, RadioButtonGroup, Div, DateSlider, Slider, Button
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox, Spacer
 import pandas as pd
@@ -32,8 +32,7 @@ def make_dataset(range_start, range_end):
 
     data = c.execute("select * from ui_dashboarddatarto where timestamp >:range_start and timestamp <=:range_end",
     {'range_start':get_string_date(range_start), 'range_end':get_string_date(range_end)}).fetchall()
-    print(range_start)
-    print(range_end)
+
     cds = ColumnDataSource(data={
             'time': [datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data]
         })
