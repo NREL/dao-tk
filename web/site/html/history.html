@@ -11,7 +11,10 @@ History
     {% include "snippets/live_data.html" %}
     <br/>
     <!-- Data Cards -->
-    {% include "snippets/card.html" with plot_script=history_script %}
+    <!-- Historical Dashboard Data -->
+    {% include "snippets/card.html" with plot_script=hdbp_script %}
+    <!-- Historical Solar Data -->
+    {% include "snippets/card.html" with plot_script=hsf_script %}
 </div>
 
 {% endblock %}

@@ -29,7 +29,8 @@ bands = {}
 def make_dataset(range_start, range_end):
     # Prepare data
 
-
+    print(range_start)
+    print(range_end)
     data = c.execute("select * from ui_forecastssolardata where timestamp >:range_start and timestamp <=:range_end",
     {'range_start':get_string_date(range_start), 'range_end':get_string_date(range_end)}).fetchall()
  
@@ -152,9 +153,10 @@ def title_to_col(title):
 
 def updateRange():
     # Update range when sliders move and update button is clicked
-    delta = datetime.timedelta(days=date_span_slider.value)
-    range_start = date_slider.value - delta
-    range_end = date_slider.value + delta
+    delta = datetime.timedelta(hours=date_span_slider.value)
+    selected_date = datetime.datetime.combine(date_slider.value, datetime.datetime.min.time())
+    range_start = selected_date - delta
+    range_end = selected_date + delta
     new_src = make_dataset(range_start, range_end)
     src.data.update(new_src.data)
 
@@ -188,13 +190,13 @@ start_date = start_date[0]['timestamp']
 date_slider = DateSlider(title='Date', start=start_date, end=end_date, value=current_datetime, step=1, width=250)
 
 # Create Date Range Slider
-date_span_slider = Slider(title='Date Span (Days)', start=1, end=5, value=1, step=1, width=150)
+date_span_slider = Slider(title='Time Span (Hours)', start=4, end=120, value=24, step=4, width=150)
 
 # Create Update Button
 update_range_button = Button(label='Update', button_type='primary', width=100)
 update_range_button.on_click(updateRange)
 
-title = Div(text="""<h2>Solar Forecast</h2>""")
+title = Div(text="""<h2>Historical Solar Forecast</h2>""")
 
 # Set initial plot information
 initial_plots = [title_to_col(plot_select.labels[i]) for i in plot_select.active]
@@ -212,7 +214,9 @@ date_widgets = column(date_sliders, update_range_button)
 widgets = row(
     date_widgets,
     Spacer(width_policy='max'),
-    plot_select,
+    column(
+        Spacer(width_policy='max'), 
+        plot_select),
     width_policy='max'
 )
 
@@ -220,4 +224,4 @@ layout = column(title, widgets, plot, width_policy='max')
 
 # Show to current document/page
 curdoc().add_root(layout)
-curdoc().title = "Solar Forecast Plot"
+curdoc().title = "Historical Solar Forecast Plot"

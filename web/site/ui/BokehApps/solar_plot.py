@@ -102,7 +102,7 @@ def make_plot(src): # Takes in a ColumnDataSource
         y_axis_label = "Power (W/m^2)",
         x_range=(current_datetime, 
             current_datetime + datetime.timedelta(
-                hours=TIME_BOXES['NEXT_12_HOURS']))
+                hours=TIME_BOXES['NEXT_24_HOURS']))
         )
 
     for label in [label for label in src.column_names[1:]]:

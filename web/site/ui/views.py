@@ -209,14 +209,19 @@ def history(request, context={}):
     from bokeh.embed import server_session
     from bokeh.util import session_id
 
-    bokeh_server_url = "http://127.0.0.1:5006/historical_data"
-    server_script = server_session(None, session_id=session_id.generate_session_id(),
-                                   url=bokeh_server_url)
+    hsf_url = "http://127.0.0.1:5006/historical_solar_forecast"
+    hsf_server_script = server_session(None, session_id=session_id.generate_session_id(),
+                                   url=hsf_url)
+    hdbp_url = "http://127.0.0.1:5006/historical_dashboard_plot"
+    hdbp_server_script = server_session(None, session_id=session_id.generate_session_id(),
+                                   url=hdbp_url)
 
     context = {"last_refresh": datetime.now(),
                "connection_status": True,
-               "history_plot": "Historical Data",
-               "history_script": server_script
+               "hsf_plot_name": "Historical Solar Forecast Data",
+               "hsf_script": hsf_server_script,
+               "hdbp_plot_name": "Historical Dashboard Data",
+               "hdbp_script": hdbp_server_script
               }
     return render(request, "history.html", context)
 
