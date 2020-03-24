@@ -99,7 +99,9 @@ def make_plot(src): # Takes in a ColumnDataSource
         toolbar_location = None,
         x_axis_label = None,
         y_axis_label = "Power (W/m^2)",
-        x_range=(current_datetime, current_datetime + datetime.timedelta(hours=TIME_BOXES['NEXT_12_HOURS']))
+        x_range=(current_datetime, 
+            current_datetime + datetime.timedelta(
+                hours=TIME_BOXES['NEXT_12_HOURS']))
         )
 
     for label in [label for label in src.column_names[1:]]:
@@ -211,4 +213,4 @@ layout = column(title, widgets, plot, width_policy='max')
 
 # Show to current document/page
 curdoc().add_root(layout)
-curdoc().title = "Solar Plot"
+curdoc().title = "Solar Forecast Plot"

@@ -6,32 +6,43 @@ from bokeh.layouts import column, row, WidgetBox
 import pandas as pd
 from bokeh.io import curdoc
 import sqlite3
-from datetime import datetime
+import datetime
 import numpy as np
 
-TIME_BOXES = {'NEXT_6_HOURS': 360,
-              'NEXT_12_HOURS': 360 * 2,
-              'NEXT_24_HOURS': 360 * 4,
-              'NEXT_48_HOURS': 360 * 8
+TIME_BOXES = {'NEXT_6_HOURS': 6,
+              'NEXT_12_HOURS': 12,
+              'NEXT_24_HOURS': 24,
+              'NEXT_48_HOURS': 48
               }
 conn = sqlite3.connect('../../db.sqlite3')
 conn.row_factory = sqlite3.Row
 c = conn.cursor()
 data_labels = c.execute("pragma table_info('ui_forecastsmarketdata')").fetchall()
 data_labels = [label[1] for label in data_labels]
-data_base = c.execute("select * from ui_forecastsmarketdata order by id desc limit {}".format(TIME_BOXES['NEXT_48_HOURS'])).fetchall()
-data_base.reverse()
 
-def make_dataset(time_box):
+
+def get_non_zero_padded_date(date):
+    # Return date in string without 0 padding on date month and day
+    return date.strftime('X%m/X%d/%Y %H:%M').replace('X0','').replace('X','')
+
+current_datetime = datetime.datetime.now().replace(year=2010) # Eventually the year will be removed
+delta_high = datetime.timedelta(hours=TIME_BOXES['NEXT_48_HOURS'])
+
+data_base = c.execute("select * from ui_forecastsmarketdata where timestamp >:low and timestamp <=:high",
+    {'low':get_non_zero_padded_date(current_datetime), 'high': get_non_zero_padded_date(current_datetime + delta_high)}).fetchall()
+
+def make_dataset():
     # Prepare data
-    
-    data = data_base[:time_box]
-    value = [entry[data_labels[2]] for entry in data]
+
+    # Market Forecast
+    value = [entry[data_labels[2]] for entry in data_base]
     value_ar = np.array(value)
-    lower_ar = np.array([entry[data_labels[3]]/100 for entry in data])
-    upper_ar = np.array([entry[data_labels[4]]/100 for entry in data])
+    # Get error percentages
+    lower_ar = np.array([entry[data_labels[3]]/100 for entry in data_base])
+    upper_ar = np.array([entry[data_labels[4]]/100 for entry in data_base])
+    
     source = ColumnDataSource(data=dict(
-            time = [datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data],
+            time = [datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data_base],
             value = value,
             lower = list(- np.multiply(value_ar, lower_ar) + value_ar),
             upper = list(np.multiply(value_ar, upper_ar) + value_ar)
@@ -61,16 +72,18 @@ def style(p):
 def make_plot(src): # Takes in a ColumnDataSource
     # Create the plot
 
-    time = src.data['time']
     plot = figure(
         tools="xpan", # this gives us our tools
         x_axis_type="datetime",
         sizing_mode = 'scale_both',
+        width_policy='max',
         plot_height=250,
         toolbar_location = None,
         x_axis_label = None,
         y_axis_label = "Forecast ($)",
-        x_range=(time[0], time[-1]),
+        x_range=(current_datetime, 
+            current_datetime + datetime.timedelta(
+                hours=TIME_BOXES['NEXT_24_HOURS'])),
         y_range=(-0.2, max(src.data['upper']) + 0.2)
         )
 
@@ -100,28 +113,29 @@ def make_plot(src): # Takes in a ColumnDataSource
 
     return plot
 
-def updateTime(attr, old, new):
-    new_src = make_dataset(list(TIME_BOXES.values())[new])
-    src.data.update(new_src.data)
-    plot.x_range.start = min(src.data['time'])
-    plot.x_range.end = max(src.data['time'])
+def update(attr, old, new):
+    time_box = list(TIME_BOXES.keys())[new]
+    plot.x_range.end = current_datetime \
+        + datetime.timedelta(hours=TIME_BOXES[time_box])
 
 # Convert this to a button for time
 # plot_selection.on_change('active', update)
 
-src = make_dataset(TIME_BOXES['NEXT_24_HOURS'])
+src = make_dataset()
 
 plot = make_plot(src)
 
 # Create widget layout
 radio_button_group = RadioButtonGroup(
-    labels=["Next 6 Hours", "Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], active=2)
-radio_button_group.on_change('active', updateTime)
-widgets = row(radio_button_group)
+    labels=["Next 6 Hours", "Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], 
+    active=2,
+    width_policy='min')
+radio_button_group.on_change('active', update)
+widgets = row(radio_button_group, width_policy='max')
 
 title = Div(text="""<h2>Market Forecast</h2>""")
 
-layout = column(title, widgets, plot, sizing_mode='stretch_both')
+layout = column(title, widgets, plot, width_policy='max')
 
 curdoc().add_root(layout)
-curdoc().title = "Dashboard"
+curdoc().title = "Market Forecast Plot"

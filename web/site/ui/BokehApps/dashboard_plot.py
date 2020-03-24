@@ -138,7 +138,8 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
                 hover_line_color = label_colors[label],
                 hover_alpha = 1.0,
                 source= current_src if label == 'actual' else src,
-                line_width=2,
+                level='glyph' if label == 'actual' else 'underlay',
+                line_width=3 if label == 'actual' else 2,
                 visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
 
             legend_item = LegendItem(label=legend_label, renderers=[lines[label]])
