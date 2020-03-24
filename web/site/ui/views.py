@@ -197,12 +197,18 @@ def forecast(request, context={}):
                "mkt_script" : mkt_script,
                "solar_plot": "Solar Forecast",
                "solar_script": solar_script,
+                "last_refresh": datetime.now(),
+               "connection_status": True
               }
 
     return render(request, "forecast.html", context)
 
 #-------------------------------------------------------------
 def history(request, context={}):
+
+    context = {"last_refresh": datetime.now(),
+               "connection_status": True,
+              }
     return render(request, "history.html", context)
 
 #-------------------------------------------------------------
