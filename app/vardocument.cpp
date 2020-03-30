@@ -156,7 +156,7 @@ void Project::add_documentation()
         "Time series vector of length equal to the number of time steps in the simulation horizon that "
         "specifies the solar field power output loss as a function of time."
     );
-    m_parameters.fc_gamma.doc.set("-", 
+    m_parameters.disp_inventory_incentive.doc.set("-", 
         "Weighting factor for hedging thermal storage inventory against forecast uncertainty. "
         "The dispatch optimization objective function is formulated such that:<br>"
         "max Z = (1-gamma) * (Revenue days 1 and 2) + gamma * (TES charge end day 1)"

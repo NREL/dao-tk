@@ -578,7 +578,7 @@ struct parameters : public hash_base
 	parameter no_restart_efficiency;
 	parameter cycle_hourly_labor_cost;
 	parameter avail_model_timestep;
-    parameter fc_gamma;
+    parameter disp_inventory_incentive;
 	parameter convergence_tol_obj;
 	parameter convergence_tol_step;
     //vector-doubles

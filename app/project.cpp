@@ -197,7 +197,7 @@ void parameters::initialize()
     startup_frac.set(                      0.5,                 "startup_frac",      false,                       "Power block startup energy",     "MWh/MWh",             "Simulation|Parameters" );
     v_wind_max.set(                        15.,                   "v_wind_max",      false,                    "Max operational wind velocity",         "m/s",             "Simulation|Parameters" );
     flux_max.set(                        1000.,                     "flux_max",      false,                            "Maximum receiver flux",       "kW/m2",             "Simulation|Parameters" );
-    fc_gamma.set(							0.,                      "fc_gamma",     false,                      "Forecast TES hedging factor",           "-",             "Simulation|Parameters" );
+    disp_inventory_incentive.set(			0.,     "disp_inventory_incentive",     false,                      "Forecast TES hedging factor",           "-",              "Simulation|Parameters" );
     dispatch_factors_ts.set(            pvalts,          "dispatch_factors_ts",      false,                       "TOD price multiplier array",           "-",             "Simulation|Parameters" );
     std::vector< double > bigv(8760, std::numeric_limits<double>::infinity());
     wlim_series.set(                      bigv,                  "wlim_series",      false,              "Maximum power output from the cycle",         "kWe",             "Simulation|Parameters" );
@@ -311,7 +311,7 @@ void parameters::initialize()
     (*this)["startup_frac"] = &startup_frac;
     (*this)["v_wind_max"] = &v_wind_max;
     (*this)["flux_max"] = &flux_max;
-    (*this)["fc_gamma"] = &fc_gamma;
+    (*this)["disp_inventory_incentive"] = &disp_inventory_incentive;
     (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
     (*this)["wlim_series"] = &wlim_series;
     (*this)["maintenance_interval"] = &maintenance_interval;

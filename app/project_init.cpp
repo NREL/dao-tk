@@ -444,7 +444,9 @@ void Project::initialize_ssc_project()
 	ssc_data_set_number(m_ssc_data, "equip_reserve_depr_fed", 0 );
 	ssc_data_set_number(m_ssc_data, "salvage_percentage", 0 );
 	ssc_data_set_number(m_ssc_data, "ppa_soln_mode", 0 );
-	ssc_data_set_number(m_ssc_data, "ppa_price_input", 0.12999999523162842 );
+	//ssc_data_set_number(m_ssc_data, "ppa_price_input", 0.12999999523162842 );
+	ssc_number_t ppa_price_input[1] = { 0.12999999523162842 };
+	ssc_data_set_array(m_ssc_data, "ppa_price_input", ppa_price_input, 1);  
 	ssc_data_set_number(m_ssc_data, "ppa_escalation", 1 );
 	ssc_data_set_number(m_ssc_data, "construction_financing_cost", 35211724 );
 	ssc_data_set_number(m_ssc_data, "term_tenor", 18 );
@@ -534,4 +536,11 @@ void Project::initialize_ssc_project()
 	ssc_data_set_number(m_ssc_data, "const_per_upfront_rate4", 0. );
 	ssc_data_set_number(m_ssc_data, "const_per_upfront_rate5", 0. );
 
+	ssc_data_set_number(m_ssc_data, "cp_capacity_payment_esc", 0);
+	ssc_data_set_number(m_ssc_data, "cp_capacity_payment_type", 0);
+	ssc_number_t cap[1] = { 0 };
+	ssc_data_set_array(m_ssc_data, "cp_capacity_payment_amount", cap, 1);
+	ssc_data_set_array(m_ssc_data, "cp_capacity_credit_percent", cap, 1);
+	ssc_data_set_number(m_ssc_data, "cp_system_nameplate", 0);
+	ssc_data_set_number(m_ssc_data, "cp_battery_nameplate", 0);
 }
