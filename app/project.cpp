@@ -2478,9 +2478,9 @@ bool Project::Z()
 		m_objective_outputs.om_cost_real.assign(om_cost);
 
         //-- Revenue
-        ssc_number_t ppa_price_input;
-        ssc_data_get_number(m_ssc_data, "ppa_price_input", &ppa_price_input);
-        double rev = m_simulation_outputs.annual_revenue_units.as_number() * 1.e6 * ppa_price_input;
+		int nr;
+		ssc_number_t *ppa_price_input = ssc_data_get_array(m_ssc_data, "ppa_price_input", &nr);
+        double rev = m_simulation_outputs.annual_revenue_units.as_number() * 1.e6 * ppa_price_input[0];
         double sales = calc_real_dollars(rev, true);
         m_objective_outputs.sales.assign(sales);
 
