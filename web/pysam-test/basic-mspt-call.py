@@ -2,10 +2,13 @@ import json
 import PySAM.TcsmoltenSalt as MSPT
 import PySAM.Singleowner as Singleowner
 from PySAM.PySSC import *
+from pathlib import Path
 
 ssc = PySSC()
 
-with open("mspt.json") as f:
+parent_dir = str(Path(__file__).parent)
+file_dir = parent_dir+"\\mspt.json"
+with open(file_dir) as f:
     dic = json.load(f)
     gs_dat = dict_to_ssc_table(dic, "tcsmolten_salt")
     so_dat = dict_to_ssc_table(dic, "singleowner")

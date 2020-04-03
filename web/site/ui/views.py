@@ -17,8 +17,14 @@ PROGRESS_BAR_WIDTH = 160
 # Create your views here.
 #-------------------------------------------------------------
 #-------------------------------------------------------------
+def load_pysam_data(request):
+    from ui import mspt
+
+    request.session['pysam_output'] = mspt.get_pysam_data()
+    print(request.session.keys())
+
 def index(request, path=None):
-    
+
     context = {
         'connection_status' : True,
         'model_status' : False,
@@ -153,14 +159,21 @@ def dashboard(request, context={}):
     """
     from bokeh.embed import server_session
     from bokeh.util import session_id
+    from django.contrib.sessions.backends.db import SessionStore
+
+    if 'pysam_output' not in request.session:
+        print("...loading PySAM data")
+        load_pysam_data(request)
 
     bokeh_server_url = "http://127.0.0.1:5006/dashboard_plot"
     server_script = server_session(None, session_id=session_id.generate_session_id(),
                                    url=bokeh_server_url)
+
     context = {"db_name" : "Dashboard",
                "db_script" : server_script,
                "last_refresh": datetime.now(),
-               "connection_status": True
+               "connection_status": True,
+               "dashboard_data": request.session['pysam_output']
               }
 
     return render(request, "dashboard.html", context)
@@ -175,6 +188,7 @@ def outlook(request, context={}):
                                    url=bokeh_server_url)
     context = {"graphname" : "Sliders",
                "server_script" : server_script,
+               "dashboard_data": request.session['pysam_output']
               }
 
     return render(request, "outlook.html", context)
@@ -198,7 +212,8 @@ def forecast(request, context={}):
                "solar_plot": "Solar Forecast",
                "solar_script": solar_script,
                 "last_refresh": datetime.now(),
-               "connection_status": True
+               "connection_status": True,
+               "dashboard_data": request.session['pysam_output']
               }
 
     return render(request, "forecast.html", context)
@@ -221,7 +236,8 @@ def history(request, context={}):
                "hsf_plot_name": "Historical Solar Forecast Data",
                "hsf_script": hsf_server_script,
                "hdbp_plot_name": "Historical Dashboard Data",
-               "hdbp_script": hdbp_server_script
+               "hdbp_script": hdbp_server_script,
+               "dashboard_data": request.session['pysam_output']
               }
     return render(request, "history.html", context)
 
