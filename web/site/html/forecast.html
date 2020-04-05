@@ -14,11 +14,13 @@ Forecast
   {% include "snippets/live_data.html" %}
   <br/>
   <!-- Data Cards -->
-  <!-- Market Data -->
   <div class='data'>
+    <!-- Market Data -->
     {% include "snippets/card.html" with plot_script=mkt_script %}
     <!-- Solar Forecast Data -->
-    {% include "snippets/card.html" with plot_script=solar_script%}
-    </div>
+    {% include "snippets/card.html" with plot_script=solar_script %}
+    <!-- Forecast Data Tables -->
+    {% include "snippets/card.html" with plot_script=forecast_tables_script %}
+  </div>
 </div>
 {% endblock %}

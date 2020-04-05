@@ -14,7 +14,7 @@ probability_data = dict(
 
 estimates_data = dict(
         parameter=['Cycle startup cost','Receiver startup cost','Startup energy usage','Receiver startup time',\
-            'Power correction factor','10\% capacity credit price cutoff','Storage terminal inventory incentive'],
+            'Power correction factor','10% capacity credit price cutoff','Storage terminal inventory incentive'],
         units=['$/start', '$/start','MWh', 'Min', 'MW/MW', '$/MWh','$MWh'],
         current=['{:,}'.format(random.randrange(0, 20000)) for i in range(2)]\
             + [random.randrange(0, 100) for i in range(2)]\
@@ -27,23 +27,34 @@ probability_src = ColumnDataSource(probability_data)
 estimates_src = ColumnDataSource(estimates_data)
 
 probability_columns = [
-        TableColumn(field="probability_event", title="Probability Event", width=True),
+        TableColumn(field="probability_event", title="Probability Event", width=400),
         TableColumn(field="next_day", title="Next Day"),
         TableColumn(field="next_3_days", title="Next 3 Days"),
         TableColumn(field="next_7_days", title="Next 7 Days")
     ]
 estimates_columns = [
-        TableColumn(field="parameter", title="Parameter", fit_columns=True),
-        TableColumn(field="units", title="Units"),
-        TableColumn(field="current", title="Current"),
+        TableColumn(field="parameter", title="Parameter", width=900),
+        TableColumn(field="units", title="Units", width=175),
+        TableColumn(field="current", title="Current", width=200),
         TableColumn(field="last_7_days", title="Last 7 Days"),
         TableColumn(field="last_6_months", title="Last 6 Mo.")
     ]
-probability_table = DataTable(source=probability_src, columns=probability_columns, width=400, height=280)
-estimates_table = DataTable(source=estimates_src, columns=estimates_columns, width=400, height=280)
+probability_table = DataTable(source=probability_src, 
+                            columns=probability_columns, 
+                            width=400, height=280, 
+                            fit_columns=True,
+                            index_position=None,
+                            width_policy='max')
 
+estimates_table = DataTable(source=estimates_src, 
+                            columns=estimates_columns, 
+                            width=500, 
+                            height=280, 
+                            fit_columns=True,
+                            index_position=None,
+                            width_policy='max')
 
-# Show to current document/page
+# Show to current page
 tables = row(
     probability_table,
     estimates_table,

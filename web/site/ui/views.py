@@ -201,11 +201,15 @@ def forecast(request, context={}):
 
     market_url = "http://127.0.0.1:5006/market_plot"
     mkt_script = server_session(None, session_id=session_id.generate_session_id(),
-                                   url=market_url)
+                                    url=market_url)
 
     solar_url = "http://127.0.0.1:5006/solar_plot"
     solar_script = server_session(None, session_id=session_id.generate_session_id(),
-                                   url=solar_url)
+                                    url=solar_url)
+
+    forecast_tables_url = "http://127.0.0.1:5006/forecast_tables"
+    forecast_tables_scrtipt = server_session(None, session_id=session_id.generate_session_id(),
+                                    url=forecast_tables_url)
     
     context = {"mkt_script" : "Market Forecast",
                "mkt_script" : mkt_script,
@@ -213,7 +217,8 @@ def forecast(request, context={}):
                "solar_script": solar_script,
                 "last_refresh": datetime.now(),
                "connection_status": True,
-               "dashboard_data": request.session['pysam_output']
+               "dashboard_data": request.session['pysam_output'],
+               "forecast_tables_script": forecast_tables_scrtipt,
               }
 
     return render(request, "forecast.html", context)
