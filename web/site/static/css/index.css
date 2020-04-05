@@ -104,6 +104,9 @@ i {
   color: white;
   float: right;
   padding: 14px 16px;
+  position: absolute;
+  top: 0;
+  right: 0;
 }
 
 .livestatus td {

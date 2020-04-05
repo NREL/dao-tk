@@ -41,7 +41,8 @@ estimates_columns = [
     ]
 probability_table = DataTable(source=probability_src, 
                             columns=probability_columns, 
-                            width=400, height=280, 
+                            width=400,
+                            height=280, 
                             fit_columns=True,
                             index_position=None,
                             width_policy='max')
