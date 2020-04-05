@@ -1,5 +1,5 @@
 from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem, Band
+from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem, Band, Range1d
 from bokeh.models.widgets import CheckboxButtonGroup, RadioButtonGroup, Div, DateSlider, Slider, Button, Select
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox, Spacer
@@ -11,6 +11,7 @@ import numpy as np
 import re
 import operator
 from scipy.signal import savgol_filter
+from functools import reduce
 
 conn = sqlite3.connect('../../db.sqlite3')
 conn.row_factory = sqlite3.Row
@@ -29,6 +30,7 @@ bands = {}
 
 def make_dataset(range_start, range_end, distribution):
     # Prepare data
+    
 
     data = c.execute("select * from ui_forecastssolardata where timestamp >:range_start and timestamp <=:range_end",
     {'range_start':get_string_date(range_start), 'range_end':get_string_date(range_end)}).fetchall()
@@ -89,15 +91,17 @@ def style(p):
 def make_plot(src): # Takes in a ColumnDataSource
     # Create the plot
     time = src.data['time']
+    y_max = int(max(reduce(lambda entry_a, entry_b: entry_a + entry_b, list(src.data.values())[1:])))
+    
     plot = figure(
         tools="", # this gives us our tools
         x_axis_type="datetime",
-        plot_height=250,
         sizing_mode='scale_both',
-        width_policy='max',
         toolbar_location = None,
         x_axis_label = None,
-        y_axis_label = "Power (W/m^2)"
+        y_axis_label = "Power (W/m^2)",
+        plot_height = 250,
+        y_range=(0,y_max + 150)
         )
 
     for label in [label for label in src.column_names[1:]]:
@@ -158,25 +162,24 @@ def updateRange():
     # Update range when sliders move and update button is clicked
     delta = datetime.timedelta(hours=date_span_slider.value)
     selected_date = datetime.datetime.combine(date_slider.value, datetime.datetime.min.time())
-    range_start = selected_date - delta
-    range_end = selected_date + delta
+    range_start = range_end = selected_date
+    if( datetime.timedelta(0) > delta):
+        range_start += delta
+    else:
+        range_end += delta
+
     new_src = make_dataset(range_start, range_end, distribution_select.value)
     src.data.update(new_src.data)
 
 def update(attr, old, new):
-    # Update plots when widgets change
-    delta = datetime.timedelta(hours=date_span_slider.value)
-    selected_date = datetime.datetime.combine(date_slider.value, datetime.datetime.min.time())
-    range_start = selected_date - delta
-    range_end = selected_date + delta
-
-    new_src = make_dataset(range_start, range_end, distribution_select.value)
-    src.data.update(new_src.data)
+    # Update plots when widgets chang
+ 
+    selected_labels = [plot_select.labels[i] for i in plot_select.active]
 
     # Update visible plots
     for label in lines.keys():
         label_name = col_to_title_upper(label)
-        lines[label].visible = label_name in [plot_select.labels[i] for i in plot_select.active]
+        lines[label].visible = label_name in selected_labels
         if label in bands.keys():
             bands[label].visible = lines[label].visible
 
@@ -200,7 +203,7 @@ start_date = start_date[0]['timestamp']
 date_slider = DateSlider(title='Date', start=start_date, end=end_date, value=current_datetime, step=1, width=250)
 
 # Create Date Range Slider
-date_span_slider = Slider(title='Time Span (Hours)', start=4, end=120, value=24, step=4, width=150)
+date_span_slider = Slider(title='Time Span (Hours)', start=-120, end=120, value=24, step=4, width=150)
 
 # Create Update Button
 update_range_button = Button(label='Update', button_type='primary', width=100)
