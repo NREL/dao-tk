@@ -2,12 +2,10 @@
 <div class="navigation">
     <!-- Image of the sun -->
     <!-- <img src="{% static "img/dtk64.png" %}" height="46px" alt="Logo" style="margin-left: 4px"> -->
-    <br />
-
-    <ul class="sidebar-navigation">
-        <li>
+    <ul class="sidebar-navigation nav-min">
+        <li class="site-title">
             <h3><img src="{% static "img/dtk64.png" %}" alt="CSP PLANT logo"
-                class="csp-logo" width=35px/>CSP Plant</h3>
+                class="csp-logo" width=35px/><span class='site-title-text'>CSP Plant</span></h3>
         </li>
         <li>
             <div class="profile">
@@ -20,7 +18,6 @@
                 </div>
             </div>
         </li>
-        <br />
         <li>
             <a href="{% url 'dashboard' %}"><i class="fa fa-home"></i>Dashboard</a>
         </li>
@@ -34,7 +31,10 @@
             <a href="{% url 'maintenance' %}"><i class="fa fa-table" aria-hidden="true"></i>Maintenance</a>
         </li>
         <li>
-            <a href="{% url 'settings' %}"><i class="fa fa-pencil-square-o" aria-hidden="true"></i>Settings</a>
+            <a href="{% url 'settings' %}"><i class="fa fa-pencil-square-o" aria-hidden="true"></i>User Settings</a>
+        </li>
+        <li class="menu-toggle">
+            <i class="fa fa-angle-right" aria-hidden="true"></i>
         </li>
     </ul>
 </div>

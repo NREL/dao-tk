@@ -18,13 +18,12 @@ i {
 
 .content {
   padding: 20px;
-  margin-left: 230px;
+  margin-left: 75px;
 }
 
 /* The side navigation menu */
-.sidebar-navigation {
+.sidebar-navigation{
   height: 100%; /* 100% Full-height */
-  width: 230px; /* 0 width - change this with JavaScript */
   position: fixed; /* Stay in place */
   z-index: 1; /* Stay on top */
   top: 0; /* Stay at the top */
@@ -33,8 +32,74 @@ i {
   overflow-x: hidden; /* Disable horizontal scroll */
   padding-left: 0px;
   padding-top: 10px; /* Place content 60px from the top */
-  transition: 0.5s; /* 0.5 second transition effect to slide in the sidenav */
   margin: 0;
+}
+.sidebar-navigation.nav-min{
+  width: 75px;
+}
+
+.nav-min .site-title-text{
+  display: none;
+}
+
+.nav-min .site-title img{
+  width:100%;
+}
+
+.nav-min .profile_info{
+  display: none;
+}
+
+.nav-min .profile_pic{
+  width: 100%;
+}
+
+.nav-min .profile_pic img{
+  width:100%;
+  margin-left:0;
+}
+
+.nav-min li a {
+  text-align: center !important;
+  font-weight: 400;
+  font-size: 10px;
+  padding: 10px 5px;
+}
+
+.nav-min li a i{
+  font-size: 25px;
+  width: 100%;
+  margin-bottom: 5px;
+}
+
+.sidebar-navigation.nav-min li:nth-of-type(n+3){
+  padding: 5px 0;
+}
+
+.sidebar-navigation.nav-min li.menu-toggle{
+  text-align: center;
+  width:100%;
+}
+
+.sidebar-navigation.nav-full li.menu-toggle{
+  text-align: center;
+  right: 30px;
+}
+
+.menu-toggle > i{
+  margin: 0;
+}
+
+  .sidebar-navigation li.menu-toggle{
+  position: absolute;
+  bottom: 100px;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+
+.sidebar-navigation.nav-full{
+  width: 230px; /* 0 width - change this with JavaScript */
 }
 
 /* The navigation menu links */
@@ -46,7 +111,6 @@ i {
   font-size: 15px;
   color: #ecf0f1;
   display: block;
-  transition: 0.3s;
 }
 
 /* When you mouse over the navigation links, change their color */
@@ -135,6 +199,7 @@ i {
   display: flex;
   flex-wrap: wrap;
   justify-content:center;
+  padding: 20px 0;
 }
 
 .sidebar-navigation .csp-logo {
