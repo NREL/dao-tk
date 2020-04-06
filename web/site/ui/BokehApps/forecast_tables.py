@@ -40,25 +40,24 @@ estimates_columns = [
         TableColumn(field="last_6_months", title="Last 6 Mo.")
     ]
 probability_table = DataTable(source=probability_src, 
-                            columns=probability_columns, 
-                            width=400,
-                            height=280, 
+                            columns=probability_columns,
                             fit_columns=True,
                             index_position=None,
-                            width_policy='max')
+                            width_policy='max',
+                            height=285)
 
 estimates_table = DataTable(source=estimates_src, 
-                            columns=estimates_columns, 
-                            width=500, 
-                            height=280, 
+                            columns=estimates_columns,
                             fit_columns=True,
                             index_position=None,
-                            width_policy='max')
+                            width_policy='max',
+                            height=285)
 
 # Show to current page
 tables = row(
     probability_table,
     estimates_table,
+    max_height=275,
     width_policy='max'
 )
 

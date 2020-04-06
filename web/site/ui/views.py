@@ -211,12 +211,12 @@ def forecast(request, context={}):
     forecast_tables_scrtipt = server_session(None, session_id=session_id.generate_session_id(),
                                     url=forecast_tables_url)
     
-    context = {"mkt_script" : "Market Forecast",
+    context = {"last_refresh": datetime.now(),
+               "connection_status": True,
+               "mkt_script" : "Market Forecast",
                "mkt_script" : mkt_script,
                "solar_plot": "Solar Forecast",
                "solar_script": solar_script,
-                "last_refresh": datetime.now(),
-               "connection_status": True,
                "dashboard_data": request.session['pysam_output'],
                "forecast_tables_script": forecast_tables_scrtipt,
               }

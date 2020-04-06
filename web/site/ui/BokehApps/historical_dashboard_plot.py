@@ -1,8 +1,9 @@
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem, Span
-from bokeh.models.widgets import CheckboxButtonGroup, RadioButtonGroup, Div, DateSlider, Slider, Button
+from bokeh.models.widgets import CheckboxButtonGroup, RadioButtonGroup, Div, DateSlider, Slider, Button, DatePicker
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox, Spacer
+
 import pandas as pd
 from bokeh.io import curdoc
 import sqlite3
@@ -80,9 +81,8 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
     plot = figure(
         tools="", # this gives us our tools
         x_axis_type="datetime",
-        sizing_mode = 'scale_both',
         width_policy='max',
-        plot_height=250,
+        height_policy='max',
         toolbar_location = None,
         x_axis_label = None,
         y_axis_label = "Power (MWe)"
@@ -118,7 +118,7 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
                 line_width=2,
                 visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
 
-            legend_item = LegendItem(label=legend_label, renderers=[lines[label]])
+            legend_item = LegendItem(label=legend_label.replace('Operation', 'Op.') + " [MWt]", renderers=[lines[label]])
             legend.items.append(legend_item)
             plot.extra_y_ranges['mwt'].renderers.append(lines[label])
 
@@ -135,14 +135,15 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
                 line_width=3 if label == 'actual' else 2,
                 visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
 
-            legend_item = LegendItem(label=legend_label, renderers=[lines[label]])
+            legend_item = LegendItem(label=legend_label + " [MWe]", renderers=[lines[label]])
             legend.items.append(legend_item)
             plot.y_range.renderers.append(lines[label])
     
     # styling
     plot = style(plot)
+    legend.label_text_font_size = '11px'
 
-    plot.add_layout(legend, 'above')
+    plot.add_layout(legend, 'below')
 
     return plot
 
@@ -163,8 +164,11 @@ def updateRange():
     # Update range when sliders move and update button is clicked
     delta = datetime.timedelta(hours=date_span_slider.value)
     selected_date = datetime.datetime.combine(date_slider.value, datetime.datetime.min.time())
-    range_start = selected_date - delta
-    range_end = selected_date + delta
+    range_start = range_end = selected_date
+    if( datetime.timedelta(0) > delta):
+        range_start += delta
+    else:
+        range_end += delta
     [new_src, new_current_src] = make_dataset(range_start, range_end)
     src.data.update(new_src.data)
     current_src.data.update(new_current_src.data)
@@ -175,11 +179,13 @@ def update(attr, old, new):
     # Update visible plots
     for label in lines.keys():
         label_name = col_to_title(label)
-        lines[label].visible = label_name in [plot_select.labels[i] for i in plot_select.active]
+        plot_select_labels = list(map(lambda label: label.replace('Op.', 'Operation'), plot_select.labels))
+        lines[label].visible = label_name in [plot_select_labels[i] for i in plot_select.active]
 
 # Create widget layout
 # Create Checkbox Select Group Widget
 labels_list = [col_to_title(label) for label in data_labels[2:]]
+labels_list = list(map(lambda label: label.replace('Operation', 'Op.'), labels_list))
 plot_select = CheckboxButtonGroup(
     labels = labels_list,
     active = [0],
@@ -193,41 +199,47 @@ end_date = c.execute('select timestamp from ui_dashboarddatarto order by id desc
 end_date = end_date[0]['timestamp']
 start_date = c.execute('select timestamp from ui_dashboarddatarto order by id asc limit 1').fetchall()
 start_date = start_date[0]['timestamp']
-date_slider = DateSlider(title='Date', start=start_date, end=end_date, value=current_datetime, step=1, width=250)
+date_slider = DateSlider(title='Date', start=start_date, end=end_date, value=current_datetime, step=1, width=150)
+# date_picker = DatePicker(title='Date', min_date=start_date, max_date=end_date, value=current_datetime.date(), width=150)
 
 # Create Date Range Slider
-date_span_slider = Slider(title='Time Span (Hours)', start=4, end=120, value=24, step=4, width=150)
+date_span_slider = Slider(title='Time Span (Hours)', start=-120, end=120, value=24, step=4, width=150)
+
 
 # Create Update Button
 update_range_button = Button(label='Update', button_type='primary', width=100)
 update_range_button.on_click(updateRange)
 
-title = Div(text="""<h2>Historical Dashboard Data</h2>""")
+title = Div(text="""<h3>Dashboard Data</h3>""")
 
 # Set initial plot information
 initial_plots = [title_to_col(plot_select.labels[i]) for i in plot_select.active]
 
-delta_init = datetime.timedelta(days=1)
-src, current_src = make_dataset(current_datetime - delta_init, current_datetime + delta_init)
+delta_init = datetime.timedelta(hours=24)
+src, current_src = make_dataset(current_datetime.date(), current_datetime.date() + delta_init)
 
 plot = make_plot(src, current_src)
 
 # Setup Widget Layouts
 
-# Dates
-date_sliders = row(date_slider, date_span_slider)
-date_widgets = column(date_sliders, update_range_button)
 widgets = row(
-    date_widgets,
+    column(
+        date_slider,
+        date_span_slider),
     Spacer(width_policy='max'),
     column(
-        Spacer(width_policy='max'), 
-        plot_select),
+        Spacer(height_policy='max'),
+        plot_select,
+        row(
+            Spacer(width_policy='max'),
+            update_range_button
+        )
+    ),
     width_policy='max'
 )
 
 
-layout = column(title, widgets, plot, width_policy='max')
+layout = column(title, widgets, plot, max_height=525, height_policy='max', width_policy='max')
 
 curdoc().add_root(layout)
 curdoc().title = "Historical Dashboard Plot"

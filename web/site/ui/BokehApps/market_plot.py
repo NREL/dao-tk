@@ -52,7 +52,7 @@ def make_dataset(distribution):
 
     if distribution == "Smoothed":
         window, order = 51, 3
-        for label in cds.column_names[1:]:
+        for label in ['lower','upper']:
             cds.data[label] = savgol_filter(cds.data[label], window, order)
 
     return cds
@@ -80,7 +80,7 @@ def make_plot(src): # Takes in a ColumnDataSource
     # Create the plot
 
     plot = figure(
-        tools="xpan", # this gives us our tools
+        tools="", # this gives us our tools
         x_axis_type="datetime",
         sizing_mode = 'scale_both',
         width_policy='max',
@@ -121,7 +121,8 @@ def make_plot(src): # Takes in a ColumnDataSource
     return plot
 
 def update(attr, old, new):
-    time_box = list(TIME_BOXES.keys())[radio_button_group.active]
+    active_time_window = window.options.index(window.value)
+    time_box = list(TIME_BOXES.keys())[active_time_window]
     plot.x_range.end = current_datetime \
         + datetime.timedelta(hours=TIME_BOXES[time_box])
     new_src = make_dataset(distribution_select.value)
@@ -133,26 +134,27 @@ def update(attr, old, new):
 distribution = 'Discrete'
 distribution_select = Select(
     value=distribution, 
-    options=['Discrete', 'Smoothed'])
+    options=['Discrete', 'Smoothed'],
+    width=150)
 distribution_select.on_change('value', update)
 
-radio_button_group = RadioButtonGroup(
-    labels=["Next 6 Hours", "Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], 
-    active=2,
-    width_policy='min')
-radio_button_group.on_change('active', update)
+time_window = "Next 24 Hours"
+window = Select(
+    options=["Next 6 Hours", "Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], 
+    value=time_window,
+    width=150)
+window.on_change('value', update)
 
 src = make_dataset(distribution)
 
 plot = make_plot(src)
 
 widgets = row(
-    radio_button_group,
+    window,
     distribution_select,
-    Spacer(width_policy='max'),
-    width_policy='max')
+    width_policy='min')
 
-title = Div(text="""<h2>Market Forecast</h2>""")
+title = Div(text="""<h3>Market</h3>""")
 
 layout = column(title, widgets, plot, width_policy='max')
 

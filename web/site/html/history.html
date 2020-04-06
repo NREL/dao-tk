@@ -10,10 +10,14 @@ History
     {% include "snippets/live_data.html" %}
     <br/>
     <!-- Data Cards -->
-    <!-- Historical Dashboard Data -->
-    {% include "snippets/card.html" with plot_script=hdbp_script %}
-    <!-- Historical Solar Data -->
-    {% include "snippets/card.html" with plot_script=hsf_script %}
+    <div class='data'>
+        <div class="row row-cols-2 plots">
+            <!-- Historical Dashboard Data -->
+            {% include "snippets/card.html" with plot_script=hdbp_script %}
+            <!-- Historical Solar Data -->
+            {% include "snippets/card.html" with plot_script=hsf_script %}
+        </div>
+    </div>
 </div>
 
 {% endblock %}

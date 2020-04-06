@@ -87,9 +87,8 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
     plot = figure(
         tools="", # this gives us our tools
         x_axis_type="datetime",
-        sizing_mode = 'scale_both',
         width_policy='max',
-        plot_height=250,
+        height_policy='max',
         toolbar_location = None,
         x_axis_label = None,
         y_axis_label = "Power (MWe)",
@@ -126,7 +125,7 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
                 line_width=2,
                 visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
 
-            legend_item = LegendItem(label=legend_label, renderers=[lines[label]])
+            legend_item = LegendItem(label=legend_label + " [MWt]", renderers=[lines[label]])
             legend.items.append(legend_item)
             plot.extra_y_ranges['mwt'].renderers.append(lines[label])
 
@@ -143,14 +142,14 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
                 line_width=3 if label == 'actual' else 2,
                 visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
 
-            legend_item = LegendItem(label=legend_label, renderers=[lines[label]])
+            legend_item = LegendItem(label=legend_label + " [MWe]", renderers=[lines[label]])
             legend.items.append(legend_item)
             plot.y_range.renderers.append(lines[label])
     
     # styling
     plot = style(plot)
 
-    plot.add_layout(legend, 'above')
+    plot.add_layout(legend, 'below')
 
     return plot
 
@@ -213,9 +212,8 @@ widgets = row(
     radio_button_group,
     Spacer(width_policy='max'),
     plot_select)
-    # width_policy='max')
 
-layout = column(widgets, plot, width_policy='max')
+layout = column(widgets, plot, max_height=525, height_policy='max', width_policy='max')
 
 curdoc().add_root(layout)
 curdoc().title = "Dashboard"

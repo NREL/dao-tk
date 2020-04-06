@@ -5,7 +5,6 @@ register = template.Library()
 def avgcalc(num_array):
 
     if type(num_array) != list:
-        print(num_array)
         return num_array
     num_set = []
 
@@ -20,5 +19,4 @@ def avgcalc(num_array):
         intTotal += num_set[intCount]
         intCount += 1
 
-    print(intTotal/intLenMyList)
     return intTotal/intLenMyList

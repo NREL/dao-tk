@@ -95,6 +95,7 @@ i {
   bottom: 100px;
   font-size: 25px;
   cursor: pointer;
+  display: none;
 }
 
 
@@ -160,10 +161,6 @@ i {
   visibility: hidden;
 }
 
-.data {
-  margin-top: 20px;
-}
-
 .livestatus {
   color: white;
   float: right;
@@ -200,6 +197,7 @@ i {
   flex-wrap: wrap;
   justify-content:center;
   padding: 20px 0;
+  margin-top: 20px;
 }
 
 .sidebar-navigation .csp-logo {
@@ -222,4 +220,11 @@ i {
 
 .row:has( .card.h-100){
   margin-top:20px;
+}
+
+.row{
+  margin: auto 0 !important;
+}
+.data-forecast .plots.row{
+  justify-content: space-between;
 }

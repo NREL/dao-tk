@@ -11,6 +11,7 @@ import numpy as np
 import re
 import operator
 from scipy.signal import savgol_filter
+from functools import reduce
 
 TIME_BOXES = {'NEXT_6_HOURS': 6,
               'NEXT_12_HOURS': 12,
@@ -97,6 +98,7 @@ def style(p):
 def make_plot(src): # Takes in a ColumnDataSource
     # Create the plot
     time = src.data['time']
+    y_max = int(max(reduce(lambda entry_a, entry_b: entry_a + entry_b, list(src.data.values())[1:])))
     plot = figure(
         tools="", # this gives us our tools
         x_axis_type="datetime",
@@ -108,13 +110,14 @@ def make_plot(src): # Takes in a ColumnDataSource
         y_axis_label = "Power (W/m^2)",
         x_range=(current_datetime, 
             current_datetime + datetime.timedelta(
-                hours=TIME_BOXES['NEXT_24_HOURS']))
+                hours=TIME_BOXES['NEXT_24_HOURS'])),
+        y_range=(0, y_max + 150)
         )
-
+    legend = Legend(orientation='vertical', location='center_left', spacing=10)
     for label in [label for label in src.column_names[1:]]:
 
         legend_label = col_to_title_upper(label)
-
+        
         if not re.search('(_lower|_upper)', label) is None:
             value_name = re.split('(_lower|_upper)', label)[0]
             bands[value_name] = Band(
@@ -138,17 +141,17 @@ def make_plot(src): # Takes in a ColumnDataSource
                 line_color = color, 
                 line_alpha = 1.0,
                 line_width=1,
-                legend_label = legend_label,
                 source=src,
                 visible = label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
                 name = label,
                 )
+            legend_item = LegendItem(label=legend_label, renderers=[lines[label]])
+            legend.items.append(legend_item)
 
     # styling
     plot = style(plot)
 
-    plot.legend.orientation = 'horizontal'
-    plot.legend.location = 'top_center'
+    plot.add_layout(legend, 'left')
 
     return plot
 
@@ -169,27 +172,31 @@ def update(attr, old, new):
     # Update plots when widgets change
 
     # Get updated time block information
-    time_box = list(TIME_BOXES.keys())[radio_button_group.active]
+    active_time_window = window.options.index(window.value)
+    time_box = list(TIME_BOXES.keys())[active_time_window]
     # Update ranges
     plot.x_range.start = current_datetime
     plot.x_range.end = current_datetime + datetime.timedelta(hours=TIME_BOXES[time_box])
     new_src = make_dataset(distribution_select.value)
     src.data.update(new_src.data)
+
     # Update visible plots
+    selected_labels = [plot_select.labels[i] for i in plot_select.active]
     for label in lines.keys():
         label_name = col_to_title_upper(label)
-        lines[label].visible = label_name in [plot_select.labels[i] for i in plot_select.active]
+        lines[label].visible = label_name in selected_labels
         if label in bands.keys():
             bands[label].visible = lines[label].visible
 
 
 # Create widgets
 # Create Radio Button Group Widget
-radio_button_group = RadioButtonGroup(
-    labels=["Next 6 hours", "Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], 
-    active=2,
-    width_policy='min')
-radio_button_group.on_change('active', update)
+time_window_init = "Next 24 Hours"
+window = Select(
+    options=["Next 6 Hours", "Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], 
+    value=time_window_init,
+    width=150)
+window.on_change('value', update)
 
 # Create Checkbox Select Group Widget
 labels_list = [col_to_title_upper(label) for label in data_labels[2:] if re.search('_(minus|plus)', label) is None]
@@ -204,11 +211,13 @@ plot_select.on_change('active', update)
 distribution = 'Discrete'
 distribution_select = Select(
     value=distribution,
-    options=['Discrete', 'Smoothed'])
+    options=['Discrete', 'Smoothed'],
+    width=150
+    )
 distribution_select.on_change('value', update)
 
 
-title = Div(text="""<h2>Solar Forecast</h2>""")
+title = Div(text="""<h3>Solar</h3>""")
 
 # Set initial plot information
 initial_plots = [title_to_col(plot_select.labels[i]) for i in plot_select.active]
@@ -218,13 +227,13 @@ src = make_dataset(distribution)
 plot = make_plot(src)
 
 # Setup Widget Layouts
+
 widgets = row(
-    radio_button_group,
-    Spacer(width_policy='max'),
-    distribution_select,
+    window,
     Spacer(width_policy='max'),
     plot_select,
-    width_policy='max'
+    Spacer(width_policy='max'),
+    distribution_select
 )
 
 layout = column(title, widgets, plot, width_policy='max')

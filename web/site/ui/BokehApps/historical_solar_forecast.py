@@ -1,6 +1,6 @@
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, LegendItem, Band, Range1d
-from bokeh.models.widgets import CheckboxButtonGroup, RadioButtonGroup, Div, DateSlider, Slider, Button, Select
+from bokeh.models.widgets import CheckboxButtonGroup, RadioButtonGroup, Div, DateSlider, Slider, Button, Select, DatePicker
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox, Spacer
 import pandas as pd
@@ -96,14 +96,14 @@ def make_plot(src): # Takes in a ColumnDataSource
     plot = figure(
         tools="", # this gives us our tools
         x_axis_type="datetime",
-        sizing_mode='scale_both',
         toolbar_location = None,
         x_axis_label = None,
         y_axis_label = "Power (W/m^2)",
-        plot_height = 250,
+        width_policy='max',
+        height_policy='max',
         y_range=(0,y_max + 150)
         )
-
+    legend = Legend(orientation='horizontal', location='top_center', spacing=10)
     for label in [label for label in src.column_names[1:]]:
 
         legend_label = col_to_title_upper(label)
@@ -131,17 +131,17 @@ def make_plot(src): # Takes in a ColumnDataSource
                 line_color = color, 
                 line_alpha = 1.0,
                 line_width=1,
-                legend_label = legend_label,
                 source=src,
                 visible = label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
                 name = label,
                 )
+            legend_item = LegendItem(label=legend_label, renderers=[lines[label]])
+            legend.items.append(legend_item)
 
     # styling
     plot = style(plot)
 
-    plot.legend.orientation = 'horizontal'
-    plot.legend.location = 'top_center'
+    plot.add_layout(legend, 'below')
 
     return plot
 
@@ -158,7 +158,7 @@ def title_to_col(title):
     col_name = title.lower().replace(' ','_')
     return col_name
 
-def updateRange():
+def update():
     # Update range when sliders move and update button is clicked
     delta = datetime.timedelta(hours=date_span_slider.value)
     selected_date = datetime.datetime.combine(date_slider.value, datetime.datetime.min.time())
@@ -171,8 +171,8 @@ def updateRange():
     new_src = make_dataset(range_start, range_end, distribution_select.value)
     src.data.update(new_src.data)
 
-def update(attr, old, new):
-    # Update plots when widgets chang
+def update_plots(attr, old, new):
+    # Update plots when widgets change
  
     selected_labels = [plot_select.labels[i] for i in plot_select.active]
 
@@ -192,7 +192,7 @@ plot_select = CheckboxButtonGroup(
     active = [0],
     width_policy='min'
 )
-plot_select.on_change('active', update)
+plot_select.on_change('active', update_plots)
 
 # Create Date Slider
 # Get start and end date in table
@@ -200,50 +200,51 @@ end_date = c.execute('select timestamp from ui_forecastssolardata order by id de
 end_date = end_date[0]['timestamp']
 start_date = c.execute('select timestamp from ui_forecastssolardata order by id asc limit 1').fetchall()
 start_date = start_date[0]['timestamp']
-date_slider = DateSlider(title='Date', start=start_date, end=end_date, value=current_datetime, step=1, width=250)
+date_slider = DateSlider(title='Date', start=start_date, end=end_date, value=current_datetime, step=1, width=150)
+# date_picker = DatePicker(title='Date', min_date=start_date, max_date=end_date, value=current_datetime.date(), width=150)
 
 # Create Date Range Slider
 date_span_slider = Slider(title='Time Span (Hours)', start=-120, end=120, value=24, step=4, width=150)
 
 # Create Update Button
 update_range_button = Button(label='Update', button_type='primary', width=100)
-update_range_button.on_click(updateRange)
+update_range_button.on_click(update)
 
-distribution = 'Discrete'
+distribution_init = 'Discrete'
 distribution_select = Select(
-    value=distribution,
-    options=['Discrete', 'Smoothed'])
-distribution_select.on_change('value', update)
+    value=distribution_init,
+    options=['Discrete', 'Smoothed'],
+    width=125)
 
-title = Div(text="""<h2>Historical Solar Forecast</h2>""")
+title = Div(text="""<h3>Solar</h3>""")
 
 # Set initial plot information
 initial_plots = [title_to_col(plot_select.labels[i]) for i in plot_select.active]
 
 delta_init = datetime.timedelta(hours=24)
-src = make_dataset(current_datetime.date() - delta_init, current_datetime.date() + delta_init, distribution)
+src = make_dataset(current_datetime.date(), current_datetime.date() + delta_init, distribution_init)
 
 plot = make_plot(src)
 
 # Setup Widget Layouts
-
-# Dates
-date_sliders = row(date_slider, date_span_slider)
-date_widgets = column(date_sliders, update_range_button)
 widgets = row(
-    date_widgets,
+    column(
+        date_slider,
+        date_span_slider),
     Spacer(width_policy='max'),
     column(
         Spacer(height_policy='max'),
-        distribution_select),
-    Spacer(width_policy='max'),
-    column(
-        Spacer(height_policy='max'), 
-        plot_select),
+        plot_select,
+        row(
+            Spacer(width_policy='max'),
+            distribution_select,
+            update_range_button
+        )
+    ),
     width_policy='max'
 )
 
-layout = column(title, widgets, plot, width_policy='max')
+layout = column(title, widgets, plot, max_height=525, height_policy='max', width_policy='max')
 
 # Show to current document/page
 curdoc().add_root(layout)
