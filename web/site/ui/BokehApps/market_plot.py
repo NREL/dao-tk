@@ -3,6 +3,8 @@ from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, Lege
 from bokeh.models.widgets import Button, CheckboxGroup, RadioButtonGroup, Div, Select
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox, Spacer
+from bokeh.themes import built_in_themes
+
 import pandas as pd
 from bokeh.io import curdoc
 import sqlite3
@@ -101,7 +103,7 @@ def make_plot(src): # Takes in a ColumnDataSource
         line_alpha = 0.7, 
         hover_line_color = 'green',
         hover_alpha = 1.0,
-        line_width=2,
+        line_width=3,
         source=src)
 
     band = Band(
@@ -159,4 +161,5 @@ title = Div(text="""<h3>Market</h3>""")
 layout = column(title, widgets, plot, width_policy='max')
 
 curdoc().add_root(layout)
+curdoc().theme = 'dark_minimal'
 curdoc().title = "Market Forecast Plot"

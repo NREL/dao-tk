@@ -207,9 +207,13 @@ def forecast(request, context={}):
     solar_script = server_session(None, session_id=session_id.generate_session_id(),
                                     url=solar_url)
 
-    forecast_tables_url = "http://127.0.0.1:5006/forecast_tables"
-    forecast_tables_scrtipt = server_session(None, session_id=session_id.generate_session_id(),
-                                    url=forecast_tables_url)
+    probability_table_url = "http://127.0.0.1:5006/probability_table"
+    probability_table_script = server_session(None, session_id=session_id.generate_session_id(),
+                                    url=probability_table_url)
+    
+    estimates_table_url = "http://127.0.0.1:5006/estimates_table"
+    estimates_table_script = server_session(None, session_id=session_id.generate_session_id(),
+                                    url=estimates_table_url)
     
     context = {"last_refresh": datetime.now(),
                "connection_status": True,
@@ -218,7 +222,9 @@ def forecast(request, context={}):
                "solar_plot": "Solar Forecast",
                "solar_script": solar_script,
                "dashboard_data": request.session['pysam_output'],
-               "forecast_tables_script": forecast_tables_scrtipt,
+               "probability_table_script": probability_table_script,
+               "estimates_table_script": estimates_table_script,
+
               }
 
     return render(request, "forecast.html", context)

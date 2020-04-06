@@ -3,6 +3,8 @@ from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, Lege
 from bokeh.models.widgets import RadioButtonGroup, CheckboxButtonGroup, Div, Select
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox, Spacer
+from bokeh.themes import built_in_themes
+
 import pandas as pd
 from bokeh.io import curdoc
 import sqlite3
@@ -140,7 +142,7 @@ def make_plot(src): # Takes in a ColumnDataSource
                 y=label,
                 line_color = color, 
                 line_alpha = 1.0,
-                line_width=1,
+                line_width=3,
                 source=src,
                 visible = label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
                 name = label,
@@ -195,7 +197,7 @@ time_window_init = "Next 24 Hours"
 window = Select(
     options=["Next 6 Hours", "Next 12 Hours", "Next 24 Hours", "Next 48 Hours"], 
     value=time_window_init,
-    width=150)
+    width=135)
 window.on_change('value', update)
 
 # Create Checkbox Select Group Widget
@@ -228,16 +230,22 @@ plot = make_plot(src)
 
 # Setup Widget Layouts
 
-widgets = row(
-    window,
-    Spacer(width_policy='max'),
-    plot_select,
-    Spacer(width_policy='max'),
-    distribution_select
+widgets = column(
+    row(
+        title,
+        Spacer(width_policy='max'),
+        window,
+        distribution_select),
+    row(
+        Spacer(width_policy='max'),
+        plot_select),
+    width_policy='max'
+    
 )
 
-layout = column(title, widgets, plot, width_policy='max')
+layout = column(row(widgets), plot, width_policy='max')
 
 # Show to current document/page
 curdoc().add_root(layout)
+curdoc().theme = 'dark_minimal'
 curdoc().title = "Solar Forecast Plot"

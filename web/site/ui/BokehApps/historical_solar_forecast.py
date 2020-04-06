@@ -3,6 +3,8 @@ from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, Lege
 from bokeh.models.widgets import CheckboxButtonGroup, RadioButtonGroup, Div, DateSlider, Slider, Button, Select, DatePicker
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox, Spacer
+from bokeh.themes import built_in_themes
+
 import pandas as pd
 from bokeh.io import curdoc
 import sqlite3
@@ -130,7 +132,7 @@ def make_plot(src): # Takes in a ColumnDataSource
                 y=label,
                 line_color = color, 
                 line_alpha = 1.0,
-                line_width=1,
+                line_width=3,
                 source=src,
                 visible = label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
                 name = label,
@@ -190,7 +192,8 @@ labels_list = [col_to_title_upper(label) for label in data_labels_forecast_solar
 plot_select = CheckboxButtonGroup(
     labels = labels_list,
     active = [0],
-    width_policy='min'
+    width_policy='min',
+    css_classes=['bokeh_buttons']
 )
 plot_select.on_change('active', update_plots)
 
@@ -248,4 +251,5 @@ layout = column(title, widgets, plot, max_height=525, height_policy='max', width
 
 # Show to current document/page
 curdoc().add_root(layout)
+curdoc().theme = 'dark_minimal'
 curdoc().title = "Historical Solar Forecast Plot"

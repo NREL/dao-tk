@@ -12,6 +12,7 @@ Forecast
 <div class="data data-forcast">
   <!-- Daily Statistics -->
   {% include "snippets/live_data.html" %}
+  <br/>
   <!-- Data Cards -->
   <div class='data'>
     <div class="plots row row-cols-2">
@@ -20,8 +21,12 @@ Forecast
       <!-- Solar Forecast Data -->
       {% include "snippets/card.html" with plot_script=solar_script %}
     </div>
-    <!-- Forecast Data Tables -->
-    {% include "snippets/card.html" with plot_script=forecast_tables_script %}
+    <div class="tables row row-cols-2">
+      <!-- Probability Data Table -->
+      {% include "snippets/card.html" with plot_script=probability_table_script %}
+      <!-- Estimates Data Table -->
+      {% include "snippets/card.html" with plot_script=estimates_table_script %}
+    </div>
   </div>
 </div>
 {% endblock %}

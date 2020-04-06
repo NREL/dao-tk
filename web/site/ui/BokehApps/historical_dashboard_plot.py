@@ -3,6 +3,7 @@ from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, Lege
 from bokeh.models.widgets import CheckboxButtonGroup, RadioButtonGroup, Div, DateSlider, Slider, Button, DatePicker
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox, Spacer
+from bokeh.themes import built_in_themes
 
 import pandas as pd
 from bokeh.io import curdoc
@@ -96,9 +97,9 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
     current_line = Span(
         location=current_datetime,
         dimension='height',
-        line_color='black',
+        line_color='white',
         line_dash='dashed',
-        line_width=1
+        line_width=2
     )
     plot.add_layout(current_line)
 
@@ -115,7 +116,7 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
                 y_range_name='mwt',
                 level='underlay',
                 source = current_src,
-                line_width=2,
+                line_width=3,
                 visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
 
             legend_item = LegendItem(label=legend_label.replace('Operation', 'Op.') + " [MWt]", renderers=[lines[label]])
@@ -189,7 +190,10 @@ labels_list = list(map(lambda label: label.replace('Operation', 'Op.'), labels_l
 plot_select = CheckboxButtonGroup(
     labels = labels_list,
     active = [0],
-    width_policy='min'
+    width_policy='min',
+    css_classes=['bokeh_buttons'],
+    background='#15191c'
+
 )
 plot_select.on_change('active', update)
 
@@ -222,24 +226,25 @@ plot = make_plot(src, current_src)
 
 # Setup Widget Layouts
 
-widgets = row(
-    column(
-        date_slider,
-        date_span_slider),
-    Spacer(width_policy='max'),
-    column(
-        Spacer(height_policy='max'),
+widgets = column(
+    row(
+        Spacer(width_policy='max'),
         plot_select,
-        row(
-            Spacer(width_policy='max'),
-            update_range_button
-        )
+        Spacer(width_policy='max'),
+        width_policy='max'          
     ),
+    row(
+        date_slider,
+        Spacer(width_policy='max'),
+        date_span_slider,
+        Spacer(width_policy='max'),
+        update_range_button,
+        width_policy='max'), 
     width_policy='max'
-)
-
+    )
 
 layout = column(title, widgets, plot, max_height=525, height_policy='max', width_policy='max')
 
 curdoc().add_root(layout)
+curdoc().theme = 'dark_minimal'
 curdoc().title = "Historical Dashboard Plot"

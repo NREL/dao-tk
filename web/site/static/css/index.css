@@ -1,7 +1,9 @@
 body {
-  background-color: white;
   padding: 0px;
   margin: 0;
+  color: white !important;
+  background-color: #1d262e !important;
+
 }
 
 h1,h2,p,ul,li {
@@ -17,7 +19,7 @@ i {
 }
 
 .content {
-  padding: 20px;
+  padding: 10px;
   margin-left: 75px;
 }
 
@@ -64,6 +66,7 @@ i {
   font-weight: 400;
   font-size: 10px;
   padding: 10px 5px;
+  text-decoration: none;
 }
 
 .nav-min li a i{
@@ -196,8 +199,7 @@ i {
   display: flex;
   flex-wrap: wrap;
   justify-content:center;
-  padding: 20px 0;
-  margin-top: 20px;
+  margin-top: 60px;
 }
 
 .sidebar-navigation .csp-logo {
@@ -210,12 +212,13 @@ i {
 }
 
 .card.h-100 .card-body{
-  padding: 0;
+  padding: 0 20px 20px 20px;
   margin-top: 10px;
 }
 
 .col .card{
   border: none;
+  background-color: #15191c;
 }
 
 .row:has( .card.h-100){
@@ -225,6 +228,63 @@ i {
 .row{
   margin: auto 0 !important;
 }
+
+.plots.row, .tables.row{
+  margin-bottom: 20px !important;
+  padding: 20px auto;
+}
 .data-forecast .plots.row{
   justify-content: space-between;
+}
+
+.bokeh_buttons{
+  background-color: #1d262e !important;
+  color: white !important;
+  font-weight: bold;
+}
+
+.bk-root .bk-btn-default.bk-active{
+  background-color: #293744 !important;
+  color: white !important;
+  border-color: #1d2327;
+  border-width: 2px;
+}
+
+.bk-root .bk-btn-default {
+  color: white !important;
+  background-color: #15191c;
+  border-color: #1d2327;
+  border-width: 2px;
+}
+
+.bk-root .bk-btn-default:hover {
+  color: white !important;
+  background-color: #2b353d;
+  border-color: #1d2327;
+  border-width: 2px;
+}
+
+.bk-root .bk-input {
+  color: white;
+  background-color: #15191c;
+  border: 2px solid #1d2327;
+  border-radius: 4px;
+}
+
+.bk-root .slick-row.odd {
+  background: hsl(206, 14%, 10%);
+}
+
+.bk-root .slick-row{
+  background: hsl(206, 14%, 20%);
+}
+
+.bk-root .slick-header-column{
+  background:  hsl(206, 36%, 23%);
+}
+
+.active{
+  border-right-color: teal;
+  border-right-width: 5px;
+  border-right-style: solid;
 }

@@ -3,6 +3,8 @@ from bokeh.models import ColumnDataSource, LinearAxis, DataRange1d, Legend, Lege
 from bokeh.models.widgets import Button, CheckboxButtonGroup, RadioButtonGroup
 from bokeh.palettes import Category20
 from bokeh.layouts import column, row, WidgetBox, Spacer
+from bokeh.themes import built_in_themes
+
 import pandas as pd
 from bokeh.io import curdoc
 import sqlite3
@@ -103,9 +105,9 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
     current_line = Span(
         location=current_datetime,
         dimension='height',
-        line_color='black',
+        line_color='white',
         line_dash='dashed',
-        line_width=1
+        line_width=2
     )
     plot.add_layout(current_line)
 
@@ -216,4 +218,5 @@ widgets = row(
 layout = column(widgets, plot, max_height=525, height_policy='max', width_policy='max')
 
 curdoc().add_root(layout)
+curdoc().theme = 'dark_minimal'
 curdoc().title = "Dashboard"
