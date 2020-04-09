@@ -399,7 +399,7 @@ void solarfield_outputs::initialize()
     n_om_staff.set(                        nan,                   "n_om_staff",       true,             "Number of full-time O&M repair staff",        "-",    "Heliostat availability|Outputs" );
     n_repairs.set(                         nan,                    "n_repairs",       true,                      "Number of heliostat repairs",        "-",    "Heliostat availability|Outputs" );
     staff_utilization.set(                 nan,            "staff_utilization",       true,                                "Staff utilization",        "-",    "Heliostat availability|Outputs" );
-    heliostat_repair_cost_y1.set(          nan,     "heliostat_repair_cost_y1",       true,                 "Heliostat repair cost (per year)",        "$",    "Heliostat availability|Outputs" );
+    heliostat_repair_cost_y1.set(          nan,     "heliostat_repair_cost_y1",       true,					  "Heliostat repair cost (year 1)",        "$",    "Heliostat availability|Outputs" );
     heliostat_repair_cost_real.set(        nan,   "heliostat_repair_cost_real",       true );
     avg_avail.set(                         nan,                    "avg_avail",       true,                    "Average lifetime availability",        "-",    "Heliostat availability|Outputs" );
 
@@ -430,7 +430,7 @@ void optical_outputs::initialize()
     std::vector< double > empty_vec;
     n_wash_vehicles.set(                   nan,               "n_wash_vehicles",      true,                   "Number of wash vehicles",        "-",       "Optical degradation|Outputs" );
     n_replacements.set(                    nan,                "n_replacements",      true,    "Mirror replacements (average per year)",		"-",       "Optical degradation|Outputs" );
-	heliostat_refurbish_cost_y1.set(	   nan,   "heliostat_refurbish_cost_y1",	  true,		   "Mirror replacement cost (per year)",		"$",	   "Optical degradation|Outputs" );
+	heliostat_refurbish_cost_y1.set(	   nan,   "heliostat_refurbish_cost_y1",	  true,			 "Mirror replacement cost (year 1)",		"$",	   "Optical degradation|Outputs" );
 	heliostat_refurbish_cost_real.set(     nan, "heliostat_refurbish_cost_real",      true);
     avg_soil.set(                          nan,                      "avg_soil",      true,					 "Average lifetime soiling",        "-",       "Optical degradation|Outputs" );
     avg_degr.set(                          nan,                      "avg_degr",      true,              "Average lifetime degradation",        "-",       "Optical degradation|Outputs" );
@@ -466,7 +466,7 @@ void cycle_outputs::initialize()
 
     cycle_efficiency.set(       empty_vec,                "cycle_efficiency",        true,                   "Cycle efficiency time series",       "-",                     "Cycle|Outputs" );
     cycle_capacity.set(         empty_vec,                  "cycle_capacity",        true,                     "Cycle capacity time series",       "-",                     "Cycle|Outputs" );
-    cycle_labor_cost_y1.set(    nan,                   "cycle_labor_cost_y1",        true,  "Labor costs for power cycle repair (per year)",       "$",                     "Cycle|Outputs" );
+    cycle_labor_cost_y1.set(    nan,                   "cycle_labor_cost_y1",        true,			   "Labor costs for power cycle repair",       "$",                     "Cycle|Outputs" );
 	cycle_labor_cost_real.set(	nan,					  "cycle_labor_cost",		 true);
     num_failures.set(		    nan,                          "num_failures",		 true,		  "Average number of annual cycle failures",        "",	                    "Cycle|Outputs" );
     cycle_efficiency_ave.set(   nan,                  "cycle_efficiency_ave",        true,                "Average cycle efficiency derate",       "-",                     "Cycle|Outputs" );
@@ -1317,83 +1317,6 @@ bool Project::D()
     {
 		if (!calculate_flux_profiles())
 			return false;
-		/*
-        int N_hel, nc;
-        ssc_number_t* helio_positions = ssc_data_get_matrix(m_ssc_data, "helio_positions", &N_hel, &nc);
-        ssc_data_set_matrix(m_ssc_data, "helio_positions_in", helio_positions, N_hel, nc);
-        
-        ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 1.);
-
-        int nthread = std::min(m_parameters.n_sim_threads.as_integer(), wxThread::GetCPUCount());
-        FluxSimThread *simthread = new FluxSimThread[nthread];
-
-        for (int i = 0; i < nthread; i++)
-            simthread[i].Setup(i, nthread, this, m_ssc_data);
-
-        for (int i = 0; i < nthread; i++)
-            std::thread(&FluxSimThread::StartThread, std::ref(simthread[i])).detach();
-
-        //Wait loop
-        while (true)
-        {
-            int nsim_done = 0, nsim_total = 0, nthread_done = 0;
-            for (int i = 0; i < nthread; i++)
-            {
-                if (simthread[i].IsFinished())
-                    nthread_done++;
-                int ncomp, ntot;
-                simthread[i].GetStatus(&ncomp, &ntot);
-                nsim_done += ncomp;
-                nsim_total += ntot;
-            }
-            if (!sim_progress_handler((double)nsim_done / (double)nsim_total, "Multi-threaded flux characterization"))
-            {
-                for (int i = 0; i < nthread; i++)
-                    simthread[i].CancelSimulation();
-            }
-            if (nthread_done == nthread) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(150));
-        }
-
-        for (int i = 0; i < nthread; i++)
-        {
-            if (simthread[i].IsFinishedWithErrors() || simthread[i].IsSimulationCancelled())
-            {
-                //ssc_module_free(mod_solarpilot);
-                is_design_valid = false;
-                delete[] simthread;
-                return false;
-            }
-        }
-        
-        //reconstruct field efficiency and flux matrices from multithreaded data
-        std::vector< std::vector< double > > collect_results;
-
-        for (int k = 0; k < nthread; k++)
-            for (size_t i = 0; i < simthread[k]._results.size(); i++)
-                collect_results.push_back(simthread[k]._results.at(i));
-        
-        int nitem = (int)collect_results.size();
-        ssc_number_t* opteff_table = new ssc_number_t[nitem * 3];
-        int nflux = (collect_results.front().size() - 3);
-        ssc_number_t* flux_table = new ssc_number_t[nitem * nflux];
-
-        //assign to the ssc data module
-        for (int i = 0; i < nitem; i++)
-        {
-            for (int j = 0; j < 3; j++)
-                opteff_table[i * 3 + j] = collect_results[i][j];
-            for (int j = 0; j < nflux; j++)
-                flux_table[i*nflux + j] = collect_results[i][j + 3];
-        }
-        ssc_data_set_matrix(m_ssc_data, "opteff_table", opteff_table, nitem, 3);
-        ssc_data_set_matrix(m_ssc_data, "flux_table", flux_table, nitem, nflux);
-
-        ssc_data_unassign(m_ssc_data, "helio_positions_in");
-        delete[] opteff_table;
-        delete[] flux_table;
-        delete[] simthread;
-		*/
     }
 
     //Collect calculated data
@@ -1674,7 +1597,7 @@ bool Project::M()
 	double total_repair_cost = 0.0;
 	for (int y = 0; y < sfa.m_settings.n_years; y++)
 		total_repair_cost += sfo.m_results.repair_cost_per_year[y];
-	double total_repair_cost_real = calc_real_dollars(total_repair_cost);
+
 	double ann_fact = 1.0 / (double)sfa.m_settings.n_years;
 
     sfo.m_results.heliostat_repair_cost = calc_real_dollars(total_repair_cost);				// Heliostat repair cost over the lifetime of the plant
