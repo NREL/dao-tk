@@ -307,3 +307,6 @@ build_linux/dao-tk
 deploy/linux/dao-tk
 deploy/samples/clustering/*
 deploy/samples/*.csv
+
+# Visual Studdio Code
+.vscode/
