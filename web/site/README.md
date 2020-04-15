@@ -1,4 +1,4 @@
-# Dashboar Plots
+# Dashboard Plots
 
 The Dashboard stack currently uses Django and Bokeh both running on a server (mentioned in the previous readme). These will both be run on production mode once on the server locally at the plant.
 
@@ -24,4 +24,4 @@ The Probability and Estimates tables below provide information on weather predic
 ![History](./media/README/dashboard_plot3.png)
 _History Plots_
 
-The history plots show the same data from the Dashboard and solar plots, except these plots have sliders. The two sliders on bot plots allow for the user to change the date and the time window. The time window goes from -120 to 120 hours (&#177; 5 days).
+The history plots show the same data from the dashboard and solar plots, except these plots have sliders. The two sliders on bot plots allow for the user to change the date and the time window. The time window goes from -120 to 120 hours (&#177; 5 days).
