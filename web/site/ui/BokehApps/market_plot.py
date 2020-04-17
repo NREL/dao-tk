@@ -93,7 +93,8 @@ def make_plot(src): # Takes in a ColumnDataSource
         x_range=(current_datetime, 
             current_datetime + datetime.timedelta(
                 hours=TIME_BOXES['NEXT_24_HOURS'])),
-        y_range=(-0.2, max(src.data['upper']) + 0.2)
+        y_range=(-0.2, max(src.data['upper']) + 0.2),
+        output_backend='webgl'
         )
 
     plot.line( 
@@ -104,7 +105,8 @@ def make_plot(src): # Takes in a ColumnDataSource
         hover_line_color = 'green',
         hover_alpha = 1.0,
         line_width=3,
-        source=src)
+        source=src,
+        )
 
     band = Band(
         base='time',
@@ -114,7 +116,8 @@ def make_plot(src): # Takes in a ColumnDataSource
         level = 'underlay',
         fill_alpha=1.0, 
         line_width=1, 
-        line_color='black')
+        line_color='black',
+        )
 
     plot.add_layout(band)
     # styling

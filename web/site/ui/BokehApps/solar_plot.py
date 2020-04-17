@@ -34,7 +34,7 @@ def get_string_date(date):
 current_datetime = datetime.datetime.now().replace(year=2010) # Eventually the year will be removed
 delta_end = datetime.timedelta(hours=TIME_BOXES['NEXT_48_HOURS'])
 
-data_base = c.execute("select * from ui_forecastssolardata where timestamp >:start and timestamp <=:end",
+data_base = c.execute("select * from ui_forecastssolardata where rowid % 30 = 0 and timestamp >:start and timestamp <=:end",
     {'start':get_string_date(current_datetime), 'end': get_string_date(current_datetime + delta_end)}).fetchall()
 label_colors = {}
 lines = {}
@@ -113,7 +113,8 @@ def make_plot(src): # Takes in a ColumnDataSource
         x_range=(current_datetime, 
             current_datetime + datetime.timedelta(
                 hours=TIME_BOXES['NEXT_24_HOURS'])),
-        y_range=(0, y_max + 150)
+        y_range=(0, y_max + 150),
+        output_backend='webgl'
         )
     legend = Legend(orientation='vertical', location='center_left', spacing=10)
     for label in [label for label in src.column_names[1:]]:
@@ -133,7 +134,8 @@ def make_plot(src): # Takes in a ColumnDataSource
                 line_width=1, 
                 line_color='black',
                 visible = label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
-                name = label)
+                name = label,
+                )
             plot.add_layout(bands[value_name])
         else:
             color = Category20[20][label_colors[label+'_color']]
@@ -146,6 +148,7 @@ def make_plot(src): # Takes in a ColumnDataSource
                 source=src,
                 visible = label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
                 name = label,
+                
                 )
             legend_item = LegendItem(label=legend_label, renderers=[lines[label]])
             legend.items.append(legend_item)

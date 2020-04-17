@@ -31,7 +31,9 @@ current_datetime = datetime.datetime.now().replace(year=2010) # Eventually the y
 delta_start = datetime.timedelta(days=2)
 delta_end = datetime.timedelta(days=1)
 
-data_base = c.execute("select * from ui_dashboarddatarto where timestamp >:start and timestamp <=:end",
+data_base = c.execute("select * from ui_dashboarddatarto \
+    where ((rowid % 30 = 0) or (rowid > (select max(rowid) from ui_dashboarddatarto) -30)) \
+    and timestamp >:start and timestamp <=:end",
     {'start':get_string_date(current_datetime - delta_start), 'end': get_string_date(current_datetime + delta_end)}).fetchall()
 label_colors = {}
 for i, data_label in enumerate(data_labels[2:]):
@@ -95,6 +97,7 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
         x_axis_label = None,
         y_axis_label = "Power (MWe)",
         x_range=(current_datetime.date(), current_datetime.date() + datetime.timedelta(days=1)),
+        output_backend='webgl'
         )
 
     plot.extra_y_ranges = {"mwt": DataRange1d()}
@@ -125,7 +128,8 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
                 level='underlay',
                 source = current_src,
                 line_width=2,
-                visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
+                visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
+                )
 
             legend_item = LegendItem(label=legend_label + " [MWt]", renderers=[lines[label]])
             legend.items.append(legend_item)
@@ -142,7 +146,8 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
                 source= current_src if label == 'actual' else src,
                 level='glyph' if label == 'actual' else 'underlay',
                 line_width=3 if label == 'actual' else 2,
-                visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
+                visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
+                )
 
             legend_item = LegendItem(label=legend_label + " [MWe]", renderers=[lines[label]])
             legend.items.append(legend_item)
@@ -216,6 +221,16 @@ widgets = row(
     plot_select)
 
 layout = column(widgets, plot, max_height=525, height_policy='max', width_policy='max')
+
+p = figure(
+     tools="", # this gives us our tools
+    x_axis_type="datetime",
+    width_policy='max',
+    height_policy='max',
+    toolbar_location = None,
+    x_axis_label = None,
+    y_axis_label = "Power (MWe)",
+)
 
 curdoc().add_root(layout)
 curdoc().theme = 'dark_minimal'

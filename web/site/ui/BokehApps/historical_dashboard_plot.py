@@ -32,8 +32,10 @@ lines = {}
 def make_dataset(range_start, range_end):
     # Prepare data
 
-    data = c.execute("select * from ui_dashboarddatarto where timestamp >:range_start and timestamp <=:range_end",
-    {'range_start':get_string_date(range_start), 'range_end':get_string_date(range_end)}).fetchall()
+    data = c.execute("select * from ui_dashboarddatarto \
+        where ((rowid % 30 = 0) or (rowid > (select max(rowid) from ui_dashboarddatarto) -30)) \
+        and timestamp >:range_start and timestamp <=:range_end",
+        {'range_start':get_string_date(range_start), 'range_end':get_string_date(range_end)}).fetchall()
 
     cds = ColumnDataSource(data={
             'time': [datetime.datetime.strptime(entry['timestamp'], '%m/%d/%Y %H:%M') for entry in data]
@@ -86,7 +88,8 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
         height_policy='max',
         toolbar_location = None,
         x_axis_label = None,
-        y_axis_label = "Power (MWe)"
+        y_axis_label = "Power (MWe)",
+        output_backend='webgl'
         )
 
     plot.extra_y_ranges = {"mwt": DataRange1d()}
@@ -117,7 +120,8 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
                 level='underlay',
                 source = current_src,
                 line_width=3,
-                visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
+                visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
+                )
 
             legend_item = LegendItem(label=legend_label.replace('Operation', 'Op.') + " [MWt]", renderers=[lines[label]])
             legend.items.append(legend_item)
@@ -134,7 +138,8 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
                 source= current_src if label == 'actual' else src,
                 level='glyph' if label == 'actual' else 'underlay',
                 line_width=3 if label == 'actual' else 2,
-                visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active])
+                visible=label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
+                )
 
             legend_item = LegendItem(label=legend_label + " [MWe]", renderers=[lines[label]])
             legend.items.append(legend_item)
@@ -207,7 +212,7 @@ date_slider = DateSlider(title='Date', start=start_date, end=end_date, value=cur
 # date_picker = DatePicker(title='Date', min_date=start_date, max_date=end_date, value=current_datetime.date(), width=150)
 
 # Create Date Range Slider
-date_span_slider = Slider(title='Time Span (Hours)', start=-120, end=120, value=24, step=4, width=150)
+date_span_slider = Slider(title='Time Span (Hours)', start=-240, end=240, value=24, step=4, width=150)
 
 
 # Create Update Button

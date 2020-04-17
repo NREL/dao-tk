@@ -34,7 +34,7 @@ def make_dataset(range_start, range_end, distribution):
     # Prepare data
     
 
-    data = c.execute("select * from ui_forecastssolardata where timestamp >:range_start and timestamp <=:range_end",
+    data = c.execute("select * from ui_forecastssolardata where rowid % 30 = 0 and timestamp >:range_start and timestamp <=:range_end",
     {'range_start':get_string_date(range_start), 'range_end':get_string_date(range_end)}).fetchall()
  
     cds = ColumnDataSource(data={
@@ -103,7 +103,8 @@ def make_plot(src): # Takes in a ColumnDataSource
         y_axis_label = "Power (W/m^2)",
         width_policy='max',
         height_policy='max',
-        y_range=(0,y_max + 150)
+        y_range=(0,y_max + 150),
+        output_backend='webgl'
         )
     legend = Legend(orientation='horizontal', location='top_center', spacing=10)
     for label in [label for label in src.column_names[1:]]:
@@ -123,7 +124,8 @@ def make_plot(src): # Takes in a ColumnDataSource
                 line_width=1, 
                 line_color='black',
                 visible = label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
-                name = label)
+                name = label,
+                )
             plot.add_layout(bands[value_name])
         else:
             color = Category20[20][label_colors[label+'_color']]
@@ -136,6 +138,7 @@ def make_plot(src): # Takes in a ColumnDataSource
                 source=src,
                 visible = label in [title_to_col(plot_select.labels[i]) for i in plot_select.active],
                 name = label,
+               
                 )
             legend_item = LegendItem(label=legend_label, renderers=[lines[label]])
             legend.items.append(legend_item)
@@ -207,7 +210,7 @@ date_slider = DateSlider(title='Date', start=start_date, end=end_date, value=cur
 # date_picker = DatePicker(title='Date', min_date=start_date, max_date=end_date, value=current_datetime.date(), width=150)
 
 # Create Date Range Slider
-date_span_slider = Slider(title='Time Span (Hours)', start=-120, end=120, value=24, step=4, width=150)
+date_span_slider = Slider(title='Time Span (Hours)', start=-240, end=240, value=24, step=4, width=150)
 
 # Create Update Button
 update_range_button = Button(label='Update', button_type='primary', width=100)
