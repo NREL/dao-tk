@@ -72,7 +72,7 @@ def make_dataset(distribution):
                 value_arr + np.multiply(value_arr, value_plus_arr))
 
     if distribution == "Smoothed":
-        window, order = 51, 3
+        window, order = 7, 3
         for label in filter(lambda x: x != 'clear_sky', cds.column_names[1:]):
             cds.data[label] = savgol_filter(cds.data[label], window, order) 
     
@@ -185,6 +185,7 @@ def update(attr, old, new):
     new_src = make_dataset(distribution_select.value)
     src.data.update(new_src.data)
 
+    yMax = 0
     # Update visible plots
     selected_labels = [plot_select.labels[i] for i in plot_select.active]
     for label in lines.keys():
@@ -192,7 +193,6 @@ def update(attr, old, new):
         lines[label].visible = label_name in selected_labels
         if label in bands.keys():
             bands[label].visible = lines[label].visible
-
 
 # Create widgets
 # Create Radio Button Group Widget

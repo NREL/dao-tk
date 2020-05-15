@@ -14,7 +14,7 @@ li {
   list-style-type: none;
 }
 
-i {
+svg {
   margin-right: 10px;
 }
 
@@ -62,21 +62,33 @@ i {
 }
 
 .nav-min li a {
-  text-align: center !important;
   font-weight: 400;
   font-size: 10px;
   padding: 10px 5px;
   text-decoration: none;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
-.nav-min li a i{
+.nav-min li a svg{
   font-size: 25px;
   width: 100%;
+  margin: 0;
   margin-bottom: 5px;
+
 }
 
 .sidebar-navigation.nav-min li:nth-of-type(n+3){
-  padding: 5px 0;
+  padding:0;
+  padding-right: 5px;
+}
+
+.nav-min li.nav-btn.active {
+  padding-right: 0px;
 }
 
 .sidebar-navigation.nav-min li.menu-toggle{
@@ -89,7 +101,7 @@ i {
   right: 30px;
 }
 
-.menu-toggle > i{
+.menu-toggle > svg{
   margin: 0;
 }
 

@@ -30,6 +30,8 @@ label_colors = {}
 lines = {}
 bands = {}
 
+yMax = 0
+
 def make_dataset(range_start, range_end, distribution):
     # Prepare data
     
@@ -64,8 +66,9 @@ def make_dataset(range_start, range_end, distribution):
                 value_arr - np.multiply(value_arr, value_minus_arr))
             cds.data[col_name+'_upper'] = list(\
                 value_arr + np.multiply(value_arr, value_plus_arr))
+    y_max = int(max(reduce(lambda entry_a, entry_b: entry_a + entry_b, list(cds.data.values())[1:])))
     if distribution == "Smoothed":
-        window, order = 51, 3
+        window, order = 5, 3
         for label in filter(lambda x: x != 'clear_sky', cds.column_names[1:]):
             cds.data[label] = savgol_filter(cds.data[label], window, order)
     
@@ -103,7 +106,7 @@ def make_plot(src): # Takes in a ColumnDataSource
         y_axis_label = "Power (W/m^2)",
         width_policy='max',
         height_policy='max',
-        y_range=(0,y_max + 150),
+        y_range=(0,y_max),
         output_backend='webgl'
         )
     legend = Legend(orientation='horizontal', location='top_center', spacing=10)
@@ -166,7 +169,7 @@ def title_to_col(title):
 def update():
     # Update range when sliders move and update button is clicked
     delta = datetime.timedelta(hours=date_span_slider.value)
-    selected_date = datetime.datetime.combine(date_slider.value, datetime.datetime.min.time())
+    selected_date = datetime.datetime.combine(date_slider.value_as_datetime, datetime.datetime.min.time())
     range_start = range_end = selected_date
     if( datetime.timedelta(0) > delta):
         range_start += delta
@@ -176,17 +179,21 @@ def update():
     new_src = make_dataset(range_start, range_end, distribution_select.value)
     src.data.update(new_src.data)
 
+
 def update_plots(attr, old, new):
     # Update plots when widgets change
  
     selected_labels = [plot_select.labels[i] for i in plot_select.active]
 
+    yMax = 0
+
     # Update visible plots
     for label in lines.keys():
         label_name = col_to_title_upper(label)
         lines[label].visible = label_name in selected_labels
-        if label in bands.keys():
-            bands[label].visible = lines[label].visible
+        if lines[label].visible and yMax < max(lines[label].data_source.data[label]):
+            yMax = max(lines[label].data_source.data[label])
+
 
 
 # Create widgets

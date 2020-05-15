@@ -11,6 +11,8 @@ import sqlite3
 import datetime
 import re
 
+
+
 TIME_BOXES = {'TODAY': 1,
               'LAST_6_HOURS': 6,
               'LAST_12_HOURS': 12,
@@ -32,7 +34,7 @@ delta_start = datetime.timedelta(days=2)
 delta_end = datetime.timedelta(days=1)
 
 data_base = c.execute("select * from ui_dashboarddatarto \
-    where ((rowid % 30 = 0) or (rowid > (select max(rowid) from ui_dashboarddatarto) -30)) \
+    where ((rowid % 20 = 0) or (rowid > (select max(rowid) from ui_dashboarddatarto) - 20)) \
     and timestamp >:start and timestamp <=:end",
     {'start':get_string_date(current_datetime - delta_start), 'end': get_string_date(current_datetime + delta_end)}).fetchall()
 label_colors = {}
@@ -87,6 +89,10 @@ def style(p):
 def make_plot(src, current_src): # Takes in a ColumnDataSource
     # Create the plot
 
+    start_datetime = current_datetime.replace(hour=0, minute=0)
+
+    initialTimeRange = DataRange1d(start=start_datetime, end = start_datetime + datetime.timedelta(days=1))
+
     time = src.data['time']
     plot = figure(
         tools="", # this gives us our tools
@@ -96,7 +102,7 @@ def make_plot(src, current_src): # Takes in a ColumnDataSource
         toolbar_location = None,
         x_axis_label = None,
         y_axis_label = "Power (MWe)",
-        x_range=(current_datetime.date(), current_datetime.date() + datetime.timedelta(days=1)),
+        x_range=initialTimeRange,
         output_backend='webgl'
         )
 
@@ -176,20 +182,21 @@ def title_to_col(title):
 def update(attr, old, new):
     # Update plots when widgets change
 
-    # Get updated time block information
-    time_box = list(TIME_BOXES.keys())[radio_button_group.active]
-    # Update ranges
-    if time_box == 'TODAY':
-        plot.x_range.start = current_datetime.date()
-        plot.x_range.end = current_datetime.date() + datetime.timedelta(days=1)
-    else:
-        plot.x_range.start = current_datetime - datetime.timedelta(hours=TIME_BOXES[time_box])
-        plot.x_range.end = current_datetime
-
     # Update visible plots
     for label in lines.keys():
         label_name = col_to_title(label)
         lines[label].visible = label_name in [plot_select.labels[i] for i in plot_select.active]
+
+    # Get updated time block information
+    time_box = list(TIME_BOXES.keys())[radio_button_group.active]
+
+    # Update ranges
+    if time_box == 'TODAY':
+        plot.x_range.start = current_datetime.replace(hour=0, minute=0)
+        plot.x_range.end = current_datetime.replace(hour=0, minute=0) + datetime.timedelta(days=1)
+    else:   
+        plot.x_range.start = current_datetime - datetime.timedelta(hours=TIME_BOXES[time_box])
+        plot.x_range.end = current_datetime
 
 # Create widget layout
 # Create radio button group widget

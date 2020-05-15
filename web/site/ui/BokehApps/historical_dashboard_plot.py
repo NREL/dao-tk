@@ -166,10 +166,12 @@ def title_to_col(title):
     col_name = title.lower().replace(' ','_')
     return col_name
 
+yMax = 0
 def updateRange():
+    global yMax
     # Update range when sliders move and update button is clicked
     delta = datetime.timedelta(hours=date_span_slider.value)
-    selected_date = datetime.datetime.combine(date_slider.value, datetime.datetime.min.time())
+    selected_date = datetime.datetime.combine(date_slider.value_as_datetime, datetime.datetime.min.time())
     range_start = range_end = selected_date
     if( datetime.timedelta(0) > delta):
         range_start += delta
@@ -179,7 +181,14 @@ def updateRange():
     src.data.update(new_src.data)
     current_src.data.update(new_current_src.data)
 
+    for label in lines.keys():
+        if lines[label].visible and yMax < max(lines[label].data_source.data[label]):
+            yMax = max(lines[label].data_source.data[label])
+            plot.y_range.end = yMax*1.33 if yMax*1.33 > 500  else 500
+
+
 def update(attr, old, new):
+    global yMax
     # Update plots when widgets change
 
     # Update visible plots
@@ -187,6 +196,7 @@ def update(attr, old, new):
         label_name = col_to_title(label)
         plot_select_labels = list(map(lambda label: label.replace('Op.', 'Operation'), plot_select.labels))
         lines[label].visible = label_name in [plot_select_labels[i] for i in plot_select.active]
+
 
 # Create widget layout
 # Create Checkbox Select Group Widget

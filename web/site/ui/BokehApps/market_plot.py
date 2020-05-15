@@ -132,6 +132,7 @@ def update(attr, old, new):
         + datetime.timedelta(hours=TIME_BOXES[time_box])
     new_src = make_dataset(distribution_select.value)
     src.data.update(new_src.data)
+    
 
 
 # Create widget layout
