@@ -153,8 +153,69 @@ class RealTimeDispatchModel(object):
         #self.model.N_csp = pe.Param(mutable=True, initialize=0)
 
     def generateVariables(self):
-        pass 
-    
+        ### Decision Variables ###
+        ##--------- Variables ------------------------
+        self.model.s = pe.Var(self.model.T, domain=pe.NonNegativeReals, bounds = (0,self.model.Eu))                      #TES reserve quantity at period $t$  [kWh\sst]
+        self.model.ucsu = pe.Var(self.model.T, domain=pe.NonNegativeReals)                         #Cycle start-up energy inventory at period $t$ [kWh\sst]
+        self.model.ursu = pe.Var(self.model.T, domain=pe.NonNegativeReals)                         #Receiver start-up energy inventory at period $t$ [kWh\sst]
+        self.model.wdot = pe.Var(self.model.T, domain=pe.NonNegativeReals)                         #Power cycle electricity generation at period $t$ [kW\sse]
+        self.model.wdot_delta_plus = pe.Var(self.model.T, domain=pe.NonNegativeReals)	             #Power cycle ramp-up in period $t$ [kW\sse]
+        self.model.wdot_delta_minus = pe.Var(self.model.T, domain=pe.NonNegativeReals)	         #Power cycle ramp-down in period $t$ [kW\sse]
+        self.model.wdot_v_plus = pe.Var(self.model.T, domain=pe.NonNegativeReals, bounds = (0,self.model.W_v_plus))      #Power cycle ramp-up beyond designed limit in period $t$ [kW\sse]
+        self.model.wdot_v_minus = pe.Var(self.model.T, domain=pe.NonNegativeReals, bounds = (0,self.model.W_v_minus)) 	 #Power cycle ramp-down beyond designed limit in period $t$ [kW\sse]
+        self.model.wdot_s = pe.Var(self.model.T, domain=pe.NonNegativeReals)	                     #Energy sold to grid in time t
+        self.model.wdot_p = pe.Var(self.model.T, domain=pe.NonNegativeReals)	                     #Energy purchased from the grid in time t
+        self.model.x = pe.Var(self.model.T, domain=pe.NonNegativeReals)                            #Cycle thermal power utilization at period $t$ [kW\sst]
+        self.model.xr = pe.Var(self.model.T, domain=pe.NonNegativeReals)	                         #Thermal power delivered by the receiver at period $t$ [kW\sst]
+        self.model.xrsu = pe.Var(self.model.T, domain=pe.NonNegativeReals)                         #Receiver start-up power consumption at period $t$ [kW\sst]
+        
+        
+        #----------Continuous for the Battery-----------
+        #self.model.soc = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #State of charge of battery in time t
+        #self.model.wbd = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Power out of battery at time t
+        #self.model.wbc_csp = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Power into battery at time t
+        #self.model.wbc_pv = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Power from PV directly charging the battery at time t
+        #self.model.wpv = pe.Var(self.model.T, domain=pe.NonNegativeReals)    #Power from PV at time t
+        
+        #self.model.i_p = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Battery current for charge in time t
+        #self.model.i_n = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Battery current for discharge in time t
+        
+        #self.model.x_p = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Aux Var, B/C product at time t
+        #self.model.x_n = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Aux Var, B/C product at time t
+        #self.model.z_p = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Aux Var, C/C product at time t
+        #self.model.z_n = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Aux Var, C/C product at time t
+        
+        #self.model.bat_lc  = pe.Var(domain=pe.NonNegativeReals)
+        
+        #--------------- Binary Variables ----------------------
+        self.model.yr = pe.Var(self.model.T, domain=pe.Binary)        #1 if receiver is generating ``usable'' thermal power at period $t$; 0 otherwise
+        self.model.yrhsp = pe.Var(self.model.T, domain=pe.Binary)	    #1 if receiver hot start-up penalty is incurred at period $t$ (from standby); 0 otherwise
+        self.model.yrsb = pe.Var(self.model.T, domain=pe.Binary)	    #1 if receiver is in standby mode at period $t$; 0 otherwise
+        self.model.yrsd = pe.Var(self.model.T, domain=pe.Binary)	    #1 if receiver is shut down at period $t$; 0 otherwise
+        self.model.yrsu = pe.Var(self.model.T, domain=pe.Binary)      #1 if receiver is starting up at period $t$; 0 otherwise
+        self.model.yrsup = pe.Var(self.model.T, domain=pe.Binary)     #1 if receiver cold start-up penalty is incurred at period $t$ (from off); 0 otherwise
+        self.model.y = pe.Var(self.model.T, domain=pe.Binary)         #1 if cycle is generating electric power at period $t$; 0 otherwise
+        self.model.ychsp = pe.Var(self.model.T, domain=pe.Binary)     #1 if cycle hot start-up penalty is incurred at period $t$ (from standby); 0 otherwise
+        self.model.ycsb = pe.Var(self.model.T, domain=pe.Binary)      #1 if cycle is in standby mode at period $t$; 0 otherwise
+        self.model.ycsd = pe.Var(self.model.T, domain=pe.Binary)	    #1 if cycle is shutting down at period $t$; 0 otherwise
+        self.model.ycsu = pe.Var(self.model.T, domain=pe.Binary)      #1 if cycle is starting up at period $t$; 0 otherwise
+        self.model.ycsup = pe.Var(self.model.T, domain=pe.Binary)     #1 if cycle cold start-up penalty is incurred at period $t$ (from off); 0 otherwise
+        self.model.ycgb = pe.Var(self.model.T, domain=pe.NonNegativeReals)      #1 if cycle begins electric power generation at period $t$; 0 otherwise
+        self.model.ycge = pe.Var(self.model.T, domain=pe.NonNegativeReals)      #1 if cycle stops electric power generation at period $t$; 0 otherwise
+        
+        #--------------- Persistence Variables ----------------------
+        #self.model.wdot_s_prev_delta_plus = pe.Var(self.model.T, domain=pe.NonNegativeReals)
+        #self.model.wdot_s_prev_delta_minus = pe.Var(self.model.T, domain=pe.NonNegativeReals)
+        
+        #self.model.ycoff pe.Var(self.model.T, domain=pe.Binary)     #1 if power cycle is off at period $t$; 0 otherwise
+        
+        #----------Binary Battery Variables---------------------
+        #self.model.ybc = pe.Var(self.model.T, domain=pe.Binary)    #1 if charging battery in t, 0 o.w.
+        #self.model.ybd = pe.Var(self.model.T, domain=pe.Binary)    #1 if discharging battery in t, 0 o.w.
+        
+        #----------Binary PV Variables---------------------
+        #self.model.ypv = pe.Var(self.model.T, domain=pe.Binary)    #1 if PV is feeding the AC system in t, 0 o.w.
+           
     
     
 if __name__ == "__main__": 
