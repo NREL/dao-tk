@@ -7,7 +7,7 @@ def get_pysam_data():
     model_name = "MSPTSingleOwner"
 
     tech_model = t.default(model_name)
-    tech_model.SolarResource.solar_resource_file = weather_file
+    tech_model.LocationAndResource.solar_resource_file = weather_file
     tech_attributes = tech_model.export()
     tech_model.execute(1)
     tech_outputs = tech_model.Outputs.export()
