@@ -8,14 +8,15 @@ import pyomo.environ as pe
 
 
 class RealTimeDispatchModel(object):
-    def __init__(self):
+    def __init__(self, params, include={"pv":False,"battery":False,"persistence":False}):
         self.model = pe.ConcreteModel()
-        self.generateParams({"num_periods":4})
+        self.include = include
+        self.generateParams(params)
         self.generateVariables()
 
-    def generateParams(self,param_dict):
+    def generateParams(self,params):
         ### Sets and Indices ###
-        self.model.T = pe.Set(initialize = range(1,param_dict["num_periods"]+1))  #T: time periods
+        self.model.T = pe.Set(initialize = range(1,params["num_periods"]+1))  #T: time periods
         ### Time-series CSP Parameters ##
         self.model.delta_rs = pe.Param(self.model.T, mutable=True, initialize=0) # \delta^{rs}_{t}: Estimated fraction of period $t$ required for receiver start-up [-]
         self.model.D = pe.Param(self.model.T, mutable=True, initialize=0) #D_{t}: Time-weighted discount factor in period $t$ [-]
@@ -27,8 +28,11 @@ class RealTimeDispatchModel(object):
         self.model.W_dot_net = pe.Param(self.model.T, mutable=True, initialize=0)  #\dot{W}^{net}_{t}: Net grid transmission upper limit in period $t$ [kW\sse]
         self.model.W_u_plus = pe.Param(self.model.T, mutable=True, initialize=0)  #W^{u+}_{t}: Maximum power production when starting generation in period $t$  [kW\sse]
         self.model.W_u_minus = pe.Param(self.model.T, mutable=True, initialize=0)  #W^{u-}_{t}: Maximum power production in period $t$ when stopping generation in period $t+1$  [kW\sse]
+        
         ### Time-Series PV Parameters ###
-        #self.model.w_pv = pe.Param(self.model.T, mutable=True, initialize=0)      #w^{PV}_t: <aximum DC power production from PV system in period $t$
+        if self.include["pv"]:
+            self.model.w_pv = pe.Param(self.model.T, mutable=True, initialize=0)      #w^{PV}_t: <aximum DC power production from PV system in period $t$
+        
         ###  Cost Parameters ###
         self.model.alpha = pe.Param(mutable=True, initialize=0)        #alpha: Conversion factor between unitless and monetary values [\$]
         self.model.Crec = pe.Param(mutable=True, initialize=0)         #Crec: Operating cost of heliostat field and receiver [\$/kWh\sst]
@@ -40,12 +44,15 @@ class RealTimeDispatchModel(object):
         self.model.C_delta_w = pe.Param(mutable=True, initialize=0)    #C_delta_w: Penalty for change in power cycle  production [\$/$\Delta\text{kW}$\sse]
         self.model.C_v_w = pe.Param(mutable=True, initialize=0)        #C_v_w: Penalty for change in power cycle  production \tcb{beyond designed limits} [\$/$\Delta\text{kW}$\sse]
         self.model.Ccsb = pe.Param(mutable=True, initialize=0)         #Ccsb: Operating cost of power cycle standby operation [\$/kWh\sst]
-        ### PV and Battery Parameters ###
+        
         # -------PV and Battery Cost Parameters -------
-        #self.model.Cpv = pe.Param(mutable=True, initialize=0)    #Operating cost of photovoltaic field [\$/kWh\sse]
-        #self.model.Cbc = pe.Param(mutable=True, initialize=0)    #Operating cost of charging battery [\$/kWh\sse]
-        #self.model.Cbd = pe.Param(mutable=True, initialize=0)    #Operating cost of discharging battery [\$/kWh\sse]
-        #self.model.Cbl = pe.Param(mutable=True, initialize=0)    #Lifecycle cost for battery [\$/lifecycle]
+        if self.include["pv"]:
+            self.model.Cpv = pe.Param(mutable=True, initialize=0)    #Operating cost of photovoltaic field [\$/kWh\sse]
+        if self.include["battery"]:
+            self.model.Cbc = pe.Param(mutable=True, initialize=0)    #Operating cost of charging battery [\$/kWh\sse]
+            self.model.Cbd = pe.Param(mutable=True, initialize=0)    #Operating cost of discharging battery [\$/kWh\sse]
+            self.model.Cbl = pe.Param(mutable=True, initialize=0)    #Lifecycle cost for battery [\$/lifecycle]
+        
         ### CSP Field and Receiver Parameters ###
         self.model.deltal = pe.Param(mutable=True, initialize=0)    #Minimum time to start the receiver [hr]
         self.model.Ehs = pe.Param(mutable=True, initialize=0)       #Heliostat field startup or shut down parasitic loss [kWh\sse]
@@ -58,6 +65,7 @@ class RealTimeDispatchModel(object):
         self.model.Qru = pe.Param(mutable=True, initialize=0)       #Allowable power per period for receiver start-up [kWh\sst]
         self.model.Wh = pe.Param(mutable=True, initialize=0)        #Heliostat field tracking parasitic loss [kW\sse]
         self.model.Wht = pe.Param(mutable=True, initialize=0)       #[az] this isn't in the implementation.  Tower piping heat trace parasitic loss [kW\sse]
+        
         ### Power Cycle Parameters ###
         self.model.Ec = pe.Param(mutable=True, initialize=0)           #Required energy expended to start cycle [kWh\sst]
         self.model.eta_des = pe.Param(mutable=True, initialize=0)      #Cycle nominal efficiency [-] 
@@ -75,6 +83,7 @@ class RealTimeDispatchModel(object):
         self.model.W_v_minus = pe.Param(mutable=True, initialize=0)    #Power cycle ramp-down violation limit [kW\sse/h]
         self.model.Yu = pe.Param(mutable=True, initialize=0)           #Minimum required power cycle uptime [h]
         self.model.Yd = pe.Param(mutable=True, initialize=0)           #Minimum required power cycle downtime [h]
+        
         ### Initial Condition Parameters ###
         self.model.s0 = pe.Param(mutable=True, initialize=0)  #Initial TES reserve quantity  [kWh\sst]
         self.model.ucsu0 = pe.Param(mutable=True, initialize=0) #Initial cycle start-up energy inventory  [kWh\sst]
@@ -88,10 +97,11 @@ class RealTimeDispatchModel(object):
         self.model.ycsu0 = pe.Param(mutable=True, initialize=0)  #1 if cycle is in starting up initially = pe.Param(mutable=True, initialize=0) 0 otherwise    [az] this is new.
         self.model.Yu0 = pe.Param(mutable=True, initialize=0)  # duration that cycle has been generating electric power [h]
         self.model.Yd0 = pe.Param(mutable=True, initialize=0)  # duration that cycle has not been generating power (i.e., shut down or in standby mode) [h]
-        ### Persistence Parameters ###
+        
         # -------Persistence Parameters ---------
-        #self.model.wdot_s_prev  = pe.Param(self.model.T, mutable=True, initialize=0)
-        #self.model.wdot_s_pen  = pe.Param(self.model.T, mutable=True, initialize=0)
+        if self.include["persistence"]:
+            self.model.wdot_s_prev  = pe.Param(self.model.T, mutable=True, initialize=0)
+            self.model.wdot_s_pen  = pe.Param(self.model.T, mutable=True, initialize=0)
         
         # -------Miscellaneous Parameters taken from SAM---------
         self.model.day_of_year = pe.Param(mutable=True, initialize=0)
@@ -125,32 +135,32 @@ class RealTimeDispatchModel(object):
         
         
         #--------Parameters for the Battery---------
-        
-        #self.model.alpha_p = pe.Param(mutable=True, initialize=0)    #Bi-directional converter slope-intercept parameter
-        #self.model.alpha_n = pe.Param(mutable=True, initialize=0)	  #Bi-directional converter slope-intercept parameter
-        #self.model.beta_p = pe.Param(mutable=True, initialize=0)     #Bi-directional converter slope parameter
-        #self.model.beta_n = pe.Param(mutable=True, initialize=0)	  #Bi-directional converter slope parameter
-        #self.model.C_B = pe.Param(mutable=True, initialize=0)
-        #self.model.C_p = pe.Param(mutable=True, initialize=0)
-        #self.model.C_n = pe.Param(mutable=True, initialize=0)
-        #self.model.I_upper_p{Wind} = pe.Param(mutable=True, initialize=0)
-        #self.model.I_upper_n{Wind} = pe.Param(mutable=True, initialize=0)  #Battery discharge current max
-        #self.model.S_B_lower = pe.Param(mutable=True, initialize=0)
-        #self.model.S_B_upper = pe.Param(mutable=True, initialize=0)
-        #self.model.I_lower_n = pe.Param(mutable=True, initialize=0)
-        #self.model.I_lower_p = pe.Param(mutable=True, initialize=0)
-        #self.model.P_B_lower = pe.Param(mutable=True, initialize=0)
-        #self.model.P_B_upper = pe.Param(mutable=True, initialize=0)  #Battery min/max power rating
-        #self.model.A_V = pe.Param(mutable=True, initialize=0)
-        #self.model.B_V = pe.Param(mutable=True, initialize=0)	  #Battery linear voltage model slope/intercept coeffs
-        #self.model.R_int = pe.Param(mutable=True, initialize=0)
-        #self.model.I_avg = pe.Param(mutable=True, initialize=0)	  #Typical current expected from the battery
-        #self.model.alpha_pv = pe.Param(mutable=True, initialize=0)
-        #self.model.beta_pv = pe.Param(mutable=True, initialize=0)
-        #self.model.Winv_lim = pe.Param(mutable=True, initialize=0)	  # Inverter max power (DC)
-        #self.model.Wmax = pe.Param(mutable=True, initialize=0)	  #Constant Max power to grid
-        #self.model.Winvnt = pe.Param(mutable=True, initialize=0)
-        #self.model.N_csp = pe.Param(mutable=True, initialize=0)
+        if self.include["battery"]:
+            self.model.alpha_p = pe.Param(mutable=True, initialize=0)    #Bi-directional converter slope-intercept parameter
+            self.model.alpha_n = pe.Param(mutable=True, initialize=0)	  #Bi-directional converter slope-intercept parameter
+            self.model.beta_p = pe.Param(mutable=True, initialize=0)     #Bi-directional converter slope parameter
+            self.model.beta_n = pe.Param(mutable=True, initialize=0)	  #Bi-directional converter slope parameter
+            self.model.C_B = pe.Param(mutable=True, initialize=0)
+            self.model.C_p = pe.Param(mutable=True, initialize=0)
+            self.model.C_n = pe.Param(mutable=True, initialize=0)
+            self.model.I_upper_p = pe.Param(mutable=True, initialize=0)
+            self.model.I_upper_n = pe.Param(mutable=True, initialize=0)  #Battery discharge current max
+            self.model.S_B_lower = pe.Param(mutable=True, initialize=0)
+            self.model.S_B_upper = pe.Param(mutable=True, initialize=0)
+            self.model.I_lower_n = pe.Param(mutable=True, initialize=0)
+            self.model.I_lower_p = pe.Param(mutable=True, initialize=0)
+            self.model.P_B_lower = pe.Param(mutable=True, initialize=0)
+            self.model.P_B_upper = pe.Param(mutable=True, initialize=0)  #Battery min/max power rating
+            self.model.A_V = pe.Param(mutable=True, initialize=0)
+            self.model.B_V = pe.Param(mutable=True, initialize=0)	  #Battery linear voltage model slope/intercept coeffs
+            self.model.R_int = pe.Param(mutable=True, initialize=0)
+            self.model.I_avg = pe.Param(mutable=True, initialize=0)	  #Typical current expected from the battery
+            self.model.alpha_pv = pe.Param(mutable=True, initialize=0)
+            self.model.beta_pv = pe.Param(mutable=True, initialize=0)
+            self.model.Winv_lim = pe.Param(mutable=True, initialize=0)	  # Inverter max power (DC)
+            self.model.Wmax = pe.Param(mutable=True, initialize=0)	  #Constant Max power to grid
+            self.model.Winvnt = pe.Param(mutable=True, initialize=0)
+            self.model.N_csp = pe.Param(mutable=True, initialize=0)
 
     def generateVariables(self):
         ### Decision Variables ###
@@ -171,21 +181,22 @@ class RealTimeDispatchModel(object):
         
         
         #----------Continuous for the Battery-----------
-        #self.model.soc = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #State of charge of battery in time t
-        #self.model.wbd = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Power out of battery at time t
-        #self.model.wbc_csp = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Power into battery at time t
-        #self.model.wbc_pv = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Power from PV directly charging the battery at time t
-        #self.model.wpv = pe.Var(self.model.T, domain=pe.NonNegativeReals)    #Power from PV at time t
-        
-        #self.model.i_p = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Battery current for charge in time t
-        #self.model.i_n = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Battery current for discharge in time t
-        
-        #self.model.x_p = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Aux Var, B/C product at time t
-        #self.model.x_n = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Aux Var, B/C product at time t
-        #self.model.z_p = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Aux Var, C/C product at time t
-        #self.model.z_n = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Aux Var, C/C product at time t
-        
-        #self.model.bat_lc  = pe.Var(domain=pe.NonNegativeReals)
+        if self.include["battery"]:
+            self.model.soc = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #State of charge of battery in time t
+            self.model.wbd = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Power out of battery at time t
+            self.model.wbc_csp = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Power into battery at time t
+            self.model.wbc_pv = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Power from PV directly charging the battery at time t
+            self.model.wpv = pe.Var(self.model.T, domain=pe.NonNegativeReals)    #Power from PV at time t
+            
+            self.model.i_p = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Battery current for charge in time t
+            self.model.i_n = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Battery current for discharge in time t
+            
+            self.model.x_p = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Aux Var, B/C product at time t
+            self.model.x_n = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Aux Var, B/C product at time t
+            self.model.z_p = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Aux Var, C/C product at time t
+            self.model.z_n = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Aux Var, C/C product at time t
+            
+            self.model.bat_lc  = pe.Var(domain=pe.NonNegativeReals)
         
         #--------------- Binary Variables ----------------------
         self.model.yr = pe.Var(self.model.T, domain=pe.Binary)        #1 if receiver is generating ``usable'' thermal power at period $t$; 0 otherwise
@@ -204,17 +215,19 @@ class RealTimeDispatchModel(object):
         self.model.ycge = pe.Var(self.model.T, domain=pe.NonNegativeReals)      #1 if cycle stops electric power generation at period $t$; 0 otherwise
         
         #--------------- Persistence Variables ----------------------
-        #self.model.wdot_s_prev_delta_plus = pe.Var(self.model.T, domain=pe.NonNegativeReals)
-        #self.model.wdot_s_prev_delta_minus = pe.Var(self.model.T, domain=pe.NonNegativeReals)
-        
-        #self.model.ycoff pe.Var(self.model.T, domain=pe.Binary)     #1 if power cycle is off at period $t$; 0 otherwise
+        if self.include["persistence"]:
+            self.model.wdot_s_prev_delta_plus = pe.Var(self.model.T, domain=pe.NonNegativeReals)
+            self.model.wdot_s_prev_delta_minus = pe.Var(self.model.T, domain=pe.NonNegativeReals)           
+            self.model.ycoff = pe.Var(self.model.T, domain=pe.Binary)     #1 if power cycle is off at period $t$; 0 otherwise
         
         #----------Binary Battery Variables---------------------
-        #self.model.ybc = pe.Var(self.model.T, domain=pe.Binary)    #1 if charging battery in t, 0 o.w.
-        #self.model.ybd = pe.Var(self.model.T, domain=pe.Binary)    #1 if discharging battery in t, 0 o.w.
+        if self.include["battery"]:
+            self.model.ybc = pe.Var(self.model.T, domain=pe.Binary)    #1 if charging battery in t, 0 o.w.
+            self.model.ybd = pe.Var(self.model.T, domain=pe.Binary)    #1 if discharging battery in t, 0 o.w.
         
         #----------Binary PV Variables---------------------
-        #self.model.ypv = pe.Var(self.model.T, domain=pe.Binary)    #1 if PV is feeding the AC system in t, 0 o.w.
+        if self.include["pv"]:
+            self.model.ypv = pe.Var(self.model.T, domain=pe.Binary)    #1 if PV is feeding the AC system in t, 0 o.w.
            
     
     
