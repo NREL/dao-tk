@@ -264,13 +264,38 @@ class RealTimeDispatchModel(object):
     def generateConstraints(self):
         if self.include["persistence"]:
             self.addPersistenceConstraints()
-
+        self.addReceiverStartupConstraints()
+    
+    def addReceiverStartupConstraints(self):
+        def rec_inventory_rule(model,t):
+            if t == 1:
+                return model.ursu[t] <= model.ursu0 + model.Delta[t]*model.xrsu[t]
+            return model.ursu[t] <= model.ursu[t-1] + model.Delta[t]*model.xrsu[t]
+        def rec_inv_nonzero_rule(model,t):
+            return model.ursu[t] <= model.Er * model.yrsu[t]
+        def rec_startup_rule(model,t):
+            if t == 1:
+                return model.yr[t] <= model.ursu[t]/model.Er + model.yr0 + model.yrsb0
+            return model.yr[t] <= model.ursu[t]/model.Er + model.yr[t-1] + model.yrsb[t-1]
+        def rec_su_persist_rule(model,t):
+            if t == 1: 
+                return model.yrsu[t] + model.yr0 <= 1
+            return model.yrsu[t] +  model.yr[t-1] <= 1
+        def ramp_limit_rule(model,t):
+            return model.xrsu[t] <= model.Qru*model.yrsu[t]
+        def nontrivial_solar_rule(model,t):
+            return model.yrsu[t] <= model.Qin[t]
+        self.model.rec_inventory_con = pe.Constraint(self.model.T,rule=rec_inventory_rule)
+        self.model.rec_inv_nonzero_con = pe.Constraint(self.model.T,rule=rec_inv_nonzero_rule)
+        self.model.rec_startup_con = pe.Constraint(self.model.T,rule=rec_startup_rule)
+        self.model.rec_su_persist_con = pe.Constraint(self.model.T,rule=rec_su_persist_rule)
+        self.model.ramp_limit_con = pe.Constraint(self.model.T,rule=ramp_limit_rule)
+        self.model.nontrivial_solar_con = pe.Constraint(self.model.T,rule=nontrivial_solar_rule)
     
 if __name__ == "__main__": 
     params = {"num_periods":24} 
     include = {"pv":False,"battery":False,"persistence":True}
     rt = RealTimeDispatchModel(params,include)
-    rt.model.OBJ.pprint()
-    rt.generateConstraints()
-    rt.model.persist_pos_con.pprint()
+#    rt.model.OBJ.pprint()
+    rt.model.ramp_limit_con.pprint()
     
