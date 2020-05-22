@@ -260,11 +260,6 @@ class RealTimeDispatchModel(object):
             return model.wdot_s_prev_delta_minus[t] >= model.wdot_s_prev[t] - model.wdot_s[t]
         self.model.persist_pos_con = pe.Constraint(self.model.T,rule=wdot_s_persist_pos_rule)
         self.model.persist_neg_con = pe.Constraint(self.model.T,rule=wdot_s_persist_neg_rule)
-            
-    def generateConstraints(self):
-        if self.include["persistence"]:
-            self.addPersistenceConstraints()
-        self.addReceiverStartupConstraints()
     
     def addReceiverStartupConstraints(self):
         def rec_inventory_rule(model,t):
@@ -291,11 +286,31 @@ class RealTimeDispatchModel(object):
         self.model.rec_su_persist_con = pe.Constraint(self.model.T,rule=rec_su_persist_rule)
         self.model.ramp_limit_con = pe.Constraint(self.model.T,rule=ramp_limit_rule)
         self.model.nontrivial_solar_con = pe.Constraint(self.model.T,rule=nontrivial_solar_rule)
+        
+    def addReceiverSupplyAndDemandConstraints(self):
+        def rec_production_rule(model,t):
+            return model.xr[t] + model.xrsu[t] + model.Qrsd*model.yrsd[t] <= model.Qin[t]
+        def rec_generation_rule(model,t):
+            return model.xr[t] <= model.Qin[t] * model.yr[t]
+        def min_generation_rule(model,t):
+            return model.xr[t] >= model.Qrl * model.yr[t]
+        def rec_gen_persist_rule(model,t):
+            return model.yr[t] <= model.Qin[t]/model.Qrl
+        self.model.rec_production_con = pe.Constraint(self.model.T,rule=rec_production_rule)
+        self.model.rec_generation_con = pe.Constraint(self.model.T,rule=rec_generation_rule)
+        self.model.min_generation_con = pe.Constraint(self.model.T,rule=min_generation_rule)
+        self.model.rec_gen_persist_con = pe.Constraint(self.model.T,rule=rec_gen_persist_rule)
+    
+    def generateConstraints(self):
+        if self.include["persistence"]:
+            self.addPersistenceConstraints()
+        self.addReceiverStartupConstraints()
+        self.addReceiverSupplyAndDemandConstraints()
     
 if __name__ == "__main__": 
     params = {"num_periods":24} 
     include = {"pv":False,"battery":False,"persistence":True}
     rt = RealTimeDispatchModel(params,include)
 #    rt.model.OBJ.pprint()
-    rt.model.ramp_limit_con.pprint()
+    rt.model.rec_gen_persist_con.pprint()
     
