@@ -14,6 +14,7 @@ class RealTimeDispatchModel(object):
         self.generateParams(params)
         self.generateVariables()
         self.addObjective()
+        self.generateConstraints()
 
     def generateParams(self,params):
         ### Sets and Indices ###
@@ -233,33 +234,43 @@ class RealTimeDispatchModel(object):
         if self.include["pv"]:
             self.model.ypv = pe.Var(self.model.T, domain=pe.Binary)    #1 if PV is feeding the AC system in t, 0 o.w.
            
-            
-    def objectiveRule(self,model):
-        return (
-                sum( model.D[t] * 
-                #obj_profit
-                model.Delta[t]*model.P[t]*0.1*(model.wdot_s[t] - model.wdot_p[t])
-                #obj_cost_cycle_su_hs_sd
-                - (model.Ccsu*model.ycsup[t] + 0.1*model.Cchsp*model.ychsp[t] + model.alpha*model.ycsd[t])
-                #obj_cost_cycle_ramping
-                - (model.C_delta_w*(model.wdot_delta_plus[t]+model.wdot_delta_minus[t])+model.C_v_w*(model.wdot_v_plus[t] + model.wdot_v_minus[t]))
-                #obj_cost_rec_su_hs_sd
-                - (model.Crsu*model.yrsup[t] + model.Crhsp*model.yrhsp[t] + model.alpha*model.yrsd[t])
-                #obj_cost_ops
-                - model.Delta[t]*(model.Cpc*model.wdot[t] + model.Ccsb*model.Qb*model.ycsb[t] + model.Crec*model.xr[t] )
-                for t in model.T) 
-                )
                 
     def addObjective(self):
-        self.model.OBJ = pe.Objective(rule=self.objectiveRule, sense = pe.maximize)
+        def objectiveRule(model):
+            return (
+                    sum( model.D[t] * 
+                    #obj_profit
+                    model.Delta[t]*model.P[t]*0.1*(model.wdot_s[t] - model.wdot_p[t])
+                    #obj_cost_cycle_su_hs_sd
+                    - (model.Ccsu*model.ycsup[t] + 0.1*model.Cchsp*model.ychsp[t] + model.alpha*model.ycsd[t])
+                    #obj_cost_cycle_ramping
+                    - (model.C_delta_w*(model.wdot_delta_plus[t]+model.wdot_delta_minus[t])+model.C_v_w*(model.wdot_v_plus[t] + model.wdot_v_minus[t]))
+                    #obj_cost_rec_su_hs_sd
+                    - (model.Crsu*model.yrsup[t] + model.Crhsp*model.yrhsp[t] + model.alpha*model.yrsd[t])
+                    #obj_cost_ops
+                    - model.Delta[t]*(model.Cpc*model.wdot[t] + model.Ccsb*model.Qb*model.ycsb[t] + model.Crec*model.xr[t] )
+                    for t in model.T) 
+                    )
+        self.model.OBJ = pe.Objective(rule=objectiveRule, sense = pe.maximize)
         
+    def addPersistenceConstraints(self):
+        def wdot_s_persist_pos_rule(model,t):
+            return model.wdot_s_prev_delta_plus[t] >= model.wdot_s[t] - model.wdot_s_prev[t]
+        def wdot_s_persist_neg_rule(model,t):
+            return model.wdot_s_prev_delta_minus[t] >= model.wdot_s_prev[t] - model.wdot_s[t]
+        self.model.persist_pos_con = pe.Constraint(self.model.T,rule=wdot_s_persist_pos_rule)
+        self.model.persist_neg_con = pe.Constraint(self.model.T,rule=wdot_s_persist_neg_rule)
             
     def generateConstraints(self):
-        pass
-    
+        if self.include["persistence"]:
+            self.addPersistenceConstraints()
+
     
 if __name__ == "__main__": 
-    params = {"num_periods":24}
-    include = {} 
-    rt = RealTimeDispatchModel(params,{"pv":False,"battery":False,"persistence":False})
+    params = {"num_periods":24} 
+    include = {"pv":False,"battery":False,"persistence":True}
+    rt = RealTimeDispatchModel(params,include)
     rt.model.OBJ.pprint()
+    rt.generateConstraints()
+    rt.model.persist_pos_con.pprint()
+    
