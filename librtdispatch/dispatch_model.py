@@ -19,6 +19,7 @@ class RealTimeDispatchModel(object):
     def generateParams(self,params):
         ### Sets and Indices ###
         self.model.T = pe.Set(initialize = range(1,params["num_periods"]+1))  #T: time periods
+        self.model.num_periods = pe.Param(initialize=params["num_periods"])
         #------- Time-indexed parameters --------------
         self.model.Delta = pe.Param(self.model.T, mutable=False, initialize=0)          #duration of period t
         self.model.Delta_e = pe.Param(self.model.T, mutable=False, initialize=0)       #cumulative time elapsed at end of period t
@@ -334,6 +335,26 @@ class RealTimeDispatchModel(object):
         self.model.rec_su_pen_con = pe.Constraint(self.model.T,rule=rec_su_pen_rule)
         self.model.rec_hs_pen_con = pe.Constraint(self.model.T,rule=rec_hs_pen_rule)
         self.model.rec_shutdown_con = pe.Constraint(self.model.T,rule=rec_shutdown_rule)
+        
+    def addTESEnergyBalanceConstraints(self):
+        def tes_balance_rule(model, t):
+            if t == 1:
+                return model.s[t] - model.s0 == model.Delta[t] * (model.xr[t] - (model.Qc[t]*model.ycsu[t] + model.Qb*model.ycsb[t] + model.x[t] + model.Qrsb*model.yrsb[t]))
+            return model.s[t] - model.s[t-1] == model.Delta[t] * (model.xr[t] - (model.Qc[t]*model.ycsu[t] + model.Qb*model.ycsb[t] + model.x[t] + model.Qrsb*model.yrsb[t]))
+        def tes_upper_rule(model, t):
+            return model.s[t] <= model.Eu
+        def tes_start_up_rule(model, t):
+            if t == 1:
+                return model.s0 >= model.Delta[t]*model.delta_rs[t]*( (model.Qu + model.Qb)*( -3 + model.yrsu[t] + model.y0 + model.y[t] + model.ycsb0 + model.ycsb[t] ) + model.x[t] + model.Qb*model.ycsb[t] )
+            return model.s[t-1] >= model.Delta[t]*model.delta_rs[t]*( (model.Qu + model.Qb)*( -3 + model.yrsu[t] + model.y[t-1] + model.y[t] + model.ycsb[t-1] + model.ycsb[t] ) + model.x[t] + model.Qb*model.ycsb[t] )
+        def maintain_tes_rule(model):
+            return model.s[model.num_periods] <= model.s0
+        
+        self.model.tes_balance_con = pe.Constraint(self.model.T,rule=tes_balance_rule)
+        self.model.tes_upper_con = pe.Constraint(self.model.T,rule=tes_upper_rule)
+        self.model.tes_start_up_con = pe.Constraint(self.model.T,rule=tes_start_up_rule)
+        self.model.maintain_tes_con = pe.Constraint(self.model.T,rule=maintain_tes_rule)
+        
     
     def generateConstraints(self):
         if self.include["persistence"]:
@@ -341,11 +362,13 @@ class RealTimeDispatchModel(object):
         self.addReceiverStartupConstraints()
         self.addReceiverSupplyAndDemandConstraints()
         self.addReceiverNodeLogicConstraints()
+        self.addTESEnergyBalanceConstraints()
+        
     
 if __name__ == "__main__": 
     params = {"num_periods":24} 
     include = {"pv":False,"battery":False,"persistence":True}
     rt = RealTimeDispatchModel(params,include)
 #    rt.model.OBJ.pprint()
-    rt.model.rec_shutdown_con.pprint()
+    rt.model.rec_gen_persist_con.pprint()
     
