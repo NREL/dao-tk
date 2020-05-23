@@ -20,8 +20,8 @@ class RealTimeDispatchModel(object):
         ### Sets and Indices ###
         self.model.T = pe.Set(initialize = range(1,params["num_periods"]+1))  #T: time periods
         #------- Time-indexed parameters --------------
-        self.model.Delta = pe.Param(self.model.T, mutable=True, initialize=0)          #duration of period t
-        self.model.Delta_e = pe.Param(self.model.T, mutable=True, initialize=0)       #cumulative time elapsed at end of period t
+        self.model.Delta = pe.Param(self.model.T, mutable=False, initialize=0)          #duration of period t
+        self.model.Delta_e = pe.Param(self.model.T, mutable=False, initialize=0)       #cumulative time elapsed at end of period t
         ### Time-series CSP Parameters ##
         self.model.delta_rs = pe.Param(self.model.T, mutable=True, initialize=0) # \delta^{rs}_{t}: Estimated fraction of period $t$ required for receiver start-up [-]
         self.model.D = pe.Param(self.model.T, mutable=True, initialize=0) #D_{t}: Time-weighted discount factor in period $t$ [-]
@@ -300,17 +300,52 @@ class RealTimeDispatchModel(object):
         self.model.rec_generation_con = pe.Constraint(self.model.T,rule=rec_generation_rule)
         self.model.min_generation_con = pe.Constraint(self.model.T,rule=min_generation_rule)
         self.model.rec_gen_persist_con = pe.Constraint(self.model.T,rule=rec_gen_persist_rule)
+        
+    def addReceiverNodeLogicConstraints(self):
+        def rec_su_sb_persist_rule(model,t):
+            return model.yrsu[t] + model.yrsb[t] <= 1
+        def rec_sb_persist_rule(model,t):
+            return model.yr[t] + model.yrsb[t] <= 1
+        def rsb_persist_rule(model,t):
+            if t == 1:
+                return model.yrsb[t] <= (model.yr0 + model.yrsb0) 
+            return model.yrsb[t] <= model.yr[t-1] + model.yrsb[t-1]
+        def rec_su_pen_rule(model,t):
+            if t == 1:
+                return model.yrsup[t] >= model.yrsu[t] - model.yrsu0 
+            return model.yrsup[t] >= model.yrsu[t] - model.yrsu[t-1]
+        def rec_hs_pen_rule(model,t):
+            if t == 1:
+                return model.yrhsp[t] >= model.yr[t] - (1 - model.yrsb0)
+            return model.yrhsp[t] >= model.yr[t] - (1 - model.yrsb[t-1])
+        def rec_shutdown_rule(model,t):
+            if model.Delta[t] >= 1 and t == 1:
+                return 0 >= model.yr0 - model.yr[t] +  model.yrsb0 - model.yrsb[t]
+            elif model.Delta[t] >= 1 and t > 1:
+                return model.yrsd[t-1] >= model.yr[t-1] - model.yr[t] + model.yrsb[t-1] - model.yrsb[t]
+            elif model.Delta[t] < 1 and t == 1:
+                return model.yrsd[t] >= model.yr0  - model.yr[t] + model.yrsb0 - model.yrsb[t]
+            # only case remaining: Delta[t]<1, t>1
+            return model.yrsd[t] >= model.yr[t-1] - model.yr[t] + model.yrsb[t-1] - model.yrsb[t]
+        
+        self.model.rec_su_sb_persist_con = pe.Constraint(self.model.T,rule=rec_su_sb_persist_rule)
+        self.model.rec_sb_persist_con = pe.Constraint(self.model.T,rule=rec_sb_persist_rule)
+        self.model.rsb_persist_con = pe.Constraint(self.model.T,rule=rsb_persist_rule)
+        self.model.rec_su_pen_con = pe.Constraint(self.model.T,rule=rec_su_pen_rule)
+        self.model.rec_hs_pen_con = pe.Constraint(self.model.T,rule=rec_hs_pen_rule)
+        self.model.rec_shutdown_con = pe.Constraint(self.model.T,rule=rec_shutdown_rule)
     
     def generateConstraints(self):
         if self.include["persistence"]:
             self.addPersistenceConstraints()
         self.addReceiverStartupConstraints()
         self.addReceiverSupplyAndDemandConstraints()
+        self.addReceiverNodeLogicConstraints()
     
 if __name__ == "__main__": 
     params = {"num_periods":24} 
     include = {"pv":False,"battery":False,"persistence":True}
     rt = RealTimeDispatchModel(params,include)
 #    rt.model.OBJ.pprint()
-    rt.model.rec_gen_persist_con.pprint()
+    rt.model.rec_shutdown_con.pprint()
     
