@@ -21,8 +21,8 @@ class RealTimeDispatchModel(object):
         self.model.T = pe.Set(initialize = range(1,params["num_periods"]+1))  #T: time periods
         self.model.num_periods = pe.Param(initialize=params["num_periods"])
         #------- Time-indexed parameters --------------
-        self.model.Delta = pe.Param(self.model.T, mutable=False, initialize=0)          #duration of period t
-        self.model.Delta_e = pe.Param(self.model.T, mutable=False, initialize=0)       #cumulative time elapsed at end of period t
+        self.model.Delta = pe.Param(self.model.T, mutable=False, initialize=1)          #duration of period t
+        self.model.Delta_e = pe.Param(self.model.T, mutable=False, initialize=1)       #cumulative time elapsed at end of period t
         ### Time-series CSP Parameters ##
         self.model.delta_rs = pe.Param(self.model.T, mutable=True, initialize=0) # \delta^{rs}_{t}: Estimated fraction of period $t$ required for receiver start-up [-]
         self.model.D = pe.Param(self.model.T, mutable=True, initialize=0) #D_{t}: Time-weighted discount factor in period $t$ [-]
@@ -385,8 +385,51 @@ class RealTimeDispatchModel(object):
         self.model.pc_generation_con = pe.Constraint(self.model.T,rule=pc_generation_rule)
         self.model.pc_min_gen_con = pe.Constraint(self.model.T,rule=pc_min_gen_rule)
         
+    def addPiecewiseLinearEfficiencyConstraints(self):
+        def power_rule(model, t):
+            return model.wdot[t] == (model.etaamb[t]/model.eta_des)*(model.etap*model.x[t] + model.y[t]*(model.Wdotu - model.etap*model.Qu))
+        def power_ub_rule(model, t):
+            return model.wdot[t] <= model.Wdotu*(model.etaamb[t]/model.eta_des)*model.y[t]
+        def power_lb_rule(model, t):
+            return model.wdot[t] >= model.Wdotl*(model.etaamb[t]/model.eta_des)*model.y[t]
+        def change_in_w_pos_rule(model, t):
+            if t == 1:
+                return model.wdot_delta_plus[t] >= model.wdot[t] - model.wdot0
+            return model.wdot_delta_plus[t] >= model.wdot[t] - model.wdot[t-1]
+        def change_in_w_neg_rule(model, t):
+            if t == 1:
+                return model.wdot_delta_minus[t] >= model.wdot0 - model.wdot[t]
+            return model.wdot_delta_minus[t] >= model.wdot[t-1] - model.wdot[t]
+        def cycle_ramp_rate_pos_rule(model, t):
+            return (
+                    model.wdot_delta_plus[t] - model.wdot_v_plus[t] <= model.W_delta_plus*model.Delta[t] 
+                    + ((model.etaamb[t]/model.eta_des)*model.W_u_plus[t] - model.W_delta_plus*model.Delta[t])
+            )
+        def cycle_ramp_rate_neg_rule(model, t):
+            return (
+                    model.wdot_delta_minus[t] - model.wdot_v_minus[t] <= model.W_delta_minus*model.Delta[t] 
+                    + ((model.etaamb[t]/model.eta_des)*model.W_u_minus[t] - model.W_delta_minus*model.Delta[t])
+            )
+        def grid_max_rule(model, t):
+            return model.wdot_s[t] <= model.Wdotnet[t]
+        def grid_sun_rule(model, t):
+            return (
+                    model.wdot_s[t] - model.wdot_p[t] == (1-model.etac[t])*model.wdot[t]
+                		- model.Lr*(model.xr[t] + model.xrsu[t] + model.Qrl*model.yrsb[t])
+                		- model.Lc*model.x[t] 
+                        - model.Wh*model.yr[t] - model.Wb*model.ycsb[t] - model.Wht*(model.yrsb[t]+model.yrsu[t])		#Is Wrsb energy [kWh] or power [kW]?  [az] Wrsb = Wht in the math?
+                		- (model.Ehs/model.Delta[t])*(model.yrsu[t] + model.yrsb[t] + model.yrsd[t])
+            )
         
-        
+        self.model.power_con = pe.Constraint(self.model.T,rule=power_rule)
+        self.model.power_ub_con = pe.Constraint(self.model.T,rule=power_ub_rule)
+        self.model.power_lb_con = pe.Constraint(self.model.T,rule=power_lb_rule)
+        self.model.change_in_w_pos_con = pe.Constraint(self.model.T,rule=change_in_w_pos_rule)
+        self.model.change_in_w_neg_con = pe.Constraint(self.model.T,rule=change_in_w_neg_rule)
+        self.model.cycle_ramp_rate_pos_con = pe.Constraint(self.model.T,rule=cycle_ramp_rate_pos_rule)
+        self.model.cycle_ramp_rate_neg_con = pe.Constraint(self.model.T,rule=cycle_ramp_rate_neg_rule)
+        self.model.grid_max_con = pe.Constraint(self.model.T,rule=grid_max_rule)
+        self.model.grid_sun_con = pe.Constraint(self.model.T,rule=grid_sun_rule)
 #        def _rule(model, t):
 #            return 
 #        self.model.tes_start_up_con = pe.Constraint(self.model.T,rule=tes_start_up_rule)
@@ -399,12 +442,12 @@ class RealTimeDispatchModel(object):
         self.addReceiverNodeLogicConstraints()
         self.addTESEnergyBalanceConstraints()
         self.addPowerCycleStartupConstraints()
-        
+        self.addPiecewiseLinearEfficiencyConstraints()
     
 if __name__ == "__main__": 
     params = {"num_periods":24} 
     include = {"pv":False,"battery":False,"persistence":True}
     rt = RealTimeDispatchModel(params,include)
 #    rt.model.OBJ.pprint()
-    rt.model.pc_startup_con.pprint()
+    rt.model.grid_sun_con.pprint()
     
