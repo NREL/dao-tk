@@ -353,8 +353,43 @@ class RealTimeDispatchModel(object):
         self.model.tes_balance_con = pe.Constraint(self.model.T,rule=tes_balance_rule)
         self.model.tes_upper_con = pe.Constraint(self.model.T,rule=tes_upper_rule)
         self.model.tes_start_up_con = pe.Constraint(self.model.T,rule=tes_start_up_rule)
-        self.model.maintain_tes_con = pe.Constraint(self.model.T,rule=maintain_tes_rule)
+        self.model.maintain_tes_con = pe.Constraint(rule=maintain_tes_rule)
         
+    def addPowerCycleStartupConstraints(self):
+        def pc_inventory_rule(model, t):
+            if t == 1:
+                return model.ucsu[t] <= model.ucsu0 + model.Delta[t] * model.Qc[t] * model.ycsu[t]
+            return model.ucsu[t] <= model.ucsu[t-1] + model.Delta[t] * model.Qc[t] * model.ycsu[t]
+        def pc_inv_nonzero_rule(model, t):
+            return model.ucsu[t] <= model.Ec * model.ycsu[t]
+        def pc_startup_rule(model, t):
+            if model.Delta[t] >= 1 and t == 1:
+                return model.y[t] <= model.ucsu[t]/model.Ec + model.y0 + model.ycsb0
+            elif model.Delta[t] >= 1 and t > 1:
+                return model.y[t] <= model.ucsu[t]/model.Ec + model.y[t-1] + model.ycsb[t-1]
+            elif model.Delta[t] < 1 and t == 1:
+                return model.y[t] <= model.ucsu0/model.Ec + model.y0 + model.ycsb0
+            # only case remaining: Delta[t]<1, t>1
+            return model.y[t] <= model.ucsu[t-1]/model.Ec + model.y[t-1] + model.ycsb[t-1]
+        def pc_production_rule(model, t):
+            return model.x[t] + model.Qc[t]*model.ycsu[t] <= model.Qu
+        def pc_generation_rule(model, t):
+            return model.x[t] <= model.Qu * model.y[t]
+        def pc_min_gen_rule(model, t):
+            return model.x[t] >= model.Ql * model.y[t]
+        
+        self.model.pc_inventory_con = pe.Constraint(self.model.T,rule=pc_inventory_rule)
+        self.model.pc_inv_nonzero_con = pe.Constraint(self.model.T,rule=pc_inv_nonzero_rule)
+        self.model.pc_startup_con = pe.Constraint(self.model.T,rule=pc_startup_rule)
+        self.model.pc_production_con = pe.Constraint(self.model.T,rule=pc_production_rule)
+        self.model.pc_generation_con = pe.Constraint(self.model.T,rule=pc_generation_rule)
+        self.model.pc_min_gen_con = pe.Constraint(self.model.T,rule=pc_min_gen_rule)
+        
+        
+        
+#        def _rule(model, t):
+#            return 
+#        self.model.tes_start_up_con = pe.Constraint(self.model.T,rule=tes_start_up_rule)
     
     def generateConstraints(self):
         if self.include["persistence"]:
@@ -363,6 +398,7 @@ class RealTimeDispatchModel(object):
         self.addReceiverSupplyAndDemandConstraints()
         self.addReceiverNodeLogicConstraints()
         self.addTESEnergyBalanceConstraints()
+        self.addPowerCycleStartupConstraints()
         
     
 if __name__ == "__main__": 
@@ -370,5 +406,5 @@ if __name__ == "__main__":
     include = {"pv":False,"battery":False,"persistence":True}
     rt = RealTimeDispatchModel(params,include)
 #    rt.model.OBJ.pprint()
-    rt.model.rec_gen_persist_con.pprint()
+    rt.model.pc_startup_con.pprint()
     
