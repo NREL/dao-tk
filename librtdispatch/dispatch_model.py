@@ -355,7 +355,7 @@ class RealTimeDispatchModel(object):
         self.model.tes_start_up_con = pe.Constraint(self.model.T,rule=tes_start_up_rule)
         self.model.maintain_tes_con = pe.Constraint(rule=maintain_tes_rule)
         
-    def addPowerCycleStartupConstraints(self):
+    def addCycleStartupConstraints(self):
         def pc_inventory_rule(model, t):
             if t == 1:
                 return model.ucsu[t] <= model.ucsu0 + model.Delta[t] * model.Qc[t] * model.ycsu[t]
@@ -430,6 +430,47 @@ class RealTimeDispatchModel(object):
         self.model.cycle_ramp_rate_neg_con = pe.Constraint(self.model.T,rule=cycle_ramp_rate_neg_rule)
         self.model.grid_max_con = pe.Constraint(self.model.T,rule=grid_max_rule)
         self.model.grid_sun_con = pe.Constraint(self.model.T,rule=grid_sun_rule)
+        
+    def addCycleLogicConstraints(self):
+        def pc_su_persist_rule(model, t):
+            if t == 1:
+                return model.ycsu[t] + model.y0 <= 1
+            return model.ycsu[t] + model.y[t-1] <= 1
+        def pc_su_subhourly_rule(model, t):
+            if model.Delta[t] < 1:
+                return model.y[t] + model.ycsu[t] <= 1
+            return pe.Constraint.Feasible  #no analogous constraint for hourly or longer time steps
+        def pc_sb_start_rule(model, t):
+            if t == 1:
+                return model.ycsb[t] <= model.y0 + model.ycsb0
+            return model.ycsb[t] <= model.y[t-1] + model.ycsb[t-1]
+        def pc_sb_part1_rule(model, t):
+            return model.ycsu[t] + model.ycsb[t] <= 1
+        def pc_sb_part2_rule(model, t):
+            return model.y[t] + model.ycsb[t] <= 1
+        def cycle_sb_pen_rule(model, t):
+            if t == 1:
+                 return model.ychsp[t] >= model.y[t] - (1 - model.ycsb0)
+            return model.ychsp[t] >= model.y[t] - (1 - model.ycsb[t-1])
+        def cycle_shutdown_rule(model, t):
+            if t == 1:
+                return model.ycsd[t] >= model.y0 - model.y[t] + model.ycsb0 - model.ycsb[t]
+            return model.ycsd[t] >= model.y[t-1] - model.y[t] + model.ycsb[t-1] - model.ycsb[t]
+        def cycle_start_pen_rule(model, t):
+            if t == 1: 
+                return model.ycsup[t] >= model.ycsu[t] - model.ycsu0 
+            return model.ycsup[t] >= model.ycsu[t] - model.ycsu[t-1]
+         
+        self.model.pc_su_persist_con = pe.Constraint(self.model.T,rule=pc_su_persist_rule)
+        self.model.pc_su_subhourly_con = pe.Constraint(self.model.T,rule=pc_su_subhourly_rule)
+        self.model.pc_sb_start_con = pe.Constraint(self.model.T,rule=pc_sb_start_rule)
+        self.modelpc_sb_part1_con = pe.Constraint(self.model.T,rule=pc_sb_part1_rule)
+        self.model.pc_sb_part2_con = pe.Constraint(self.model.T,rule=pc_sb_part2_rule)
+        self.model.cycle_sb_pen_con = pe.Constraint(self.model.T,rule=cycle_sb_pen_rule)
+        self.model.cycle_shutdown_con = pe.Constraint(self.model.T,rule=cycle_shutdown_rule)
+        self.model.cycle_start_pen_con = pe.Constraint(self.model.T,rule=cycle_start_pen_rule)
+ 
+ 
 #        def _rule(model, t):
 #            return 
 #        self.model.tes_start_up_con = pe.Constraint(self.model.T,rule=tes_start_up_rule)
@@ -441,13 +482,14 @@ class RealTimeDispatchModel(object):
         self.addReceiverSupplyAndDemandConstraints()
         self.addReceiverNodeLogicConstraints()
         self.addTESEnergyBalanceConstraints()
-        self.addPowerCycleStartupConstraints()
+        self.addCycleStartupConstraints()
         self.addPiecewiseLinearEfficiencyConstraints()
+        self.addCycleLogicConstraints()
     
 if __name__ == "__main__": 
     params = {"num_periods":24} 
     include = {"pv":False,"battery":False,"persistence":True}
     rt = RealTimeDispatchModel(params,include)
 #    rt.model.OBJ.pprint()
-    rt.model.grid_sun_con.pprint()
+    rt.model.cycle_shutdown_con.pprint()
     
