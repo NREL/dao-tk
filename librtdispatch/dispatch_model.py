@@ -37,7 +37,7 @@ class RealTimeDispatchModel(object):
         
         ### Time-Series PV Parameters ###
         if self.include["pv"]:
-            self.model.w_pv = pe.Param(self.model.T, mutable=True, initialize=0)      #w^{PV}_t: <aximum DC power production from PV system in period $t$
+            self.model.wpv_dc = pe.Param(self.model.T, mutable=True, initialize=0)      #w^{PV}_t: maximum DC power production from PV system in period $t$
         
         ###  Cost Parameters ###
         self.model.alpha = pe.Param(mutable=True, initialize=0)        #alpha: Conversion factor between unitless and monetary values [\$]
@@ -185,14 +185,16 @@ class RealTimeDispatchModel(object):
         self.model.xr = pe.Var(self.model.T, domain=pe.NonNegativeReals)	                         #Thermal power delivered by the receiver at period $t$ [kW\sst]
         self.model.xrsu = pe.Var(self.model.T, domain=pe.NonNegativeReals)                         #Receiver start-up power consumption at period $t$ [kW\sst]
         
-        
+        #----------Continuous for PV -------------------
+        if self.include["pv"]:
+            self.model.wpv = pe.Var(self.model.T, domain=pe.NonNegativeReals)    #Power from PV at time t
         #----------Continuous for the Battery-----------
         if self.include["battery"]:
             self.model.soc = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #State of charge of battery in time t
             self.model.wbd = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Power out of battery at time t
             self.model.wbc_csp = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Power into battery at time t
-            self.model.wbc_pv = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Power from PV directly charging the battery at time t
-            self.model.wpv = pe.Var(self.model.T, domain=pe.NonNegativeReals)    #Power from PV at time t
+            if self.include["pv"]:
+                self.model.wbc_pv = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Power from PV directly charging the battery at time t
             
             self.model.i_p = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Battery current for charge in time t
             self.model.i_n = pe.Var(self.model.T, domain=pe.NonNegativeReals)	    #Battery current for discharge in time t
@@ -469,11 +471,24 @@ class RealTimeDispatchModel(object):
         self.model.cycle_sb_pen_con = pe.Constraint(self.model.T,rule=cycle_sb_pen_rule)
         self.model.cycle_shutdown_con = pe.Constraint(self.model.T,rule=cycle_shutdown_rule)
         self.model.cycle_start_pen_con = pe.Constraint(self.model.T,rule=cycle_start_pen_rule)
- 
+        
+    def addPVConstraints(self):
+        def pv_batt_lim_rule(model, t):
+            return model.wbc_pv[t] <= model.wpv[t]
+        def pv_DC_lim_rule(model, t):
+            return model.wpv[t] <= model.wpv_dc[t]*model.ypv[t]
+        def inv_clipping_DC_rule(model, t):
+            return model.wpv[t] - model.wbc_pv[t] <= model.Winv_lim*model.ypv[t]
+        
+        self.model.pv_DC_lim_con = pe.Constraint(self.model.T,rule=pv_DC_lim_rule)
+        if self.include["battery"]:        
+            self.model.pv_batt_lim_con = pe.Constraint(self.model.T,rule=pv_batt_lim_rule)
+            self.model.inv_clipping_DC_con = pe.Constraint(self.model.T,rule=inv_clipping_DC_rule)
+        
  
 #        def _rule(model, t):
 #            return 
-#        self.model.tes_start_up_con = pe.Constraint(self.model.T,rule=tes_start_up_rule)
+#        self.model._con = pe.Constraint(self.model.T,rule=_rule)
     
     def generateConstraints(self):
         if self.include["persistence"]:
@@ -485,11 +500,14 @@ class RealTimeDispatchModel(object):
         self.addCycleStartupConstraints()
         self.addPiecewiseLinearEfficiencyConstraints()
         self.addCycleLogicConstraints()
+        if self.include["pv"]:
+            self.addPVConstraints()
+            
     
 if __name__ == "__main__": 
     params = {"num_periods":24} 
-    include = {"pv":False,"battery":False,"persistence":True}
+    include = {"pv":True,"battery":False,"persistence":True}
     rt = RealTimeDispatchModel(params,include)
 #    rt.model.OBJ.pprint()
-    rt.model.cycle_shutdown_con.pprint()
+    rt.model.pv_DC_lim_con.pprint()
     
