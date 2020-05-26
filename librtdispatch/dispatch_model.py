@@ -163,6 +163,7 @@ class RealTimeDispatchModel(object):
             self.model.I_avg = pe.Param(mutable=True, initialize=0)	  #Typical current expected from the battery
             self.model.alpha_pv = pe.Param(mutable=True, initialize=0)
             self.model.beta_pv = pe.Param(mutable=True, initialize=0)
+            self.model.soc0 = pe.Param(mutable=True, initialize=0)     #initiali state of charge
             self.model.Winv_lim = pe.Param(mutable=True, initialize=0)	  # Inverter max power (DC)
             self.model.Wmax = pe.Param(mutable=True, initialize=0)	  #Constant Max power to grid
             self.model.Winvnt = pe.Param(mutable=True, initialize=0)
@@ -485,7 +486,63 @@ class RealTimeDispatchModel(object):
             self.model.pv_batt_lim_con = pe.Constraint(self.model.T,rule=pv_batt_lim_rule)
             self.model.inv_clipping_DC_con = pe.Constraint(self.model.T,rule=inv_clipping_DC_rule)
         
+    def addBatteryConstraints(self):
+        def battery_balance_rule(model, t):
+            if t == 1:
+                return model.soc[t] == model.soc0 + model.Delta[t]*(model.i_p[t] - model.i_n[t])/model.C_B
+            return model.soc[t] == model.soc[t-1] + model.Delta[t]*(model.i_p[t] - model.i_n[t])/model.C_B
+        def soc_lim_1_rule(model, t):
+            return model.S_B_lower <= model.soc[t]
+        def soc_lim_2_rule(model, t):
+            return model.soc[t] <= model.S_B_upper
+        def power_lim_n_1_rule(model, t):
+            return model.P_B_lower*model.ybd[t] <= model.wbd[t]
+        def power_lim_n_2_rule(model, t):
+            return model.wbd[t] <= model.P_B_upper*model.ybd[t]
+        def power_lim_p_1_rule(model, t):
+            return model.P_B_lower*model.ybc[t] <= model.wbc_csp[t] + model.wbc_pv[t]
+        def power_lim_p_2_rule(model, t):
+            return model.wbc_pv[t] + model.wbc_csp[t] <= model.P_B_upper*model.ybc[t]
+        def curr_lim_rule(model, t):
+            if t == 1:
+                return model.i_n[t] <= model.I_upper_n*model.soc0 
+            return model.i_n[t] <= model.I_upper_n*model.soc[t-1]
+        def gradient_rule(model, t):
+            if t == 1:
+                return model.i_p[t] <= model.C_B*(1-model.soc0)/model.Delta[t]
+            return model.i_p[t] <= model.C_B*(1-model.soc[t-1])/model.Delta[t]
+        def curr_lim_n_1_rule(model, t):
+            return model.I_lower_n*model.ybd[t] <= model.i_n[t]
+        def curr_lim_n_2_rule(model, t):
+            return model.i_n[t] <= model.I_upper_n*model.ybd[t]
+        def curr_lim_p_1_rule(model, t):
+            return model.I_lower_p*model.ybc[t] <= model.i_p[t]
+        def curr_lim_p_2_rule(model, t):
+            return model.i_p[t] <= model.I_upper_p*model.ybc[t]
+        def one_state_rule(model, t):
+            return model.ybc[t] + model.ybd[t] <= 1
+        def pow_lim_p_sun_rule(model, t):
+            return model.wbc_pv[t] + model.wbc_csp[t] == model.A_V*model.z_p[t] + (model.B_V + model.I_avg*model.R_int)*model.x_p[t]
+        def pow_lim_n_rule(model, t):
+            return model.wbd[t] == model.A_V*model.z_n[t] + (model.B_V - model.I_avg*model.R_int)*model.x_n[t]
  
+        self.model.battery_balance_con = pe.Constraint(self.model.T,rule=battery_balance_rule)
+        self.model.soc_lim_1_con = pe.Constraint(self.model.T,rule=soc_lim_1_rule)
+        self.model.soc_lim_2_con = pe.Constraint(self.model.T,rule=soc_lim_2_rule)
+        self.model.power_lim_n_1_con = pe.Constraint(self.model.T,rule=power_lim_n_1_rule)
+        self.model.power_lim_n_2_con = pe.Constraint(self.model.T,rule=power_lim_n_2_rule)
+        self.model.power_lim_p_1_con = pe.Constraint(self.model.T,rule=power_lim_p_1_rule)
+        self.model.power_lim_p_2_con = pe.Constraint(self.model.T,rule=power_lim_p_2_rule)
+        self.model.curr_lim_con = pe.Constraint(self.model.T,rule=curr_lim_rule)
+        self.model.gradient_con = pe.Constraint(self.model.T,rule=gradient_rule)
+        self.model.curr_lim_n_1_con = pe.Constraint(self.model.T,rule=curr_lim_n_1_rule)
+        self.model.curr_lim_n_2_con = pe.Constraint(self.model.T,rule=curr_lim_n_2_rule)
+        self.model.curr_lim_p_1_con = pe.Constraint(self.model.T,rule=curr_lim_p_1_rule)
+        self.model.curr_lim_p_2_con = pe.Constraint(self.model.T,rule=curr_lim_p_2_rule)
+        self.model.one_state_con = pe.Constraint(self.model.T,rule=one_state_rule)
+        self.model.pow_lim_p_sun_con = pe.Constraint(self.model.T,rule=pow_lim_p_sun_rule)
+        self.model.pow_lim_n_con = pe.Constraint(self.model.T,rule=pow_lim_n_rule)
+        
 #        def _rule(model, t):
 #            return 
 #        self.model._con = pe.Constraint(self.model.T,rule=_rule)
@@ -502,12 +559,14 @@ class RealTimeDispatchModel(object):
         self.addCycleLogicConstraints()
         if self.include["pv"]:
             self.addPVConstraints()
+        if self.include["battery"]:
+            self.addBatteryConstraints()
             
     
 if __name__ == "__main__": 
     params = {"num_periods":24} 
-    include = {"pv":True,"battery":False,"persistence":True}
+    include = {"pv":True,"battery":True,"persistence":True}
     rt = RealTimeDispatchModel(params,include)
 #    rt.model.OBJ.pprint()
-    rt.model.pv_DC_lim_con.pprint()
+    rt.model.curr_lim_n_2_con.pprint()
     
