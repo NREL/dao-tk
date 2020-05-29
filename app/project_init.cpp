@@ -25,6 +25,7 @@ void Project::initialize_ssc_project()
 	ssc_data_set_number( m_ssc_data, "n_wash_crews", 5);
 	ssc_data_set_number( m_ssc_data, "degr_replace_limit", (ssc_number_t)0.7);
 	//parameters
+    ssc_data_set_number( m_ssc_data, "tanks_in_parallel", (ssc_number_t)1);
 	ssc_data_set_string( m_ssc_data, "ampl_data_dir", " ");
 	ssc_data_set_number( m_ssc_data, "is_stochastic_disp", 0 );
 	ssc_data_set_number( m_ssc_data, "q_rec_standby", (ssc_number_t)9e9 );
