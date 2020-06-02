@@ -531,8 +531,9 @@ class RealTimeDispatchModel(object):
         self.model.soc_lim_2_con = pe.Constraint(self.model.T,rule=soc_lim_2_rule)
         self.model.power_lim_n_1_con = pe.Constraint(self.model.T,rule=power_lim_n_1_rule)
         self.model.power_lim_n_2_con = pe.Constraint(self.model.T,rule=power_lim_n_2_rule)
-        self.model.power_lim_p_1_con = pe.Constraint(self.model.T,rule=power_lim_p_1_rule)
-        self.model.power_lim_p_2_con = pe.Constraint(self.model.T,rule=power_lim_p_2_rule)
+        if self.include["pv"]:
+            self.model.power_lim_p_1_con = pe.Constraint(self.model.T,rule=power_lim_p_1_rule)
+            self.model.power_lim_p_2_con = pe.Constraint(self.model.T,rule=power_lim_p_2_rule)
         self.model.curr_lim_con = pe.Constraint(self.model.T,rule=curr_lim_rule)
         self.model.gradient_con = pe.Constraint(self.model.T,rule=gradient_rule)
         self.model.curr_lim_n_1_con = pe.Constraint(self.model.T,rule=curr_lim_n_1_rule)
@@ -540,8 +541,41 @@ class RealTimeDispatchModel(object):
         self.model.curr_lim_p_1_con = pe.Constraint(self.model.T,rule=curr_lim_p_1_rule)
         self.model.curr_lim_p_2_con = pe.Constraint(self.model.T,rule=curr_lim_p_2_rule)
         self.model.one_state_con = pe.Constraint(self.model.T,rule=one_state_rule)
-        self.model.pow_lim_p_sun_con = pe.Constraint(self.model.T,rule=pow_lim_p_sun_rule)
+        if self.include["pv"]:
+            self.model.pow_lim_p_sun_con = pe.Constraint(self.model.T,rule=pow_lim_p_sun_rule)
         self.model.pow_lim_n_con = pe.Constraint(self.model.T,rule=pow_lim_n_rule)
+        
+    def GenerateAuxiliaryBatteryConstraints(self):
+        def aux_lim_n_1_rule(model, t):
+            return model.I_lower_n*model.ybd[t] <= model.x_n[t]      
+        def aux_lim_n_2_rule(model, t):
+            return model.x_n[t] <= model.I_upper_n*model.ybd[t]        
+        def aux_lim_p_1_rule(model, t):
+            return model.I_lower_p*model.ybc[t] <= model.x_p[t]        
+        def aux_lim_p_2_rule(model, t):
+            return model.x_p[t] <= model.I_upper_p*model.ybc[t]        
+        def aux_lim_rule(model, t):
+            if t == 1:
+                return model.x_n[t] <= model.I_upper_n*model.soc0
+            return model.x_n[t] <= model.I_upper_n*model.soc[t-1]  
+        def aux_relate_p_1_rule(model, t):
+            return -model.I_upper_p*(1-model.ybc[t]) <= model.i_p[t] - model.x_p[t]
+        def aux_relate_p_2_rule(model, t):
+            return model.i_p[t] - model.x_p[t] <= model.I_upper_p*(1-model.ybc[t]) 
+        def aux_relate_n_1_rule(model, t):
+            return -model.I_upper_n*(1-model.ybd[t]) <= model.i_n[t] - model.x_n[t] 
+        def aux_relate_n_2_rule(model, t):
+            return model.i_n[t] - model.x_n[t] <= model.I_upper_n*(1-model.ybd[t])
+        
+        self.model.aux_lim_n_1_con = pe.Constraint(self.model.T,rule=aux_lim_n_1_rule)
+        self.model.aux_lim_n_2_con = pe.Constraint(self.model.T,rule=aux_lim_n_2_rule)
+        self.model.aux_lim_p_1_con = pe.Constraint(self.model.T,rule=aux_lim_p_1_rule)
+        self.model.aux_lim_p_2_con = pe.Constraint(self.model.T,rule=aux_lim_p_2_rule)
+        self.model.aux_lim_con = pe.Constraint(self.model.T,rule=aux_lim_rule)
+        self.model.aux_relate_p_1_con = pe.Constraint(self.model.T,rule=aux_relate_p_1_rule)
+        self.model.aux_relate_p_2_con = pe.Constraint(self.model.T,rule=aux_relate_p_2_rule)
+        self.model.aux_relate_n_1_con = pe.Constraint(self.model.T,rule=aux_relate_n_1_rule)
+        self.model.aux_relate_n_2_con = pe.Constraint(self.model.T,rule=aux_relate_n_2_rule)
         
 #        def _rule(model, t):
 #            return 
@@ -561,12 +595,14 @@ class RealTimeDispatchModel(object):
             self.addPVConstraints()
         if self.include["battery"]:
             self.addBatteryConstraints()
+            self.GenerateAuxiliaryBatteryConstraints()
+        
             
     
 if __name__ == "__main__": 
     params = {"num_periods":24} 
-    include = {"pv":True,"battery":True,"persistence":True}
+    include = {"pv":False,"battery":True,"persistence":True}
     rt = RealTimeDispatchModel(params,include)
 #    rt.model.OBJ.pprint()
-    rt.model.curr_lim_n_2_con.pprint()
+    rt.model.aux_relate_n_2_con.pprint()
     
