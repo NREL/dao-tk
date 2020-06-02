@@ -21,7 +21,7 @@ class RealTimeDispatchModel(object):
         self.model.T = pe.Set(initialize = range(1,params["num_periods"]+1))  #T: time periods
         self.model.num_periods = pe.Param(initialize=params["num_periods"])
         #------- Time-indexed parameters --------------
-        self.model.Delta = pe.Param(self.model.T, mutable=False, initialize=1)          #duration of period t
+        self.model.Delta = pe.Param(self.model.T, mutable=False, initialize=0.1)          #duration of period t
         self.model.Delta_e = pe.Param(self.model.T, mutable=False, initialize=1)       #cumulative time elapsed at end of period t
         ### Time-series CSP Parameters ##
         self.model.delta_rs = pe.Param(self.model.T, mutable=True, initialize=0) # \delta^{rs}_{t}: Estimated fraction of period $t$ required for receiver start-up [-]
@@ -545,7 +545,7 @@ class RealTimeDispatchModel(object):
             self.model.pow_lim_p_sun_con = pe.Constraint(self.model.T,rule=pow_lim_p_sun_rule)
         self.model.pow_lim_n_con = pe.Constraint(self.model.T,rule=pow_lim_n_rule)
         
-    def GenerateAuxiliaryBatteryConstraints(self):
+    def addAuxiliaryBatteryConstraints(self):
         def aux_lim_n_1_rule(model, t):
             return model.I_lower_n*model.ybd[t] <= model.x_n[t]      
         def aux_lim_n_2_rule(model, t):
@@ -576,10 +576,56 @@ class RealTimeDispatchModel(object):
         self.model.aux_relate_p_2_con = pe.Constraint(self.model.T,rule=aux_relate_p_2_rule)
         self.model.aux_relate_n_1_con = pe.Constraint(self.model.T,rule=aux_relate_n_1_rule)
         self.model.aux_relate_n_2_con = pe.Constraint(self.model.T,rule=aux_relate_n_2_rule)
+
+    def addBatteryLinearizationConstraints(self):
+        def cc_1_rule(model, t):
+            if t == 1:
+                return model.z_p[t] >= model.I_upper_p*model.soc0 + model.S_B_upper*model.i_p[t] - model.S_B_upper*model.I_upper_p
+            return model.z_p[t] >= model.I_upper_p*model.soc[t-1] + model.S_B_upper*model.i_p[t] - model.S_B_upper*model.I_upper_p
+        def cc_2_rule(model, t):
+            if t == 1:
+                 return model.z_p[t] >= model.I_lower_p*model.soc0 + model.S_B_lower*model.i_p[t] - model.S_B_lower*model.I_lower_p
+            return model.z_p[t] >= model.I_lower_p*model.soc[t-1] + model.S_B_lower*model.i_p[t] - model.S_B_lower*model.I_lower_p
+        def cc_3_rule(model, t):
+            if t == 1:
+                return model.z_p[t] <= model.I_upper_p*model.soc0 + model.S_B_lower*model.i_p[t] - model.S_B_lower*model.I_upper_p
+            return model.z_p[t] <= model.I_upper_p*model.soc[t-1] + model.S_B_lower*model.i_p[t] - model.S_B_lower*model.I_upper_p
+        def cc_4_rule(model, t):
+            if t == 1:
+                return model.z_p[t] <= model.I_lower_p*model.soc0 + model.S_B_upper*model.i_p[t] - model.S_B_upper*model.I_lower_p
+            return model.z_p[t] <= model.I_lower_p*model.soc[t-1] + model.S_B_upper*model.i_p[t] - model.S_B_upper*model.I_lower_p
+        def cc_5_rule(model, t):
+            if t == 1:
+                return model.z_n[t] >= model.I_upper_n*model.soc0 + model.S_B_upper*model.i_n[t] - model.S_B_upper*model.I_upper_n
+            return model.z_n[t] >= model.I_upper_n*model.soc[t-1] + model.S_B_upper*model.i_n[t] - model.S_B_upper*model.I_upper_n
+        def cc_6_rule(model, t):
+            if t == 1:
+                return model.z_n[t] >= model.I_lower_n*model.soc0 + model.S_B_lower*model.i_n[t] - model.S_B_lower*model.I_lower_n
+            return model.z_n[t] >= model.I_lower_n*model.soc[t-1] + model.S_B_lower*model.i_n[t] - model.S_B_lower*model.I_lower_n
+        def cc_7_rule(model, t):
+            if t == 1:
+                return model.z_n[t] <= model.I_upper_n*model.soc0 + model.S_B_lower*model.i_n[t] - model.S_B_lower*model.I_upper_n
+            return model.z_n[t] <= model.I_upper_n*model.soc[t-1] + model.S_B_lower*model.i_n[t] - model.S_B_lower*model.I_upper_n
+        def cc_8_rule(model, t):
+            if t == 1:
+                return model.z_n[t] <= model.I_lower_n*model.soc0 + model.S_B_upper*model.i_n[t] - model.S_B_upper*model.I_lower_n
+            return model.z_n[t] <= model.I_lower_n*model.soc[t-1] + model.S_B_upper*model.i_n[t] - model.S_B_upper*model.I_lower_n
         
-#        def _rule(model, t):
-#            return 
-#        self.model._con = pe.Constraint(self.model.T,rule=_rule)
+        self.model.cc_1_con = pe.Constraint(self.model.T,rule=cc_1_rule)
+        self.model.cc_2_con = pe.Constraint(self.model.T,rule=cc_2_rule)
+        self.model.cc_3_con = pe.Constraint(self.model.T,rule=cc_3_rule)
+        self.model.cc_4_con = pe.Constraint(self.model.T,rule=cc_4_rule)
+        self.model.cc_5_con = pe.Constraint(self.model.T,rule=cc_5_rule)
+        self.model.cc_6_con = pe.Constraint(self.model.T,rule=cc_6_rule)
+        self.model.cc_7_con = pe.Constraint(self.model.T,rule=cc_7_rule)
+        self.model.cc_8_con = pe.Constraint(self.model.T,rule=cc_8_rule)
+        
+    def addSubhourlyCliqueConstraints(self):
+        def clique_rule(model, t):
+            if self.model.Delta[t] < 1:
+                return model.y[t] + model.ycsu[t] + model.ycsb[t] <= 1
+            return pe.Constraint.Feasible
+        self.model.clique_con = pe.Constraint(self.model.T,rule=clique_rule)
     
     def generateConstraints(self):
         if self.include["persistence"]:
@@ -595,8 +641,10 @@ class RealTimeDispatchModel(object):
             self.addPVConstraints()
         if self.include["battery"]:
             self.addBatteryConstraints()
-            self.GenerateAuxiliaryBatteryConstraints()
-        
+            self.addAuxiliaryBatteryConstraints()
+            self.addBatteryLinearizationConstraints()
+        if min([self.model.Delta[t] for t in self.model.T]) < 1:
+            self.addSubhourlyCliqueConstraints()
             
     
 if __name__ == "__main__": 
@@ -604,5 +652,5 @@ if __name__ == "__main__":
     include = {"pv":False,"battery":True,"persistence":True}
     rt = RealTimeDispatchModel(params,include)
 #    rt.model.OBJ.pprint()
-    rt.model.aux_relate_n_2_con.pprint()
+    rt.model.clique_con.pprint()
     
