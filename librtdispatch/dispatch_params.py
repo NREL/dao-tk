@@ -36,6 +36,18 @@ def buildParamsFromAMPLFile(filename):
             else: 
                 splitline = line.split("\t")
                 params_dict[param_key][int(splitline[0])] = float(splitline[-1])
+    
+    ##Adjustments for john's scripts
+    params_dict["Delta"] = params_dict["dt"]
+    params_dict["Delta_e"] = params_dict["dte"]
+    params_dict["D"] = params_dict["twt"]
+    params_dict["W_u_plus"] = {}
+    params_dict["W_u_minus"] = {}
+    params_dict["Wdotnet"] = {}
+    for t in params_dict["dt"].keys():
+        params_dict["W_u_plus"][t] =  params_dict["Wdotl"] + params_dict["W_delta_plus"] * params_dict["dt"][t] / 2;
+        params_dict["W_u_minus"][t] = params_dict["Wdotl"] + params_dict["W_delta_minus"] * params_dict["dt"][t] / 2;
+        params_dict["Wdotnet"][t] = params_dict["Wdotu"]
         
     return params_dict
 
@@ -44,6 +56,5 @@ if __name__ == "__main__":
     params_dict = buildParamsFromAMPLFile(filename)
     print("T: ",params_dict["T"])
     print("eff_frac: \n",params_dict["eff_frac"])
-    print("wnet_lim_min: ",params_dict["wnet_lim_min"])
             
             
