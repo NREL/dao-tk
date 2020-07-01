@@ -458,6 +458,29 @@ class RealTimeDispatchModel(object):
         self.model.grid_max_con = pe.Constraint(self.model.T,rule=grid_max_rule)
         self.model.grid_sun_con = pe.Constraint(self.model.T,rule=grid_sun_rule)
         
+    def addMinUpAndDowntimeConstraints(self):
+        def min_cycle_uptime_rule(model,t):
+            if pe.value(model.Delta_e[t] > (model.Yu - model.Yu0) * model.y0):
+                return sum(model.ycgb[tp] for tp in model.T if pe.value(model.Delta_e[t]-model.Delta_e[tp] < model.Yu) and pe.value(model.Delta_e[t] - model.Delta_e[tp] >= 0)) <= model.y[t]
+            return pe.Constraint.Feasible
+        def min_cycle_downtime_rule(model,t):
+            if pe.value(model.Delta_e[t] > ((model.Yd - model.Yd0)*(1-model.y0))):
+                return sum( model.ycge[tp] for tp in model.T if pe.value(model.Delta_e[t]-model.Delta_e[tp] < model.Yd) and pe.value(model.Delta_e[t] - model.Delta_e[tp] >= 0))  <= (1 - model.y[t])
+            return pe.Constraint.Feasible
+        def cycle_start_end_gen_rule(model,t):
+            if t == 1:
+                return model.ycgb[t] - model.ycge[t] == model.y[t] - model.y0
+            return model.ycgb[t] - model.ycge[t] == model.y[t] - model.y[t-1]
+        def cycle_min_updown_init_rule(model,t):
+            if model.Delta_e[t] <= max(pe.value(model.y0*(model.Yu-model.Yu0)), pe.value((1-model.y0)*(model.Yd-model.Yd0))):
+                return model.y[t] == model.y0
+            return pe.Constraint.Feasible
+        
+        self.model.min_cycle_uptime_con = pe.Constraint(self.model.T,rule=min_cycle_uptime_rule)
+        self.model.min_cycle_downtime_con = pe.Constraint(self.model.T,rule=min_cycle_downtime_rule)
+        self.model.cycle_start_end_gen_con = pe.Constraint(self.model.T,rule=cycle_start_end_gen_rule)
+        self.model.cycle_min_updown_init_con = pe.Constraint(self.model.T,rule=cycle_min_updown_init_rule)
+        
     def addCycleLogicConstraints(self):
         def pc_su_persist_rule(model, t):
             if t == 1:
@@ -660,6 +683,7 @@ class RealTimeDispatchModel(object):
         self.addTESEnergyBalanceConstraints()
         self.addCycleStartupConstraints()
         self.addPiecewiseLinearEfficiencyConstraints()
+        self.addMinUpAndDowntimeConstraints()
         self.addCycleLogicConstraints()
         if self.include["pv"]:
             self.addPVConstraints()
