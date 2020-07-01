@@ -168,6 +168,10 @@ class RealTimeDispatchModel(object):
             self.model.Wmax = pe.Param(mutable=True, initialize=params["Wmax"])	  #Constant Max power to grid
             self.model.Winvnt = pe.Param(mutable=True, initialize=params["Winvnt"])
             self.model.N_csp = pe.Param(mutable=True, initialize=params["N_csp"])
+        
+        #------------- Cycle Incentive Parameter - for testing only -----------
+        if self.include["force_cycle"]:
+            self.model.cycle_incent = pe.Param(initialize=1.0e7)
 
     def generateVariables(self):
         ### Decision Variables ###
@@ -220,8 +224,8 @@ class RealTimeDispatchModel(object):
         self.model.ycsd = pe.Var(self.model.T, domain=pe.Binary)	    #1 if cycle is shutting down at period $t$; 0 otherwise
         self.model.ycsu = pe.Var(self.model.T, domain=pe.Binary)      #1 if cycle is starting up at period $t$; 0 otherwise
         self.model.ycsup = pe.Var(self.model.T, domain=pe.Binary)     #1 if cycle cold start-up penalty is incurred at period $t$ (from off); 0 otherwise
-        self.model.ycgb = pe.Var(self.model.T, domain=pe.NonNegativeReals)      #1 if cycle begins electric power generation at period $t$; 0 otherwise
-        self.model.ycge = pe.Var(self.model.T, domain=pe.NonNegativeReals)      #1 if cycle stops electric power generation at period $t$; 0 otherwise
+        self.model.ycgb = pe.Var(self.model.T, domain=pe.NonNegativeReals, bounds=(0,1))      #1 if cycle begins electric power generation at period $t$; 0 otherwise
+        self.model.ycge = pe.Var(self.model.T, domain=pe.NonNegativeReals, bounds=(0,1))      #1 if cycle stops electric power generation at period $t$; 0 otherwise
         
         #--------------- Persistence Variables ----------------------
         if self.include["persistence"]:
@@ -255,8 +259,28 @@ class RealTimeDispatchModel(object):
                     - model.Delta[t]*(model.Cpc*model.wdot[t] + model.Ccsb*model.Qb*model.ycsb[t] + model.Crec*model.xr[t] )
                     for t in model.T) 
                     )
-        self.model.OBJ = pe.Objective(rule=objectiveRule, sense = pe.maximize)
-        
+        def objectiveRuleForceCycle(model):
+            return (
+                    sum( model.D[t] * 
+                    #obj_profit
+                    model.Delta[t]*model.P[t]*0.1*(model.wdot_s[t] - model.wdot_p[t])
+                    #obj_cost_cycle_su_hs_sd
+                    - (model.Ccsu*model.ycsup[t] + 0.1*model.Cchsp*model.ychsp[t] + model.alpha*model.ycsd[t])
+                    #obj_cost_cycle_ramping
+                    - (model.C_delta_w*(model.wdot_delta_plus[t]+model.wdot_delta_minus[t])+model.C_v_w*(model.wdot_v_plus[t] + model.wdot_v_minus[t]))
+                    #obj_cost_rec_su_hs_sd
+                    - (model.Crsu*model.yrsup[t] + model.Crhsp*model.yrhsp[t] + model.alpha*model.yrsd[t])
+                    #obj_cost_ops
+                    - model.Delta[t]*(model.Cpc*model.wdot[t] + model.Ccsb*model.Qb*model.ycsb[t] + model.Crec*model.xr[t] )
+                    #obj_force_cycle
+                    + model.cycle_incent * (model.ycgb[t] + model.ycge[t])
+                    for t in model.T) 
+                    )
+        if self.include["force_cycle"]:
+            self.model.OBJ = pe.Objective(rule=objectiveRuleForceCycle, sense = pe.maximize)
+        else:
+            self.model.OBJ = pe.Objective(rule=objectiveRule, sense = pe.maximize)
+            
     def addPersistenceConstraints(self):
         def wdot_s_persist_pos_rule(model,t):
             return model.wdot_s_prev_delta_plus[t] >= model.wdot_s[t] - model.wdot_s_prev[t]
@@ -646,12 +670,23 @@ class RealTimeDispatchModel(object):
         if min([self.model.Delta[t] for t in self.model.T]) < 1:
             self.addSubhourlyCliqueConstraints()
             
+    def solveModel(self, mipgap=0.005):
+        opt = pe.SolverFactory('cbc')
+        opt.options["ratioGap"] = mipgap
+        results = opt.solve(self.model, tee=True, keepfiles=False)
+        return results
+    
+    def printCycleOutput(self):
+        for t in self.model.T:
+            if self.model.ycge[t].value > 1e-3:
+                print("Cycle off at period ",t," - ",self.model.ycge[t].value)
+            if self.model.ycgb[t].value > 1e-3:
+                print("Cycle on at period ",t," - ",self.model.ycgb[t].value)
     
 if __name__ == "__main__": 
     import dispatch_params
     params = dispatch_params.buildParamsFromAMPLFile("./input_files/data_energy.dat")
-    include = {"pv":False,"battery":False,"persistence":False}
+    include = {"pv":False,"battery":False,"persistence":False,"force_cycle":True}
     rt = RealTimeDispatchModel(params,include)
-#    rt.model.OBJ.pprint()
     rt.model.clique_con.pprint()
     
