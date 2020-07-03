@@ -15,20 +15,22 @@ cases = {'Yu':    [ 5, 10, 20, 10, 10, 10],
 
 def runCase(case_idx):
     params = dispatch_params.buildParamsFromAMPLFile("./input_files/data_energy.dat")
+    params['Yu'] = cases['Yu'][case_idx]
+    params['Yu0'] = cases['Yu0'][case_idx]
+    params['Yd'] = cases['Yd'][case_idx]
+    params['Yd0'] = cases['Yd0'][case_idx]
+    params['y0'] = cases['y0'][case_idx]
+    params['wdot0'] = cases['wdot0'][case_idx]
+    params['Qrsb'] = 10
+    params['Qb'] = 10
     include = {"pv":False,"battery":False,"persistence":False,"force_cycle":True}
     rt = dispatch_model.RealTimeDispatchModel(params,include)
-    rt.model.Yu = cases['Yu'][case_idx]
-    rt.model.Yu0 = cases['Yu0'][case_idx]
-    rt.model.Yd = cases['Yd'][case_idx]
-    rt.model.Yd0 = cases['Yd0'][case_idx]
-    rt.model.y0 = cases['y0'][case_idx]
-    rt.model.wdot0 = cases['wdot0'][case_idx]
-    rt.model.Qrsb = 10
-    rt.model.Qb = 10
     results = rt.solveModel()
     rt.printCycleOutput()
     return rt.model.OBJ.expr()
     
 objs = []
-for i in range(1,2):
+for i in range(6):
     objs.append(runCase(i))
+for x in objs:
+    print(x)
