@@ -6,7 +6,6 @@ Pyomo real-time dispatch model
 #import pyomo
 import pyomo.environ as pe
 
-
 class RealTimeDispatchModel(object):
     def __init__(self, params, include={"pv":False,"battery":False,"persistence":False}):
         self.model = pe.ConcreteModel()
@@ -70,7 +69,7 @@ class RealTimeDispatchModel(object):
         self.model.Qrsd = pe.Param(mutable=True, initialize=params["Qrsd"])      #Required thermal power for receiver shut down [kWh\sst] 
         self.model.Qru = pe.Param(mutable=True, initialize=params["Qru"])       #Allowable power per period for receiver start-up [kWh\sst]
         self.model.Wh = pe.Param(mutable=True, initialize=params["Wh"])        #Heliostat field tracking parasitic loss [kW\sse]
-        self.model.Wht = pe.Param(mutable=True, initialize=params["Wht"])       #[az] this isn't in the implementation.  Tower piping heat trace parasitic loss [kW\sse]
+        self.model.Wht = pe.Param(mutable=True, initialize=params["Wht"])       #Tower piping heat trace parasitic loss [kW\sse]
         
         ### Power Cycle Parameters ###
         self.model.Ec = pe.Param(mutable=True, initialize=params["Ec"])           #Required energy expended to start cycle [kWh\sst]
@@ -103,7 +102,10 @@ class RealTimeDispatchModel(object):
         self.model.ycsu0 = pe.Param(mutable=True, initialize=params["ycsu0"])  #1 if cycle is in starting up initially = pe.Param(mutable=True, initialize=0) 0 otherwise    [az] this is new.
         self.model.Yu0 = pe.Param(mutable=True, initialize=params["Yu0"])  # duration that cycle has been generating electric power [h]
         self.model.Yd0 = pe.Param(mutable=True, initialize=params["Yd0"])  # duration that cycle has not been generating power (i.e., shut down or in standby mode) [h]
-        
+        self.model.Yu.pprint()
+        self.model.Yd.pprint()
+        self.model.Yu0.pprint()
+        self.model.Yd0.pprint()
         # -------Persistence Parameters ---------
         if self.include["persistence"]:
             self.model.wdot_s_prev  = pe.Param(self.model.T, mutable=True, initialize=params["wdot_s_prev"])
@@ -163,7 +165,7 @@ class RealTimeDispatchModel(object):
             self.model.I_avg = pe.Param(mutable=True, initialize=params["I_avg"])	  #Typical current expected from the battery
             self.model.alpha_pv = pe.Param(mutable=True, initialize=params["alpha_pv"])
             self.model.beta_pv = pe.Param(mutable=True, initialize=params["beta_pv"])
-            self.model.soc0 = pe.Param(mutable=True, initialize=params["soc0"])     #initiali state of charge
+            self.model.soc0 = pe.Param(mutable=True, initialize=params["soc0"])     #initial state of charge
             self.model.Winv_lim = pe.Param(mutable=True, initialize=params["Winv_lim"])	  # Inverter max power (DC)
             self.model.Wmax = pe.Param(mutable=True, initialize=params["Wmax"])	  #Constant Max power to grid
             self.model.Winvnt = pe.Param(mutable=True, initialize=params["Winvnt"])
@@ -697,20 +699,23 @@ class RealTimeDispatchModel(object):
     def solveModel(self, mipgap=0.005):
         opt = pe.SolverFactory('cbc')
         opt.options["ratioGap"] = mipgap
-        results = opt.solve(self.model, tee=True, keepfiles=False)
+        results = opt.solve(self.model, tee=False, keepfiles=False)
         return results
     
     def printCycleOutput(self):
         for t in self.model.T:
             if self.model.ycge[t].value > 1e-3:
-                print("Cycle off at period ",t," - ",self.model.ycge[t].value)
+                print("Cycle off at period ",t," - Time = ",self.model.Delta_e[t])
             if self.model.ycgb[t].value > 1e-3:
-                print("Cycle on at period ",t," - ",self.model.ycgb[t].value)
+                print("Cycle on at period ",t," - Time = ",self.model.Delta_e[t])
     
 if __name__ == "__main__": 
     import dispatch_params
+    import dispatch_outputs
     params = dispatch_params.buildParamsFromAMPLFile("./input_files/data_energy.dat")
     include = {"pv":False,"battery":False,"persistence":False,"force_cycle":True}
     rt = RealTimeDispatchModel(params,include)
-    rt.model.clique_con.pprint()
+    rt_results = rt.solveModel()
+    outputs = dispatch_outputs.RTDispatchOutputs(rt.model)
+    outputs.print_outputs()
     
