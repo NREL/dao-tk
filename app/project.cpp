@@ -1317,11 +1317,11 @@ bool Project::D()
         message_handler( ss.str().c_str() );
         return false;;
     }
-    update_calculated_system_values();
+    
     fclose(fp);
 
-    
-    //ssc_data_set_matrix(m_ssc_data, "heliostat_positions_in", (ssc_number_t*)0, 0, 0);
+    update_calculated_system_values();
+    ssc_data_set_matrix(m_ssc_data, "heliostat_positions_in", (ssc_number_t*)0, 0, 0);
 
     lk_hash_to_ssc(m_ssc_data, m_variables);
     lk_hash_to_ssc(m_ssc_data, m_parameters);
