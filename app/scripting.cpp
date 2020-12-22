@@ -402,7 +402,9 @@ void _run_annual_sim(lk::invoke_t& cxt){
 			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2019.csv",
 		};
 		int num_wfiles = wfile_names.size();
-		int num_scens = 2;
+		int start_scen = 0;
+		int end_scen = 3;
+		int num_scens = end_scen - start_scen + 1;
 		int rng_scens = 100; //keep RNG results consistent
 		double refl_max = 0.95;
 		double refl_min = 0.85;
@@ -449,7 +451,7 @@ void _run_annual_sim(lk::invoke_t& cxt){
 		std::vector<double> effs_by_scen = {};
 
 
-		for (int scen_idx = 0; scen_idx < num_scens; scen_idx++) {
+		for (int scen_idx = start_scen; scen_idx <= end_scen; scen_idx++) {
 
 
 			Project* P = mw.GetProject();
@@ -488,7 +490,7 @@ void _run_annual_sim(lk::invoke_t& cxt){
 		
 
 			//P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
-			P->m_parameters.solar_resource_file.assign(wfile_names[scen_idx] );
+			P->m_parameters.solar_resource_file.assign(wfile_names[wfile_indices[scen_idx]] );
 			//P->m_parameters.solar_resource_file.assign("C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv");
 
 		
@@ -541,6 +543,7 @@ void _run_annual_sim(lk::invoke_t& cxt){
 			mw.Log(wxString::Format("refl: %.3f", refls[scen_idx]));
 			mw.Log(wxString::Format("rate_factor: %.3f", rate_factors[scen_idx]));
 			mw.Log(wxString::Format("wfile_index: %d", (int)wfile_indices[scen_idx]));
+			mw.Log(wxString::Format("weather_file: %d", (int)wfile_indices[scen_idx]));
 			mw.Log(wxString::Format("helio_error_rand: %.3f", helio_errors[scen_idx]));
 		
 			mw.Log(wxString::Format("Total field area: %.2f", P->m_design_outputs.area_sf.as_number()));
@@ -551,6 +554,7 @@ void _run_annual_sim(lk::invoke_t& cxt){
 			mw.Log(wxString::Format("Average cycle efficiency: %.2f", avg_eff));
 			mw.Log(wxString::Format("Number of failed components: %d", P->m_cycle_outputs.num_failures.as_integer()-2));   //planned maintenance doesn't count
 			mw.Log(wxString::Format("Total Generation: %.2f", P->m_simulation_outputs.annual_generation.as_number()));
+			mw.Log(wxString::Format("Total Gross Generation: %.2f", P->m_simulation_outputs.gross_gen.as_number()));
 		
 			annual_outputs_by_scen.push_back(P->m_simulation_outputs.annual_generation.as_number());
 			cycle_failures_by_scen.push_back((int)P->m_cycle_outputs.num_failures.as_number());
@@ -562,11 +566,17 @@ void _run_annual_sim(lk::invoke_t& cxt){
 			filename = filename + std::to_string(scen_idx);
 			filename = filename + ".csv";
 			ofile.open(filename);
+			ofile << "net_gen,gross_gen,receiver_prod,cycle_capacity,beam\n";
 			double* x = new double[8760];
 			for (int t = 0; t < 8760; t++)
 			{
+				
 				x[t] = P->m_simulation_outputs.generation_arr.vec()->at(t).as_number();
-				ofile << std::to_string(x[t]) << "," << std::to_string(P->m_cycle_outputs.cycle_capacity.vec()->at(t).as_number()) <<"\n";
+				ofile << std::to_string(x[t]) << "," 
+					<< std::to_string(P->m_simulation_outputs.gross_gen.vec()->at(t).as_number()) << ","
+					<< std::to_string(P->m_simulation_outputs.solar_field_power_arr.vec()->at(t).as_number()) << ","
+					<< std::to_string(P->m_cycle_outputs.cycle_capacity.vec()->at(t).as_number()) << ","
+					<< std::to_string(P->m_simulation_outputs.dni_arr.vec()->at(t).as_number()) << "\n";
 			}
 			ofile.close();
 			P->ClearStoredData();
@@ -648,7 +658,7 @@ void _test(lk::invoke_t& cxt)
 
 	//P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
 	//P->m_parameters.solar_resource_file.assign( "C:/Users/mwagner/Documents/NREL/projects/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
-	P->m_parameters.solar_resource_file.assign("C:/Users/AZOLAN/Documents/GitHub/daotk_dev/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv");
+	P->m_parameters.solar_resource_file.assign("C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv");
 
 	/*
 	P->m_parameters.sim_length.assign( 720 );
