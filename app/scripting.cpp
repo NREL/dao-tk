@@ -402,8 +402,8 @@ void _run_annual_sim(lk::invoke_t& cxt){
 			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2019.csv",
 		};
 		int num_wfiles = wfile_names.size();
-		int start_scen = 0;
-		int end_scen = 3;
+		int start_scen = 1;
+		int end_scen = 1;
 		int num_scens = end_scen - start_scen + 1;
 		int rng_scens = 100; //keep RNG results consistent
 		double refl_max = 0.95;
@@ -543,7 +543,7 @@ void _run_annual_sim(lk::invoke_t& cxt){
 			mw.Log(wxString::Format("refl: %.3f", refls[scen_idx]));
 			mw.Log(wxString::Format("rate_factor: %.3f", rate_factors[scen_idx]));
 			mw.Log(wxString::Format("wfile_index: %d", (int)wfile_indices[scen_idx]));
-			mw.Log(wxString::Format("weather_file: %d", (int)wfile_indices[scen_idx]));
+			mw.Log(wxString::Format("weather_file: %s", wfile_names[wfile_indices[scen_idx]]));
 			mw.Log(wxString::Format("helio_error_rand: %.3f", helio_errors[scen_idx]));
 		
 			mw.Log(wxString::Format("Total field area: %.2f", P->m_design_outputs.area_sf.as_number()));
@@ -554,7 +554,6 @@ void _run_annual_sim(lk::invoke_t& cxt){
 			mw.Log(wxString::Format("Average cycle efficiency: %.2f", avg_eff));
 			mw.Log(wxString::Format("Number of failed components: %d", P->m_cycle_outputs.num_failures.as_integer()-2));   //planned maintenance doesn't count
 			mw.Log(wxString::Format("Total Generation: %.2f", P->m_simulation_outputs.annual_generation.as_number()));
-			mw.Log(wxString::Format("Total Gross Generation: %.2f", P->m_simulation_outputs.gross_gen.as_number()));
 		
 			annual_outputs_by_scen.push_back(P->m_simulation_outputs.annual_generation.as_number());
 			cycle_failures_by_scen.push_back((int)P->m_cycle_outputs.num_failures.as_number());
