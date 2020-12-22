@@ -152,6 +152,7 @@ void Project::add_documentation()
         "Time series vector of length equal to the number of time steps in the simulation horizon that "
         "specifies the temporally dependent PPA price multiplier."
     );
+    m_parameters.helio_optical_error_mrad.doc.set("mrad", "Heliostat optical error");
     m_parameters.user_sf_avail.doc.set("-", 
         "Time series vector of length equal to the number of time steps in the simulation horizon that "
         "specifies the solar field power output loss as a function of time."
@@ -226,6 +227,7 @@ void Project::add_documentation()
     m_simulation_outputs.annual_generation.doc.set("GWhe", "Total simulated electrical energy production per year.");
     m_simulation_outputs.annual_revenue_units.doc.set("-", "The total normalized revenue achieved by the evaluated system over the course of 1 year.");
 
+    m_parameters.hx_failure_rate_mult.doc.set("-", "Heat exchanger failure rate multiplier");
     m_parameters.maintenance_interval.doc.set("h","Runtime duration between maintenance events");
     m_parameters.maintenance_duration.doc.set("h","Duration of maintenance events");
     m_parameters.downtime_threshold.doc.set("h","Downtime threshold for warm start");

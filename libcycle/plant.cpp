@@ -1683,7 +1683,7 @@ void PowerCycle::AddCondenserTrains(int num_trains, int num_fans, int num_radiat
 	}
 }
 
-void PowerCycle::AddSaltToSteamTrains(int num_trains)
+void PowerCycle::AddSaltToSteamTrains(int num_trains, double hx_failure_rate_mult)
 {
 	std::string component_name;
 	double capacity_reduction = 1.0 / (double)num_trains;
@@ -1714,10 +1714,10 @@ void PowerCycle::AddSaltToSteamTrains(int num_trains)
 		AddFailureType(component_name, "Superheater External_Leak_Small_(tube)", "ALL", "inv-gamma", 0.3, 1200000);
 		AddFailureType(component_name, "Superheater Plug/Foul", "ALL", "inv-gamma", 1.5, 2500000);
 		*/
-		AddFailureType(component_name, "Boiler Failure", "ALL", "gamma", 1., 306624);
-		AddFailureType(component_name, "Economizer Failure", "ALL", "gamma", 1., 306624);
-		AddFailureType(component_name, "Reheater Failure", "ALL", "gamma", 1., 306624);
-		AddFailureType(component_name, "Superheater Failure", "ALL", "gamma", 1., 306624);
+		AddFailureType(component_name, "Boiler Failure", "ALL", "gamma", 1., 306624. * hx_failure_rate_mult);
+		AddFailureType(component_name, "Economizer Failure", "ALL", "gamma", 1., 306624. * hx_failure_rate_mult);
+		AddFailureType(component_name, "Reheater Failure", "ALL", "gamma", 1., 306624. * hx_failure_rate_mult);
+		AddFailureType(component_name, "Superheater Failure", "ALL", "gamma", 1., 306624. * hx_failure_rate_mult);
 		
 		
 	}
@@ -1833,6 +1833,7 @@ void PowerCycle::GeneratePlantComponents(
 	int num_turbines,
 	std::vector<double> condenser_eff_cold,
 	std::vector<double> condenser_eff_hot,
+	double hx_failure_rate_mult,
 	bool reset_hazard
 )
 {
@@ -1864,7 +1865,7 @@ void PowerCycle::GeneratePlantComponents(
 		throw std::runtime_error("condenser efficiencies do not reconcile with number of trains.");
 	}
 	AddCondenserTrains(num_condenser_trains, fans_per_train, radiators_per_train);
-	AddSaltToSteamTrains(num_salt_steam_trains);
+	AddSaltToSteamTrains(num_salt_steam_trains, hx_failure_rate_mult);
 	AddFeedwaterHeaters(num_fwh);
 	AddSaltPumps(num_salt_pumps, num_salt_pumps_required);
 	AddWaterPumps(num_water_pumps, num_water_pumps_required);
@@ -2381,8 +2382,12 @@ void PowerCycle::PlantMaintenanceShutdown(int t, bool reset_time, bool record,
 			);
 		for (size_t i = 0; i < m_components.size(); i++)
 		{
-			m_components.at(i).Shutdown(m_current_cycle_state.maintenance_duration);
-			m_components.at(i).PerformMaintenance(penalty_reduction);
+			if (t == 304 * 24) { m_components.at(i).Shutdown(m_current_cycle_state.maintenance_duration+24); }
+			else if (t == 59 * 24) { m_components.at(i).Shutdown(m_current_cycle_state.maintenance_duration); }
+			else {
+				m_components.at(i).PerformMaintenance(penalty_reduction); 
+				m_components.at(i).Shutdown(m_current_cycle_state.maintenance_duration + 24);
+			}
 		}
 	}
 	else
@@ -2757,7 +2762,10 @@ void PowerCycle::RunDispatch()
         {
             PlantMaintenanceShutdown(t, true, true);
         }
-		
+		else if (t == (59 * 24) || t == (304 * 24))
+		{
+			PlantMaintenanceShutdown(t, true, true);
+		}
 		
 		//Read in any component failures, if in the read-only stage.
 		if (t <= m_results.period_of_last_repair[m_current_scenario] ||

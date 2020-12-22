@@ -1,5 +1,7 @@
 #include <set>
 #include <future>
+#include <iostream>
+#include <fstream>
 //#include <chrono>
 //#include <thread>
 
@@ -370,34 +372,283 @@ void _var(lk::invoke_t &cxt)
 
 }
 
-void _test(lk::invoke_t &cxt)
+void _run_annual_sim(lk::invoke_t& cxt){
+	LK_DOC("run_annual_sim", "Run annual performance simulation.", "(void):null");
+
+		// MainWindow::Instance().Log()
+		MainWindow &mw = MainWindow::Instance();
+
+		std::vector<std::string> wfile_names = {
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-1999.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2000.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2001.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2002.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2003.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2004.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2005.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2006.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2007.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2008.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2009.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2010.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2011.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2012.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2013.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2014.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2015.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2016.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2017.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2018.csv",
+			"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/cd-2019.csv",
+		};
+		int num_wfiles = wfile_names.size();
+		int num_scens = 2;
+		int rng_scens = 100; //keep RNG results consistent
+		double refl_max = 0.95;
+		double refl_min = 0.85;
+		double min_rate_factor = 0.2;
+		double max_rate_factor = 1.0;
+		double min_err_mrad = 1.5;
+		double max_err_mrad = 3.5;
+		WELLFiveTwelve rng(0);
+		double u;
+		std::vector<double> refls = {};
+		std::vector<double> rate_factors = {};
+		std::vector<double> helio_errors = {};
+		std::vector<int> wfile_indices = {};
+		std::vector<int> cycle_seeds = {};
+		for (int i = 0; i < rng_scens; i++)
+		{
+			u = rng.getVariate();
+			refls.push_back(refl_max - (u * u * (refl_max - refl_min)));
+		}
+		for (int i = 0; i < rng_scens; i++)
+		{
+			u = rng.getVariate();
+			rate_factors.push_back(u * (max_rate_factor - min_rate_factor) + min_rate_factor);
+		}
+		for (int i = 0; i < rng_scens; i++)
+		{
+			u = rng.getVariate();
+			helio_errors.push_back(u * (max_err_mrad - min_err_mrad) + min_err_mrad);
+		}
+		for (int i = 0; i < rng_scens; i++)
+		{
+			u = rng.getVariate();
+			wfile_indices.push_back(int(u * num_wfiles));
+		}
+		for (int i = 0; i < rng_scens; i++)
+		{
+			u = rng.getVariate();
+			cycle_seeds.push_back(int(u * 33));
+		}
+
+		std::vector<double> annual_outputs_by_scen = {};
+		std::vector<int> cycle_failures_by_scen = {};
+		std::vector<double> caps_by_scen = {};
+		std::vector<double> effs_by_scen = {};
+
+
+		for (int scen_idx = 0; scen_idx < num_scens; scen_idx++) {
+
+
+			Project* P = mw.GetProject();
+
+			P->m_parameters.is_reoptimize_at_repairs.assign(0.);
+			P->m_parameters.is_reoptimize_at_failures.assign(0.);
+			P->m_parameters.is_dispatch.assign(0.);
+			//P->m_parameters.is_use_clusters.assign(true);
+			P->m_parameters.is_use_target_heuristic.assign(true);
+
+			//P->m_parameters.is_reoptimize_at_repairs.assign(0.);
+			//P->m_parameters.is_reoptimize_at_failures.assign(0.);
+			//P->m_parameters.is_dispatch.assign(0.);
+			
+			P->m_parameters.cycle_seed.assign(cycle_seeds[scen_idx]);
+			P->m_parameters.helio_optical_error_mrad.assign(helio_errors[scen_idx]);
+			P->m_parameters.hx_failure_rate_mult.assign(rate_factors[scen_idx]);
+			P->m_parameters.print_messages.assign(true);
+			P->m_parameters.helio_reflectance.assign(refls[scen_idx]);
+			P->m_parameters.soil_per_hour.assign(0.);
+			P->m_variables.h_tower.assign(163.98);
+			P->m_variables.rec_height.assign(18.59);
+			P->m_variables.D_rec.assign(15.18);
+			P->m_variables.design_eff.assign(.41);
+			P->m_variables.dni_des.assign(950.);
+			P->m_variables.P_ref.assign(120.);
+			P->m_variables.solarm.assign(565.0 * .41 / 120);
+			P->m_variables.tshours.assign(12.0);
+			P->m_variables.degr_replace_limit.assign(.7);
+			//P->m_variables.om_staff.assign( 5 );
+			//P->m_variables.n_wash_crews.assign( 3 );
+			P->m_parameters.heliostat_repair_cost.assign(0.);
+			P->m_variables.N_panel_pairs.assign(8);
+			P->m_parameters.degr_per_hour.assign(0.);
+			P->m_parameters.degr_accel_per_year.assign(0.);
+		
+
+			//P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+			P->m_parameters.solar_resource_file.assign(wfile_names[scen_idx] );
+			//P->m_parameters.solar_resource_file.assign("C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv");
+
+		
+			/*
+			P->m_parameters.sim_length.assign( 8760 );
+			P->m_parameters.cycle_power.empty_vector();
+			P->m_parameters.thermal_power.empty_vector();
+			P->m_parameters.standby.empty_vector();
+			P->m_parameters.ambient_temperature.empty_vector();
+			for (int i = 0; i < 30; i++) //simulate 30 days of dispatch
+			{
+				for (int j = 0; j < 8; j++)
+				{
+					P->m_parameters.cycle_power.vec_append(0);
+					P->m_parameters.thermal_power.vec_append(0);
+					P->m_parameters.standby.vec_append(0);
+					P->m_parameters.ambient_temperature.vec_append(0);
+				}
+				for (int j = 0; j < 8; j++)
+				{
+					P->m_parameters.cycle_power.vec_append(1e5);
+					P->m_parameters.thermal_power.vec_append(3e5);
+					P->m_parameters.standby.vec_append(0);
+					P->m_parameters.ambient_temperature.vec_append(10);
+				}
+				for (int j = 0; j < 8; j++)
+				{
+					P->m_parameters.cycle_power.vec_append(0);
+					P->m_parameters.thermal_power.vec_append(0);
+					P->m_parameters.standby.vec_append(0);
+					P->m_parameters.ambient_temperature.vec_append(15);
+				}
+			}
+			*/
+		
+			//if (!P->D()) return;
+			if (!P->D()) return;
+			P->GetDesignOutputsFromFiles("C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/layout-tonopah.csv",
+				"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/eff_array.csv",
+				"C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/fluxmap.csv");
+			if (!P->D_lite()) return;
+			//if (!P->O()) return;
+			//if (!P->M()) return;
+			if (!P->E()) return;
+			if (!P->S()) return;
+			if (!P->F()) return;
+			//if (!P->C()) return;
+
+			mw.Log(wxString::Format("scen %d done", scen_idx));
+			mw.Log(wxString::Format("refl: %.3f", refls[scen_idx]));
+			mw.Log(wxString::Format("rate_factor: %.3f", rate_factors[scen_idx]));
+			mw.Log(wxString::Format("wfile_index: %d", (int)wfile_indices[scen_idx]));
+			mw.Log(wxString::Format("helio_error_rand: %.3f", helio_errors[scen_idx]));
+		
+			mw.Log(wxString::Format("Total field area: %.2f", P->m_design_outputs.area_sf.as_number()));
+			mw.Log(wxString::Format("Number of heliostats: %d", (int)P->m_design_outputs.number_heliostats.as_integer()));
+			double avg_cap = P->m_cycle_outputs.cycle_capacity_ave.as_number() * 365. / 350.;  //only count losses in non-maintenance events;
+			double avg_eff = P->m_cycle_outputs.cycle_efficiency_ave.as_number() * 365. / 350.;  //only count losses in non-maintenance events;
+			mw.Log(wxString::Format("Average cycle capacity: %.2f", avg_cap));
+			mw.Log(wxString::Format("Average cycle efficiency: %.2f", avg_eff));
+			mw.Log(wxString::Format("Number of failed components: %d", P->m_cycle_outputs.num_failures.as_integer()-2));   //planned maintenance doesn't count
+			mw.Log(wxString::Format("Total Generation: %.2f", P->m_simulation_outputs.annual_generation.as_number()));
+		
+			annual_outputs_by_scen.push_back(P->m_simulation_outputs.annual_generation.as_number());
+			cycle_failures_by_scen.push_back((int)P->m_cycle_outputs.num_failures.as_number());
+			effs_by_scen.push_back(avg_eff);
+			caps_by_scen.push_back(avg_cap);
+
+			std::ofstream ofile;
+			std::string filename = "C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/dispatch_result_";
+			filename = filename + std::to_string(scen_idx);
+			filename = filename + ".csv";
+			ofile.open(filename);
+			double* x = new double[8760];
+			for (int t = 0; t < 8760; t++)
+			{
+				x[t] = P->m_simulation_outputs.generation_arr.vec()->at(t).as_number();
+				ofile << std::to_string(x[t]) << "," << std::to_string(P->m_cycle_outputs.cycle_capacity.vec()->at(t).as_number()) <<"\n";
+			}
+			ofile.close();
+			P->ClearStoredData();
+			P->Clear_S();
+			P->Clear_M();
+			P->Clear_O();
+		}
+
+		std::ofstream ffile;
+		std::string filename = "C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/all_failures.csv";
+		ffile.open(filename);
+		mw.Log(wxString::Format("Number of failed components:"));
+		for (int i = 0;i < num_scens; i++) {
+			mw.Log(wxString::Format("%d", cycle_failures_by_scen.at(i)));
+			ffile << std::to_string(cycle_failures_by_scen.at(i)) << "\n";
+		}
+		ffile.close();
+
+		std::ofstream gfile;
+		filename = "C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/all_gens.csv";
+		gfile.open(filename);
+		mw.Log(wxString::Format("Annual generation::"));
+		for (int i = 0;i < num_scens;i++) {
+			mw.Log(wxString::Format("%.3f", annual_outputs_by_scen.at(i)));
+			gfile << std::to_string(annual_outputs_by_scen.at(i)) << "\n";
+		}
+		gfile.close();
+
+		std::ofstream cfile;
+		filename = "C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/all_caps.csv";
+		cfile.open(filename);
+		mw.Log(wxString::Format("Avg Capacity:"));
+		for (int i = 0;i < num_scens;i++) {
+			mw.Log(wxString::Format("%.3f", caps_by_scen.at(i)));
+			cfile << std::to_string(caps_by_scen.at(i)) << "\n";
+		}
+		cfile.close();
+
+		std::ofstream efile;
+		filename = "C:/Users/AZOLAN/Documents/GitHub/dao-tk/deploy/samples/all_effs.csv";
+		efile.open(filename);
+		mw.Log(wxString::Format("Avg Efficinecy:"));
+		for (int i = 0;i < num_scens;i++) {
+			mw.Log(wxString::Format("%.3f", effs_by_scen.at(i)));
+			efile << std::to_string(effs_by_scen.at(i)) << "\n";
+		}
+		efile.close();
+		mw.SetProgress(0.);
+		mw.UpdateDataTable();
+
+		return;
+
+}
+
+void _test(lk::invoke_t& cxt)
 {
 	LK_DOC("test", "Test description.", "(void):null");
 
 	// MainWindow::Instance().Log()
-	MainWindow &mw = MainWindow::Instance();
+	MainWindow& mw = MainWindow::Instance();
 
-	Project *P = mw.GetProject();
-	
-	P->m_variables.h_tower.assign( 193. );
-	P->m_variables.rec_height.assign( 21. );
-	P->m_variables.D_rec.assign( 17. );
-	P->m_variables.design_eff.assign( .41 );
-	P->m_variables.dni_des.assign( 950. );
-	P->m_variables.P_ref.assign( 115. );
-	P->m_variables.solarm.assign( 2.4 );
-	P->m_variables.tshours.assign( 10. );
-	P->m_variables.degr_replace_limit.assign( .7 );
+	Project* P = mw.GetProject();
+
+	P->m_variables.h_tower.assign(193.);
+	P->m_variables.rec_height.assign(21.);
+	P->m_variables.D_rec.assign(17.);
+	P->m_variables.design_eff.assign(.41);
+	P->m_variables.dni_des.assign(950.);
+	P->m_variables.P_ref.assign(115.);
+	P->m_variables.solarm.assign(2.4);
+	P->m_variables.tshours.assign(10.);
+	P->m_variables.degr_replace_limit.assign(.7);
 	//P->m_variables.om_staff.assign( 5 );
 	//P->m_variables.n_wash_crews.assign( 3 );
-    P->m_parameters.heliostat_repair_cost.assign(0.);
-	P->m_variables.N_panel_pairs.assign( 8 );
-    P->m_parameters.degr_per_hour.assign(0.);
-    P->m_parameters.degr_accel_per_year.assign(0.);
+	P->m_parameters.heliostat_repair_cost.assign(0.);
+	P->m_variables.N_panel_pairs.assign(8);
+	P->m_parameters.degr_per_hour.assign(0.);
+	P->m_parameters.degr_accel_per_year.assign(0.);
 
-    //P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
-    //P->m_parameters.solar_resource_file.assign( "C:/Users/mwagner/Documents/NREL/projects/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
-	P->m_parameters.solar_resource_file.assign( "C:/Users/AZOLAN/Documents/GitHub/daotk_dev/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+	//P->m_parameters.solar_resource_file.assign( "/home/mike/workspace/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+	//P->m_parameters.solar_resource_file.assign( "C:/Users/mwagner/Documents/NREL/projects/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv" );
+	P->m_parameters.solar_resource_file.assign("C:/Users/AZOLAN/Documents/GitHub/daotk_dev/dao-tk/deploy/samples/USA CA Daggett Barstow-daggett Ap (TMY3).csv");
 
 	/*
 	P->m_parameters.sim_length.assign( 720 );
@@ -430,14 +681,14 @@ void _test(lk::invoke_t &cxt)
 		}
 	}
 	*/
-    if (!P->D()) return;
-    if (!P->O()) return;
-    if (!P->M()) return;
-    if (!P->E()) return;
-    if (!P->S()) return;
-    if (!P->F()) return;
-    //if (!P->C()) return;
-	
+	if (!P->D()) return;
+	if (!P->O()) return;
+	if (!P->M()) return;
+	if (!P->E()) return;
+	if (!P->S()) return;
+	if (!P->F()) return;
+	//if (!P->C()) return;
+
 	mw.Log(wxString::Format("Total field area: %.2f", P->m_design_outputs.area_sf.as_number()));
 	mw.Log(wxString::Format("Number of heliostats: %d", (int)P->m_design_outputs.number_heliostats.as_integer()));
 	mw.Log(wxString::Format("Number of repairs: %d", (int)P->m_solarfield_outputs.n_repairs.as_integer()));
@@ -478,7 +729,7 @@ void _power_cycle(lk::invoke_t &cxt)
 		"Table keys include: cycle_power, ambient_temperature, standby, "
 		"read_periods, sim_length, output, num_scenarios, "
 		"cycle_hourly_labor_cost, stop_cycle_at_first_failure, "
-		"stop_cycle_at_first_repair, maintenance_interval, maintenance_duration, "
+		"stop_cycle_at_first_repair, hx_failure_rate_mult, maintenance_interval, maintenance_duration, "
 		"downtime_threshold,steplength, hours_to_maintenance, power_output, "
 		"thermal_output, current_standby, capacity, thermal_capacity, "
 		"temp_threshold, time_online, time_in_standby, downtime, "
@@ -660,7 +911,11 @@ void _power_cycle(lk::invoke_t &cxt)
 			condenser_eff_hot.push_back(q.as_number());
 		}
 	}
-		
+
+	double hx_failure_rate_mult = 1;
+	if (h->find("hx_failure_rate_mult") != h->end())
+		hx_failure_rate_mult = h->at("hx_failure_rate_mult")->as_number();
+
 	cycle.GeneratePlantComponents(
 		num_condenser_trains,
 		fans_per_train,
@@ -675,7 +930,8 @@ void _power_cycle(lk::invoke_t &cxt)
 		num_boiler_pumps_required,
 		num_turbines,
 		condenser_eff_cold,
-		condenser_eff_hot
+		condenser_eff_hot,
+		hx_failure_rate_mult
 	);
 
 	// Simulation parameters

@@ -3,6 +3,8 @@
 #include "fluxsimthread.h"
 #include <wx/thread.h>
 #include <limits>
+#include <iostream>
+#include <fstream>
 
 
 
@@ -197,11 +199,14 @@ void parameters::initialize()
     startup_frac.set(                      0.5,                 "startup_frac",      false,                       "Power block startup energy",     "MWh/MWh",             "Simulation|Parameters" );
     v_wind_max.set(                        15.,                   "v_wind_max",      false,                    "Max operational wind velocity",         "m/s",             "Simulation|Parameters" );
     flux_max.set(                        1000.,                     "flux_max",      false,                            "Maximum receiver flux",       "kW/m2",             "Simulation|Parameters" );
-    disp_inventory_incentive.set(			0.,     "disp_inventory_incentive",     false,                      "Forecast TES hedging factor",           "-",              "Simulation|Parameters" );
+    disp_inventory_incentive.set(			0.,     "disp_inventory_incentive",      false,                      "Forecast TES hedging factor",           "-",             "Simulation|Parameters" );
+    helio_optical_error_mrad.set(          2.5,     "helio_optical_error_mrad",      false,                          "Heliostat optical error",        "mrad",             "Simulation|Parameters" );
     dispatch_factors_ts.set(            pvalts,          "dispatch_factors_ts",      false,                       "TOD price multiplier array",           "-",             "Simulation|Parameters" );
     std::vector< double > bigv(8760, std::numeric_limits<double>::infinity());
     wlim_series.set(                      bigv,                  "wlim_series",      false,              "Maximum power output from the cycle",         "kWe",             "Simulation|Parameters" );
 
+
+    hx_failure_rate_mult.set(              1.0,         "hx_failure_rate_mult",      false,   "Salt-to-steam train HX failure rate multiplier",           "-",                  "Cycle|Parameters" );
     maintenance_interval.set(             1.e6,         "maintenance_interval",      false,      "Runtime duration between maintenance events",           "h",                  "Cycle|Parameters" );
     maintenance_duration.set(             168.,         "maintenance_duration",      false,                   "Duration of maintenance events",           "h",                  "Cycle|Parameters" );
     downtime_threshold.set(                 24,           "downtime_threshold",      false,                "Downtime threshold for warm start",           "h",                  "Cycle|Parameters" );
@@ -211,7 +216,8 @@ void parameters::initialize()
     no_restart_capacity.set(               0.3,          "no_restart_capacity",      false,   "Threshold capacity for maintenance on shutdown",           "-",                  "Cycle|Parameters" );
     shutdown_efficiency.set(               0.8,          "shutdown_efficiency",      false,          "Threshold efficiency to shut plant down",           "-",                  "Cycle|Parameters" );
     no_restart_efficiency.set(             0.8,        "no_restart_efficiency",      false, "Threshold efficiency for maintenance on shutdown",           "-",                  "Cycle|Parameters" );
-    cycle_hourly_labor_cost.set(           50.,       "cycle_hourly_labor_cost",     false,       "Hourly cost for repair of cycle components",           "h",                  "Cycle|Parameters" );
+    cycle_hourly_labor_cost.set(           50.,      "cycle_hourly_labor_cost",      false,       "Hourly cost for repair of cycle components",           "h",                  "Cycle|Parameters" );
+    cycle_seed.set(                          0,                   "cycle_seed",      false,                   "RNG seed for power cycle model",           "-",                  "Cycle|Parameters" );
 
     std::vector< double > pval = { 0., 7., 200., 12000. };
     c_ces.set(                            pval,                        "c_ces",      false );
@@ -312,8 +318,10 @@ void parameters::initialize()
     (*this)["v_wind_max"] = &v_wind_max;
     (*this)["flux_max"] = &flux_max;
     (*this)["disp_inventory_incentive"] = &disp_inventory_incentive;
+    (*this)["helio_optical_error_mrad"] = &helio_optical_error_mrad;
     (*this)["dispatch_factors_ts"] = &dispatch_factors_ts;
     (*this)["wlim_series"] = &wlim_series;
+    (*this)["hx_failure_rate_mult"] = &hx_failure_rate_mult;
     (*this)["maintenance_interval"] = &maintenance_interval;
     (*this)["maintenance_duration"] = &maintenance_duration;
     (*this)["downtime_threshold"] = &downtime_threshold;
@@ -327,7 +335,7 @@ void parameters::initialize()
     (*this)["c_ces"] = &c_ces;
     (*this)["condenser_eff_cold"] = &condenser_eff_cold;
     (*this)["condenser_eff_hot"] = &condenser_eff_hot;
-
+    (*this)["cycle_seed"] = &cycle_seed;
 }
 
 
@@ -1152,7 +1160,6 @@ void Project::update_calculated_values_post_layout()
 
     int N_hel;
     int nc;
-    //ssc_number_t* helio_positions = 
     ssc_data_get_matrix(m_ssc_data, "helio_positions", &N_hel, &nc);
     ssc_data_set_number(m_ssc_data, "N_hel", N_hel);
 }
@@ -1230,6 +1237,58 @@ double Project::calc_real_dollars(const double &dollars, bool is_revenue, bool i
     }
 }
 
+bool Project::D_lite()
+{
+    /* 
+    Run the SolarPILOT characterization after generating the preliminary field from files.
+
+    [az] originally intended to replace D(), but when only running this without D() first, a memory error surfaces somewhere
+    in SolarPILOT.
+
+    */
+
+    ssc_module_exec_set_print(m_parameters.print_messages.as_boolean()); //0 = no, 1 = yes(print progress updates)
+    //change any defaults
+    
+    lk_hash_to_ssc(m_ssc_data, m_variables);
+    lk_hash_to_ssc(m_ssc_data, m_parameters);
+
+    update_calculated_system_values();
+
+    //Collect calculated data
+    ssc_to_lk_hash(m_ssc_data, m_design_outputs);
+
+    ssc_number_t val;
+    ssc_data_get_number(m_ssc_data, "area_sf", &val);
+    ssc_data_set_number(m_ssc_data, "A_sf", val);
+
+    //a successful layout will have solar field area
+    if (val < 0.1 || val == std::numeric_limits<double>::quiet_NaN())
+        return false;
+
+    ssc_data_get_number(m_ssc_data, "base_land_area", &val);
+    ssc_data_set_number(m_ssc_data, "land_area_base", val);
+    ssc_data_set_number(m_ssc_data, "land_area", val+45);
+    m_design_outputs.land_area.assign(val + 45.);
+
+    update_calculated_values_post_layout();
+
+    //get flux profiles from fixed design.
+    if (!calculate_flux_profiles())
+        return false;
+
+    //Collect calculated data
+    ssc_to_lk_hash(m_ssc_data, m_design_outputs);
+
+    //Land cost
+    m_design_outputs.cost_land_real.assign(calc_real_dollars(m_parameters.land_spec_cost.as_number() * m_design_outputs.land_area.as_number()));
+    //solar field cost
+    m_design_outputs.cost_sf_real.assign(calc_real_dollars((m_parameters.heliostat_spec_cost.as_number() + m_parameters.site_spec_cost.as_number()) * m_design_outputs.area_sf.as_number()));
+
+    is_design_valid = true;
+    return true;
+}
+
 
 bool Project::D()
 {
@@ -1242,7 +1301,7 @@ bool Project::D()
     */
     
     ssc_module_exec_set_print(m_parameters.print_messages.as_boolean()); //0 = no, 1 = yes(print progress updates)
-    
+    //m_parameters.n_sim_threads.assign(1);
     //change any defaults
     if (m_parameters.n_sim_threads.as_integer() > 1)        //if multithreading, don't calculate flux maps first pass. handle later
         ssc_data_set_number(m_ssc_data, "calc_fluxmaps", 0.);
@@ -1258,10 +1317,11 @@ bool Project::D()
         message_handler( ss.str().c_str() );
         return false;;
     }
+    update_calculated_system_values();
     fclose(fp);
 
-    update_calculated_system_values();
-    ssc_data_set_matrix(m_ssc_data, "heliostat_positions_in", (ssc_number_t*)0, 0, 0);
+    
+    //ssc_data_set_matrix(m_ssc_data, "heliostat_positions_in", (ssc_number_t*)0, 0, 0);
 
     lk_hash_to_ssc(m_ssc_data, m_variables);
     lk_hash_to_ssc(m_ssc_data, m_parameters);
@@ -1672,6 +1732,7 @@ bool Project::C()
     WELLFiveTwelve gen2(0);
     WELLFiveTwelve gen3(0);
     pc.AssignGenerators(&gen1, &gen2, &gen3);
+    pc.SetScenarioIndex(m_parameters.cycle_seed.as_integer());
 
     initialize_cycle_model(pc);
 
@@ -1959,7 +2020,7 @@ bool Project::S()
 
     //--- Set the solar field availability schedule
     std::vector<double> avail(nrec, 1.);
-    std::vector<double> soil(nrec, 1.);
+    std::vector<double> soil(nrec, m_parameters.helio_reflectance.as_number()/0.95);
     std::vector<double> degr(nrec, 1.);
 
     if (is_sf_avail_valid)
@@ -2001,8 +2062,9 @@ bool Project::S()
     ssc_data_get_number(m_ssc_data, "number_heliostats", &nhel);
     ssc_data_set_number(m_ssc_data, "A_sf_in", helio_height*helio_width*dens_mirror*nhel);
     ssc_data_set_number(m_ssc_data, "N_hel", nhel);
-    ssc_data_get_number(m_ssc_data, "base_land_area", &val);
-    ssc_data_set_number(m_ssc_data, "land_area_base", val);
+    ssc_data_get_number(m_ssc_data, "land_area", &val);
+    ssc_data_set_number(m_ssc_data, "land_area_base", val-45.);
+    ssc_data_set_number(m_ssc_data, "base_land_area", val-45.);
 
     int nr, nc;
     ssc_number_t *p_fluxmap = ssc_data_get_matrix(m_ssc_data, "flux_table", &nr, &nc);
@@ -2013,7 +2075,7 @@ bool Project::S()
     ssc_number_t *p_fluxpos = new ssc_number_t[nr * 2];
     for (int r = 0; r < nr; r++)
     {
-		p_opt_new[r*nc] = p_opt[r*nc]+180;
+        p_opt_new[r * nc] = p_opt[r * nc] + 180;
 		p_opt_new[r*nc+1] = p_opt[r*nc+1];
 		p_opt_new[r*nc+2] = p_opt[r*nc+2];
 
@@ -3091,7 +3153,8 @@ void Project::initialize_cycle_model(PowerCycle &pc)
         m_parameters.num_boiler_pumps.as_integer(),
         m_parameters.num_boiler_pumps_required.as_integer(),
         m_parameters.num_turbines.as_integer(),
-        c_eff_cold, c_eff_hot);
+        c_eff_cold, c_eff_hot,
+        m_parameters.hx_failure_rate_mult.as_number());
 
     pc.m_sim_params.num_scenarios = m_parameters.num_cycle_scenarios.as_integer();
     pc.m_sim_params.steplength = 1.0 / m_parameters.disp_steps_per_hour.as_number();
@@ -3101,23 +3164,23 @@ void Project::initialize_cycle_model(PowerCycle &pc)
     double capacity = m_variables.P_ref.as_number() * 1.e6;
     double thermal_capacity = capacity / m_variables.design_eff.as_number() * 1.e6;
     
-    pc.SetPlantAttributes(m_parameters.maintenance_interval.as_number(), 
-                          m_parameters.maintenance_duration.as_number(), 
-                          m_parameters.downtime_threshold.as_number(),
-                          m_parameters.hours_to_maintenance.as_number(), 
-                          0.0, 
-                          0.0, 
-                          0, 
-                          capacity, 
-                          thermal_capacity, 
-                          m_parameters.temp_threshold.as_number(),
-                          0.0, 
-                          0.0, 
-                          0.0, 
-                          m_parameters.shutdown_capacity.as_number(),
-                          m_parameters.no_restart_capacity.as_number(),
-                          m_parameters.shutdown_efficiency.as_number(), 
-                          m_parameters.no_restart_efficiency.as_number());
+    pc.SetPlantAttributes(m_parameters.maintenance_interval.as_number(),
+        m_parameters.maintenance_duration.as_number(),
+        m_parameters.downtime_threshold.as_number(),
+        m_parameters.hours_to_maintenance.as_number(),
+        0.0,
+        0.0,
+        0,
+        capacity,
+        thermal_capacity,
+        m_parameters.temp_threshold.as_number(),
+        0.0,
+        0.0,
+        0.0,
+        m_parameters.shutdown_capacity.as_number(),
+        m_parameters.no_restart_capacity.as_number(),
+        m_parameters.shutdown_efficiency.as_number(),
+        m_parameters.no_restart_efficiency.as_number());
 
 
     pc.StoreCycleState();
@@ -3906,4 +3969,77 @@ void Project::Clear_M()  // Clears M, S, C, E, F, Z
 	is_sf_avail_valid = false;
 	m_solarfield_outputs.initialize();
 	Clear_O();
+}
+
+std::vector<double> Project::ReadSPDataFromFile(std::string filename, int num_cols)
+{
+    std::ifstream data_file(filename);
+    std::string line;
+    double cur_val;
+    //double nh = 0;
+    std::vector<double> vals;
+    //std::getline(data_file, line);
+    //double min_x = 0., max_x = 0., min_y = 0, max_y = 0;//, rowidx = 0;
+    while (std::getline(data_file, line))
+    {
+        //if (rowidx == 100) { break; }
+        //rowidx++;
+        std::stringstream ss(line);
+        int colIdx = 0;
+        while (ss >> cur_val) {
+            if (colIdx < num_cols) {
+                vals.push_back(cur_val);
+            }
+
+            // If the next token is a comma, ignore it and move on
+            if (ss.peek() == ',') ss.ignore();
+
+            // Increment the column index
+            colIdx++;
+        }
+    }
+    return vals;
+}
+
+
+void Project::GetDesignOutputsFromFiles(
+    std::string layout_file,
+    std::string opt_eff_file,
+    std::string fluxmap_file
+)
+{
+    std::vector<double> layout_coordinates = ReadSPDataFromFile(layout_file, 2);
+    int num_helios = layout_coordinates.size() / 2;
+    ssc_number_t* ssc_position_vals = new ssc_number_t[num_helios*2];
+    for (int i = 0; i < num_helios*2; i++)
+        ssc_position_vals[i] = (ssc_number_t)layout_coordinates.at(i);
+    ssc_data_set_matrix(m_ssc_data, "heliostat_positions", ssc_position_vals, num_helios, 2);
+    ssc_data_set_matrix(m_ssc_data, "helio_positions", ssc_position_vals, num_helios, 2);
+    ssc_data_set_number(m_ssc_data, "number_heliostats", num_helios);
+    ssc_number_t* helio_ids = new ssc_number_t[num_helios];
+    ssc_number_t* ann_energy = new ssc_number_t[num_helios];
+    for (int i = 0; i < num_helios; i++) {
+        helio_ids[i] = i;
+        //ann_energy[i] = 1.;
+    }
+    ssc_data_set_array(m_ssc_data, "helio_ids", helio_ids, num_helios);
+    ssc_data_set_array(m_ssc_data, "annual_helio_energy", ann_energy, num_helios);
+
+    //Don't need these maps, just the locations after Running D() and then filling in other values
+    //std::vector<double> opt_eff_vals = ReadSPDataFromFile(opt_eff_file, 3);
+    //ssc_number_t* ssc_eff_vals = new ssc_number_t[opt_eff_vals.size()];
+    //for (int i = 0; i < opt_eff_vals.size(); i++)
+    //    ssc_eff_vals[i] = (ssc_number_t)opt_eff_vals.at(i);
+    ////ssc_data_set_matrix(m_ssc_data, "opteff_table", ssc_eff_vals, opt_eff_vals.size()/3, 3);
+
+    //std::vector<double> flux_vals = ReadSPDataFromFile(fluxmap_file, 14);
+    //ssc_number_t* ssc_flux_vals = new ssc_number_t[flux_vals.size()];
+    //for (size_t i = 0; i < flux_vals.size(); i++)
+    //    ssc_flux_vals[i] = (ssc_number_t)flux_vals.at(i);
+    ////ssc_data_set_matrix(m_ssc_data, "flux_table", ssc_flux_vals, flux_vals.size()/14,14);
+
+    //ssc_number_t* val; 
+    //ssc_data_get_number(m_ssc_data, "A_sf_in", &val);
+
+    is_design_valid = true;
 }

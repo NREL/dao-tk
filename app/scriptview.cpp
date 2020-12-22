@@ -50,6 +50,7 @@ void ClearOutput()
 static lk::fcall_t *daotk_functions()
 {
 	static lk::fcall_t st[] = {
+		_run_annual_sim,
 		_test,
 		_initialize,
 		_generate_solarfield,

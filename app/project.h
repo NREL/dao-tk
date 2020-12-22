@@ -527,6 +527,7 @@ struct parameters : public hash_base
 	parameter cycle_nyears;
 	parameter wash_vehicle_life;
     parameter n_sim_threads;
+	parameter cycle_seed;
     //doubles
 	parameter rec_ref_cost;
 	parameter rec_ref_area;
@@ -567,6 +568,8 @@ struct parameters : public hash_base
 	parameter startup_frac;
 	parameter v_wind_max;
 	parameter flux_max;
+	parameter helio_optical_error_mrad;
+	parameter hx_failure_rate_mult;
 	parameter maintenance_interval;
 	parameter maintenance_duration;
 	parameter downtime_threshold;
@@ -903,6 +906,7 @@ public:
 	void Initialize();
 
 	//objective function methods
+	bool D_lite();  //Solar field characterization only
 	bool D();       //Solar field layout and design
 	bool recalculate_flux_profiles_from_design(); // Re-calculate flux profiles using fixed design
 	bool M();       //Heliostat mechanical availability
@@ -931,6 +935,14 @@ public:
 	void Clear_S();
 	void Clear_O();
 	void Clear_M();
+
+	std::vector<double> ReadSPDataFromFile(std::string filename, int num_cols);
+
+	void GetDesignOutputsFromFiles(
+		std::string layout_file,
+		std::string opt_eff_file,
+		std::string fluxmap_file
+		);
 
 };
 

@@ -202,7 +202,7 @@ public:
 	);
 	void CreateComponentsFromFile(std::string component_data);
 	void AddCondenserTrains(int num_trains, int num_fans, int num_radiators);
-	void AddSaltToSteamTrains(int num_trains);
+	void AddSaltToSteamTrains(int num_trains, double hx_failure_rate_mult);
 	void AddFeedwaterHeaters(int num_fwh);
 	void AddSaltPumps(int num_pumps, int num_required);
 	void AddWaterPumps(int num_pumps, int num_required);
@@ -223,6 +223,7 @@ public:
 		int num_turbines = 1,
 		std::vector<double> condenser_eff_cold = { 0.,1.,1. },
 		std::vector<double> condenser_eff_hot = { 0.,0.95,1. },
+		double hx_failure_rate_mult = 1.0,
 		bool reset_hazard = false
 	);
 	void SetPlantAttributes(
